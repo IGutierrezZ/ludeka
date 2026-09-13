@@ -14,6 +14,7 @@ using Ludeka.Application.Features.Events;
 using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Instagram;
 using Ludeka.Application.Features.Plays;
+using Ludeka.Application.Features.Affiliates;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
@@ -118,6 +119,10 @@ builder.Services.AddScoped<IGameIssueReportService, GameIssueReportService>();
 builder.Services.AddScoped<IImageStorageService, PhysicalFileImageStorageService>();
 builder.Services.AddScoped<IGameEditLogRepository, SqliteGameEditLogRepository>();
 builder.Services.AddScoped<IGameEditorService, GameEditorService>();
+
+// Incremento 37: Motor Privado y Centralizado de Enlaces de Afiliado para Tiendas Colaboradoras
+builder.Services.Configure<AffiliateOptions>(builder.Configuration.GetSection(AffiliateOptions.SectionName));
+builder.Services.AddSingleton<IAffiliateUrlResolver, AffiliateUrlResolver>();
 
 // Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
 builder.Services.AddSingleton<ISleeveStoreUrlResolver, SleeveStoreUrlResolver>();

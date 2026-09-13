@@ -50,9 +50,11 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-34** | Barrido Sistémico de ORDER BY DateTimeOffset en Repositorios SQLite | ✅ Archivado | Fix directo (bugfix Strict TDD; ver `docs/specs/ROADMAP_MVP_SLICES.md`, Incremento 34) |
 | **INC-35** | Portada Editorial: Narrativa Hogareña, Microinteracciones e Imágenes por Defecto | ✅ Archivado | [inc-35-portada-editorial.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-35-portada-editorial.md) |
 | **INC-36** | Rediseño Editorial del Resto de Páginas (Catálogo, Fichas, Eventos, Sorteos, Novedades) + Fix Responsive del Hero | ✅ Archivado | [inc-36-rediseno-paginas-editoriales.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-36-rediseno-paginas-editoriales.md) |
+| **INC-37** | Modo Producción: APIs Reales, Atribución BGG, Comunidad y Motor Privado de Afiliados | ✅ Archivado | [inc-37-apis-produccion-afiliados.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-37-apis-produccion-afiliados.md) |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-Actualmente **no hay incrementos en curso**. La cadena de PRs apilados de INC-36 (#8 → #13) queda archivada y pendiente del merge ordenado por el maintainer.
+*(Ninguno en curso actualmente. Próximo: INC-38 — Migración a PostgreSQL en Supabase, Migraciones EF Core y Backups).*
+

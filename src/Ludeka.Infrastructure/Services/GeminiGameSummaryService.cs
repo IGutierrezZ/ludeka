@@ -46,11 +46,18 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     {
         ArgumentNullException.ThrowIfNull(game);
 
-        // 1. Conmutación a simulación heurística si está configurado o si no hay API Key
+        // 1. Conmutación a simulación heurística si está configurado explícitamente en modo simulación
         if (_options.ShouldSimulate)
         {
             _logger.LogInformation("Gemini está en modo simulado o sin API Key. Empleando generador heurístico editorial para '{Title}'.", game.SpanishTitle);
             return HeuristicGameSummaryGenerator.Generate(game, "Heurística Editorial");
+        }
+
+        // En modo producción (Simulate = false), es obligatorio disponer de ApiKey y respuesta válida
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _logger.LogWarning("Gemini: ApiKey vacía en modo producción para '{Title}'. No se generará texto heurístico inventado.", game.SpanishTitle);
+            throw new InvalidOperationException($"No se puede generar la síntesis de IA para '{game.SpanishTitle}': Gemini ApiKey no configurada.");
         }
 
         // 2. Ejecución con Google Gemini API (con autoselección y autorrecuperación de modelo)
@@ -64,11 +71,11 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error al invocar Google Gemini API para '{Title}'. Activando fallback heurístico.", game.SpanishTitle);
+            _logger.LogWarning(ex, "Error al invocar Google Gemini API para '{Title}'.", game.SpanishTitle);
+            throw new HttpRequestException($"Error al invocar Google Gemini API para '{game.SpanishTitle}': {ex.Message}", ex);
         }
 
-        // 3. Fallback tolerante a fallos
-        return HeuristicGameSummaryGenerator.Generate(game, "Heurística Editorial (Fallback)");
+        throw new InvalidOperationException($"Google Gemini API devolvió una respuesta vacía o no estructurada para '{game.SpanishTitle}'.");
     }
 
     public async Task<AiGameSummaryDto> EnsureSummaryForGameAsync(Guid gameId, CancellationToken ct = default)

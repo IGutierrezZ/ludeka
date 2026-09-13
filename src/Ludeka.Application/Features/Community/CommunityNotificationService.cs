@@ -302,7 +302,8 @@ public class CommunityNotificationService : ICommunityNotificationService
     public async Task TriggerFridayReleasesBulletinAsync(CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+        int diff = (7 + ((int)today.DayOfWeek - (int)DayOfWeek.Monday)) % 7;
+        var startOfWeek = today.AddDays(-diff);
         var endOfWeek = startOfWeek.AddDays(6);
 
         var weeklyReleases = await _weeklyReleaseRepository.GetReleasesAsync(fromDate: startOfWeek, ct);

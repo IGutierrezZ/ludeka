@@ -230,7 +230,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GenerateSummaryAsync_WhenGeminiFailsOrTimesOut_FallsBackToHeuristicGracefully()
+    public async Task GenerateSummaryAsync_WhenGeminiFailsInProduction_ThrowsExceptionWithoutInventingData()
     {
         var game = CreateTestGame();
         var geminiOptions = Options.Create(new GeminiOptions
@@ -258,10 +258,30 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
             NullLogger<GeminiGameSummaryService>.Instance
         );
 
+        // En producción no se inventa heurística ante error de API; se lanza excepción para moderación/reintento
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GenerateSummaryAsync(game));
+    }
+
+    [Fact]
+    public async Task GenerateSummaryAsync_WhenSimulateIsTrue_ReturnsEditorialHeuristic()
+    {
+        var game = CreateTestGame();
+        var geminiOptions = Options.Create(new GeminiOptions
+        {
+            Simulate = true
+        });
+
+        var service = new GeminiGameSummaryService(
+            new HttpClient(),
+            geminiOptions,
+            _gameRepository,
+            NullLogger<GeminiGameSummaryService>.Instance
+        );
+
         var result = await service.GenerateSummaryAsync(game);
 
         Assert.NotNull(result);
-        Assert.Equal("Heurística Editorial (Fallback)", result.Model);
+        Assert.Equal("Heurística Editorial", result.Model);
         Assert.Contains("Catán", result.GeneralVerdict);
         Assert.False(string.IsNullOrWhiteSpace(result.ScalabilitySummary));
     }

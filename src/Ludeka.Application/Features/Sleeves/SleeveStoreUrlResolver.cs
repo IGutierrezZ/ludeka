@@ -13,6 +13,12 @@ namespace Ludeka.Application.Features.Sleeves;
 public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
 {
     private const string DefaultAffiliateTag = "ludeka";
+    private readonly IAffiliateUrlResolver? _affiliateResolver;
+
+    public SleeveStoreUrlResolver(IAffiliateUrlResolver? affiliateResolver = null)
+    {
+        _affiliateResolver = affiliateResolver;
+    }
 
     public string ResolveStoreUrl(string storeName, double widthMm, double heightMm, string? affiliateCode = null)
     {
@@ -22,29 +28,37 @@ public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
         var dimensionQuery = $"{widthStr}x{heightStr}";
 
         var normalizedStore = storeName?.Trim().ToLowerInvariant() ?? string.Empty;
+        string rawUrl;
 
         if (normalizedStore.Contains("zacatrus"))
         {
-            return $"https://zacatrus.es/catalogsearch/result/?q=fundas+{dimensionQuery}&ref={tag}";
+            rawUrl = $"https://zacatrus.es/catalogsearch/result/?q=fundas+{dimensionQuery}";
         }
-
-        if (normalizedStore.Contains("dungeon") || normalizedStore.Contains("marvels"))
+        else if (normalizedStore.Contains("dungeon") || normalizedStore.Contains("marvels"))
         {
-            return $"https://dungeonmarvels.com/buscar?controller=search&s=fundas+{dimensionQuery}&ref={tag}";
+            rawUrl = $"https://dungeonmarvels.com/buscar?controller=search&s=fundas+{dimensionQuery}";
         }
-
-        if (normalizedStore.Contains("cuarto") || normalizedStore.Contains("juegos"))
+        else if (normalizedStore.Contains("cuarto") || normalizedStore.Contains("juegos"))
         {
-            return $"https://cuartodejuegos.es/buscar?q=fundas+{dimensionQuery}&ref={tag}";
+            rawUrl = $"https://cuartodejuegos.es/buscar?q=fundas+{dimensionQuery}";
         }
-
-        if (normalizedStore.Contains("tablerum"))
+        else if (normalizedStore.Contains("tablerum"))
         {
-            return $"https://tablerum.es/buscar?q=fundas+{dimensionQuery}&ref={tag}";
+            rawUrl = $"https://tablerum.es/buscar?q=fundas+{dimensionQuery}";
+        }
+        else
+        {
+            // Fallback genérico a búsqueda
+            rawUrl = $"https://zacatrus.es/catalogsearch/result/?q=fundas+{dimensionQuery}";
         }
 
-        // Fallback genérico a búsqueda
-        return $"https://zacatrus.es/catalogsearch/result/?q=fundas+{dimensionQuery}&ref={tag}";
+        if (_affiliateResolver != null)
+        {
+            return _affiliateResolver.ResolveAffiliateUrl(rawUrl, storeName);
+        }
+
+        // Fallback heredado directo si no hay resolver configurado
+        return rawUrl.Contains('?') ? $"{rawUrl}&ref={tag}" : $"{rawUrl}?ref={tag}";
     }
 
     public IReadOnlyList<SleevePurchaseOptionDto> ResolvePurchaseOptions(SleeveItem sleeve, string? userCountry = null)
@@ -59,10 +73,14 @@ public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
             var directStore = string.IsNullOrWhiteSpace(sleeve.StoreName) ? "Tienda Oficial / Asociada" : sleeve.StoreName.Trim();
             var directCountry = string.IsNullOrWhiteSpace(sleeve.Country) ? "España" : CountryCatalog.Normalize(sleeve.Country);
 
+            var resolvedDirectUrl = _affiliateResolver != null
+                ? _affiliateResolver.ResolveAffiliateUrl(sleeve.AffiliateUrl, directStore)
+                : sleeve.AffiliateUrl;
+
             options.Add(new SleevePurchaseOptionDto(
                 StoreName: directStore,
                 StoreLogoUrl: "/images/store-placeholder.svg",
-                PurchaseUrl: sleeve.AffiliateUrl,
+                PurchaseUrl: resolvedDirectUrl,
                 Country: directCountry,
                 FormattedPrice: "Desde ~2,95 €",
                 Badge: "Recomendado",

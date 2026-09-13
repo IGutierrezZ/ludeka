@@ -3,6 +3,7 @@
 @using Ludeka.Core.ValueObjects
 @inject IUserLocationService LocationService
 @inject IStoreStockService StockService
+@inject IAffiliateUrlResolver AffiliateResolver
 
 <div id="donde-comprar" class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -160,10 +161,13 @@
                     </div>
 
                     @* Botón de compra y acción contextual *@
+                    @{
+                        var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
+                    }
                     <div class="flex items-center gap-2 pt-1">
                         @if (isOutOfStock)
                         {
-                            <a href="@offer.AffiliateUrl"
+                            <a href="@targetPurchaseUrl"
                                target="_blank"
                                rel="noopener noreferrer sponsored"
                                aria-label="Ver disponibilidad de @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
@@ -174,7 +178,7 @@
                         }
                         else
                         {
-                            <a href="@offer.AffiliateUrl"
+                            <a href="@targetPurchaseUrl"
                                target="_blank"
                                rel="noopener noreferrer sponsored"
                                aria-label="Comprar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
