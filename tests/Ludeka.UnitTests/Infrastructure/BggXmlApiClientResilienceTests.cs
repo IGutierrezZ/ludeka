@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -68,11 +69,12 @@ public class BggXmlApiClientResilienceTests
 
         using var bggClient = new BggXmlApiClient(client, options);
 
-        var reportedProgress = new List<BggImportProgressReport>();
+        var reportedProgress = new ConcurrentBag<BggImportProgressReport>();
         var progress = new Progress<BggImportProgressReport>(p => reportedProgress.Add(p));
 
         // Act
         var result = await bggClient.FetchUserCollectionAsync("ludomaster", progress);
+        await Task.Delay(50);
 
         // Assert
         Assert.Single(result);
@@ -114,11 +116,12 @@ public class BggXmlApiClientResilienceTests
 
         using var bggClient = new BggXmlApiClient(client, options);
 
-        var reportedProgress = new List<BggImportProgressReport>();
+        var reportedProgress = new ConcurrentBag<BggImportProgressReport>();
         var progress = new Progress<BggImportProgressReport>(p => reportedProgress.Add(p));
 
         // Act
         var result = await bggClient.FetchUserCollectionAsync("ludomaster", progress);
+        await Task.Delay(50);
 
         // Assert
         Assert.Single(result);
@@ -148,11 +151,12 @@ public class BggXmlApiClientResilienceTests
 
         using var bggClient = new BggXmlApiClient(client, options);
 
-        var reportedProgress = new List<BggImportProgressReport>();
+        var reportedProgress = new ConcurrentBag<BggImportProgressReport>();
         var progress = new Progress<BggImportProgressReport>(p => reportedProgress.Add(p));
 
         // Act
         var result = await bggClient.FetchUserCollectionAsync("ludomaster", progress);
+        await Task.Delay(50);
 
         // Assert
         Assert.Empty(result);

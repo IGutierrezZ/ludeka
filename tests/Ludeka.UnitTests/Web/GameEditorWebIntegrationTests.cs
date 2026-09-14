@@ -54,15 +54,22 @@ public class GameEditorWebIntegrationTests
         Assert.IsType<GameEditorService>(editorService);
     }
 
+    private static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Ludeka.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return dir!.FullName;
+    }
+
     [Fact]
     public void GameEditorModal_RazorFile_HasAccessibleAttributesAndEditorialTabs()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Shared\GameEditorModal.razor");
-        if (!File.Exists(path))
-        {
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Shared\GameEditorModal.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Shared", "GameEditorModal.razor");
         Assert.True(File.Exists(path), $"GameEditorModal.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);
@@ -92,12 +99,7 @@ public class GameEditorWebIntegrationTests
     [Fact]
     public void SleeveGuideCard_RazorFile_HasEditorialAndPurchaseCapabilities()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Shared\SleeveGuideCard.razor");
-        if (!File.Exists(path))
-        {
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Shared\SleeveGuideCard.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Shared", "SleeveGuideCard.razor");
         Assert.True(File.Exists(path), $"SleeveGuideCard.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);
@@ -121,12 +123,7 @@ public class GameEditorWebIntegrationTests
     [Fact]
     public void GameDetail_RazorFile_HasModeratorEditButtonAndEditorModal()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Pages\GameDetail.razor");
-        if (!File.Exists(path))
-        {
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Pages\GameDetail.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Pages", "GameDetail.razor");
         Assert.True(File.Exists(path), $"GameDetail.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);
@@ -140,12 +137,7 @@ public class GameEditorWebIntegrationTests
     [Fact]
     public void GameReportsModeration_RazorFile_HasCrossActionCorrectAndResolve()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Pages\GameReportsModeration.razor");
-        if (!File.Exists(path))
-        {
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Pages\GameReportsModeration.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Pages", "GameReportsModeration.razor");
         Assert.True(File.Exists(path), $"GameReportsModeration.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);
