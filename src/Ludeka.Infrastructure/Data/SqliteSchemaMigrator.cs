@@ -737,6 +737,73 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("BggCatalogStaging");
             }
+
+            // 17. Reconciliar tabla SocialInboxItems (Incremento 42)
+            if (!existingTables.Contains("SocialInboxItems"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "SocialInboxItems" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_SocialInboxItems" PRIMARY KEY,
+                        "SourceUrl" TEXT NOT NULL,
+                        "Platform" INTEGER NOT NULL,
+                        "DetectedType" INTEGER NOT NULL,
+                        "Status" INTEGER NOT NULL,
+                        "Title" TEXT NOT NULL,
+                        "OrganizerOrAuthor" TEXT NOT NULL,
+                        "Collaborator" TEXT NULL,
+                        "GameId" TEXT NULL,
+                        "GameTitle" TEXT NULL,
+                        "EventOrReleaseDate" TEXT NULL,
+                        "EventEndDate" TEXT NULL,
+                        "Location" TEXT NULL,
+                        "EstimatedPvp" TEXT NULL,
+                        "MediaCategory" INTEGER NULL,
+                        "PlayerCountBadge" TEXT NULL,
+                        "OriginalCaption" TEXT NULL,
+                        "ThumbnailUrl" TEXT NULL,
+                        "IsVideo" INTEGER NOT NULL,
+                        "AiAnalysisNotes" TEXT NULL,
+                        "CreatedEntityId" TEXT NULL,
+                        "ModeratorNotes" TEXT NULL,
+                        "CreatedAt" TEXT NOT NULL,
+                        "ReviewedAt" TEXT NULL,
+                        "ReviewedByUserId" TEXT NULL,
+                        CONSTRAINT "FK_SocialInboxItems_Games_GameId" FOREIGN KEY ("GameId") REFERENCES "Games" ("Id") ON DELETE SET NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_SocialInboxItems_Status" ON "SocialInboxItems" ("Status");
+                    CREATE INDEX IF NOT EXISTS "IX_SocialInboxItems_DetectedType" ON "SocialInboxItems" ("DetectedType");
+                    CREATE INDEX IF NOT EXISTS "IX_SocialInboxItems_CreatedAt" ON "SocialInboxItems" ("CreatedAt");
+                    CREATE INDEX IF NOT EXISTS "IX_SocialInboxItems_GameId" ON "SocialInboxItems" ("GameId");
+                """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("SocialInboxItems");
+            }
+
+            // 18. Reconciliar tabla MonitoredSocialAccounts (Incremento 42)
+            if (!existingTables.Contains("MonitoredSocialAccounts"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "MonitoredSocialAccounts" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_MonitoredSocialAccounts" PRIMARY KEY,
+                        "Name" TEXT NOT NULL,
+                        "Platform" INTEGER NOT NULL,
+                        "HandleOrChannelId" TEXT NOT NULL,
+                        "AccountType" INTEGER NOT NULL,
+                        "ProfileUrl" TEXT NOT NULL,
+                        "IsEnabled" INTEGER NOT NULL,
+                        "LastCheckedAt" TEXT NULL,
+                        "Notes" TEXT NULL,
+                        "CreatedAt" TEXT NOT NULL,
+                        "UpdatedAt" TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_MonitoredSocialAccounts_Platform_HandleOrChannelId" ON "MonitoredSocialAccounts" ("Platform", "HandleOrChannelId");
+                    CREATE INDEX IF NOT EXISTS "IX_MonitoredSocialAccounts_IsEnabled" ON "MonitoredSocialAccounts" ("IsEnabled");
+                """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("MonitoredSocialAccounts");
+            }
         }
         finally
         {

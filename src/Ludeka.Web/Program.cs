@@ -258,6 +258,14 @@ builder.Services.AddScoped<IHomeDashboardService, CachedHomeDashboardService>(sp
 // Incremento 22: Módulo Completo de Grandes Eventos Lúdicos
 builder.Services.AddScoped<IBoardGameEventService, BoardGameEventService>();
 
+// Incremento 42: Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Directorio de Cuentas)
+builder.Services.AddScoped<ISocialInboxRepository, SqliteSocialInboxRepository>();
+builder.Services.AddScoped<IMonitoredAccountRepository, SqliteMonitoredAccountRepository>();
+builder.Services.AddHttpClient<ISocialMetadataExtractor, OpenGraphSocialMetadataExtractor>();
+builder.Services.AddHttpClient<ISocialAiAnalysisService, GeminiSocialAnalysisService>();
+builder.Services.AddScoped<ISocialIngestionService, SocialIngestionService>();
+builder.Services.AddScoped<IMonitoredAccountService, MonitoredAccountService>();
+
 // Incremento 10: Observabilidad con Health Checks Oficiales de ASP.NET Core
 builder.Services.AddHealthChecks()
     .AddCheck<SqliteDatabaseHealthCheck>("sqlite_db", tags: ["ready"])

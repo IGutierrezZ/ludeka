@@ -166,6 +166,20 @@
                                     }
                                     @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
                                     {
+                                        <a href="/admin/ingesta-social" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
+                                            <span class="text-amber-400"><Icon Name="sparkles" Size="14" /></span>
+                                            <div>
+                                                <div class="font-bold text-[var(--text-primary)]">Bandeja Ingesta Social</div>
+                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Alta exprés, moderación y sorteos</div>
+                                            </div>
+                                        </a>
+                                        <a href="/admin/canales-monitorizados" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
+                                            <span class="text-blue-400"><Icon Name="radio" Size="14" /></span>
+                                            <div>
+                                                <div class="font-bold text-[var(--text-primary)]">Canales Monitorizados</div>
+                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Directorio de Instagram, YouTube y webs</div>
+                                            </div>
+                                        </a>
                                         <a href="/moderacion-media" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
                                             <span class="text-emerald-400"><Icon Name="clapperboard" Size="14" /></span>
                                             <div>

@@ -33,6 +33,8 @@ public class LudekaDbContext : DbContext
     public DbSet<NightlyCatalogingExecutionLog> NightlyCatalogingExecutionLogs => Set<NightlyCatalogingExecutionLog>();
     public DbSet<InstagramPostDraft> InstagramPostDrafts => Set<InstagramPostDraft>();
     public DbSet<BggCatalogStagingItem> BggCatalogStaging => Set<BggCatalogStagingItem>();
+    public DbSet<SocialInboxItem> SocialInboxItems => Set<SocialInboxItem>();
+    public DbSet<MonitoredSocialAccount> MonitoredSocialAccounts => Set<MonitoredSocialAccount>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -430,5 +432,36 @@ public class LudekaDbContext : DbContext
         staging.Property(s => s.Designer).HasMaxLength(200);
         staging.Property(s => s.Publisher).HasMaxLength(200);
         staging.Property(s => s.ErrorMessage).HasMaxLength(1000);
+
+        // --- Configuración de SocialInboxItem (Incremento 42) ---
+        var socialInbox = modelBuilder.Entity<SocialInboxItem>();
+        socialInbox.ToTable("SocialInboxItems");
+        socialInbox.HasKey(i => i.Id);
+        socialInbox.HasIndex(i => i.Status);
+        socialInbox.HasIndex(i => i.DetectedType);
+        socialInbox.HasIndex(i => i.CreatedAt);
+        socialInbox.Property(i => i.SourceUrl).IsRequired().HasMaxLength(500);
+        socialInbox.Property(i => i.Title).IsRequired().HasMaxLength(250);
+        socialInbox.Property(i => i.OrganizerOrAuthor).IsRequired().HasMaxLength(200);
+        socialInbox.Property(i => i.Collaborator).HasMaxLength(200);
+        socialInbox.Property(i => i.Location).HasMaxLength(200);
+        socialInbox.Property(i => i.PlayerCountBadge).HasMaxLength(50);
+        socialInbox.Property(i => i.ThumbnailUrl).HasMaxLength(1000);
+
+        socialInbox.HasOne(i => i.Game)
+            .WithMany()
+            .HasForeignKey(i => i.GameId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // --- Configuración de MonitoredSocialAccount (Incremento 42) ---
+        var monitoredAccount = modelBuilder.Entity<MonitoredSocialAccount>();
+        monitoredAccount.ToTable("MonitoredSocialAccounts");
+        monitoredAccount.HasKey(a => a.Id);
+        monitoredAccount.HasIndex(a => new { a.Platform, a.HandleOrChannelId });
+        monitoredAccount.HasIndex(a => a.IsEnabled);
+        monitoredAccount.Property(a => a.Name).IsRequired().HasMaxLength(200);
+        monitoredAccount.Property(a => a.HandleOrChannelId).IsRequired().HasMaxLength(150);
+        monitoredAccount.Property(a => a.ProfileUrl).IsRequired().HasMaxLength(500);
+        monitoredAccount.Property(a => a.Notes).HasMaxLength(1000);
     }
 }

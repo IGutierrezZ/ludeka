@@ -18,6 +18,11 @@
         <Actions>
             @if (IsModerator)
             {
+                <button type="button"
+                        @onclick="() => _isExpressModalOpen = true"
+                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="zap" Size="12" /> Alta Exprés
+                </button>
                 <a href="/admin/eventos"
                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
                     <Icon Name="settings" Size="12" /> Gestionar Eventos
@@ -219,10 +224,15 @@
     </div>
 </div>
 
+<SocialExpressIngestModal IsOpen="_isExpressModalOpen"
+                          OnClose="() => _isExpressModalOpen = false"
+                          OnItemCreated="HandleExpressItemCreated" />
+
 @code {
     private enum Tab { Upcoming, Past }
     private Tab _activeTab = Tab.Upcoming;
     private bool _isLoading = true;
+    private bool _isExpressModalOpen;
     private string? _userActiveCountry;
     private string? _countryFilter;
 
@@ -290,5 +300,11 @@
             return "bg-black/60 text-white/80 border-white/10";
 
         return "bg-black/60 text-white border-white/20";
+    }
+
+    private async Task HandleExpressItemCreated(Ludeka.Application.DTOs.SocialInboxItemDto item)
+    {
+        _isExpressModalOpen = false;
+        await LoadDataAsync();
     }
 }

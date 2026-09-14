@@ -55,12 +55,12 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-39** | Empaquetado Docker para Producción, Google Cloud Run y Pipeline CI/CD con Secretos | ✅ Archivado | [inc-39-docker-prod-cloudrun.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-39-docker-prod-cloudrun.md) |
 | **INC-40** | Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP) | ✅ Archivado | [inc-40-medios-r2-skiasharp.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-40-medios-r2-skiasharp.md) |
 | **INC-41** | Ingesta Masiva de Catálogo BGG (~8.000 juegos), Fotos GeekDo y Síntesis IA en Lotes | ✅ Archivado | [inc-41-ingesta-bgg-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-41-ingesta-bgg-catalogo.md) |
-| **INC-42** | Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Canales) | 📋 Planificado | Pendiente |
+| **INC-42** | Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Canales) | ✅ Archivado | [inc-42-ingesta-social-moderacion.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-42-ingesta-social-moderacion.md) |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- *Ningún incremento en curso.* (INC-41 listo para PR).
+*(Sin incrementos activos en este momento — listos para el siguiente paso del roadmap)*
 
 

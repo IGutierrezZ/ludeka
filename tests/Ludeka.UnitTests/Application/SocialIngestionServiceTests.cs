@@ -1,0 +1,405 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Community;
+using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+namespace Ludeka.UnitTests.Application;
+
+public class SocialIngestionServiceTests
+{
+    private class FakeSocialInboxRepository : ISocialInboxRepository
+    {
+        public List<SocialInboxItem> Items { get; } = new();
+
+        public Task<IReadOnlyList<SocialInboxItem>> GetPendingAsync(SocialSubmissionType? typeFilter = null, CancellationToken ct = default)
+        {
+            var pending = Items.Where(i => i.Status == SocialInboxStatus.PendingReview);
+            if (typeFilter.HasValue) pending = pending.Where(i => i.DetectedType == typeFilter.Value);
+            return Task.FromResult<IReadOnlyList<SocialInboxItem>>(pending.ToList());
+        }
+
+        public Task<IReadOnlyList<SocialInboxItem>> GetAllAsync(SocialInboxStatus? statusFilter = null, SocialSubmissionType? typeFilter = null, int page = 1, int pageSize = 50, CancellationToken ct = default)
+        {
+            var query = Items.AsEnumerable();
+            if (statusFilter.HasValue) query = query.Where(i => i.Status == statusFilter.Value);
+            if (typeFilter.HasValue) query = query.Where(i => i.DetectedType == typeFilter.Value);
+            return Task.FromResult<IReadOnlyList<SocialInboxItem>>(query.Skip((page - 1) * pageSize).Take(pageSize).ToList());
+        }
+
+        public Task<SocialInboxItem?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        {
+            return Task.FromResult(Items.Find(i => i.Id == id));
+        }
+
+        public Task<int> GetPendingCountAsync(CancellationToken ct = default)
+        {
+            return Task.FromResult(Items.Count(i => i.Status == SocialInboxStatus.PendingReview));
+        }
+
+        public Task<SocialInboxItem> AddAsync(SocialInboxItem item, CancellationToken ct = default)
+        {
+            Items.Add(item);
+            return Task.FromResult(item);
+        }
+
+        public Task UpdateAsync(SocialInboxItem item, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> ExistsBySourceUrlAsync(string sourceUrl, CancellationToken ct = default)
+        {
+            return Task.FromResult(Items.Any(i => i.SourceUrl.Equals(sourceUrl, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    private class FakeSocialMetadataExtractor : ISocialMetadataExtractor
+    {
+        public SocialMetadataResultDto? ResultToReturn { get; set; }
+
+        public Task<SocialMetadataResultDto?> ExtractFromUrlAsync(string url, CancellationToken ct = default)
+        {
+            return Task.FromResult(ResultToReturn);
+        }
+    }
+
+    private class FakeSocialAiAnalysisService : ISocialAiAnalysisService
+    {
+        public SocialAiAnalysisResultDto ResultToReturn { get; set; } = new(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Ark Nova",
+            OrganizerOrAuthor: "Maldito Games",
+            Collaborator: null,
+            SuggestedGameTitle: "Ark Nova",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(5),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: null);
+
+        public Task<SocialAiAnalysisResultDto> AnalyzeTextAsync(string text, string? authorOrChannel = null, CancellationToken ct = default)
+        {
+            return Task.FromResult(ResultToReturn);
+        }
+    }
+
+    private class FakeImageStorageService : IImageStorageService
+    {
+        public Task<string> UploadOptimizedImageAsync(Stream inputStream, string objectKey, int maxWidth = 1000, int quality = 82, CancellationToken ct = default)
+        {
+            return Task.FromResult($"https://cdn.ludeka.com/{objectKey}");
+        }
+
+        public Task<ImageVariantUrls> UploadGameImageVariantsAsync(Stream rawImageStream, int bggId, string imageType, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ImageVariantUrls($"https://cdn.ludeka.com/games/{bggId}/{imageType}.webp", null));
+        }
+
+        public Task<bool> DeleteImageAsync(string objectKey, CancellationToken ct = default) => Task.FromResult(true);
+        public string GetPublicUrl(string objectKey) => $"https://cdn.ludeka.com/{objectKey}";
+        public Task<GameImageUploadResult> SaveGameCoverAsync(string slug, Stream contentStream, string originalFileName, string contentType, CancellationToken ct = default)
+            => Task.FromResult(new GameImageUploadResult(true, "https://cdn.ludeka.com/cover.webp", null));
+        public Task<GameImageUploadResult> SaveEventPosterAsync(string eventSlugOrId, Stream contentStream, string originalFileName, string contentType, CancellationToken ct = default)
+            => Task.FromResult(new GameImageUploadResult(true, "https://cdn.ludeka.com/poster.webp", null));
+        public Task<GameImageUploadResult> SaveCommunityImageAsync(string folder, string entityId, Stream contentStream, string originalFileName, string contentType, CancellationToken ct = default)
+            => Task.FromResult(new GameImageUploadResult(true, "https://cdn.ludeka.com/comm.webp", null));
+        public Task<GameImageUploadResult> ValidateCoverUrlAsync(string coverUrl, CancellationToken ct = default)
+            => Task.FromResult(new GameImageUploadResult(true, coverUrl, null));
+    }
+
+    private class FakeGameRepository : IGameRepository
+    {
+        public List<Game> Games { get; } = new();
+
+        public Task<Game?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Games.Find(g => g.Id == id));
+        public Task<Game?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Games.Find(g => g.Slug == slug));
+        public Task<Game?> GetByBggIdAsync(int bggId, CancellationToken ct = default) => Task.FromResult(Games.Find(g => g.BggId == bggId));
+        public Task<(IReadOnlyList<Game> Items, int TotalCount)> SearchAsync(GameFilterCriteria criteria, int page = 1, int pageSize = 20, CancellationToken ct = default)
+        {
+            var matches = Games.Where(g => string.IsNullOrWhiteSpace(criteria.SearchTerm) || g.SpanishTitle.Contains(criteria.SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+            return Task.FromResult(((IReadOnlyList<Game>)matches, matches.Count));
+        }
+        public Task AddRangeAsync(IEnumerable<Game> games, CancellationToken ct = default) { Games.AddRange(games); return Task.CompletedTask; }
+        public Task UpdateAsync(Game game, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> HasAnyAsync(CancellationToken ct = default) => Task.FromResult(Games.Count > 0);
+    }
+
+    private class FakeGiveawayRepository : IGiveawayRepository
+    {
+        public List<Giveaway> Items { get; } = new();
+        public Task<IReadOnlyList<Giveaway>> GetGiveawaysAsync(bool includeExpired = false, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Giveaway>>(Items);
+        public Task<Giveaway?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(g => g.Id == id));
+        public Task<Giveaway?> FindDuplicateOrCollaborativeAsync(string title, string organizer, DateTimeOffset deadline, CancellationToken ct = default) => Task.FromResult<Giveaway?>(null);
+        public Task AddAsync(Giveaway giveaway, CancellationToken ct = default) { Items.Add(giveaway); return Task.CompletedTask; }
+        public Task UpdateAsync(Giveaway giveaway, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(g => g.Id == id); return Task.CompletedTask; }
+    }
+
+    private class FakeWeeklyReleaseRepository : IWeeklyReleaseRepository
+    {
+        public List<WeeklyRelease> Items { get; } = new();
+        public Task<IReadOnlyList<WeeklyRelease>> GetCurrentWeekReleasesAsync(DateOnly? referenceDate = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyRelease>>(Items);
+        public Task<IReadOnlyList<WeeklyRelease>> GetReleasesAsync(DateOnly? weekOf = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyRelease>>(Items);
+        public Task<WeeklyRelease?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(r => r.Id == id));
+        public Task AddAsync(WeeklyRelease release, CancellationToken ct = default) { Items.Add(release); return Task.CompletedTask; }
+        public Task UpdateAsync(WeeklyRelease release, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(r => r.Id == id); return Task.CompletedTask; }
+        public Task<IReadOnlyList<WeeklyRelease>> GetAllReleasesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyRelease>>(Items);
+    }
+
+    private class FakeBoardGameEventRepository : IBoardGameEventRepository
+    {
+        public List<BoardGameEvent> Items { get; } = new();
+        public Task<IReadOnlyList<BoardGameEvent>> GetUpcomingEventsAsync(string? country = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BoardGameEvent>>(Items);
+        public Task<IReadOnlyList<BoardGameEvent>> GetUpcomingEventsAsync(int count, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BoardGameEvent>>(Items.Take(count).ToList());
+        public Task<IReadOnlyList<BoardGameEvent>> GetPastEventsAsync(string? country = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BoardGameEvent>>(Items);
+        public Task<BoardGameEvent?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(e => e.Id == id));
+        public Task AddAsync(BoardGameEvent gameEvent, CancellationToken ct = default) { Items.Add(gameEvent); return Task.CompletedTask; }
+        public Task UpdateAsync(BoardGameEvent gameEvent, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(e => e.Id == id); return Task.CompletedTask; }
+        public Task<IReadOnlyList<BoardGameEvent>> GetAllEventsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BoardGameEvent>>(Items);
+    }
+
+    private class FakeMediaRepository : IMediaRepository
+    {
+        public List<MediaItem> Items { get; } = new();
+        public Task<IReadOnlyList<MediaItem>> GetByGameIdAsync(Guid gameId, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items.Where(m => m.GameId == gameId).ToList());
+        public Task<IReadOnlyList<MediaItem>> GetApprovedByGameIdAsync(Guid gameId, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items.Where(m => m.GameId == gameId && m.Status == ModerationStatus.Approved).ToList());
+        public Task<IReadOnlyList<MediaItem>> GetPendingModerationAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items);
+        public Task<IReadOnlyList<MediaItem>> GetOrphansAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items.Where(m => m.IsOrphan).ToList());
+        public Task<IReadOnlyList<MediaItem>> GetApprovedAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items.Where(m => m.Status == ModerationStatus.Approved).ToList());
+        public Task<bool> ExistsByUrlAsync(string url, CancellationToken ct = default) => Task.FromResult(Items.Any(m => m.Url == url));
+        public Task<MediaItem?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(m => m.Id == id));
+        public Task AddAsync(MediaItem item, CancellationToken ct = default) { Items.Add(item); return Task.CompletedTask; }
+        public Task UpdateAsync(MediaItem item, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(m => m.Id == id); return Task.CompletedTask; }
+        public Task<IReadOnlyList<MediaItem>> GetOrphanMediaAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items.Where(m => m.IsOrphan).ToList());
+        public Task<IReadOnlyList<MediaItem>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items);
+        public Task<IReadOnlyList<MediaItem>> GetFilteredAsync(Guid? gameId, MediaCategory? category, MediaType? type, ModerationStatus? status, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items);
+    }
+
+    private readonly FakeSocialInboxRepository _inboxRepo = new();
+    private readonly FakeSocialMetadataExtractor _metadataExtractor = new();
+    private readonly FakeSocialAiAnalysisService _aiService = new();
+    private readonly FakeImageStorageService _imageStorageService = new();
+    private readonly FakeGameRepository _gameRepo = new();
+    private readonly FakeGiveawayRepository _giveawayRepo = new();
+    private readonly FakeWeeklyReleaseRepository _releaseRepo = new();
+    private readonly FakeBoardGameEventRepository _eventRepo = new();
+    private readonly FakeMediaRepository _mediaRepo = new();
+
+    private SocialIngestionService CreateService()
+    {
+        return new SocialIngestionService(
+            _inboxRepo,
+            _metadataExtractor,
+            _aiService,
+            _imageStorageService,
+            _gameRepo,
+            _giveawayRepo,
+            _releaseRepo,
+            _eventRepo,
+            _mediaRepo,
+            new HttpClient(),
+            NullLogger<SocialIngestionService>.Instance);
+    }
+
+    [Fact]
+    public async Task IngestFromUrlAsync_ValidGiveawayUrl_CreatesPendingItemInInbox()
+    {
+        // Arrange
+        var service = CreateService();
+        _metadataExtractor.ResultToReturn = new SocialMetadataResultDto(
+            Url: "https://www.instagram.com/p/test123/",
+            Platform: SocialPlatform.Instagram,
+            Title: "Post de sorteo",
+            AuthorOrChannel: "Maldito Games",
+            Description: "Sorteo Ark Nova",
+            ImageUrl: null,
+            IsVideo: false);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Oficial Ark Nova",
+            OrganizerOrAuthor: "Maldito Games",
+            Collaborator: null,
+            SuggestedGameTitle: "Ark Nova",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(7),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: null);
+
+        // Act
+        var result = await service.IngestFromUrlAsync("https://www.instagram.com/p/test123/");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal(SocialInboxStatus.PendingReview, result.Status);
+        Assert.Equal(SocialSubmissionType.Giveaway, result.DetectedType);
+        Assert.Equal("Sorteo Oficial Ark Nova", result.Title);
+        Assert.Equal("Maldito Games", result.OrganizerOrAuthor);
+        Assert.Equal(1, _inboxRepo.Items.Count);
+    }
+
+    [Fact]
+    public async Task IngestManualAdvancedAsync_ValidInput_CreatesPendingItem()
+    {
+        // Arrange
+        var service = CreateService();
+        var gameId = Guid.NewGuid();
+
+        var input = new SocialInboxManualInputDto(
+            SourceUrl: "https://www.youtube.com/watch?v=12345",
+            SubmissionType: SocialSubmissionType.MediaItem,
+            Title: "Partida completa Ark Nova a 2",
+            OrganizerOrAuthor: "La Mazmorra de Pacheco",
+            GameId: gameId,
+            GameTitle: "Ark Nova",
+            MediaCategory: MediaCategory.Gameplay,
+            PlayerCountBadge: "Partida a 2");
+
+        // Act
+        var result = await service.IngestManualAdvancedAsync(input);
+
+        // Assert
+        Assert.Equal(SocialSubmissionType.MediaItem, result.DetectedType);
+        Assert.Equal("Partida completa Ark Nova a 2", result.Title);
+        Assert.Equal(gameId, result.GameId);
+        Assert.Equal("Partida a 2", result.PlayerCountBadge);
+        Assert.Equal(MediaCategory.Gameplay, result.MediaCategory);
+        Assert.True(result.IsVideo);
+    }
+
+    [Fact]
+    public async Task UpdateItemAsync_WhenPending_UpdatesDetails()
+    {
+        // Arrange
+        var service = CreateService();
+        var initial = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/abc",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Título Inicial",
+            organizerOrAuthor: "Organizador Inicial");
+
+        _inboxRepo.Items.Add(initial);
+
+        var updateDto = new SocialInboxUpdateDto(
+            Id: initial.Id,
+            Title: "Título Rectificado",
+            OrganizerOrAuthor: "Devir",
+            Collaborator: "Zacatrus",
+            DetectedType: SocialSubmissionType.Giveaway,
+            GameId: null,
+            GameTitle: "Cascadia",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(3),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            ThumbnailUrl: "https://cdn.ludeka.com/custom.webp",
+            ModeratorNotes: "Corregido");
+
+        // Act
+        var updated = await service.UpdateItemAsync(updateDto);
+
+        // Assert
+        Assert.Equal("Título Rectificado", updated.Title);
+        Assert.Equal("Devir", updated.OrganizerOrAuthor);
+        Assert.Equal("Zacatrus", updated.Collaborator);
+        Assert.Equal("Cascadia", updated.GameTitle);
+        Assert.Equal("Corregido", updated.ModeratorNotes);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayItem_CreatesGiveawayAndSetsApproved()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Brass Birmingham",
+            organizerOrAuthor: "Maldito Games",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(5));
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, createdId);
+        Assert.Equal(SocialInboxStatus.Approved, item.Status);
+        Assert.Equal(createdId, item.CreatedEntityId);
+        Assert.Single(_giveawayRepo.Items);
+        Assert.Equal("Sorteo Brass Birmingham", _giveawayRepo.Items[0].Title);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_BoardGameEventItem_CreatesEventAndSetsApproved()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://interocio.es",
+            platform: SocialPlatform.Website,
+            detectedType: SocialSubmissionType.BoardGameEvent,
+            title: "Feria InterOcio 2027",
+            organizerOrAuthor: "InterOcio",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddMonths(2),
+            location: "IFEMA Madrid");
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.Equal(SocialInboxStatus.Approved, item.Status);
+        Assert.Single(_eventRepo.Items);
+        Assert.Equal("Feria InterOcio 2027", _eventRepo.Items[0].Title);
+        Assert.Equal("IFEMA Madrid", _eventRepo.Items[0].Location);
+    }
+
+    [Fact]
+    public async Task RejectItemAsync_ValidReason_SetsStatusRejected()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/spam",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Publicación No Relevante",
+            organizerOrAuthor: "Desconocido");
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        await service.RejectItemAsync(item.Id, "No es juego de mesa", "admin_user");
+
+        // Assert
+        Assert.Equal(SocialInboxStatus.Rejected, item.Status);
+        Assert.Equal("No es juego de mesa", item.ModeratorNotes);
+        Assert.Equal("admin_user", item.ReviewedByUserId);
+    }
+}

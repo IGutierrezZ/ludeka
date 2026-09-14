@@ -15,6 +15,14 @@
                          Subtitle="Oportunidades lúdicas verificadas sin spam. Sorteos activos en Instagram, YouTube y redes con alertas de expiración y destacados oficiales.">
         <Title>Sorteos de Juegos de Mesa</Title>
         <Actions>
+            @if (IsModerator)
+            {
+                <button type="button"
+                        @onclick="() => _isExpressModalOpen = true"
+                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="zap" Size="12" /> Alta Exprés
+                </button>
+            }
             <button type="button"
                     @onclick="() => _isCreateModalOpen = true"
                     class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
@@ -233,6 +241,10 @@
         </Footer>
     </EditorialModal>
 
+    <SocialExpressIngestModal IsOpen="_isExpressModalOpen"
+                              OnClose="() => _isExpressModalOpen = false"
+                              OnItemCreated="HandleExpressItemCreated" />
+
 @code {
     private bool _includeExpired;
     private bool _isLoading = true;
@@ -240,6 +252,7 @@
     private string? _userActiveCountry;
     private string? _countryFilter;
 
+    private bool _isExpressModalOpen;
     private bool _isCreateModalOpen;
     private string _formTitle = string.Empty;
     private string _formOrganizer = string.Empty;
@@ -350,6 +363,12 @@
         _formIsCommunityExclusive = false;
         _formIsPromoted = false;
 
+        await LoadDataAsync();
+    }
+
+    private async Task HandleExpressItemCreated(Ludeka.Application.DTOs.SocialInboxItemDto item)
+    {
+        _isExpressModalOpen = false;
         await LoadDataAsync();
     }
 }

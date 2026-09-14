@@ -396,6 +396,21 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 42: Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Directorio de Cuentas Monitorizadas)
+- **Identificador SDD:** `change-42-ingesta-social-moderacion`
+- **Objetivo Principal:** Pipeline integral de captura y curación comunitaria de contenidos lúdicos en redes:
+  1. Alta exprés ("copiar, pegar y listo") por URL con extracción OpenGraph y oEmbed de YouTube sin APIs de pago (descartando Apify).
+  2. Asistencia IA inteligente (Gemini Flash + heurística en español) para detectar sorteos, novedades, eventos y vídeos.
+  3. Modo manual avanzado para reels/vídeos sin descripción, con buscador predictivo de catálogo y subida de miniatura WebP a Cloudflare R2 vía `IImageStorageService`.
+  4. Bandeja de moderación 100% editable (`/admin/ingesta-social`) para corregir títulos, fechas, recinto o juego antes de aprobar atómicamente a `Giveaway`, `WeeklyRelease`, `BoardGameEvent` o `MediaItem`.
+  5. Directorio de fuentes y canales monitorizados (`/admin/canales-monitorizados`) con sincronización en 1 clic desde entidades de `Publisher`, `Creator` y `Store`.
+  6. Puntos de entrada transversales en `MainLayout.razor`, `Radar.razor`, `News.razor` y `Events.razor`, cumpliendo el contrato de maquetación libre de emojis.
+- **Estado:** ✅ **Completado y Archivado** (suite 960/960 en verde al 100%; +30 pruebas unitarias nuevas sin dependencias de mock).
+- **Documento:** [`inc-42-ingesta-social-moderacion.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-42-ingesta-social-moderacion.md).
+- **Módulos del Sistema:** [`28-hub-ingesta-social-moderacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
