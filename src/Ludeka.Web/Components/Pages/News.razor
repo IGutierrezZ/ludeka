@@ -14,6 +14,11 @@
             @if (IsModerator)
             {
                 <button type="button"
+                        @onclick="() => _isExpressModalOpen = true"
+                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="zap" Size="12" /> Alta Exprés
+                </button>
+                <button type="button"
                         @onclick="() => _isCreateModalOpen = true"
                         class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
                     <Icon Name="plus" Size="12" /> Añadir Novedad
@@ -267,12 +272,17 @@
         </Footer>
     </EditorialModal>
 
+    <SocialExpressIngestModal IsOpen="_isExpressModalOpen"
+                              OnClose="() => _isExpressModalOpen = false"
+                              OnItemCreated="HandleExpressItemCreated" />
+
 @code {
     private bool _isLoading = true;
     private IReadOnlyList<WeeklyReleaseDto> _releases = new List<WeeklyReleaseDto>();
     private string _searchTerm = string.Empty;
     private string? _selectedPublisher;
 
+    private bool _isExpressModalOpen;
     private bool _isCreateModalOpen;
     private string _formTitle = string.Empty;
     private string _formPublisher = string.Empty;
@@ -360,6 +370,12 @@
         _formCoverImageUrl = null;
         _formNotes = null;
 
+        await LoadDataAsync();
+    }
+
+    private async Task HandleExpressItemCreated(Ludeka.Application.DTOs.SocialInboxItemDto item)
+    {
+        _isExpressModalOpen = false;
         await LoadDataAsync();
     }
 }

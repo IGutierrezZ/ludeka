@@ -1,0 +1,603 @@
+@page "/admin/ingesta-social"
+@rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@inject ISocialIngestionService IngestionService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+
+<PageTitle>Bandeja de Ingesta Social & Moderación — Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 space-y-8">
+    @if (!CanModerate)
+    {
+        <div class="p-8 rounded-3xl bg-[var(--bg-card)] border border-rose-500/20 text-center space-y-4 max-w-lg mx-auto">
+            <span class="p-3 rounded-2xl bg-rose-500/10 text-rose-400 inline-block">
+                <Icon Name="shield" Size="36" />
+            </span>
+            <h2 class="text-xl font-black text-[var(--text-primary)]">Acceso Exclusivo de Moderación</h2>
+            <p class="text-sm text-[var(--text-secondary)] leading-relaxed">
+                Esta sección está reservada al equipo fundador y moderadores encargados de supervisar sorteos, novedades, eventos y contenido multimedia.
+            </p>
+            <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity">
+                Volver al Inicio
+            </a>
+        </div>
+    }
+    else
+    {
+        @* Encabezado de Página *@
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-xs font-bold mb-2">
+                    <Icon Name="sparkles" Size="14" /> Hub de Ingesta Social &amp; Radar Comunitario
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+                    Bandeja de Moderación Social
+                </h1>
+                <p class="text-sm text-[var(--text-secondary)] mt-1 max-w-2xl">
+                    Supervisa, rectifica y publica con 1 clic sorteos, novedades, eventos y vídeos extraídos automáticamente de redes o introducidos manualmente.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <button type="button"
+                        @onclick="() => _showExpressModal = true"
+                        class="px-4 py-2.5 rounded-2xl bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm">
+                    <Icon Name="zap" Size="14" />
+                    <span>⚡ Alta Exprés por URL</span>
+                </button>
+
+                <a href="/admin/canales-monitorizados"
+                   class="px-3.5 py-2.5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="radio" Size="14" />
+                    <span>Directorio de Canales</span>
+                </a>
+
+                <button type="button"
+                        @onclick="LoadItemsAsync"
+                        disabled="@_isLoading"
+                        class="p-2.5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center shadow-sm disabled:opacity-50">
+                    <Icon Name="refresh-cw" Size="16" Class="@(_isLoading ? "animate-spin" : "")" />
+                </button>
+            </div>
+        </div>
+
+        @* Notificación de éxito o alerta *@
+        @if (!string.IsNullOrWhiteSpace(_actionSuccessMessage))
+        {
+            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between animate-fade-in">
+                <div class="flex items-center gap-2">
+                    <Icon Name="check" Size="18" />
+                    <span>@_actionSuccessMessage</span>
+                </div>
+                <button type="button" @onclick="() => _actionSuccessMessage = null" class="text-xs opacity-70 hover:opacity-100">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_actionErrorMessage))
+        {
+            <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 dark:text-rose-400 text-xs font-semibold flex items-center justify-between animate-fade-in">
+                <div class="flex items-center gap-2">
+                    <Icon Name="triangle-alert" Size="18" />
+                    <span>@_actionErrorMessage</span>
+                </div>
+                <button type="button" @onclick="() => _actionErrorMessage = null" class="text-xs opacity-70 hover:opacity-100">&times;</button>
+            </div>
+        }
+
+        @* Pestañas de Estado *@
+        <div class="flex items-center justify-between flex-wrap gap-4 border-b border-[var(--border-subtle)] pb-2">
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        @onclick="() => SetStatusFilter(SocialInboxStatus.PendingReview)"
+                        class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @(_statusFilter == SocialInboxStatus.PendingReview ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="hourglass" Size="14" />
+                    <span>Pendientes</span>
+                    <span class="px-2 py-0.5 rounded-full text-[0.65rem] @(_statusFilter == SocialInboxStatus.PendingReview ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                        @_pendingCount
+                    </span>
+                </button>
+
+                <button type="button"
+                        @onclick="() => SetStatusFilter(SocialInboxStatus.Approved)"
+                        class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @(_statusFilter == SocialInboxStatus.Approved ? "bg-emerald-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="check-check" Size="14" />
+                    <span>Publicados</span>
+                </button>
+
+                <button type="button"
+                        @onclick="() => SetStatusFilter(SocialInboxStatus.Rejected)"
+                        class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @(_statusFilter == SocialInboxStatus.Rejected ? "bg-rose-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="ban" Size="14" />
+                    <span>Descartados</span>
+                </button>
+            </div>
+
+            @* Filtro secundario por Tipología *@
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button"
+                        @onclick="() => SetTypeFilter(null)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all @(_typeFilter == null ? "bg-[var(--bg-card)] border border-[var(--brand-primary)] text-[var(--brand-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                    Todas las Tipologías
+                </button>
+                <button type="button"
+                        @onclick="() => SetTypeFilter(SocialSubmissionType.Giveaway)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 @(_typeFilter == SocialSubmissionType.Giveaway ? "bg-[var(--bg-card)] border border-amber-500 text-amber-500" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="gift" Size="12" />
+                    <span>Sorteos</span>
+                </button>
+                <button type="button"
+                        @onclick="() => SetTypeFilter(SocialSubmissionType.WeeklyRelease)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 @(_typeFilter == SocialSubmissionType.WeeklyRelease ? "bg-[var(--bg-card)] border border-blue-500 text-blue-500" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="newspaper" Size="12" />
+                    <span>Novedades</span>
+                </button>
+                <button type="button"
+                        @onclick="() => SetTypeFilter(SocialSubmissionType.BoardGameEvent)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 @(_typeFilter == SocialSubmissionType.BoardGameEvent ? "bg-[var(--bg-card)] border border-purple-500 text-purple-500" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="calendar" Size="12" />
+                    <span>Eventos</span>
+                </button>
+                <button type="button"
+                        @onclick="() => SetTypeFilter(SocialSubmissionType.MediaItem)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 @(_typeFilter == SocialSubmissionType.MediaItem ? "bg-[var(--bg-card)] border border-rose-500 text-rose-500" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="film" Size="12" />
+                    <span>Vídeos</span>
+                </button>
+            </div>
+        </div>
+
+        @* Listado de Items *@
+        @if (_isLoading)
+        {
+            <div class="py-20 text-center space-y-3">
+                <span class="inline-block animate-spin text-[var(--brand-primary)]">
+                    <Icon Name="refresh-cw" Size="32" />
+                </span>
+                <p class="text-sm font-medium text-[var(--text-muted)]">Cargando publicaciones de la bandeja...</p>
+            </div>
+        }
+        else if (_items.Count == 0)
+        {
+            <div class="p-12 rounded-3xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] text-center space-y-4 max-w-lg mx-auto my-8">
+                <span class="p-3 rounded-2xl bg-[var(--bg-surface-elevated)] text-[var(--text-muted)] inline-block">
+                    <Icon Name="inbox" Size="32" />
+                </span>
+                <h3 class="text-base font-bold text-[var(--text-primary)]">
+                    No hay publicaciones en este filtro
+                </h3>
+                <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                    Usa el botón de "Alta Exprés por URL" para capturar una publicación de Instagram o YouTube, o sincroniza los canales del directorio.
+                </p>
+                <button type="button"
+                        @onclick="() => _showExpressModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity">
+                    <Icon Name="zap" Size="14" />
+                    <span>Capturar Publicación Ahora</span>
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var item in _items)
+                {
+                    <div class="rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm hover:border-[var(--border-focus)] transition-all flex flex-col overflow-hidden group">
+                        @* Miniatura y Badges superiores *@
+                        <div class="relative aspect-video w-full bg-[var(--bg-surface-elevated)] overflow-hidden">
+                            @if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                            {
+                                <img src="@item.ThumbnailUrl"
+                                     alt="@item.Title"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                     loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+                                    <Icon Name="@GetTypeIcon(item.DetectedType)" Size="40" />
+                                </div>
+                            }
+
+                            @* Badges en esquinas de la imagen *@
+                            <div class="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                                <span class="px-2.5 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-wider backdrop-blur-md shadow-sm @GetTypeBadgeClass(item.DetectedType)">
+                                    @GetTypeLabel(item.DetectedType)
+                                </span>
+                                @if (item.IsVideo)
+                                {
+                                    <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-black/60 text-white backdrop-blur-md flex items-center gap-1">
+                                        <Icon Name="video" Size="10" /> Vídeo
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="absolute top-3 right-3">
+                                <a href="@item.SourceUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   title="Abrir enlace original"
+                                   class="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors flex items-center justify-center">
+                                    <Icon Name="external-link" Size="14" />
+                                </a>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(item.PlayerCountBadge))
+                            {
+                                <div class="absolute bottom-3 left-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-purple-500/80 text-white backdrop-blur-md">
+                                        @item.PlayerCountBadge
+                                    </span>
+                                </div>
+                            }
+                        </div>
+
+                        @* Cuerpo de la tarjeta *@
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-2 text-[0.7rem] text-[var(--text-muted)]">
+                                    <span class="font-semibold truncate">
+                                        @item.OrganizerOrAuthor
+                                        @if (!string.IsNullOrWhiteSpace(item.Collaborator))
+                                        {
+                                            <span class="text-[var(--text-secondary)]"> &times; @item.Collaborator</span>
+                                        }
+                                    </span>
+                                    <span class="shrink-0">@item.CreatedAt.ToString("dd MMM")</span>
+                                </div>
+
+                                <h3 class="font-bold text-sm text-[var(--text-primary)] line-clamp-2 leading-snug">
+                                    @item.Title
+                                </h3>
+
+                                @* Juego Vinculado *@
+                                @if (!string.IsNullOrWhiteSpace(item.GameTitle))
+                                {
+                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] font-bold text-[var(--brand-primary)] max-w-full">
+                                        <Icon Name="gamepad-2" Size="12" Class="shrink-0" />
+                                        <span class="truncate">@item.GameTitle</span>
+                                    </div>
+                                }
+
+                                @* Metadatos específicos de la tipología *@
+                                <div class="text-[0.72rem] text-[var(--text-secondary)] space-y-1 pt-1">
+                                    @if (item.DetectedType == SocialSubmissionType.Giveaway && item.EventOrReleaseDate.HasValue)
+                                    {
+                                        <div class="flex items-center gap-1.5 text-amber-500 dark:text-amber-400 font-semibold">
+                                            <Icon Name="calendar" Size="12" />
+                                            <span>Fin: @item.EventOrReleaseDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    }
+                                    else if (item.DetectedType == SocialSubmissionType.BoardGameEvent)
+                                    {
+                                        <div class="flex items-center gap-1.5 text-purple-500 dark:text-purple-400 font-semibold">
+                                            <Icon Name="map-pin" Size="12" />
+                                            <span>@(item.Location ?? "Ubicación pendiente")</span>
+                                        </div>
+                                        @if (item.EventOrReleaseDate.HasValue)
+                                        {
+                                            <div class="text-[0.68rem] text-[var(--text-muted)]">
+                                                Fecha: @item.EventOrReleaseDate.Value.ToString("dd/MM/yyyy")
+                                                @(item.EventEndDate.HasValue ? $" al {item.EventEndDate.Value.ToString("dd/MM/yyyy")}" : "")
+                                            </div>
+                                        }
+                                    }
+                                    else if (item.DetectedType == SocialSubmissionType.WeeklyRelease)
+                                    {
+                                        <div class="flex items-center gap-2">
+                                            @if (item.EventOrReleaseDate.HasValue)
+                                            {
+                                                <span class="text-blue-500 font-medium">Lanzamiento: @item.EventOrReleaseDate.Value.ToString("dd/MM/yyyy")</span>
+                                            }
+                                            @if (item.EstimatedPvp.HasValue)
+                                            {
+                                                <span class="font-bold text-[var(--text-primary)]">@item.EstimatedPvp.Value.ToString("F2") €</span>
+                                            }
+                                        </div>
+                                    }
+                                    else if (item.DetectedType == SocialSubmissionType.MediaItem && item.MediaCategory.HasValue)
+                                    {
+                                        <div class="flex items-center gap-1.5 text-rose-500 dark:text-rose-400 font-semibold">
+                                            <Icon Name="film" Size="12" />
+                                            <span>@item.MediaCategory.Value</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                @* Descripción original expandible *@
+                                @if (!string.IsNullOrWhiteSpace(item.OriginalCaption))
+                                {
+                                    <details class="text-[0.7rem] text-[var(--text-muted)] bg-[var(--bg-surface)] p-2.5 rounded-xl border border-[var(--border-subtle)] cursor-pointer">
+                                        <summary class="font-semibold text-[var(--text-secondary)] select-none">
+                                            Ver texto extraído original
+                                        </summary>
+                                        <p class="mt-2 whitespace-pre-line line-clamp-6 leading-relaxed">
+                                            @item.OriginalCaption
+                                        </p>
+                                    </details>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(item.ModeratorNotes))
+                                {
+                                    <div class="text-[0.68rem] text-amber-500/90 italic bg-amber-500/5 p-2 rounded-lg border border-amber-500/20">
+                                        Nota moderador: @item.ModeratorNotes
+                                    </div>
+                                }
+                            </div>
+
+                            @* Botones de Acción de Moderación *@
+                            <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                                @if (item.Status == SocialInboxStatus.PendingReview)
+                                {
+                                    <button type="button"
+                                            @onclick="() => OpenEditModal(item)"
+                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold transition-colors flex items-center gap-1.5">
+                                        <Icon Name="edit" Size="13" />
+                                        <span>Editar</span>
+                                    </button>
+
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button"
+                                                @onclick="() => OpenRejectPrompt(item)"
+                                                title="Descartar publicación"
+                                                class="p-2 rounded-xl text-rose-400 hover:bg-rose-500/10 hover:text-rose-500 transition-colors">
+                                            <Icon Name="trash-2" Size="15" />
+                                        </button>
+
+                                        <button type="button"
+                                                @onclick="() => ApproveItemAsync(item)"
+                                                disabled="@_isProcessingApproval"
+                                                class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50">
+                                            <Icon Name="check" Size="13" />
+                                            <span>Aprobar</span>
+                                        </button>
+                                    </div>
+                                }
+                                else if (item.Status == SocialInboxStatus.Approved)
+                                {
+                                    <span class="inline-flex items-center gap-1 text-[0.7rem] text-emerald-500 font-bold">
+                                        <Icon Name="check-check" Size="14" /> Aprobado y publicado
+                                    </span>
+                                    @if (item.ReviewedAt.HasValue)
+                                    {
+                                        <span class="text-[0.65rem] text-[var(--text-muted)]">@item.ReviewedAt.Value.ToString("dd/MM/yyyy")</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 text-[0.7rem] text-rose-500 font-bold">
+                                        <Icon Name="ban" Size="14" /> Descartado
+                                    </span>
+                                    @if (item.ReviewedAt.HasValue)
+                                    {
+                                        <span class="text-[0.65rem] text-[var(--text-muted)]">@item.ReviewedAt.Value.ToString("dd/MM/yyyy")</span>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@* Modal de Alta Exprés *@
+<SocialExpressIngestModal IsOpen="_showExpressModal"
+                          OnItemCreated="HandleItemCreated"
+                          OnClose="() => _showExpressModal = false" />
+
+@* Modal de Edición Completa *@
+<SocialInboxEditModal IsOpen="_showEditModal"
+                      Item="_itemToEdit"
+                      OnSaved="HandleItemSaved"
+                      OnClose="() => _showEditModal = false" />
+
+@* Modal de Confirmación de Descarte *@
+@if (_itemToReject != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+         role="dialog"
+         aria-modal="true">
+        <div class="w-full max-w-md rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3">
+                <span class="p-2.5 rounded-2xl bg-rose-500/15 text-rose-400">
+                    <Icon Name="trash-2" Size="20" />
+                </span>
+                <div>
+                    <h3 class="font-black text-base text-[var(--text-primary)]">Descartar Publicación</h3>
+                    <p class="text-xs text-[var(--text-muted)]">No se publicará en el catálogo ni radar</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                ¿Seguro que deseas descartar "<strong>@_itemToReject.Title</strong>"?
+            </p>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-[var(--text-secondary)]">Motivo del descarte (opcional):</label>
+                <input type="text"
+                       @bind="_rejectReason"
+                       placeholder="Ej. Duplicado, fuera de plazo, contenido no lúdico..."
+                       class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button"
+                        @onclick="() => _itemToReject = null"
+                        class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="ConfirmRejectAsync"
+                        class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors">
+                    Confirmar Descarte
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isProcessingApproval;
+    private SocialInboxStatus _statusFilter = SocialInboxStatus.PendingReview;
+    private SocialSubmissionType? _typeFilter;
+    private List<SocialInboxItemDto> _items = new();
+    private int _pendingCount;
+
+    private bool _showExpressModal;
+    private bool _showEditModal;
+    private SocialInboxItemDto? _itemToEdit;
+    private SocialInboxItemDto? _itemToReject;
+    private string _rejectReason = string.Empty;
+
+    private string? _actionSuccessMessage;
+    private string? _actionErrorMessage;
+
+    private bool CanModerate =>
+        CurrentUserService.IsFoundingTeam ||
+        CurrentUserService.IsInRole("Moderator") ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItemsAsync();
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        _isLoading = true;
+        _actionSuccessMessage = null;
+        _actionErrorMessage = null;
+
+        try
+        {
+            _pendingCount = await IngestionService.GetPendingCountAsync();
+            var results = await IngestionService.GetAllItemsAsync(
+                statusFilter: _statusFilter,
+                typeFilter: _typeFilter,
+                page: 1,
+                pageSize: 60);
+
+            _items = results.ToList();
+        }
+        catch (Exception ex)
+        {
+            _actionErrorMessage = $"Error al cargar la bandeja: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SetStatusFilter(SocialInboxStatus status)
+    {
+        if (_statusFilter == status) return;
+        _statusFilter = status;
+        await LoadItemsAsync();
+    }
+
+    private async Task SetTypeFilter(SocialSubmissionType? type)
+    {
+        if (_typeFilter == type) return;
+        _typeFilter = type;
+        await LoadItemsAsync();
+    }
+
+    private void OpenEditModal(SocialInboxItemDto item)
+    {
+        _itemToEdit = item;
+        _showEditModal = true;
+    }
+
+    private void OpenRejectPrompt(SocialInboxItemDto item)
+    {
+        _itemToReject = item;
+        _rejectReason = string.Empty;
+    }
+
+    private async Task ApproveItemAsync(SocialInboxItemDto item)
+    {
+        _isProcessingApproval = true;
+        _actionSuccessMessage = null;
+        _actionErrorMessage = null;
+
+        try
+        {
+            var reviewerId = CurrentUserService.UserId?.ToString() ?? "admin-system";
+            var createdEntityId = await IngestionService.ApproveAndPublishAsync(item.Id, reviewerId);
+
+            _actionSuccessMessage = $"¡Publicación aprobada con éxito! (ID Creado: {createdEntityId})";
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionErrorMessage = $"Error al aprobar: {ex.Message}";
+        }
+        finally
+        {
+            _isProcessingApproval = false;
+        }
+    }
+
+    private async Task ConfirmRejectAsync()
+    {
+        if (_itemToReject == null) return;
+
+        try
+        {
+            var reviewerId = CurrentUserService.UserId?.ToString() ?? "admin-system";
+            await IngestionService.RejectItemAsync(_itemToReject.Id, _rejectReason, reviewerId);
+            _actionSuccessMessage = "Publicación descartada correctamente.";
+            _itemToReject = null;
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionErrorMessage = $"Error al descartar: {ex.Message}";
+        }
+    }
+
+    private async Task HandleItemCreated(SocialInboxItemDto newItem)
+    {
+        _actionSuccessMessage = "Nueva publicación capturada e introducida en la bandeja.";
+        await LoadItemsAsync();
+    }
+
+    private async Task HandleItemSaved(SocialInboxItemDto updatedItem)
+    {
+        _actionSuccessMessage = "Borrador actualizado con éxito.";
+        await LoadItemsAsync();
+    }
+
+    private static string GetTypeLabel(SocialSubmissionType type) => type switch
+    {
+        SocialSubmissionType.Giveaway => "Sorteo",
+        SocialSubmissionType.WeeklyRelease => "Novedad",
+        SocialSubmissionType.BoardGameEvent => "Evento",
+        SocialSubmissionType.MediaItem => "Vídeo",
+        _ => "General"
+    };
+
+    private static string GetTypeIcon(SocialSubmissionType type) => type switch
+    {
+        SocialSubmissionType.Giveaway => "gift",
+        SocialSubmissionType.WeeklyRelease => "newspaper",
+        SocialSubmissionType.BoardGameEvent => "calendar",
+        SocialSubmissionType.MediaItem => "film",
+        _ => "globe"
+    };
+
+    private static string GetTypeBadgeClass(SocialSubmissionType type) => type switch
+    {
+        SocialSubmissionType.Giveaway => "bg-amber-500/90 text-white",
+        SocialSubmissionType.WeeklyRelease => "bg-blue-600/90 text-white",
+        SocialSubmissionType.BoardGameEvent => "bg-purple-600/90 text-white",
+        SocialSubmissionType.MediaItem => "bg-rose-600/90 text-white",
+        _ => "bg-zinc-700/90 text-white"
+    };
+}

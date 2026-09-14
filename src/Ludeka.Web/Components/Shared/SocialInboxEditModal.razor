@@ -1,0 +1,403 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Application.Features.Catalog
+@using Ludeka.Core.Enums
+@inject ISocialIngestionService IngestionService
+@inject ICatalogService CatalogService
+
+@if (IsOpen && Item != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="edit-inbox-title">
+        <div class="relative w-full max-w-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            @* Cabecera *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="p-2 rounded-xl bg-amber-500/15 text-amber-400">
+                        <Icon Name="edit" Size="18" />
+                    </span>
+                    <div>
+                        <h2 id="edit-inbox-title" class="text-base font-black text-[var(--text-primary)]">
+                            Editar Datos antes de Publicar
+                        </h2>
+                        <p class="text-[0.7rem] text-[var(--text-muted)]">
+                            Modifica cualquier valor extraído por la IA antes de aprobar en el catálogo o radar
+                        </p>
+                    </div>
+                </div>
+                <button type="button"
+                        @onclick="HandleClose"
+                        aria-label="Cerrar modal"
+                        class="p-2 rounded-full hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                    <Icon Name="x" Size="18" />
+                </button>
+            </div>
+
+            @* Formulario con scroll *@
+            <div class="p-6 space-y-4 overflow-y-auto">
+                @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                        <Icon Name="triangle-alert" Size="16" />
+                        <span>@_errorMessage</span>
+                    </div>
+                }
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Tipología de Destino <span class="text-rose-400">*</span>
+                        </label>
+                        <select @bind="_detectedType"
+                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                            <option value="@SocialSubmissionType.Giveaway">Sorteo (/sorteos)</option>
+                            <option value="@SocialSubmissionType.WeeklyRelease">Novedad Semanal (/novedades)</option>
+                            <option value="@SocialSubmissionType.BoardGameEvent">Evento Lúdico (/eventos)</option>
+                            <option value="@SocialSubmissionType.MediaItem">Vídeo / Multimedia</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Título Editorial <span class="text-rose-400">*</span>
+                        </label>
+                        <input type="text"
+                               @bind="_title"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Organizador, Canal o Editorial <span class="text-rose-400">*</span>
+                        </label>
+                        <input type="text"
+                               @bind="_organizer"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Colaborador (Opcional)
+                        </label>
+                        <input type="text"
+                               @bind="_collaborator"
+                               placeholder="Ej. Tienda colaboradora o divulgador"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* Buscador reactivo de juego *@
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                        Juego del Catálogo Vinculado
+                    </label>
+                    @if (_gameId.HasValue)
+                    {
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 text-xs">
+                            <span class="font-bold text-[var(--brand-primary)] flex items-center gap-1.5"><Icon Name="dices" Size="14" /> @_gameTitle</span>
+                            <button type="button" @onclick="ClearGame" class="text-[var(--text-muted)] hover:text-rose-400">
+                                <Icon Name="x" Size="14" />
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="relative">
+                            <input type="text"
+                                   @bind="_gameSearchInput"
+                                   @bind:event="oninput"
+                                   @onkeyup="OnSearchGameKeyUp"
+                                   placeholder="Buscar juego en catálogo..."
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+
+                            @if (_gameSuggestions.Count > 0)
+                            {
+                                <div class="absolute left-0 right-0 top-full mt-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl z-20 max-h-40 overflow-y-auto divide-y divide-[var(--border-subtle)]">
+                                    @foreach (var game in _gameSuggestions)
+                                    {
+                                        <button type="button"
+                                                @onclick="() => SelectGame(game)"
+                                                class="w-full px-3 py-2 text-left text-xs text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] flex items-center justify-between">
+                                            <span class="font-bold">@game.SpanishTitle</span>
+                                            <span class="text-[0.65rem] text-[var(--text-muted)]">@game.YearPublished</span>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            @(_detectedType == SocialSubmissionType.Giveaway ? "Fecha Límite Sorteo" : _detectedType == SocialSubmissionType.BoardGameEvent ? "Fecha Inicio Evento" : "Fecha Lanzamiento")
+                        </label>
+                        <input type="datetime-local"
+                               @bind="_eventOrReleaseDate"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+
+                    @if (_detectedType == SocialSubmissionType.BoardGameEvent)
+                    {
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                                Fecha Fin Evento
+                            </label>
+                            <input type="datetime-local"
+                                   @bind="_eventEndDate"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                        </div>
+                    }
+                </div>
+
+                @if (_detectedType == SocialSubmissionType.BoardGameEvent)
+                {
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Ubicación / Ciudad del Evento
+                        </label>
+                        <input type="text"
+                               @bind="_location"
+                               placeholder="Ej. IFEMA Madrid, Córdoba..."
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                }
+
+                @if (_detectedType == SocialSubmissionType.WeeklyRelease)
+                {
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            PVP Estimado (€)
+                        </label>
+                        <input type="number"
+                               step="0.5"
+                               @bind="_estimatedPvp"
+                               placeholder="Ej. 45.00"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                }
+
+                @if (_detectedType == SocialSubmissionType.MediaItem)
+                {
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                                Categoría Multimedia
+                            </label>
+                            <select @bind="_mediaCategory"
+                                    class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]">
+                                <option value="@MediaCategory.Tutorial">Tutorial / Cómo Jugar</option>
+                                <option value="@MediaCategory.Gameplay">Partida Completa</option>
+                                <option value="@MediaCategory.ReviewOpinion">Reseña / Opinión</option>
+                                <option value="@MediaCategory.QuickOverview">Cómo Funciona</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                                Badge de Jugadores
+                            </label>
+                            <input type="text"
+                                   @bind="_playerCountBadge"
+                                   placeholder="Ej. Partida a 2"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]" />
+                        </div>
+                    </div>
+                }
+
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                        URL de Portada / Miniatura
+                    </label>
+                    <input type="text"
+                           @bind="_thumbnailUrl"
+                           placeholder="https://..."
+                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                        Notas del Moderador
+                    </label>
+                    <textarea @bind="_moderatorNotes"
+                              rows="2"
+                              placeholder="Observaciones internas del equipo de moderación..."
+                              class="w-full p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]"></textarea>
+                </div>
+            </div>
+
+            @* Botones del footer *@
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] shrink-0">
+                <button type="button"
+                        @onclick="HandleClose"
+                        disabled="@_isSaving"
+                        class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="SaveAsync"
+                        disabled="@_isSaving"
+                        class="px-5 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-all shadow-sm flex items-center gap-2 disabled:opacity-50">
+                    @if (_isSaving)
+                    {
+                        <span class="inline-block animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="check" Size="14" />
+                        <span>Guardar Cambios</span>
+                    }
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public SocialInboxItemDto? Item { get; set; }
+    [Parameter] public EventCallback<SocialInboxItemDto> OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    private string _title = string.Empty;
+    private string _organizer = string.Empty;
+    private string? _collaborator;
+    private SocialSubmissionType _detectedType;
+    private Guid? _gameId;
+    private string? _gameTitle;
+    private DateTime? _eventOrReleaseDate;
+    private DateTime? _eventEndDate;
+    private string? _location;
+    private decimal? _estimatedPvp;
+    private MediaCategory? _mediaCategory;
+    private string? _playerCountBadge;
+    private string? _thumbnailUrl;
+    private string? _moderatorNotes;
+
+    private string _gameSearchInput = string.Empty;
+    private List<GameSummaryDto> _gameSuggestions = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Item != null)
+        {
+            _title = Item.Title;
+            _organizer = Item.OrganizerOrAuthor;
+            _collaborator = Item.Collaborator;
+            _detectedType = Item.DetectedType;
+            _gameId = Item.GameId;
+            _gameTitle = Item.GameTitle;
+            _eventOrReleaseDate = Item.EventOrReleaseDate?.LocalDateTime;
+            _eventEndDate = Item.EventEndDate?.LocalDateTime;
+            _location = Item.Location;
+            _estimatedPvp = Item.EstimatedPvp;
+            _mediaCategory = Item.MediaCategory;
+            _playerCountBadge = Item.PlayerCountBadge;
+            _thumbnailUrl = Item.ThumbnailUrl;
+            _moderatorNotes = Item.ModeratorNotes;
+        }
+    }
+
+    private async Task OnSearchGameKeyUp()
+    {
+        if (_gameSearchInput.Length >= 2)
+        {
+            var results = await CatalogService.GetQuickSearchAsync(_gameSearchInput, limit: 5);
+            _gameSuggestions = results.ToList();
+        }
+        else
+        {
+            _gameSuggestions.Clear();
+        }
+    }
+
+    private void SelectGame(GameSummaryDto game)
+    {
+        _gameId = game.Id;
+        _gameTitle = game.SpanishTitle;
+        _gameSuggestions.Clear();
+        _gameSearchInput = string.Empty;
+    }
+
+    private void ClearGame()
+    {
+        _gameId = null;
+        _gameTitle = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (Item == null) return;
+
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _errorMessage = "El título es obligatorio.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_organizer))
+        {
+            _errorMessage = "El organizador es obligatorio.";
+            return;
+        }
+
+        _isSaving = true;
+        _errorMessage = null;
+
+        try
+        {
+            DateTimeOffset? startOffset = _eventOrReleaseDate.HasValue
+                ? new DateTimeOffset(_eventOrReleaseDate.Value, TimeSpan.Zero)
+                : null;
+
+            DateTimeOffset? endOffset = _eventEndDate.HasValue
+                ? new DateTimeOffset(_eventEndDate.Value, TimeSpan.Zero)
+                : null;
+
+            var updateDto = new SocialInboxUpdateDto(
+                Id: Item.Id,
+                Title: _title,
+                OrganizerOrAuthor: _organizer,
+                Collaborator: _collaborator,
+                DetectedType: _detectedType,
+                GameId: _gameId,
+                GameTitle: _gameTitle,
+                EventOrReleaseDate: startOffset,
+                EventEndDate: endOffset,
+                Location: _location,
+                EstimatedPvp: _estimatedPvp,
+                MediaCategory: _mediaCategory,
+                PlayerCountBadge: _playerCountBadge,
+                ThumbnailUrl: _thumbnailUrl,
+                ModeratorNotes: _moderatorNotes);
+
+            var updated = await IngestionService.UpdateItemAsync(updateDto);
+            await OnSaved.InvokeAsync(updated);
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al guardar: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        _errorMessage = null;
+        await OnClose.InvokeAsync();
+    }
+}

@@ -75,8 +75,8 @@ public class StoreStockServiceTests
         {
             Handler = async (store, url, ct) =>
             {
-                // Simular demora superior al timeout de 100ms configurado
-                await Task.Delay(500, ct);
+                // Simular demora superior al timeout de 100ms configurado (cancelación garantizada)
+                await Task.Delay(3000, ct);
                 return StoreStockInfo.InStock(1);
             }
         };
