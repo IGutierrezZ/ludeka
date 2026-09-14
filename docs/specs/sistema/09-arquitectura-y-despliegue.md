@@ -17,14 +17,24 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
 
 ---
 
-## 3. Persistencia y Auto-Migración SQLite
+## 3. Persistencia y Estrategia Dual (SQLite Local / PostgreSQL Supabase en Producción)
 
-- **Contexto:** `LudekaDbContext` con configuración fluent y mapeo `ToJson()` para colecciones secundarias.
-- **Reconciliador de Esquema (`SqliteSchemaMigrator`):**
+- **Contexto Central:** `LudekaDbContext` con configuración fluent, colecciones `jsonb` nativas (`ToJson()`), colecciones primitivas (`PrimitiveCollection`) y fechas normalizadas en UTC (`DateTimeOffset.UtcNow`).
+- **Soporte Oficial PostgreSQL / Supabase (INC-38):**
+  - Paquete: `Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3` con soporte oficial de .NET 10.
+  - Conmutación automática: Si `Database:Provider` es `PostgreSql` o la cadena de conexión contiene parámetros de PostgreSQL (`Host=`, `Server=`, `supabase.co` o esquema `postgres://`), la aplicación configura `options.UseNpgsql(...)` con política de reintentos (`EnableRetryOnFailure`). Si apunta a un fichero `.db` o `Sqlite`, configura `options.UseSqlite(...)`.
+- **Reconciliador de Esquema SQLite (`SqliteSchemaMigrator`):**
   - Ubicación: [`src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs)
-  - Inspecciona `PRAGMA table_info` al arrancar la aplicación y añade dinámicamente columnas faltantes (ej. `PurchaseLinks`, `BaseGameId`, `Type`) sin borrar ni reiniciar bases de datos existentes.
-- **Semillado Automático (`CatalogSeeder`):**
-  - Carga inicial reproducible desde [`seed-games.json`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Seeding/seed-games.json) y sincronización de ofertas y fundas.
+  - Inspecciona `PRAGMA table_info` al arrancar la aplicación en SQLite y añade dinámicamente columnas faltantes sin borrar ni reiniciar bases de datos de desarrollo. Se desactiva automáticamente cuando el proveedor es PostgreSQL.
+- **Script SQL Canónico de Supabase (`docs/database/supabase_schema.sql`):**
+  - DDL completo, determinista e idempotente para crear o auditar la totalidad de las 24 tablas, tipos `jsonb`, índices y claves foráneas en Supabase con 1 clic desde el SQL Editor.
+- **Usuario Administrador Fundador Garantizado (`AdminUserSeeder`):**
+  - Ubicación: [`src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs)
+  - En entornos limpios de producción o desarrollo, garantiza de forma idempotente la existencia de un usuario con rol `FoundingTeam` y permisos totales (`ModeratorPermission.All`), parametrizable mediante `AdminUserOptions`.
+- **Cero Datos Ficticios en Producción (`Database:SeedDemoData`):**
+  - Los sembradores demostrativos (`CatalogSeeder`, `DirectorySeeder`, etc.) únicamente se ejecutan si `SeedDemoData = true` en entorno de desarrollo. En producción, la base de datos arranca limpia sin catálogo mock.
+- **Copias de Seguridad Automatizadas (`scripts/supabase-backup.ps1`):**
+  - Script en PowerShell que ejecuta `pg_dump` con compresión `.sql.gz` y purga automática con retención rotativa (7 días por defecto).
 
 ---
 

@@ -343,6 +343,21 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 38: Persistencia PostgreSQL en Supabase, Estrategia Dual y Usuario Admin Inicial
+- **Identificador SDD:** `postgresql-supabase`
+- **Objetivo Principal:** Dotar a Ludeka de persistencia en PostgreSQL gestionado en Supabase manteniendo SQLite en local y tests:
+  1. Integración del paquete oficial `Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3` con soporte para .NET 10.
+  2. Conmutación inteligente y automática de proveedor (`UseNpgsql` vs `UseSqlite`) mediante `Database:Provider` o detección de cadena de conexión.
+  3. Desacople estricto de datos de prueba en producción mediante la bandera `Database:SeedDemoData` (por defecto `false` en producción). En producción, la base de datos arranca limpia sin catálogo ni eventos mock.
+  4. Creación garantizada y permanente del usuario Administrador Fundador inicial (`AdminUserSeeder`) con rol `FoundingTeam` y permisos completos de moderación para permitir la administración inmediata del sistema tras el arranque.
+  5. Script SQL canónico e idempotente (`docs/database/supabase_schema.sql`) para crear o auditar la totalidad de las tablas y tipos `jsonb` en Supabase con 1 solo clic.
+  6. Script automatizado de copias de seguridad (`scripts/supabase-backup.ps1`) con compresión `.sql.gz` y política de retención rotativa (7 días).
+- **Estado:** ✅ **Completado y Archivado** (suite 887/887 en verde al 100%; +21 pruebas unitarias cubriendo detección de proveedor y sembrador de admin).
+- **Documento:** [`inc-38-postgresql-supabase.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-38-postgresql-supabase.md) (cambio SDD archivado en `openspec/changes/archive/2026-09-14-postgresql-supabase/`).
+- **Módulos del Sistema:** [`09-arquitectura-y-despliegue.md`](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

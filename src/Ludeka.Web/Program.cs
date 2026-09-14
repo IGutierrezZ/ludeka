@@ -34,6 +34,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Ludeka.Web.Health;
+using Ludeka.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,10 +43,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Configuración de persistencia SQLite y Clean Architecture
+// Configuración de Opciones de Base de Datos y Administrador
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
+builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection(AdminUserOptions.SectionName));
+
+// Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
+var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("PostgreSqlConnection")
+    ?? "Data Source=ludeka.db";
+
+bool isPostgreSql = dbOptions.IsPostgreSql(connectionString);
+
 builder.Services.AddDbContext<LudekaDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=ludeka.db");
+    if (isPostgreSql)
+    {
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorCodesToAdd: null);
+        });
+    }
+    else
+    {
+        options.UseSqlite(connectionString);
+    }
 });
 
 builder.Services.AddScoped<IGameRepository, SqliteGameRepository>();
@@ -218,25 +244,48 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-    var connectionString = config.GetConnectionString("DefaultConnection") ?? "Data Source=ludeka.db";
-    var match = Regex.Match(connectionString, @"Data Source=([^;]+)", RegexOptions.IgnoreCase);
-    if (match.Success)
+    var dbOptionsValue = scope.ServiceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+    var adminOptionsValue = scope.ServiceProvider.GetRequiredService<IOptions<AdminUserOptions>>().Value;
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    var effectiveConn = config.GetConnectionString("DefaultConnection")
+        ?? config.GetConnectionString("PostgreSqlConnection")
+        ?? "Data Source=ludeka.db";
+
+    if (!dbOptionsValue.IsPostgreSql(effectiveConn))
     {
-        var rawPath = match.Groups[1].Value.Trim();
-        var dir = Path.GetDirectoryName(rawPath);
-        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        var match = Regex.Match(effectiveConn, @"Data Source=([^;]+)", RegexOptions.IgnoreCase);
+        if (match.Success)
         {
-            Directory.CreateDirectory(dir);
+            var rawPath = match.Groups[1].Value.Trim();
+            var dir = Path.GetDirectoryName(rawPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
         }
     }
 
     var db = scope.ServiceProvider.GetRequiredService<LudekaDbContext>();
     await db.Database.EnsureCreatedAsync();
-    await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
-    await CatalogSeeder.SeedAsync(db);
-    await DirectorySeeder.SeedDirectoryAsync(db);
-    await UserManagementSeeder.SeedUsersAndAuditAsync(db);
-    await BoardGameEventSeeder.SeedEventsAsync(db);
+
+    // Reconciliación defensiva exclusiva de SQLite
+    if (db.Database.IsSqlite())
+    {
+        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+    }
+
+    // Garantizar siempre la existencia del usuario Administrador Fundador inicial
+    await AdminUserSeeder.EnsureAdminUserAsync(db, adminOptionsValue, logger);
+
+    // Semillado demostrativo: únicamente en desarrollo cuando SeedDemoData está activo
+    if (dbOptionsValue.SeedDemoData && app.Environment.IsDevelopment())
+    {
+        await CatalogSeeder.SeedAsync(db);
+        await DirectorySeeder.SeedDirectoryAsync(db);
+        await UserManagementSeeder.SeedUsersAndAuditAsync(db);
+        await BoardGameEventSeeder.SeedEventsAsync(db);
+    }
 }
 
 // Configure the HTTP request pipeline.
