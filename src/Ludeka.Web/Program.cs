@@ -267,12 +267,20 @@ using (var scope = app.Services.CreateScope())
     }
 
     var db = scope.ServiceProvider.GetRequiredService<LudekaDbContext>();
-    await db.Database.EnsureCreatedAsync();
 
-    // Reconciliación defensiva exclusiva de SQLite
-    if (db.Database.IsSqlite())
+    // En PostgreSQL (Supabase) se ejecutan las migraciones oficiales de Entity Framework Core.
+    // En SQLite local se utiliza EnsureCreated con el reconciliador defensivo.
+    if (db.Database.IsNpgsql())
     {
-        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+        await db.Database.MigrateAsync();
+    }
+    else
+    {
+        await db.Database.EnsureCreatedAsync();
+        if (db.Database.IsSqlite())
+        {
+            await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+        }
     }
 
     // Garantizar siempre la existencia del usuario Administrador Fundador inicial
