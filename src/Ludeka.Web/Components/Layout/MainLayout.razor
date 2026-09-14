@@ -8,6 +8,7 @@
 @inject IUserLocationService LocationService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Options.IOptions<Ludeka.Application.Options.CommunityNotificationOptions> CommunityOptions
 
 <div class="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors duration-200">
     <a href="#main-content" class="skip-link sr-only focus:not-sr-only">
@@ -231,20 +232,66 @@
     </main>
 
     <footer class="mt-auto border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-8 text-xs text-[var(--text-secondary)]">
-        <div class="container-ludeka flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-                <p class="font-bold text-[var(--text-primary)]">Ludeka &copy; 2026</p>
-                <p class="text-[var(--text-secondary)]">Catálogo y comunidad abierta de juegos de mesa en español.</p>
+        <div class="container-ludeka space-y-6">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-[var(--border-subtle)]">
+                <div class="space-y-1">
+                    <p class="font-extrabold text-sm text-[var(--text-primary)] tracking-tight">Ludeka &copy; 2026</p>
+                    <p class="text-xs text-[var(--text-secondary)]">El Letterboxd de los juegos de mesa en español.</p>
+                    <p class="text-[0.68rem] text-[var(--text-muted)]">
+                        Participamos en programas de afiliación de tiendas especializadas sin coste adicional para ti.
+                    </p>
+                </div>
+
+                @* Canales de Comunidad (Discord y Telegram) *@
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.DiscordInviteUrl))
+                    {
+                        <a href="@CommunityOptions.Value.DiscordInviteUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Unirse al servidor oficial de Discord de Ludeka"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#5865F2]/10 border border-[var(--border-subtle)] hover:border-[#5865F2]/40 text-[#5865F2] font-bold text-xs transition-all shadow-sm">
+                            <Icon Name="message-circle" Size="14" />
+                            <span>Comunidad Discord</span>
+                        </a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.TelegramChannelUrl))
+                    {
+                        <a href="@CommunityOptions.Value.TelegramChannelUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Unirse al canal oficial de Telegram de Ludeka"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#229ED9]/10 border border-[var(--border-subtle)] hover:border-[#229ED9]/40 text-[#229ED9] font-bold text-xs transition-all shadow-sm">
+                            <Icon Name="send" Size="14" />
+                            <span>Canal Telegram</span>
+                        </a>
+                    }
+                </div>
             </div>
-            <div class="flex items-center gap-4 text-xs font-semibold flex-wrap">
-                @* Solo Transparencia y Discord: el resto de accesos ya vive en la navegación superior *@
-                <a href="/transparencia" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors">
-                    <Icon Name="shield" Size="12" /> Transparencia
-                </a>
-                <span class="text-[var(--text-muted)]">&bull;</span>
-                <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="text-[var(--text-secondary)] hover:text-indigo-400 transition-colors">
-                    <Icon Name="message-circle" Size="12" /> Discord
-                </a>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold">
+                @* Atribución oficial de BoardGameGeek *@
+                <div class="flex items-center gap-2">
+                    <a href="https://boardgamegeek.com"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="Visitar BoardGameGeek"
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[0.7rem] font-bold tracking-tight">
+                        <Icon Name="dices" Size="14" />
+                        <span>Powered by BoardGameGeek</span>
+                        <span class="text-[0.65rem] opacity-70">&nearr;</span>
+                    </a>
+                    <span class="text-[0.68rem] text-[var(--text-muted)] hidden lg:inline">
+                        Datos técnicos sincronizados con la XMLAPI2 de BGG.
+                    </span>
+                </div>
+
+                @* Enlaces de Navegación y Transparencia *@
+                <div class="flex items-center gap-4 text-xs">
+                    <a href="/transparencia" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
+                        <Icon Name="shield" Size="12" /> Transparencia & Afiliados
+                    </a>
+                </div>
             </div>
         </div>
     </footer>

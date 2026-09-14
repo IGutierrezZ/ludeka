@@ -47,8 +47,9 @@ public class BggOptions
 
     /// <summary>
     /// Determina si debe utilizarse el cliente simulado en lugar del cliente HTTP real.
+    /// En producción (SimulateApi=false) se conecta a la API real aunque no haya token configurado.
     /// </summary>
-    public bool ShouldSimulate => SimulateApi || (string.IsNullOrWhiteSpace(ApiToken) && string.IsNullOrWhiteSpace(ApiKey));
+    public bool ShouldSimulate => SimulateApi;
 
     /// <summary>
     /// Número máximo de reintentos en el ciclo de sondeo ante respuestas HTTP 202 Accepted.

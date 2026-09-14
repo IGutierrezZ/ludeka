@@ -329,6 +329,20 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 37: Modo Producción — APIs Reales, Atribución BGG, Comunidad y Motor Privado de Afiliados
+- **Identificador SDD:** `apis-produccion-afiliados`
+- **Objetivo Principal:** Preparar el núcleo de Ludeka para su despliegue en producción sobre Docker/Google Cloud con base de datos en Supabase:
+  1. Desacople estricto de datos simulados/mocks en BGG, Gemini y YouTube cuando `Simulate = false`. En caso de fallo o cuota agotada, fallar de forma controlada y registrable en la bandeja de incidencias sin inventar texto predefinido ni vídeos mock.
+  2. Cumplimiento legal con BGG mediante la incorporación en el pie de página global de la insignia oficial *"Powered by BoardGameGeek"* con enlace canónico externo.
+  3. Enlaces directos a las comunidades oficiales de Discord y Telegram en el footer configurables vía opciones.
+  4. Motor centralizado y privado de afiliación de tiendas (`IAffiliateUrlResolver`) que inyecta parámetros query de colaboradores (Zacatrus, Mathom, Dungeon Marvels, Cuarto de Juegos, Tablerum) de forma invisible en la BD y en formularios, con etiquetado seguro `rel="noopener noreferrer sponsored"`.
+  5. Corrección del cálculo de calendario de domingos en `CommunityNotificationService`.
+- **Estado:** ✅ **Completado y Archivado** (suite 866/866 en verde al 100%; +11 pruebas de motor de afiliados y resiliencia de producción).
+- **Documento:** [`inc-37-apis-produccion-afiliados.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-37-apis-produccion-afiliados.md) (cambio SDD archivado en `openspec/changes/archive/2026-09-14-apis-produccion-afiliados/`).
+- **Módulos del Sistema:** [`25-motor-afiliados-y-atribucion-comunitaria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md) (nuevo), [`05-integracion-bgg.md`](file:///c:/repos/Ludeka/docs/specs/sistema/05-integracion-bgg.md), [`10-sintesis-ia.md`](file:///c:/repos/Ludeka/docs/specs/sistema/10-sintesis-ia.md), [`04-hub-multimedia.md`](file:///c:/repos/Ludeka/docs/specs/sistema/04-hub-multimedia.md) y [`08-notificaciones-y-webhooks.md`](file:///c:/repos/Ludeka/docs/specs/sistema/08-notificaciones-y-webhooks.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

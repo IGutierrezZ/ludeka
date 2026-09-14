@@ -277,8 +277,8 @@ public class YouTubeSearchService : IYouTubeSearchService
 
             if (searchResponse?.Items == null || searchResponse.Items.Count == 0)
             {
-                _logger.LogInformation("Búsqueda en YouTube no arrojó resultados para query '{Query}'. Usando salvaguardas.", query);
-                return FilterSimulated(YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game), targetType);
+                _logger.LogInformation("Búsqueda en YouTube no arrojó resultados para query '{Query}'.", query);
+                return [];
             }
 
             var videoIds = searchResponse.Items
@@ -288,7 +288,7 @@ public class YouTubeSearchService : IYouTubeSearchService
 
             if (videoIds.Count == 0)
             {
-                return FilterSimulated(YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game), targetType);
+                return [];
             }
 
             // 2. Llamada a YouTube videos para obtener duration exacta e info enriquecida
@@ -370,8 +370,8 @@ public class YouTubeSearchService : IYouTubeSearchService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error comunicando con YouTube Data API v3 para query '{Query}'. Activando salvaguardas offline.", query);
-            return FilterSimulated(YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game), targetType);
+            _logger.LogWarning(ex, "Error comunicando con YouTube Data API v3 para query '{Query}'.", query);
+            return [];
         }
     }
 

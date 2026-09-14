@@ -28,7 +28,7 @@ public class BggOptionsTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void ShouldSimulate_WhenSimulateApiIsFalseButTokenIsEmpty_ReturnsTrue(string? emptyToken)
+    public void ShouldSimulate_WhenSimulateApiIsFalseButTokenIsEmpty_ReturnsFalse(string? emptyToken)
     {
         var options = new BggOptions
         {
@@ -36,7 +36,7 @@ public class BggOptionsTests
             ApiToken = emptyToken
         };
 
-        Assert.True(options.ShouldSimulate);
+        Assert.False(options.ShouldSimulate);
     }
 
     [Fact]
