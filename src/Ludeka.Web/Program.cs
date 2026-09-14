@@ -39,6 +39,13 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Soporte de puerto dinámico para Google Cloud Run y entornos de contenedores
+var cloudRunPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(cloudRunPort) && int.TryParse(cloudRunPort, out var parsedPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{parsedPort}");
+}
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

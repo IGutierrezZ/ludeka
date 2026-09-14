@@ -52,12 +52,14 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-36** | Rediseño Editorial del Resto de Páginas (Catálogo, Fichas, Eventos, Sorteos, Novedades) + Fix Responsive del Hero | ✅ Archivado | [inc-36-rediseno-paginas-editoriales.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-36-rediseno-paginas-editoriales.md) |
 | **INC-37** | Modo Producción: APIs Reales, Atribución BGG, Comunidad y Motor Privado de Afiliados | ✅ Archivado | [inc-37-apis-produccion-afiliados.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-37-apis-produccion-afiliados.md) |
 | **INC-38** | Persistencia PostgreSQL en Supabase, Estrategia Dual y Herramientas de Migración y Backup | ✅ Archivado | [inc-38-postgresql-supabase.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-38-postgresql-supabase.md) |
+| **INC-39** | Empaquetado Docker para Producción, Google Cloud Run y Pipeline CI/CD con Secretos | ✅ Archivado | [inc-39-docker-prod-cloudrun.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-39-docker-prod-cloudrun.md) |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Ninguno en curso actualmente. Próximo: INC-39 — Docker Compose para Producción, Google Cloud Run y Secretos).*
+*No hay incrementos en curso actualmente.*
+
 
 
 

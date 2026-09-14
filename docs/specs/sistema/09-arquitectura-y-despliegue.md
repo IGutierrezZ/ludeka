@@ -38,14 +38,25 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
 
 ---
 
-## 4. Empaquetado Docker y Orquestación
+## 4. Empaquetado Docker, Orquestación y Despliegue en Google Cloud Run (INC-39)
 
 - **Dockerfile Multi-Stage ([`Dockerfile`](file:///c:/repos/Ludeka/Dockerfile)):**
-  - *Build:* SDK `mcr.microsoft.com/dotnet/sdk:10.0` y compilador Tailwind CLI.
-  - *Runtime:* Imagen chiseled/alpine ultra-ligera ejecutada bajo usuario no privilegiado (`appuser`, UID 10001).
+  - *Build CSS:* Node.js 20 con Tailwind CSS CLI minificado (`input.css` ➔ `app.css`).
+  - *Build .NET:* SDK `mcr.microsoft.com/dotnet/sdk:10.0` compilando en Release.
+  - *Runtime Seguro:* Imagen `mcr.microsoft.com/dotnet/aspnet:10.0` ejecutando bajo usuario sin privilegios (`USER app`).
+  - *Adaptabilidad de Puerto:* Soporte dinámico para la variable de entorno `PORT` inyectada por Google Cloud Run en `Program.cs`.
+  - *Sonda de Salud:* Sonda nativa Docker `HEALTHCHECK` contra `/healthz`.
+- **Despliegue en Google Cloud Run (Free Tier):**
+  - Configuración óptima: 512 MB de memoria, 1 vCPU y escalado a cero (`min-instances: 0`) para garantizar coste cero cuando no hay tráfico.
+  - Guía paso a paso: [`docs/deployment/google-cloud-run.md`](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md).
 - **Docker Compose:**
-  - [`docker-compose.yml`](file:///c:/repos/Ludeka/docker-compose.yml): Entorno local con volumen persistente en `./data/ludeka.db`.
-  - [`docker-compose.staging.yml`](file:///c:/repos/Ludeka/docker-compose.staging.yml): Entorno de pruebas con volúmenes para base de datos y uploads.
+  - [`docker-compose.yml`](file:///c:/repos/Ludeka/docker-compose.yml): Entorno local con SQLite.
+  - [`docker-compose.staging.yml`](file:///c:/repos/Ludeka/docker-compose.staging.yml): Entorno de pruebas.
+  - [`docker-compose.prod.yml`](file:///c:/repos/Ludeka/docker-compose.prod.yml): Entorno de producción con mapeo de variables de entorno y soporte `.env`.
+- **Pipeline de Integración y Entrega Continua (GitHub Actions):**
+  - Archivo: [`.github/workflows/ci-cd.yml`](file:///c:/repos/Ludeka/.github/workflows/ci-cd.yml).
+  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 887 tests.
+  - *CD:* Despliegue desatendido a Google Cloud Run al hacer merge a `main` si los secretos están configurados.
 
 ---
 

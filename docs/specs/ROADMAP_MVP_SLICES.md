@@ -358,6 +358,20 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 39: Empaquetado Docker para Producción, Google Cloud Run y Pipeline CI/CD con Secretos
+- **Identificador SDD:** `docker-prod-cloudrun`
+- **Objetivo Principal:** Dotar a Ludeka de la infraestructura completa y automatizada para su despliegue continuo en producción sobre Google Cloud Run:
+  1. Adaptación dinámica de ASP.NET Core a la variable de entorno `PORT` inyectada por Google Cloud Run en `src/Ludeka.Web/Program.cs` (`builder.WebHost.UseUrls($"http://0.0.0.0:{parsedPort}")`).
+  2. Manifiesto `docker-compose.prod.yml` para despliegues autónomos o pruebas de producción local con soporte de variables de entorno `.env` y sondas de salud.
+  3. Workflow oficial de GitHub Actions (`.github/workflows/ci-cd.yml`) con integración continua (CI) para compilación .NET 10 y ejecución de 887 tests, y despliegue continuo (CD) desatendido a Google Cloud Run mediante autenticación segura por Workload Identity Federation o Service Account Key tras merge a `main`.
+  4. Guía operacional exhaustiva en español (`docs/deployment/google-cloud-run.md`) con comandos `gcloud`, roles IAM, catálogo de secretos en GitHub y optimizaciones de costes con escalado a cero.
+  5. Verificación y robustecimiento de la suite de tests (`BggImportServiceProgressTests`) asegurando 100% de estabilidad en entornos multihilo.
+- **Estado:** ✅ **Completado y Archivado** (suite 887/887 en verde al 100%; verificación de build de imagen Docker y workflow CI/CD).
+- **Documento:** [`inc-39-docker-prod-cloudrun.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-39-docker-prod-cloudrun.md) (cambio SDD archivado en `openspec/changes/archive/2026-09-14-docker-prod-cloudrun/`).
+- **Módulos del Sistema:** [`09-arquitectura-y-despliegue.md`](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
