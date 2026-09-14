@@ -54,7 +54,8 @@ public record NightlyCatalogingResultDto(
     int FailedCount,
     IReadOnlyList<string> CatalogedTitles,
     string Status,
-    string? ErrorMessage
+    string? ErrorMessage,
+    int BggDiscoveryCount = 0
 );
 
 /// <summary>
@@ -71,7 +72,8 @@ public record NightlyCatalogingExecutionLogDto(
     int FailedCount,
     IReadOnlyList<string> CatalogedTitles,
     string Status,
-    string? ErrorMessage
+    string? ErrorMessage,
+    int BggDiscoveryCount = 0
 );
 
 /// <summary>

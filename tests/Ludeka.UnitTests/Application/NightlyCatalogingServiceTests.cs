@@ -180,6 +180,24 @@ public class NightlyCatalogingServiceTests
         Assert.Equal(game.Id, release.GameId);
     }
 
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WithDiscoveryService_ExecutesPhase1_5AndPersistsBggDiscoveryCount()
+    {
+        // Arrange
+        var fakeDiscovery = new FakeDiscoveryService { DiscoveredToReturn = 3 };
+        var service = CreateService(out var pendingRepo, out var bggClient, out var gameRepo, out _, out _, out _, out var logRepo, limit: 5, discoveryService: fakeDiscovery);
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal(3, result.BggDiscoveryCount);
+        Assert.True(fakeDiscovery.WasCalled);
+
+        var savedLog = Assert.Single(logRepo.Logs);
+        Assert.Equal(3, savedLog.BggDiscoveryCount);
+    }
+
     private static NightlyCatalogingService CreateService(
         out FakePendingRepo pendingRepo,
         out FakeBggClient bggClient,
@@ -188,7 +206,8 @@ public class NightlyCatalogingServiceTests
         out FakeReleaseRepo releaseRepo,
         out FakeNewsExtractor newsExtractor,
         out FakeLogRepo logRepo,
-        int limit = 20)
+        int limit = 20,
+        IBggDiscoveryService? discoveryService = null)
     {
         pendingRepo = new FakePendingRepo();
         bggClient = new FakeBggClient();
@@ -216,7 +235,9 @@ public class NightlyCatalogingServiceTests
             logRepo,
             options,
             NullLogger<NightlyCatalogingService>.Instance,
-            aiSummaryService: null
+            aiSummaryService: null,
+            massIngestionService: null,
+            discoveryService: discoveryService
         );
     }
 
@@ -379,5 +400,23 @@ public class NightlyCatalogingServiceTests
 
         public Task<NightlyCatalogingExecutionLog?> GetLatestLogAsync(CancellationToken ct = default) =>
             Task.FromResult(Logs.OrderByDescending(l => l.StartedAt).FirstOrDefault());
+    }
+
+    private class FakeDiscoveryService : IBggDiscoveryService
+    {
+        public bool WasCalled { get; private set; }
+        public int DiscoveredToReturn { get; set; } = 0;
+
+        public Task<BggDiscoveryResultDto> DiscoverAndEnqueueBggTrendsAsync(int maxItems = 50, CancellationToken ct = default)
+        {
+            WasCalled = true;
+            return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
+        }
+
+        public Task<BggDiscoveryResultDto> DiscoverAndEnqueueNewReleasesAsync(int? targetYear = null, int maxItems = 50, CancellationToken ct = default)
+        {
+            WasCalled = true;
+            return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
+        }
     }
 }

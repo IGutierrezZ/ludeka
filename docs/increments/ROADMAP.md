@@ -56,11 +56,20 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-40** | Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP) | ✅ Archivado | [inc-40-medios-r2-skiasharp.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-40-medios-r2-skiasharp.md) |
 | **INC-41** | Ingesta Masiva de Catálogo BGG (~8.000 juegos), Fotos GeekDo y Síntesis IA en Lotes | ✅ Archivado | [inc-41-ingesta-bgg-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-41-ingesta-bgg-catalogo.md) |
 | **INC-42** | Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Canales) | ✅ Archivado | [inc-42-ingesta-social-moderacion.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-42-ingesta-social-moderacion.md) |
+| **INC-43** | Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno | ✅ Archivado | [inc-43-ingesta-continua-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-43-ingesta-continua-bgg.md) |
+| **INC-44** | Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram) | 📋 Planificado | inc-44-social-collector-worker.md |
+| **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | 📋 Planificado | inc-45-price-radar-discounts.md |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Sin incrementos activos en este momento — listos para el siguiente paso del roadmap)*
+- **INC-43: Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno**
+  - Worktree: `C:\repos\ludeka-wt\ingesta-continua-bgg`
+  - Rama: `inc/ingesta-continua-bgg`
+  - Responsable: Antigravity / OpenCode
+  - Estado: Verificado (968 tests en verde), listo para PR a main
+
+
 
 

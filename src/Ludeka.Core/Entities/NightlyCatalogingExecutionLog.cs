@@ -15,6 +15,7 @@ public class NightlyCatalogingExecutionLog
     public DateTimeOffset? CompletedAt { get; private set; }
     public int QueueProcessedCount { get; private set; }
     public int NewsDiscoveryCount { get; private set; }
+    public int BggDiscoveryCount { get; private set; }
     public int TopBackfillCount { get; private set; }
     public int TotalCatalogedCount { get; private set; }
     public int FailedCount { get; private set; }
@@ -37,11 +38,13 @@ public class NightlyCatalogingExecutionLog
         int topBackfill,
         int totalCataloged,
         int failed,
-        IEnumerable<string> titles)
+        IEnumerable<string> titles,
+        int bggDiscovery = 0)
     {
         CompletedAt = DateTimeOffset.UtcNow;
         QueueProcessedCount = queueProcessed;
         NewsDiscoveryCount = newsDiscovery;
+        BggDiscoveryCount = bggDiscovery;
         TopBackfillCount = topBackfill;
         TotalCatalogedCount = totalCataloged;
         FailedCount = failed;

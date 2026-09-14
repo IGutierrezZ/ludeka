@@ -18,5 +18,16 @@ public enum CatalogQueueOrigin
     /// <summary>
     /// Incorporado durante la ejecución nocturna para completar el cupo diario con los mejores juegos de BGG.
     /// </summary>
-    TopBggBackfill = 2
+    TopBggBackfill = 2,
+
+    /// <summary>
+    /// Descubierto automáticamente a partir de los lanzamientos y novedades del año en BoardGameGeek.
+    /// </summary>
+    BggNewReleases = 3,
+
+    /// <summary>
+    /// Descubierto automáticamente a partir de la lista de tendencias mundiales (Hotness) de BoardGameGeek.
+    /// </summary>
+    BggHotness = 4
 }
+

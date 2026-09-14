@@ -141,6 +141,7 @@ builder.Services.AddScoped<IBggSearchAssistedService, BggSearchAssistedService>(
 builder.Services.Configure<NightlyCatalogingOptions>(builder.Configuration.GetSection("NightlyCataloging"));
 builder.Services.AddScoped<INewsGameExtractor, NewsGameExtractor>();
 builder.Services.AddScoped<INightlyCatalogingLogRepository, SqliteNightlyCatalogingLogRepository>();
+builder.Services.AddScoped<IBggDiscoveryService, BggDiscoveryService>();
 builder.Services.AddScoped<INightlyCatalogingService, NightlyCatalogingService>();
 builder.Services.AddHostedService<NightlyCatalogingHostedService>();
 

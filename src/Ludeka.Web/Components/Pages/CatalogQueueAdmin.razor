@@ -6,6 +6,7 @@
 @inject INightlyCatalogingService NightlyService
 @inject IBggCatalogQueueService QueueService
 @inject IBggMassIngestionService MassIngestionService
+@inject IBggDiscoveryService DiscoveryService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -43,6 +44,22 @@
 
             <div class="flex items-center gap-3 flex-wrap">
                 <button type="button"
+                        @onclick="ExecuteBggDiscoveryAsync"
+                        disabled="@(_isProcessing || _isDiscoveringBgg)"
+                        class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (_isDiscoveringBgg)
+                    {
+                        <span class="animate-spin inline-block"><Icon Name="settings" Size="14" /></span>
+                        <span>Escaneando BGG...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="trending-up" Size="14" />
+                        <span>Escanear Novedades BGG</span>
+                    }
+                </button>
+
+                <button type="button"
                         @onclick="ExecuteNightlyBatchAsync"
                         disabled="@_isProcessing"
                         class="px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
@@ -69,7 +86,7 @@
         </div>
 
         @* Tarjetas de Métricas KPI *@
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
                 <span class="text-xs text-[var(--text-muted)] font-semibold flex items-center gap-1.5">
                     <Icon Name="target" Size="12" /> Cupo Diario Configurado
@@ -108,6 +125,18 @@
 
             <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
                 <span class="text-xs text-[var(--text-muted)] font-semibold flex items-center gap-1.5">
+                    <Icon Name="trending-up" Size="14" /> Tendencias BGG
+                </span>
+                <div class="text-2xl font-black text-rose-500">
+                    @_bggDiscoveryCount <span class="text-xs font-normal text-[var(--text-muted)]">descubiertos</span>
+                </div>
+                <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                    Hotness & lanzamientos del año
+                </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span class="text-xs text-[var(--text-muted)] font-semibold flex items-center gap-1.5">
                     <Icon Name="scroll" Size="14" /> Última Ejecución
                 </span>
                 <div class="text-2xl font-black @GetStatusColor(_lastHistory?.Status)">
@@ -125,6 +154,32 @@
                 </div>
             </div>
         </div>
+
+        @* Notificación de Descubrimiento BGG *@
+        @if (_discoveryResult != null)
+        {
+            <div class="p-5 rounded-2xl border bg-amber-500/10 border-amber-500/30 text-xs space-y-2">
+                <div class="flex items-center justify-between font-bold text-sm text-amber-600 dark:text-amber-300">
+                    <span class="flex items-center gap-2">
+                        <Icon Name="trending-up" Size="16" />
+                        <span>Escaneo de Novedades y Tendencias BGG Completado</span>
+                    </span>
+                    <button type="button" @onclick="() => _discoveryResult = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-base font-bold">&times;</button>
+                </div>
+                <p class="text-[var(--text-secondary)]">
+                    Se escanearon <strong>@_discoveryResult.TotalScanned títulos</strong> en BGG:
+                    <strong>@_discoveryResult.EnqueuedCount nuevos juegos</strong> agregados a la cola de catalogación,
+                    <strong>@_discoveryResult.AlreadyCatalogedCount</strong> ya en catálogo y
+                    <strong>@_discoveryResult.AlreadyInQueueCount</strong> ya presentes en espera o staging.
+                </p>
+                @if (_discoveryResult.EnqueuedTitles.Count > 0)
+                {
+                    <div class="text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
+                        <strong>Nuevos encolados:</strong> @string.Join(", ", _discoveryResult.EnqueuedTitles)
+                    </div>
+                }
+            </div>
+        }
 
         @* Notificación de Resultado en Vivo *@
         @if (_lastResult != null)
@@ -257,6 +312,16 @@
                         <Icon Name="newspaper" Size="12" /> Novedades
                     </button>
                     <button type="button"
+                            @onclick="() => _originFilter = CatalogQueueOrigin.BggNewReleases"
+                            class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all @(_originFilter == CatalogQueueOrigin.BggNewReleases ? "bg-amber-600 text-white border-amber-600" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]")">
+                        <Icon Name="sparkles" Size="12" /> Novedades BGG
+                    </button>
+                    <button type="button"
+                            @onclick="() => _originFilter = CatalogQueueOrigin.BggHotness"
+                            class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all @(_originFilter == CatalogQueueOrigin.BggHotness ? "bg-rose-600 text-white border-rose-600" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]")">
+                        <Icon Name="trending-up" Size="12" /> Tendencia BGG
+                    </button>
+                    <button type="button"
                             @onclick="() => _originFilter = CatalogQueueOrigin.UserImport"
                             class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all @(_originFilter == CatalogQueueOrigin.UserImport ? "bg-emerald-600 text-white border-emerald-600" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]")">
                         <Icon Name="user" Size="12" /> Usuarios
@@ -332,6 +397,16 @@
                                             case CatalogQueueOrigin.NewsDiscovery:
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
                                                     <Icon Name="newspaper" /> Novedad Editorial
+                                                </span>
+                                                break;
+                                            case CatalogQueueOrigin.BggNewReleases:
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                    <Icon Name="sparkles" /> Novedad BGG
+                                                </span>
+                                                break;
+                                            case CatalogQueueOrigin.BggHotness:
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                                    <Icon Name="trending-up" /> Tendencia BGG
                                                 </span>
                                                 break;
                                             case CatalogQueueOrigin.TopBggBackfill:
@@ -458,12 +533,15 @@
     private bool _isLoading = true;
     private bool _isProcessing = false;
     private bool _isDrainingStaging = false;
+    private bool _isDiscoveringBgg = false;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
+    private int _bggDiscoveryCount = 0;
     private CatalogQueueOrigin? _originFilter = null;
     private NightlyCatalogingOptions? _options;
     private NightlyCatalogingResultDto? _lastResult;
     private NightlyCatalogingExecutionLogDto? _lastHistory;
+    private BggDiscoveryResultDto? _discoveryResult;
     private BggStagingMetricsDto? _stagingMetrics;
     private BggMassIngestionCycleResultDto? _drainCycleResult;
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
@@ -492,6 +570,7 @@
             _queueItems = await QueueService.GetTopPendingQueueAsync(100);
             _totalQueueCount = await QueueService.GetTotalPendingCountAsync();
             _newsDiscoveryCount = _queueItems.Count(i => i.Origin == CatalogQueueOrigin.NewsDiscovery);
+            _bggDiscoveryCount = _queueItems.Count(i => i.Origin == CatalogQueueOrigin.BggNewReleases || i.Origin == CatalogQueueOrigin.BggHotness);
             _history = await NightlyService.GetExecutionHistoryAsync(15);
             _lastHistory = _history.FirstOrDefault();
             _stagingMetrics = await MassIngestionService.GetMetricsAsync();
@@ -503,6 +582,28 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task ExecuteBggDiscoveryAsync()
+    {
+        if (_isDiscoveringBgg) return;
+
+        _isDiscoveringBgg = true;
+        _discoveryResult = null;
+
+        try
+        {
+            _discoveryResult = await DiscoveryService.DiscoverAndEnqueueBggTrendsAsync(50);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _discoveryResult = new BggDiscoveryResultDto(0, 0, 0, 0, 0, [$"Error en escaneo: {ex.Message}"]);
+        }
+        finally
+        {
+            _isDiscoveringBgg = false;
         }
     }
 

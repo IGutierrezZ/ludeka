@@ -1,0 +1,27 @@
+# Plan de Tareas — INC-43: Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno
+
+- [ ] **1. Dominio y Modelo de Datos**
+  - [ ] 1.1 Agregar `BggNewReleases = 3` y `BggHotness = 4` al enum `CatalogQueueOrigin`.
+  - [ ] 1.2 Agregar propiedad `BggDiscoveryCount` a `NightlyCatalogingExecutionLog` y actualizar método `Complete`.
+- [ ] **2. Contratos y DTOs**
+  - [ ] 2.1 Crear `BggDiscoveryResultDto` en `Ludeka.Application.DTOs`.
+  - [ ] 2.2 Definir `IBggDiscoveryService` en `Ludeka.Application.Contracts`.
+  - [ ] 2.3 Actualizar `NightlyCatalogingResultDto` con `BggDiscoveryCount`.
+- [ ] **3. Implementación del Servicio de Descubrimiento**
+  - [ ] 3.1 Implementar `BggDiscoveryService` en `Ludeka.Application.Features.Bgg`.
+  - [ ] 3.2 Lógica de triple deduplicación (Games -> PendingBggImports -> BggCatalogStaging).
+  - [ ] 3.3 Clasificación inteligente entre lanzamientos del año (`BggNewReleases`) y Hotness general (`BggHotness`).
+- [ ] **4. Integración en el Orquestador Nocturno**
+  - [ ] 4.1 Inyectar `IBggDiscoveryService?` en `NightlyCatalogingService`.
+  - [ ] 4.2 Incorporar Fase 1.5 (Auto-descubrimiento BGG) con manejo de excepciones y reporte en bitácora.
+- [ ] **5. Simulación y Registro en DI**
+  - [ ] 5.1 Actualizar `SimulatedBggClient` con lanzamientos de 2025/2026 para testing y modo simulación.
+  - [ ] 5.2 Registrar `IBggDiscoveryService` en el contenedor de dependencias (`src/Ludeka.Web/Program.cs`).
+- [ ] **6. UI Editorial y Panel de Administración**
+  - [ ] 6.1 Añadir botón de acción *"Escanear Novedades BGG"* en `CatalogQueueAdmin.razor`.
+  - [ ] 6.2 Implementar visualización de resultados y estado de carga.
+  - [ ] 6.3 Agregar opciones de filtro y badges visuales para los nuevos orígenes sin emojis (Iconos Lucide).
+- [ ] **7. Pruebas Unitarias y Verificación**
+  - [ ] 7.1 Crear suite de pruebas para `BggDiscoveryServiceTests` (detección, deduplicación, filtro por año).
+  - [ ] 7.2 Crear o actualizar pruebas de `NightlyCatalogingServiceTests` con la nueva Fase 1.5.
+  - [ ] 7.3 Verificar que toda la suite de pruebas unitarias compile y pase al 100%.

@@ -85,7 +85,8 @@ public class NightlyCatalogingDomainTests
             topBackfill: 2,
             totalCataloged: 3,
             failed: 0,
-            titles: titles
+            titles: titles,
+            bggDiscovery: 4
         );
 
         // Assert Complete
@@ -93,6 +94,7 @@ public class NightlyCatalogingDomainTests
         Assert.NotNull(log.CompletedAt);
         Assert.Equal(1, log.QueueProcessedCount);
         Assert.Equal(2, log.NewsDiscoveryCount);
+        Assert.Equal(4, log.BggDiscoveryCount);
         Assert.Equal(2, log.TopBackfillCount);
         Assert.Equal(3, log.TotalCatalogedCount);
         Assert.Equal(0, log.FailedCount);
@@ -104,5 +106,14 @@ public class NightlyCatalogingDomainTests
         log.Fail("Error de conexión a BGG XMLAPI2");
         Assert.Equal("Failed", log.Status);
         Assert.Equal("Error de conexión a BGG XMLAPI2", log.ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData(CatalogQueueOrigin.BggNewReleases)]
+    [InlineData(CatalogQueueOrigin.BggHotness)]
+    public void PendingBggImport_WithBggDiscoveryOrigins_SetsOriginProperly(CatalogQueueOrigin origin)
+    {
+        var item = new PendingBggImport(4001, "Test Discovery", 2026, origin: origin);
+        Assert.Equal(origin, item.Origin);
     }
 }
