@@ -29,6 +29,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
     private readonly INewsGameExtractor _newsExtractor;
     private readonly INightlyCatalogingLogRepository _logRepo;
     private readonly IAiGameSummaryService? _aiSummaryService;
+    private readonly IBggMassIngestionService? _massIngestionService;
     private readonly NightlyCatalogingOptions _options;
     private readonly ILogger<NightlyCatalogingService> _logger;
 
@@ -42,7 +43,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
         INightlyCatalogingLogRepository logRepo,
         IOptions<NightlyCatalogingOptions> options,
         ILogger<NightlyCatalogingService> logger,
-        IAiGameSummaryService? aiSummaryService = null)
+        IAiGameSummaryService? aiSummaryService = null,
+        IBggMassIngestionService? massIngestionService = null)
     {
         _pendingRepo = pendingRepo ?? throw new ArgumentNullException(nameof(pendingRepo));
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
@@ -54,6 +56,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
         _options = options?.Value ?? new NightlyCatalogingOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _aiSummaryService = aiSummaryService;
+        _massIngestionService = massIngestionService;
     }
 
     public async Task<NightlyCatalogingResultDto> ExecuteNightlyCatalogingAsync(int? customLimit = null, CancellationToken ct = default)
@@ -146,7 +149,22 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 }
             }
 
-            // --- FASE 3: Relleno con el Top de BGG (si no se ha alcanzado el cupo diario) ---
+            // --- FASE 3: Drenaje Progresivo de Staging Masivo y Relleno de Catálogo ---
+            if (_massIngestionService != null)
+            {
+                try
+                {
+                    _logger.LogInformation("Fase 3: Ejecutando ciclo de drenaje de staging masivo (detalles, fotos GeekDo/R2, IA por lotes y promoción).");
+                    var drainResult = await _massIngestionService.RunDrainCycleAsync(ct);
+                    topBackfillCount += drainResult.PromotedToCatalogCount;
+                    _logger.LogInformation("Fase 3 (Staging): {Result}", drainResult.Message);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Advertencia durante el ciclo de drenaje de staging: {Message}", ex.Message);
+                }
+            }
+
             int remainingQuota = limit - catalogedTitles.Count;
             if (remainingQuota > 0)
             {

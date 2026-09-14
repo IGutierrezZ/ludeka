@@ -32,6 +32,7 @@ public class LudekaDbContext : DbContext
     public DbSet<BoardGameEvent> BoardGameEvents => Set<BoardGameEvent>();
     public DbSet<NightlyCatalogingExecutionLog> NightlyCatalogingExecutionLogs => Set<NightlyCatalogingExecutionLog>();
     public DbSet<InstagramPostDraft> InstagramPostDrafts => Set<InstagramPostDraft>();
+    public DbSet<BggCatalogStagingItem> BggCatalogStaging => Set<BggCatalogStagingItem>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -410,5 +411,24 @@ public class LudekaDbContext : DbContext
         instagramDraft.Property(d => d.Caption).IsRequired().HasMaxLength(4000);
         instagramDraft.Property(d => d.Theme).IsRequired().HasMaxLength(20);
         instagramDraft.Property(d => d.CreatedByUserId).IsRequired().HasMaxLength(100);
+
+        // --- Configuración de BggCatalogStagingItem (Incremento 41) ---
+        var staging = modelBuilder.Entity<BggCatalogStagingItem>();
+        staging.ToTable("BggCatalogStaging");
+        staging.HasKey(s => s.BggId);
+
+        staging.HasIndex(s => s.OriginalTitle);
+        staging.HasIndex(s => s.UsersRated);
+        staging.HasIndex(s => s.FetchStatus);
+        staging.HasIndex(s => s.ImagesStatus);
+        staging.HasIndex(s => s.AiStatus);
+        staging.HasIndex(s => s.PromotionStatus);
+        staging.HasIndex(s => s.CreatedAt);
+
+        staging.Property(s => s.OriginalTitle).IsRequired().HasMaxLength(250);
+        staging.Property(s => s.SpanishTitle).HasMaxLength(250);
+        staging.Property(s => s.Designer).HasMaxLength(200);
+        staging.Property(s => s.Publisher).HasMaxLength(200);
+        staging.Property(s => s.ErrorMessage).HasMaxLength(1000);
     }
 }

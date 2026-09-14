@@ -80,4 +80,36 @@ public static class HeuristicGameSummaryGenerator
             GeneratedAt: DateTime.UtcNow
         );
     }
+
+    public static AiGameSummaryDto Generate(AiGameBatchInputDto input, string modelName = "Heurística Editorial")
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        string scalabilitySummary = input.MinPlayers == input.MaxPlayers
+            ? $"Juego diseñado exclusivamente para {input.MinPlayers} jugadores con flujo y ritmo constantes."
+            : $"Escalabilidad recomendada de {input.MinPlayers} a {input.MaxPlayers} jugadores según datos de fabricante y comunidad.";
+
+        string ageSummary = input.MinAge > 0
+            ? $"Edad recomendada a partir de los {input.MinAge}+ años para una comprensión plena de las mecánicas."
+            : "Apto para público general y familiar.";
+
+        string footprintSummary = "Mesa de comedor estándar. Despliegue adecuado para juego con espacio de cartas y componentes.";
+
+        string authorEditorial = (!string.IsNullOrWhiteSpace(input.Designer) && !string.IsNullOrWhiteSpace(input.Publisher))
+            ? $" Diseñado por {input.Designer} y publicado por {input.Publisher}."
+            : string.Empty;
+
+        string generalVerdict = $"{input.SpanishTitle} ({input.YearPublished}) cuenta con una valoración media de {input.Rating:0.0}/10 en BoardGameGeek.{authorEditorial} Síntesis editorial objetiva para catálogo de Ludeka.";
+
+        return new AiGameSummaryDto(
+            GameId: Guid.Empty,
+            GameTitle: input.SpanishTitle,
+            ScalabilitySummary: scalabilitySummary,
+            AgeSummary: ageSummary,
+            FootprintSummary: footprintSummary,
+            GeneralVerdict: generalVerdict,
+            Model: modelName,
+            GeneratedAt: DateTime.UtcNow
+        );
+    }
 }

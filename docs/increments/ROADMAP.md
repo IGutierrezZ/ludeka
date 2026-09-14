@@ -54,12 +54,13 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-38** | Persistencia PostgreSQL en Supabase, Estrategia Dual y Herramientas de Migración y Backup | ✅ Archivado | [inc-38-postgresql-supabase.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-38-postgresql-supabase.md) |
 | **INC-39** | Empaquetado Docker para Producción, Google Cloud Run y Pipeline CI/CD con Secretos | ✅ Archivado | [inc-39-docker-prod-cloudrun.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-39-docker-prod-cloudrun.md) |
 | **INC-40** | Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP) | ✅ Archivado | [inc-40-medios-r2-skiasharp.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-40-medios-r2-skiasharp.md) |
-| **INC-41** | Ingesta Masiva de Catálogo BGG (~8.000 juegos), Fotos GeekDo y Síntesis IA en Lotes | 📋 Planificado | Pendiente |
+| **INC-41** | Ingesta Masiva de Catálogo BGG (~8.000 juegos), Fotos GeekDo y Síntesis IA en Lotes | ✅ Archivado | [inc-41-ingesta-bgg-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-41-ingesta-bgg-catalogo.md) |
 | **INC-42** | Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Canales) | 📋 Planificado | Pendiente |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*No hay incrementos en curso actualmente.*
+- *Ningún incremento en curso.* (INC-41 listo para PR).
+
 

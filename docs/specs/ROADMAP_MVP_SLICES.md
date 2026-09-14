@@ -372,6 +372,30 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
+- **Identificador SDD:** `change-40-medios-r2-skiasharp`
+- **Objetivo Principal:** Almacenamiento y optimización de medios con 0 € en costes salientes (*zero egress fees*) mediante Cloudflare R2 y SkiaSharp en memoria (WebP a 82% de calidad, variantes deterministas cover/back/table).
+- **Estado:** ✅ **Completado y Archivado** (suite 906/906 en verde al 100%; +19 pruebas unitarias de procesamiento gráfico y nombrado).
+- **Documento:** [`inc-40-medios-r2-skiasharp.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-40-medios-r2-skiasharp.md).
+- **Módulos del Sistema:** [`26-almacenamiento-medios-r2-skiasharp.md`](file:///c:/repos/Ludeka/docs/specs/sistema/26-almacenamiento-medios-r2-skiasharp.md).
+
+---
+
+## Incremento 41: Ingesta Masiva de Catálogo BGG (~8.000 títulos), Fotos GeekDo y Síntesis IA en Lotes
+- **Identificador SDD:** `change-41-ingesta-bgg-catalogo`
+- **Objetivo Principal:** Carga y enriquecimiento a escala del catálogo lúdico base:
+  1. Filtro streaming CSV `bg_ranks.csv` con umbral `usersrated >= 30` (~8.000 juegos comunitariamente relevantes).
+  2. Tabla de staging aislada `BggCatalogStaging` con tracking desacoplado de etapas (`Fetch`, `Images`, `Ai`, `Promotion`).
+  3. Extracción de las 3 imágenes más votadas de GeekDo (portada, trasera y mesa) convertidas a WebP y subidas a R2 vía `IImageStorageService`.
+  4. Síntesis editorial con Google Gemini Flash agrupando de 5 a 10 juegos por llamada estructurada, con pausa limpia ante cuota agotada (HTTP 429).
+  5. Reingeniería del orquestador nocturno `NightlyCatalogingService` para drenar staging progresivamente sin bloquear novedades ni solicitudes prioritarias.
+  6. Panel administrativo en `/admin/cola-catalogacion` y galería comunitaria en ficha de juego.
+- **Estado:** ✅ **Completado y Archivado** (suite 930/930 en verde al 100%; +24 pruebas unitarias sin dependencias externas de mock).
+- **Documento:** [`inc-41-ingesta-bgg-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-41-ingesta-bgg-catalogo.md).
+- **Módulos del Sistema:** [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

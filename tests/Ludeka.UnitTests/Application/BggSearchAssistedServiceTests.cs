@@ -293,5 +293,15 @@ public class BggSearchAssistedServiceTests
 
         public Task<AiBatchProcessingResultDto> ProcessPendingSummariesBatchAsync(int batchSize = 20, CancellationToken ct = default)
             => Task.FromResult(new AiBatchProcessingResultDto(0, 0, 0, []));
+
+        public Task<AiBatchResultDto> GenerateBatchSummariesAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct = default)
+        {
+            var dict = new Dictionary<int, AiGameSummaryDto>();
+            foreach (var g in games)
+            {
+                dict[g.BggId] = new AiGameSummaryDto(Guid.Empty, g.SpanishTitle, "Ideal 2", "14+", "Monstruo", $"Fake AI Summary for {g.SpanishTitle}", "FakeModel", DateTime.UtcNow);
+            }
+            return Task.FromResult(new AiBatchResultDto(true, false, dict, null));
+        }
     }
 }
