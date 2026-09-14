@@ -25,5 +25,10 @@ public interface IAiGameSummaryService
     /// Procesa por lotes (carga nocturna o bajo demanda) los juegos del catálogo que aún no dispongan de síntesis de IA.
     /// </summary>
     Task<AiBatchProcessingResultDto> ProcessPendingSummariesBatchAsync(int batchSize = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Genera la síntesis estructurada para una lista de juegos agrupados en una única petición a Gemini Flash (Batching).
+    /// </summary>
+    Task<AiBatchResultDto> GenerateBatchSummariesAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct = default);
 }
 

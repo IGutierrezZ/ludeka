@@ -397,7 +397,38 @@ else
         @* 7. Consultorio de Reglas Q&A *@
         <RuleQuestionsSection GameId="@Game.Id" GameTitle="@Game.SpanishTitle" />
 
-        @* 8. Sinopsis / Descripción *@
+        @* 8. Galería Visual Comunitaria (Contraportada y Foto en Mesa) *@
+        @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl) || !string.IsNullOrWhiteSpace(Game.TableImageUrl))
+        {
+            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
+                <div class="flex items-center gap-2">
+                    <Icon Name="image" Size="18" class="text-[var(--brand-primary)]" />
+                    <h2 class="text-base font-bold text-[var(--text-primary)]">Galería Visual & Componentes</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl))
+                    {
+                        <div class="space-y-2">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Contraportada oficial</span>
+                            <div class="rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] max-h-80 flex items-center justify-center">
+                                <img src="@Game.BackCoverImageUrl" alt="Contraportada de @Game.SpanishTitle" loading="lazy" class="w-full h-auto object-contain max-h-80" />
+                            </div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
+                    {
+                        <div class="space-y-2">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)]">En mesa y componentes</span>
+                            <div class="rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] max-h-80 flex items-center justify-center">
+                                <img src="@Game.TableImageUrl" alt="Componentes en mesa de @Game.SpanishTitle" loading="lazy" class="w-full h-auto object-contain max-h-80" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* 9. Sinopsis / Descripción *@
         @if (!string.IsNullOrWhiteSpace(Game.Description))
         {
             <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">

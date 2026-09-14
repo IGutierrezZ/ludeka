@@ -1,0 +1,59 @@
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Ludeka.Application.DTOs;
+
+namespace Ludeka.Application.Contracts;
+
+/// <summary>
+/// Orquestador para la ingesta masiva de catálogo BGG, obtención de galería comunitaria, síntesis IA en lote y promoción a Games.
+/// </summary>
+public interface IBggMassIngestionService
+{
+    /// <summary>
+    /// Procesa un flujo de volcado CSV de ranks de BGG e inserta en staging los títulos que cumplan el umbral de votos.
+    /// </summary>
+    Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 30, CancellationToken ct = default);
+
+    /// <summary>
+    /// Procesa un lote de registros pendientes en staging para consultar /xmlapi2/thing en BGG (hasta 20 IDs).
+    /// </summary>
+    Task<int> ProcessPendingDetailsBatchAsync(int batchSize = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Procesa un lote de registros en staging para buscar fotos en GeekDo y subirlas como WebP a Cloudflare R2.
+    /// </summary>
+    Task<int> ProcessPendingImagesBatchAsync(int batchSize = 10, CancellationToken ct = default);
+
+    /// <summary>
+    /// Procesa un lote de registros en staging para generar su síntesis editorial con Gemini Flash agrupados en prompts.
+    /// </summary>
+    Task<AiBatchProcessingResultDto> ProcessPendingAiBatchAsync(int gamesPerBatch = 8, int maxBatches = 5, CancellationToken ct = default);
+
+    /// <summary>
+    /// Promueve a la tabla principal Games los registros de staging que se encuentren completamente listos.
+    /// </summary>
+    Task<int> PromoteReadyToCatalogBatchAsync(int batchSize = 50, CancellationToken ct = default);
+
+    /// <summary>
+    /// Obtiene las métricas de avance y conteo por estados de la tabla de staging.
+    /// </summary>
+    Task<BggStagingMetricsDto> GetMetricsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Ejecuta un ciclo de drenaje progresivo que avanza cada fase según las capacidades configuradas.
+    /// </summary>
+    Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default);
+}
+
+/// <summary>
+/// Resumen de los resultados de un ciclo de drenaje de staging.
+/// </summary>
+public record BggMassIngestionCycleResultDto(
+    int DetailsFetchedCount,
+    int ImagesProcessedCount,
+    int AiProcessedCount,
+    int PromotedToCatalogCount,
+    bool AiQuotaExhausted,
+    string? Message
+);

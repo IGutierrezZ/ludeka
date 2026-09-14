@@ -5,6 +5,7 @@
 @using Ludeka.Core.Enums
 @inject INightlyCatalogingService NightlyService
 @inject IBggCatalogQueueService QueueService
+@inject IBggMassIngestionService MassIngestionService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -153,6 +154,83 @@
                 }
             </div>
         }
+
+        @* Sección 0: Ingesta Masiva BGG & Staging (~8.000 títulos) *@
+        <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-xs font-bold mb-1">
+                        <Icon Name="database" Size="12" /> Ingesta Masiva & Staging (~8.000 títulos)
+                    </div>
+                    <h3 class="text-lg font-bold text-[var(--text-primary)]">
+                        Estado del Pipeline de Catálogo BGG
+                    </h3>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5">
+                        Aislamiento de catálogo, fotos comunitarias de GeekDo a Cloudflare R2 y síntesis con Gemini Flash en lotes.
+                    </p>
+                </div>
+
+                <div>
+                    <button type="button"
+                            @onclick="ExecuteStagingDrainAsync"
+                            disabled="@_isDrainingStaging"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        @if (_isDrainingStaging)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="settings" Size="14" /></span>
+                            <span>Drenando Staging...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="play" Size="14" class="text-[var(--brand-primary)]" />
+                            <span>Drenar Ciclo de Staging Ahora</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (_stagingMetrics != null)
+            {
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Total Staging</span>
+                        <div class="text-xl font-black text-[var(--text-primary)]">@_stagingMetrics.TotalInStaging</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Pend. Thing</span>
+                        <div class="text-xl font-black text-amber-500">@_stagingMetrics.PendingFetchCount</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Pend. Fotos R2</span>
+                        <div class="text-xl font-black text-sky-500">@_stagingMetrics.PendingImagesCount</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Pend. IA Lote</span>
+                        <div class="text-xl font-black text-purple-500">@_stagingMetrics.PendingAiCount</div>
+                        @if (_stagingMetrics.AiQuotaExceededCount > 0)
+                        {
+                            <span class="text-[0.65rem] text-rose-500 font-bold block">@_stagingMetrics.AiQuotaExceededCount en pausa</span>
+                        }
+                    </div>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Listos Promo</span>
+                        <div class="text-xl font-black text-emerald-500">@_stagingMetrics.PendingPromotionCount</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Promovidos</span>
+                        <div class="text-xl font-black text-emerald-600 dark:text-emerald-400">@_stagingMetrics.PromotedCount</div>
+                    </div>
+                </div>
+            }
+
+            @if (_drainCycleResult != null)
+            {
+                <div class="p-4 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-emerald-500 mr-1.5" /> @_drainCycleResult.Message</span>
+                    <button type="button" @onclick="() => _drainCycleResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                </div>
+            }
+        </div>
 
         @* Sección 1: Cola de Auto-Catalogación *@
         <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
@@ -379,12 +457,15 @@
 @code {
     private bool _isLoading = true;
     private bool _isProcessing = false;
+    private bool _isDrainingStaging = false;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
     private CatalogQueueOrigin? _originFilter = null;
     private NightlyCatalogingOptions? _options;
     private NightlyCatalogingResultDto? _lastResult;
     private NightlyCatalogingExecutionLogDto? _lastHistory;
+    private BggStagingMetricsDto? _stagingMetrics;
+    private BggMassIngestionCycleResultDto? _drainCycleResult;
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
     private IReadOnlyList<NightlyCatalogingExecutionLogDto> _history = [];
 
@@ -413,6 +494,7 @@
             _newsDiscoveryCount = _queueItems.Count(i => i.Origin == CatalogQueueOrigin.NewsDiscovery);
             _history = await NightlyService.GetExecutionHistoryAsync(15);
             _lastHistory = _history.FirstOrDefault();
+            _stagingMetrics = await MassIngestionService.GetMetricsAsync();
         }
         catch (Exception)
         {
@@ -421,6 +503,28 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task ExecuteStagingDrainAsync()
+    {
+        if (_isDrainingStaging) return;
+
+        _isDrainingStaging = true;
+        _drainCycleResult = null;
+
+        try
+        {
+            _drainCycleResult = await MassIngestionService.RunDrainCycleAsync();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _drainCycleResult = new BggMassIngestionCycleResultDto(0, 0, 0, 0, false, $"Error en drenaje: {ex.Message}");
+        }
+        finally
+        {
+            _isDrainingStaging = false;
         }
     }
 

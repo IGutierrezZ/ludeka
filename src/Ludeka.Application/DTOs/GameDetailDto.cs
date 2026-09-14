@@ -39,7 +39,9 @@ public record GameDetailDto(
     IReadOnlyList<ExpansionImpactTag>? ImpactTags = null,
     string? WhatItBringsSummary = null,
     int? ExtraPlayerCount = null,
-    int? ExtraDurationMinutes = null
+    int? ExtraDurationMinutes = null,
+    string? BackCoverImageUrl = null,
+    string? TableImageUrl = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
@@ -79,6 +81,8 @@ public record GameDetailDto(
         g.ImpactTags.AsReadOnly(),
         g.WhatItBringsSummary,
         g.ExtraPlayerCount,
-        g.ExtraDurationMinutes
+        g.ExtraDurationMinutes,
+        g.BackCoverImageUrl,
+        g.TableImageUrl
     );
 }

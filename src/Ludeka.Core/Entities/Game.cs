@@ -21,6 +21,8 @@ public partial class Game
     public int YearPublished { get; private set; }
     public string? CoverImageUrl { get; private set; }
     public string? ThumbnailUrl { get; private set; }
+    public string? BackCoverImageUrl { get; private set; }
+    public string? TableImageUrl { get; private set; }
     public string? Description { get; private set; }
     public double BggRating { get; private set; }
     public int? BggRank { get; private set; }
@@ -85,7 +87,9 @@ public partial class Game
         IEnumerable<ExpansionImpactTag>? impactTags = null,
         string? whatItBringsSummary = null,
         int? extraPlayerCount = null,
-        int? extraDurationMinutes = null)
+        int? extraDurationMinutes = null,
+        string? backCoverImageUrl = null,
+        string? tableImageUrl = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -98,6 +102,8 @@ public partial class Game
         YearPublished = yearPublished;
         CoverImageUrl = coverImageUrl?.Trim();
         ThumbnailUrl = thumbnailUrl?.Trim();
+        BackCoverImageUrl = backCoverImageUrl?.Trim();
+        TableImageUrl = tableImageUrl?.Trim();
         Description = description?.Trim();
         BggRating = Math.Clamp(bggRating, 0.0, 10.0);
         BggRank = bggRank;
@@ -179,6 +185,18 @@ public partial class Game
     {
         CoverImageUrl = coverImageUrl?.Trim();
         ThumbnailUrl = thumbnailUrl?.Trim();
+    }
+
+    public void UpdateMediaUrls(
+        string? coverImageUrl,
+        string? thumbnailUrl = null,
+        string? backCoverImageUrl = null,
+        string? tableImageUrl = null)
+    {
+        CoverImageUrl = coverImageUrl?.Trim();
+        ThumbnailUrl = thumbnailUrl?.Trim();
+        BackCoverImageUrl = backCoverImageUrl?.Trim();
+        TableImageUrl = tableImageUrl?.Trim();
     }
 
     public void UpdateCatalogInformation(

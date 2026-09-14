@@ -320,5 +320,15 @@ public class BggCatalogQueueServiceTests
         {
             return Task.FromResult(new AiBatchProcessingResultDto(0, 0, 0, []));
         }
+
+        public Task<AiBatchResultDto> GenerateBatchSummariesAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct = default)
+        {
+            var dict = new Dictionary<int, AiGameSummaryDto>();
+            foreach (var g in games)
+            {
+                dict[g.BggId] = new AiGameSummaryDto(Guid.Empty, g.SpanishTitle, "Ideal 4", "10+", "Mesa", $"Síntesis para {g.SpanishTitle}", "FakeModel", DateTime.UtcNow);
+            }
+            return Task.FromResult(new AiBatchResultDto(true, false, dict, null));
+        }
     }
 }

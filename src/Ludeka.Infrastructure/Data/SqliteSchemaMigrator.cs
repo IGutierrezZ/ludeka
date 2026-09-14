@@ -67,7 +67,9 @@ public static class SqliteSchemaMigrator
                 ("ExtraPlayerCount", "INTEGER NULL"),
                 ("ExtraDurationMinutes", "INTEGER NULL"),
                 ("PurchaseLinks", "TEXT NOT NULL DEFAULT '[]'"),
-                ("AiSummary", "TEXT NULL")
+                ("AiSummary", "TEXT NULL"),
+                ("BackCoverImageUrl", "TEXT NULL"),
+                ("TableImageUrl", "TEXT NULL")
             };
 
             foreach (var (colName, colDef) in columnsToAdd)
@@ -680,6 +682,60 @@ public static class SqliteSchemaMigrator
                 """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("GamePlayLogs");
+            }
+
+            // Crear tabla BggCatalogStaging si no existe (Incremento 41)
+            if (!existingTables.Contains("BggCatalogStaging"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "BggCatalogStaging" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_BggCatalogStaging" PRIMARY KEY,
+                        "BggId" INTEGER NOT NULL,
+                        "Title" TEXT NOT NULL,
+                        "YearPublished" INTEGER NULL,
+                        "BggRank" INTEGER NULL,
+                        "UsersRated" INTEGER NOT NULL,
+                        "BayesAverage" REAL NOT NULL,
+                        "AverageRating" REAL NOT NULL,
+                        "SpanishTitle" TEXT NULL,
+                        "Designer" TEXT NULL,
+                        "Publisher" TEXT NULL,
+                        "Description" TEXT NULL,
+                        "MinPlayers" INTEGER NOT NULL DEFAULT 1,
+                        "MaxPlayers" INTEGER NOT NULL DEFAULT 4,
+                        "PlayingTimeMinutes" INTEGER NOT NULL DEFAULT 60,
+                        "MinAge" INTEGER NOT NULL DEFAULT 10,
+                        "Weight" REAL NOT NULL DEFAULT 2.5,
+                        "FetchStatus" INTEGER NOT NULL DEFAULT 0,
+                        "RawBggXml" TEXT NULL,
+                        "FetchError" TEXT NULL,
+                        "FetchedAt" TEXT NULL,
+                        "ImagesStatus" INTEGER NOT NULL DEFAULT 0,
+                        "CoverImageUrl" TEXT NULL,
+                        "ThumbnailUrl" TEXT NULL,
+                        "BackCoverImageUrl" TEXT NULL,
+                        "TableImageUrl" TEXT NULL,
+                        "ImagesError" TEXT NULL,
+                        "ImagesProcessedAt" TEXT NULL,
+                        "AiStatus" INTEGER NOT NULL DEFAULT 0,
+                        "AiSummaryJson" TEXT NULL,
+                        "AiError" TEXT NULL,
+                        "AiProcessedAt" TEXT NULL,
+                        "PromotionStatus" INTEGER NOT NULL DEFAULT 0,
+                        "PromotionError" TEXT NULL,
+                        "PromotedAt" TEXT NULL,
+                        "CreatedAt" TEXT NOT NULL,
+                        "UpdatedAt" TEXT NOT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_BggCatalogStaging_BggId" ON "BggCatalogStaging" ("BggId");
+                    CREATE INDEX IF NOT EXISTS "IX_BggCatalogStaging_FetchStatus_UsersRated" ON "BggCatalogStaging" ("FetchStatus", "UsersRated");
+                    CREATE INDEX IF NOT EXISTS "IX_BggCatalogStaging_ImagesStatus_UsersRated" ON "BggCatalogStaging" ("ImagesStatus", "UsersRated");
+                    CREATE INDEX IF NOT EXISTS "IX_BggCatalogStaging_AiStatus_UsersRated" ON "BggCatalogStaging" ("AiStatus", "UsersRated");
+                    CREATE INDEX IF NOT EXISTS "IX_BggCatalogStaging_PromotionStatus_UsersRated" ON "BggCatalogStaging" ("PromotionStatus", "UsersRated");
+                """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("BggCatalogStaging");
             }
         }
         finally

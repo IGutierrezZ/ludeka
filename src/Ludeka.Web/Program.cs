@@ -163,6 +163,12 @@ builder.Services.AddScoped<IImageStorageService>(sp =>
     }
     return sp.GetRequiredService<SimulatedImageStorageService>();
 });
+// Incremento 41: Ingesta Masiva de Catálogo BGG, Fotos GeekDo y Síntesis IA en Lotes
+builder.Services.Configure<BggMassIngestionOptions>(builder.Configuration.GetSection(BggMassIngestionOptions.SectionName));
+builder.Services.AddScoped<IBggCatalogStagingRepository, SqliteBggCatalogStagingRepository>();
+builder.Services.AddHttpClient<IGeekDoImagesClient, GeekDoImagesClient>();
+builder.Services.AddHttpClient<IBggMassIngestionService, BggMassIngestionService>();
+
 builder.Services.AddScoped<IGameEditLogRepository, SqliteGameEditLogRepository>();
 builder.Services.AddScoped<IGameEditorService, GameEditorService>();
 

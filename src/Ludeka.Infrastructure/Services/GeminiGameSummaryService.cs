@@ -165,6 +165,42 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         );
     }
 
+    public async Task<AiBatchResultDto> GenerateBatchSummariesAsync(
+        IReadOnlyList<AiGameBatchInputDto> games,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(games);
+
+        if (games.Count == 0)
+        {
+            return new AiBatchResultDto(Success: true, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: null);
+        }
+
+        // 1. Conmutación a simulación si está configurado o no hay ApiKey
+        if (_options.ShouldSimulate || string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _logger.LogInformation("Gemini está en modo simulado o sin ApiKey. Generando síntesis heurística en lote para {Count} juegos.", games.Count);
+            var heuristicDict = games.ToDictionary(g => g.BggId, g => HeuristicGameSummaryGenerator.Generate(g, "Heurística Editorial"));
+            return new AiBatchResultDto(Success: true, QuotaExhausted: false, Summaries: heuristicDict, ErrorMessage: null);
+        }
+
+        // 2. Ejecución con Google Gemini API
+        try
+        {
+            return await CallGeminiBatchApiAsync(games, ct);
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            _logger.LogWarning("Google Gemini API: Límite de cuota alcanzado (HTTP 429 Too Many Requests). Pausando lote de IA.");
+            return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "Cuota de Gemini agotada (HTTP 429).");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al invocar Google Gemini API en lote: {Message}", ex.Message);
+            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: ex.Message);
+        }
+    }
+
     private async Task<AiGameSummaryDto?> CallGeminiApiAsync(Game game, CancellationToken ct)
     {
         string prompt = BuildPrompt(game);
@@ -295,6 +331,156 @@ public class GeminiGameSummaryService : IAiGameSummaryService
 
     private class GeminiStructuredResponse
     {
+        [JsonPropertyName("generalVerdict")]
+        public string? GeneralVerdict { get; set; }
+
+        [JsonPropertyName("scalabilitySummary")]
+        public string? ScalabilitySummary { get; set; }
+
+        [JsonPropertyName("ageSummary")]
+        public string? AgeSummary { get; set; }
+
+        [JsonPropertyName("footprintSummary")]
+        public string? FootprintSummary { get; set; }
+    }
+
+    private async Task<AiBatchResultDto> CallGeminiBatchApiAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct)
+    {
+        string prompt = BuildBatchPrompt(games);
+        string effectiveModel = _options.GetEffectiveModel();
+
+        var requestBody = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    parts = new[]
+                    {
+                        new { text = prompt }
+                    }
+                }
+            },
+            generationConfig = new
+            {
+                responseMimeType = "application/json",
+                temperature = 0.2
+            }
+        };
+
+        string jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
+        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+        string requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
+
+        using var response = await _httpClient.PostAsync(requestUri, content, ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "HTTP 429 Too Many Requests");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorBody = await response.Content.ReadAsStringAsync(ct);
+            if (errorBody.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase))
+            {
+                return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "RESOURCE_EXHAUSTED");
+            }
+
+            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"HTTP {response.StatusCode}: {errorBody}");
+        }
+
+        string responseJson = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(responseJson);
+
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+        {
+            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "Gemini devolvió respuesta sin candidatos.");
+        }
+
+        var candidate = candidates[0];
+        if (!candidate.TryGetProperty("content", out var contentProp) ||
+            !contentProp.TryGetProperty("parts", out var parts) ||
+            parts.GetArrayLength() == 0)
+        {
+            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "Gemini devolvió respuesta sin partes de contenido.");
+        }
+
+        string rawStructuredJson = parts[0].GetProperty("text").GetString() ?? string.Empty;
+        var parsedList = JsonSerializer.Deserialize<List<GeminiStructuredBatchItemResponse>>(rawStructuredJson, JsonOptions);
+
+        if (parsedList == null || parsedList.Count == 0)
+        {
+            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "No se pudo parsear el array JSON estructurado del lote.");
+        }
+
+        var summaries = new Dictionary<int, AiGameSummaryDto>();
+        var gamesDict = games.ToDictionary(g => g.BggId);
+
+        foreach (var item in parsedList)
+        {
+            if (gamesDict.TryGetValue(item.BggId, out var inputGame))
+            {
+                summaries[item.BggId] = new AiGameSummaryDto(
+                    GameId: Guid.Empty,
+                    GameTitle: inputGame.SpanishTitle,
+                    ScalabilitySummary: item.ScalabilitySummary?.Trim() ?? "Escalabilidad según consenso.",
+                    AgeSummary: item.AgeSummary?.Trim() ?? $"{inputGame.MinAge}+ años.",
+                    FootprintSummary: item.FootprintSummary?.Trim() ?? "Mesa de comedor estándar.",
+                    GeneralVerdict: item.GeneralVerdict?.Trim() ?? "Síntesis editorial.",
+                    Model: $"Google Gemini ({effectiveModel}) [Batch]",
+                    GeneratedAt: DateTime.UtcNow
+                );
+            }
+        }
+
+        // Fallback heurístico transparente para cualquier juego del lote que Gemini haya omitido
+        foreach (var game in games)
+        {
+            if (!summaries.ContainsKey(game.BggId))
+            {
+                summaries[game.BggId] = HeuristicGameSummaryGenerator.Generate(game, "Heurística Editorial (Fallback Batch)");
+            }
+        }
+
+        return new AiBatchResultDto(Success: true, QuotaExhausted: false, Summaries: summaries, ErrorMessage: null);
+    }
+
+    private static string BuildBatchPrompt(IReadOnlyList<AiGameBatchInputDto> games)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Eres un crítico y analista experto de juegos de mesa para Ludeka (\"El Letterboxd de los juegos de mesa en español\").");
+        sb.AppendLine("Genera un resumen editorial objetivo, conciso y fundamentado en español neutro para cada uno de los siguientes juegos:");
+        sb.AppendLine();
+
+        foreach (var g in games)
+        {
+            sb.AppendLine($"[JUEGO BGG #{g.BggId}]");
+            sb.AppendLine($"- Título: {g.SpanishTitle} (Original: {g.OriginalTitle})");
+            sb.AppendLine($"- Autor: {(string.IsNullOrWhiteSpace(g.Designer) ? "Desconocido" : g.Designer)} | Editorial: {(string.IsNullOrWhiteSpace(g.Publisher) ? "Desconocida" : g.Publisher)} | Año: {g.YearPublished}");
+            sb.AppendLine($"- Jugadores: {g.MinPlayers}-{g.MaxPlayers} | Edad: {g.MinAge}+ | Valoración BGG: {g.Rating:0.0}/10");
+            string desc = string.IsNullOrWhiteSpace(g.Description) ? "Sin descripción" : (g.Description.Length > 300 ? g.Description[..300] + "..." : g.Description);
+            sb.AppendLine($"- Sinopsis: {desc}");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("INSTRUCCIONES DE FORMATO:");
+        sb.AppendLine("Devuelve estrictamente un JSON válido con un array donde cada elemento tenga exactamente estas 5 propiedades:");
+        sb.AppendLine("1. \"bggId\": Número entero con el identificador BGG del juego correspondiente.");
+        sb.AppendLine("2. \"generalVerdict\": Reseña objetiva (2-3 oraciones). Tono sobrio y profesional. Sin frases publicitarias.");
+        sb.AppendLine("3. \"scalabilitySummary\": A qué número de jugadores brilla, fluidez y entreturno.");
+        sb.AppendLine("4. \"ageSummary\": Accesibilidad de edad real y experiencia familiar.");
+        sb.AppendLine("5. \"footprintSummary\": Huella física en mesa (comedor, cafetería, monstruo) y ritmo.");
+
+        return sb.ToString();
+    }
+
+    private class GeminiStructuredBatchItemResponse
+    {
+        [JsonPropertyName("bggId")]
+        public int BggId { get; set; }
+
         [JsonPropertyName("generalVerdict")]
         public string? GeneralVerdict { get; set; }
 
