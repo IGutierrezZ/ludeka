@@ -38,17 +38,23 @@ public class GameReportsWebIntegrationTests
         Assert.IsType<GameIssueReportService>(service);
     }
 
+    private static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Ludeka.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return dir!.FullName;
+    }
+
     [Fact]
     public void GameReportModal_RazorFile_HasAccessibleAttributesAndAllIssueTypes()
     {
         // Assert file exists and contains WCAG 2.2 AA accessibility attributes
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Shared\GameReportModal.razor");
-        if (!File.Exists(path))
-        {
-            // Fallback for direct execution path
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Shared\GameReportModal.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Shared", "GameReportModal.razor");
         Assert.True(File.Exists(path), $"GameReportModal.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);
@@ -63,12 +69,7 @@ public class GameReportsWebIntegrationTests
     [Fact]
     public void GameReportsModeration_RazorFile_HasExpectedRoutesAndAuthorizationCheck()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Ludeka.Web\Components\Pages\GameReportsModeration.razor");
-        if (!File.Exists(path))
-        {
-            path = Path.GetFullPath(@"src\Ludeka.Web\Components\Pages\GameReportsModeration.razor");
-        }
-
+        var path = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "Pages", "GameReportsModeration.razor");
         Assert.True(File.Exists(path), $"GameReportsModeration.razor no encontrado en {path}");
 
         var content = File.ReadAllText(path);

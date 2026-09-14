@@ -68,12 +68,23 @@ public class PerformanceAndAccessibilityTests
         Assert.NotNull(outputCacheStore);
     }
 
+    private static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Ludeka.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return dir!.FullName;
+    }
+
     [Fact]
     public void ProductionAssets_AppCss_DebeExistir_YContenerClasesEditorialesDeTailwind()
     {
         // Arrange
-        var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
-        var appCssPath = Path.Combine(projectRoot, "src", "Ludeka.Web", "wwwroot", "app.css");
+        var appCssPath = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "wwwroot", "app.css");
 
         // Assert
         Assert.True(File.Exists(appCssPath), $"El archivo CSS de producción compilado no existe en: {appCssPath}");
@@ -94,8 +105,7 @@ public class PerformanceAndAccessibilityTests
         // --on-brand, altura responsiva del hero, focos autoriales por variante y cabecera
         // compartida) esté presente en el CSS servido y el min-height fijo del hero haya
         // desaparecido del minificado (sin espacios).
-        var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
-        var appCssPath = Path.Combine(projectRoot, "src", "Ludeka.Web", "wwwroot", "app.css");
+        var appCssPath = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "wwwroot", "app.css");
 
         Assert.True(File.Exists(appCssPath), $"El archivo CSS de producción compilado no existe en: {appCssPath}");
 
@@ -120,8 +130,7 @@ public class PerformanceAndAccessibilityTests
     public void AppRazor_DebeDefinirIdiomaEspanol_YPreconexionesParaOptimizarLcp()
     {
         // Arrange
-        var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
-        var appRazorPath = Path.Combine(projectRoot, "src", "Ludeka.Web", "Components", "App.razor");
+        var appRazorPath = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "Components", "App.razor");
 
         // Assert
         Assert.True(File.Exists(appRazorPath), $"App.razor no encontrado en {appRazorPath}");
