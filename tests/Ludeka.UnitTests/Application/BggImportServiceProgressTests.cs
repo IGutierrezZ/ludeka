@@ -106,11 +106,14 @@ public class BggImportServiceProgressTests
         var pendingRepo = new InMemoryPendingBggImportRepository();
         var service = new BggImportService(fakeBgg, gameRepo, collectionRepo, pendingRepo, new FakeCurrentUserService());
 
-        var reportedProgress = new List<BggImportProgressReport>();
+        var reportedProgress = new System.Collections.Concurrent.ConcurrentBag<BggImportProgressReport>();
         var progress = new Progress<BggImportProgressReport>(p => reportedProgress.Add(p));
 
         // Act
         var result = await service.ImportUserCollectionAsync(new BggImportRequest("ludofan"), progress);
+
+        // Pequeña pausa opcional para asegurar que los callbacks asíncronos de Progress hayan drenado
+        await Task.Delay(50);
 
         // Assert
         Assert.Equal(2, result.TotalProcessed);

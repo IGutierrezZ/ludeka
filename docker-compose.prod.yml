@@ -1,0 +1,45 @@
+services:
+  ludeka:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ludeka:prod
+    container_name: ludeka_app_prod
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - Database__Provider=${Database__Provider:-PostgreSql}
+      - Database__SeedDemoData=${Database__SeedDemoData:-false}
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+      - AdminUser__Id=${AdminUser__Id:-admin-fundador}
+      - AdminUser__UserName=${AdminUser__UserName:-Administrador Ludeka}
+      - AdminUser__Email=${AdminUser__Email:-admin@ludeka.es}
+      - AdminUser__Country=${AdminUser__Country:-España}
+      - Bgg__SimulateApi=${Bgg__SimulateApi:-false}
+      - Bgg__ApiToken=${Bgg__ApiToken}
+      - Gemini__Simulate=${Gemini__Simulate:-false}
+      - Gemini__ApiKey=${Gemini__ApiKey}
+      - YouTube__Simulate=${YouTube__Simulate:-false}
+      - YouTube__ApiKey=${YouTube__ApiKey}
+      - CommunityNotifications__Enabled=${CommunityNotifications__Enabled:-true}
+      - CommunityNotifications__DryRun=${CommunityNotifications__DryRun:-false}
+      - CommunityNotifications__DiscordWebhookUrl=${CommunityNotifications__DiscordWebhookUrl}
+      - CommunityNotifications__DiscordInviteUrl=${CommunityNotifications__DiscordInviteUrl:-https://discord.gg/ludeka}
+      - CommunityNotifications__TelegramBotToken=${CommunityNotifications__TelegramBotToken}
+      - CommunityNotifications__TelegramChatId=${CommunityNotifications__TelegramChatId}
+      - CommunityNotifications__TelegramChannelUrl=${CommunityNotifications__TelegramChannelUrl:-https://t.me/ludeka}
+      - Affiliates__Enabled=true
+    volumes:
+      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  app_logs:
