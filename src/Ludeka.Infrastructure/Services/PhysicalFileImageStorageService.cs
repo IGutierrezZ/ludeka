@@ -185,4 +185,86 @@ public class PhysicalFileImageStorageService : IImageStorageService
 
         return Task.FromResult(new GameImageUploadResult(true, trimmed, null));
     }
+
+    public async Task<string> UploadOptimizedImageAsync(
+        Stream inputStream,
+        string objectKey,
+        int maxWidth = 1000,
+        int quality = 82,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputStream);
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+
+        var fullPath = Path.Combine(_baseImagesDirectory, objectKey.Replace('/', Path.DirectorySeparatorChar));
+        var dir = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        if (inputStream.CanSeek)
+        {
+            inputStream.Position = 0;
+        }
+
+        using (var fileStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await inputStream.CopyToAsync(fileStream, ct);
+        }
+
+        return GetPublicUrl(objectKey);
+    }
+
+    public async Task<Core.ValueObjects.ImageVariantUrls> UploadGameImageVariantsAsync(
+        Stream rawImageStream,
+        int bggId,
+        string imageType,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawImageStream);
+        if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
+
+        var normalizedType = imageType?.Trim().ToLowerInvariant() ?? "cover";
+        using var memoryStream = new MemoryStream();
+        await rawImageStream.CopyToAsync(memoryStream, ct);
+
+        if (normalizedType is "cover" or "boxartfront")
+        {
+            memoryStream.Position = 0;
+            var fullKey = $"games/{bggId}/cover.webp";
+            var fullUrl = await UploadOptimizedImageAsync(memoryStream, fullKey, maxWidth: 1000, quality: 82, ct);
+
+            memoryStream.Position = 0;
+            var thumbKey = $"games/{bggId}/cover_thumb.webp";
+            var thumbUrl = await UploadOptimizedImageAsync(memoryStream, thumbKey, maxWidth: 400, quality: 80, ct);
+
+            return new Core.ValueObjects.ImageVariantUrls(fullUrl, thumbUrl);
+        }
+
+        memoryStream.Position = 0;
+        var customKey = $"games/{bggId}/{normalizedType}.webp";
+        var customUrl = await UploadOptimizedImageAsync(memoryStream, customKey, maxWidth: 1000, quality: 82, ct);
+
+        return new Core.ValueObjects.ImageVariantUrls(customUrl, customUrl);
+    }
+
+    public Task<bool> DeleteImageAsync(string objectKey, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var fullPath = Path.Combine(_baseImagesDirectory, objectKey.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+            return Task.FromResult(true);
+        }
+        return Task.FromResult(false);
+    }
+
+    public string GetPublicUrl(string objectKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var cleanKey = objectKey.TrimStart('/');
+        return $"/images/{cleanKey}";
+    }
 }

@@ -148,8 +148,21 @@ builder.Services.AddHostedService<NightlyCatalogingHostedService>();
 builder.Services.AddScoped<IGameIssueReportRepository, SqliteGameIssueReportRepository>();
 builder.Services.AddScoped<IGameIssueReportService, GameIssueReportService>();
 
-// Incremento 18: Editor Editorial de Fichas de Catálogo y Carga de Imágenes para Moderadores
-builder.Services.AddScoped<IImageStorageService, PhysicalFileImageStorageService>();
+// Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
+builder.Services.Configure<CloudflareR2Options>(builder.Configuration.GetSection(CloudflareR2Options.SectionName));
+builder.Services.AddSingleton<IImageOptimizationService, SkiaSharpImageOptimizationService>();
+builder.Services.AddScoped<CloudflareR2StorageService>();
+builder.Services.AddScoped<SimulatedImageStorageService>();
+builder.Services.AddScoped<PhysicalFileImageStorageService>();
+builder.Services.AddScoped<IImageStorageService>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CloudflareR2Options>>().Value;
+    if (options.HasValidCredentials)
+    {
+        return sp.GetRequiredService<CloudflareR2StorageService>();
+    }
+    return sp.GetRequiredService<SimulatedImageStorageService>();
+});
 builder.Services.AddScoped<IGameEditLogRepository, SqliteGameEditLogRepository>();
 builder.Services.AddScoped<IGameEditorService, GameEditorService>();
 

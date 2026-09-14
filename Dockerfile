@@ -19,16 +19,15 @@ RUN npx -y tailwindcss@3.4.17 -i ./Styles/input.css -o ./wwwroot/app.css --minif
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copiar solución y archivos de proyecto para aprovechar la caché de capas de Docker
-COPY Ludeka.sln ./
+# Copiar archivos de proyecto para aprovechar la caché de capas de Docker
 COPY src/Ludeka.Core/Ludeka.Core.csproj src/Ludeka.Core/
 COPY src/Ludeka.Application/Ludeka.Application.csproj src/Ludeka.Application/
 COPY src/Ludeka.Infrastructure/Ludeka.Infrastructure.csproj src/Ludeka.Infrastructure/
 COPY src/Ludeka.Web/Ludeka.Web.csproj src/Ludeka.Web/
-COPY tests/Ludeka.UnitTests/Ludeka.UnitTests.csproj tests/Ludeka.UnitTests/
 
-# Restaurar paquetes NuGet
-RUN dotnet restore Ludeka.sln
+# Restaurar paquetes NuGet de la aplicación web y sus dependencias
+RUN dotnet restore src/Ludeka.Web/Ludeka.Web.csproj
+
 
 # Copiar todo el código fuente del proyecto
 COPY src/ ./src/
