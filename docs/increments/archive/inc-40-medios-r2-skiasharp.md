@@ -1,7 +1,7 @@
 # Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
 
 - **Identificador SDD:** `change-40-medios-r2-skiasharp`
-- **Estado:** ⏳ **En progreso**
+- **Estado:** ✅ **Completado y Archivado** (906 tests en verde al 100%)
 - **Rama:** `inc/medios-r2-skiasharp` (worktree en `C:\repos\ludeka-wt\medios-r2-skiasharp`)
 - **Objetivo Principal:** Dotar a Ludeka de almacenamiento soberano de imágenes en Cloudflare R2 con cero costes de salida (*zero egress fees*) y pipeline en memoria (*zero-disk*) con SkiaSharp para compresión y generación de variantes WebP deterministas.
 
