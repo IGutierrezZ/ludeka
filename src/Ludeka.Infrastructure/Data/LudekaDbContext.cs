@@ -36,6 +36,7 @@ public class LudekaDbContext : DbContext
     public DbSet<SocialInboxItem> SocialInboxItems => Set<SocialInboxItem>();
     public DbSet<MonitoredSocialAccount> MonitoredSocialAccounts => Set<MonitoredSocialAccount>();
     public DbSet<GamePriceSnapshot> GamePriceSnapshots => Set<GamePriceSnapshot>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -476,5 +477,20 @@ public class LudekaDbContext : DbContext
         priceSnapshot.Property(s => s.StoreName).IsRequired().HasMaxLength(150);
         priceSnapshot.Property(s => s.AffiliateUrl).IsRequired().HasMaxLength(500);
         priceSnapshot.Property(s => s.Currency).IsRequired().HasMaxLength(10);
+
+        // --- Configuración de ExternalLogin (Incremento 46) ---
+        var externalLogin = modelBuilder.Entity<ExternalLogin>();
+        externalLogin.ToTable("ExternalLogins");
+        externalLogin.HasKey(l => l.Id);
+        externalLogin.HasIndex(l => new { l.Provider, l.ProviderKey }).IsUnique();
+        externalLogin.Property(l => l.UserId).IsRequired().HasMaxLength(100);
+        externalLogin.Property(l => l.Provider).IsRequired().HasMaxLength(50);
+        externalLogin.Property(l => l.ProviderKey).IsRequired().HasMaxLength(255);
+        externalLogin.Property(l => l.ProviderEmail).HasMaxLength(200);
+
+        externalLogin.HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

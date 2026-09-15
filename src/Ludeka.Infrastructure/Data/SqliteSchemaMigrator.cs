@@ -839,6 +839,27 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("GamePriceSnapshots");
             }
+
+            // 22. Reconciliar tabla ExternalLogins (Incremento 46: Autenticación real e identidad externa)
+            if (!existingTables.Contains("ExternalLogins"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "ExternalLogins" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_ExternalLogins" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "Provider" TEXT NOT NULL,
+                        "ProviderKey" TEXT NOT NULL,
+                        "ProviderEmail" TEXT NULL,
+                        "LinkedAt" TEXT NOT NULL,
+                        CONSTRAINT "FK_ExternalLogins_AppUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AppUsers" ("Id") ON DELETE CASCADE
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_ExternalLogins_Provider_ProviderKey" ON "ExternalLogins" ("Provider", "ProviderKey");
+                    CREATE INDEX IF NOT EXISTS "IX_ExternalLogins_UserId" ON "ExternalLogins" ("UserId");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("ExternalLogins");
+            }
         }
         finally
         {
