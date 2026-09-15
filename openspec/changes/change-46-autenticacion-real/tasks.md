@@ -53,14 +53,14 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 1 — Persistencia de identidad externa (PR 2)
 
-- [ ] 1.1 RED: crear `tests/Ludeka.UnitTests/Domain/ExternalLoginTests.cs` (constructor rechaza `UserId`/`Provider`/`ProviderKey` vacíos; expone `LinkedAt`).
-- [ ] 1.2 GREEN: crear `src/Ludeka.Core/Entities/ExternalLogin.cs` con `Id`, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail?`, `LinkedAt`.
-- [ ] 1.3 RED: crear `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginPersistenceTests.cs` (índice único `(Provider, ProviderKey)` y FK `Cascade` a `AppUsers`).
-- [ ] 1.4 GREEN: registrar `DbSet<ExternalLogin>` y el índice único más la FK en `src/Ludeka.Infrastructure/Data/LudekaDbContext.cs`.
-- [ ] 1.5 GREEN: añadir la tabla `ExternalLogins` y su índice único al reconciliador `src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs` (arranque local usa SQLite).
-- [ ] 1.6 GREEN: crear `IExternalLoginRepository.cs` en `src/Ludeka.Application/Contracts/` y `ExternalLoginRepository` en `src/Ludeka.Infrastructure/`.
-- [ ] 1.7 Migración innegociable: `$env:Database__Provider="PostgreSql"; dotnet ef migrations add AddExternalLogins -p src/Ludeka.Infrastructure -s src/Ludeka.Web`; comprobar tipos Npgsql en `LudekaDbContextModelSnapshot.cs`.
-- [ ] 1.8 `dotnet test Ludeka.sln` verde.
+- [x] 1.1 RED: crear `tests/Ludeka.UnitTests/Domain/ExternalLoginTests.cs` (constructor rechaza `UserId`/`Provider`/`ProviderKey` vacíos; expone `LinkedAt`).
+- [x] 1.2 GREEN: crear `src/Ludeka.Core/Entities/ExternalLogin.cs` con `Id`, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail?`, `LinkedAt`.
+- [x] 1.3 RED: crear `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginPersistenceTests.cs` (índice único `(Provider, ProviderKey)` y FK `Cascade` a `AppUsers`).
+- [x] 1.4 GREEN: registrar `DbSet<ExternalLogin>` y el índice único más la FK en `src/Ludeka.Infrastructure/Data/LudekaDbContext.cs`.
+- [x] 1.5 GREEN: añadir la tabla `ExternalLogins` y su índice único al reconciliador `src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs` (arranque local usa SQLite).
+- [x] 1.6 GREEN: crear `IExternalLoginRepository.cs` en `src/Ludeka.Application/Contracts/` y `ExternalLoginRepository` en `src/Ludeka.Infrastructure/`.
+- [x] 1.7 Migración innegociable: `$env:Database__Provider="PostgreSql"; dotnet ef migrations add AddExternalLogins -p src/Ludeka.Infrastructure -s src/Ludeka.Web`; comprobar tipos Npgsql en `LudekaDbContextModelSnapshot.cs`.
+- [x] 1.8 `dotnet test Ludeka.sln` verde.
 
 ## Fase 2 — Autenticación social y autorización por política (Paso 1, simulación viva; PRs 3–4)
 
