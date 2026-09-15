@@ -1,6 +1,6 @@
 # INC-46: Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada
 
-> **Estado:** ⏳ En progreso (pendiente de aprobación de alcance)
+> **Estado:** ⏳ En progreso (alcance aprobado el 2026-09-15)
 > **Fecha de Inicio:** 2026-09-15
 > **Rama de Trabajo:** `inc/autenticacion-real`
 > **Worktree:** `C:\repos\ludeka-wt\autenticacion-real`
@@ -30,19 +30,28 @@ Ludeka **no tiene autenticación**. No es una carencia parcial: es ausencia tota
 
 ### 2.1. Proveedor de identidad y sesión
 
-Se propone **autenticación por cookie de ASP.NET Core** con **OpenID Connect externo (Google)** como método principal, en lugar de ASP.NET Core Identity completo.
+**Decisión del maintainer (2026-09-15):** acceso social de **un solo clic** con **varios proveedores** para cubrir el máximo espectro de la comunidad. **Sin cuentas con correo y contraseña** y, por tanto, **sin infraestructura de correo electrónico**.
 
-- `AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)` con cookie `HttpOnly`, `SecurePolicy = Always`, `SameSite = Lax` y caducidad deslizante.
-- `AddOpenIdConnect` hacia Google, solicitando únicamente `openid`, `email` y `profile`.
-- Razón para descartar Identity completo: Ludeka ya posee su propio modelo de usuario (`AppUser` con `Role`, `Status` y `Permissions`), su repositorio (`SqliteUserRepository`) y su servicio de gestión (`UserManagementService`). Identity impondría tablas propias (`AspNetUsers`, `AspNetRoles`, `AspNetUserClaims`), duplicaría el modelo y exigiría infraestructura de correo que hoy no existe en ninguna variable de configuración.
+- **Proveedores objetivo:** Google (OpenID Connect), Discord (OAuth 2.0) y Facebook (OAuth 2.0), este último opcional y desactivable por configuración.
+- Se implementa como **autenticación por cookie de ASP.NET Core** con esquemas externos, **no** como ASP.NET Core Identity.
+- Cookie `HttpOnly`, `SecurePolicy = Always`, `SameSite = Lax` y caducidad deslizante.
+- **Registro y acceso son el mismo flujo:** el primer inicio de sesión aprovisiona la cuenta. No hay formulario de registro, ni contraseña, ni verificación por correo, ni recuperación de contraseña.
+- La lógica de proveedores se registra **dirigida por configuración**: añadir Facebook o retirar Discord debe ser un cambio de variables, no de código.
+- Razón para descartar Identity completo: Ludeka ya posee su propio modelo de usuario (`AppUser` con `Role`, `Status` y `Permissions`), su repositorio (`SqliteUserRepository`) y su servicio de gestión (`UserManagementService`). Identity impondría tablas propias (`AspNetUsers`, `AspNetRoles`, `AspNetUserClaims`) y arrastraría gestión de contraseñas y correo que este incremento descarta por diseño.
 
 ### 2.2. Puente entre la sesión y `AppUser`
 
+- Nueva entidad `ExternalLogin`: `Id`, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail`, `LinkedAt`. Índice único sobre `(Provider, ProviderKey)`.
+- **Vinculación en cascada, en este orden:**
+  1. Por `(Provider, ProviderKey)`. Es la vía normal y la única que no depende de datos del proveedor.
+  2. Si no existe, por correo **verificado** del proveedor contra `AppUser.Email` (`Core/Entities/AppUser.cs:13`), creando entonces la fila `ExternalLogin`.
+  3. Si tampoco, se aprovisiona un `AppUser` nuevo con `UserRole.CommunityUser` y `ModeratorPermission.None`. **Nunca** se auto-concede `FoundingTeam`.
+- **Nunca se fusionan cuentas automáticamente** por coincidencia de correo no verificado.
 - Nueva implementación `AuthenticatedCurrentUserService` que resuelve la identidad desde la sesión, **registrada como `Scoped`** (nunca `Singleton`).
-- Vinculación por `email` verificado del proveedor externo contra `AppUser.Email` (`Core/Entities/AppUser.cs:13`).
-- **Auto-aprovisionamiento:** primer inicio de sesión de un correo desconocido crea un `AppUser` con `UserRole.CommunityUser` y `ModeratorPermission.None`. Nunca se auto-concede `FoundingTeam`.
 - `AdminUserSeeder.EnsureAdminUserAsync` (`Program.cs:343`) se conserva como garantía de existencia del administrador fundador, pero **deja de otorgar identidad implícita**: solo asegura la fila.
 - Los roles y permisos siguen leyéndose de `AppUser` (`HasPermission`, `Core/Entities/AppUser.cs:69-90`), de modo que el modelo de INC-20 no cambia.
+
+**Punto a resolver en la fase de diseño:** no todos los proveedores garantizan el correo en todos los casos. Discord lo entrega con el scope `email`; Facebook puede no entregarlo si el usuario no lo autoriza o la aplicación no tiene el permiso aprobado. Un usuario que entre con Discord y luego con Google puede acabar con **dos cuentas distintas** si los correos no coinciden o no están verificados. La fase de diseño debe decidir si este incremento incluye una pantalla de vinculación manual de proveedores o si esa pantalla se aplaza a un incremento posterior, dejando constancia del comportamiento.
 
 ### 2.3. Autorización en rutas y componentes
 
@@ -79,13 +88,31 @@ Regla de diseño obligatoria:
 
 ### 2.7. Configuración y secretos
 
+Cada proveedor se activa o desactiva por configuración. Un proveedor con `Enabled=false` no se registra y no aparece en la pantalla de acceso.
+
 | Variable | Uso |
 |---|---|
-| `Authentication__Google__ClientId` | ID de cliente OAuth 2.0 de Google Cloud Console |
-| `Authentication__Google__ClientSecret` | Secreto del cliente OAuth (Secret Manager) |
-| `Authentication__Google__Authority` | `https://accounts.google.com` |
-| `Authentication__Cookie__ExpireMinutes` | Caducidad de la cookie |
+| `Authentication__Providers__Google__Enabled` | `true` |
+| `Authentication__Providers__Google__ClientId` | Google Cloud Console → APIs y servicios → Credenciales → ID de cliente OAuth 2.0 |
+| `Authentication__Providers__Google__ClientSecret` | Secreto del mismo cliente OAuth (Google Secret Manager) |
+| `Authentication__Providers__Discord__Enabled` | `true` |
+| `Authentication__Providers__Discord__ClientId` | Discord Developer Portal → Applications → OAuth2 |
+| `Authentication__Providers__Discord__ClientSecret` | Discord Developer Portal → OAuth2 → Client Secret |
+| `Authentication__Providers__Facebook__Enabled` | `false` por defecto. Solo se activa cuando el maintainer lo decida |
+| `Authentication__Providers__Facebook__AppId` | Meta for Developers → App → Configuración básica |
+| `Authentication__Providers__Facebook__AppSecret` | Meta for Developers → App → Configuración básica |
+| `Authentication__Cookie__ExpireMinutes` | Caducidad de la cookie de sesión |
 | `AdminUser__Email` | Correo del administrador fundador autorizado inicial |
+
+**URI de redirección a registrar en cada proveedor.** Cada uno exige declarar exactamente la suya, y en desarrollo debe registrarse además la de `localhost`:
+
+```text
+https://<dominio>/signin-google
+https://<dominio>/signin-discord
+https://<dominio>/signin-facebook
+```
+
+Los `ClientSecret` y `AppSecret` viven exclusivamente en Google Secret Manager. Ninguno entra al repositorio.
 
 ### 2.8. Pruebas (Strict TDD activo)
 
@@ -97,11 +124,17 @@ Regla de diseño obligatoria:
 
 ---
 
-## 3. Decisiones pendientes para el maintainer
+## 3. Decisiones del maintainer
 
-1. **Método de acceso.** Se propone **solo Google OAuth**. Alternativa: añadir además cuentas locales con correo y contraseña. Implica infraestructura de correo (verificación y recuperación) que hoy no está configurada en ninguna variable del proyecto.
-2. **Comportamiento del `AdminUserSeeder`.** Se propone conservar la fila del fundador pero sin vincularla a ninguna sesión automática. Alternativa: además vincular el `AdminUser__Email` a la sesión de Google que coincida, para garantizar acceso inicial del maintainer.
-3. **Alcance de "Mi Ludoteca" para anónimos.** Se propone exigir sesión. Alternativa: ludoteca efímera en almacenamiento local del navegador, que sería un incremento aparte.
+### Resuelta el 2026-09-15
+
+1. **Método de acceso: social, de un solo clic y multi-proveedor.** Google, Discord y Facebook (este último opcional). **Descartadas** las cuentas locales con correo y contraseña, y con ellas toda la infraestructura de correo electrónico.
+
+### Pendientes
+
+2. **Pantalla de vinculación manual de proveedores.** Un usuario que entre primero con Discord y después con Google puede acabar con dos cuentas si los correos no coinciden o no están verificados. Opciones: incluir la pantalla de vinculación en este incremento, o aplazarla documentando el comportamiento. *Se resolverá en la fase de diseño.*
+3. **Comportamiento del `AdminUserSeeder`.** Se propone conservar la fila del fundador pero sin vincularla a ninguna sesión automática. Alternativa: vincular `AdminUser__Email` al primer inicio de sesión que coincida, para garantizar el acceso inicial del maintainer.
+4. **Alcance de "Mi Ludoteca" para anónimos.** Se propone exigir sesión. Alternativa: ludoteca efímera en almacenamiento local del navegador, que sería un incremento aparte.
 
 ---
 
@@ -113,8 +146,11 @@ Regla de diseño obligatoria:
 4. `ICurrentUserService` deja de ser `Singleton` mutable y pasa a resolver la identidad de la sesión.
 5. Un usuario con `UserStatus.Suspended` no obtiene acceso a funciones de moderación.
 6. La auditoría registra únicamente identidades reales; ningún `AuditLogEntry` se crea con identidad simulada.
-7. Suite completa en verde con `dotnet test Ludeka.sln`, incluyendo los nuevos tests de política y de anonimia.
-8. Smoke test con navegador real: intento de acceso directo a `/admin/auditoria` sin sesión redirige a login.
+7. Cada proveedor habilitado completa el ciclo de acceso **sin formulario de registro, sin contraseña y sin correo electrónico**.
+8. Un proveedor deshabilitado por configuración no se registra y no aparece en la pantalla de acceso.
+9. Un mismo par `(Provider, ProviderKey)` reincidente resuelve siempre a la misma cuenta.
+10. Suite completa en verde con `dotnet test Ludeka.sln`, incluyendo los nuevos tests de política, de vinculación y de anonimia.
+11. Smoke test con navegador real: intento de acceso directo a `/admin/auditoria` sin sesión redirige a login.
 
 ---
 
@@ -126,4 +162,7 @@ Regla de diseño obligatoria:
 | Constructores que lanzan con `UserId` vacío | Alto: error 500 en flujos públicos | Guardar cada acción tras comprobación de sesión antes de invocar el servicio |
 | `InteractiveServer` no reejecuta el pipeline HTTP por evento | Alto: falsa sensación de protección | Revalidar permiso dentro de cada servicio de escritura |
 | Invalidación de sesión al suspender una cuenta | Medio | Suscripción a cambios de usuario que fuerce revalidación |
-| Añadir OpenID Connect introduce dependencia externa | Medio | Cookie de sesión propia tras el primer login; configuración íntegra por variables |
+| Añadir proveedores externos introduce dependencia de terceros | Medio | Cookie de sesión propia tras el primer login; configuración íntegra por variables |
+| Discord o Facebook no entregan un correo verificado en todos los casos | Medio | La vía primaria de vinculación es `(Provider, ProviderKey)`; el correo solo se usa como vía secundaria |
+| Facebook puede exigir revisión de la aplicación para el permiso de correo | Medio | Facebook desactivado por defecto; se activa solo cuando la aplicación esté aprobada |
+| Multiplicar proveedores multiplica la configuración y las URI de redirección | Medio | Registro dirigido por configuración; cada proveedor se activa con `Enabled` |
