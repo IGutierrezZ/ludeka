@@ -44,12 +44,12 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 0 — Prerrequisitos de artefactos y dominio de permisos (PR 1)
 
-- [ ] 0.1 Normalizar `openspec/specs/editorial-role-management/spec.md`: `### Requerimiento:`→`### Requirement:` (3) y `#### Escenario:`→`#### Scenario:` (5), solo encabezados.
-- [ ] 0.2 Normalizar `openspec/specs/media-moderation-panel/spec.md`: 4 y 6 sustituciones equivalentes, preservando el texto de los requisitos.
-- [ ] 0.3 Crear `.gitattributes` con `*.md text eol=lf`; re-materializar con `git checkout-index -f -a` y verificar con `git check-attr text eol -- openspec/specs/editorial-role-management/spec.md` (→ `lf`) y `git ls-files --eol -- "*.md"` (sin `w/crlf`).
-- [ ] 0.4 RED: ampliar `tests/Ludeka.UnitTests/Application/GranularPermissionsTests.cs` para exigir ambas banderas nuevas en `All` y el comportamiento granular intacto.
-- [ ] 0.5 GREEN: añadir `CanManageUsers = 1 << 8` y `CanViewAuditLog = 1 << 9`, y recalcular `All` en `src/Ludeka.Core/Enums/ModeratorPermission.cs`.
-- [ ] 0.6 Añadir `AuditAction.LinkedFounderIdentity` en `src/Ludeka.Core/Enums/AuditAction.cs`; `dotnet test Ludeka.sln` verde.
+- [x] 0.1 Normalizar `openspec/specs/editorial-role-management/spec.md`: `### Requerimiento:`→`### Requirement:` (3) y `#### Escenario:`→`#### Scenario:` (5), solo encabezados.
+- [x] 0.2 Normalizar `openspec/specs/media-moderation-panel/spec.md`: 4 y 6 sustituciones equivalentes, preservando el texto de los requisitos.
+- [x] 0.3 Crear `.gitattributes` con `*.md text eol=lf`; re-materializar con `git checkout-index -f -a` y verificar con `git check-attr text eol -- openspec/specs/editorial-role-management/spec.md` (→ `lf`) y `git ls-files --eol -- "*.md"` (sin `w/crlf`).
+- [x] 0.4 RED: ampliar `tests/Ludeka.UnitTests/Application/GranularPermissionsTests.cs` para exigir ambas banderas nuevas en `All` y el comportamiento granular intacto.
+- [x] 0.5 GREEN: añadir `CanManageUsers = 1 << 8` y `CanViewAuditLog = 1 << 9`, y recalcular `All` en `src/Ludeka.Core/Enums/ModeratorPermission.cs`.
+- [x] 0.6 Añadir `AuditAction.LinkedFounderIdentity` en `src/Ludeka.Core/Enums/AuditAction.cs`; `dotnet test Ludeka.sln` verde.
 
 ## Fase 1 — Persistencia de identidad externa (PR 2)
 
