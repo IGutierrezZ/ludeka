@@ -267,6 +267,21 @@ builder.Services.AddHttpClient<ISocialAiAnalysisService, GeminiSocialAnalysisSer
 builder.Services.AddScoped<ISocialIngestionService, SocialIngestionService>();
 builder.Services.AddScoped<IMonitoredAccountService, MonitoredAccountService>();
 
+// Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Telegram / Blogs / Instagram)
+builder.Services.Configure<SocialCollectorOptions>(builder.Configuration.GetSection(SocialCollectorOptions.SectionName));
+builder.Services.AddHttpClient<YouTubeFeedCollector>();
+builder.Services.AddHttpClient<TelegramChannelCollector>();
+builder.Services.AddHttpClient<RssBlogFeedCollector>();
+builder.Services.AddHttpClient<InstagramFeedCollector>();
+
+builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<YouTubeFeedCollector>());
+builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<TelegramChannelCollector>());
+builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<RssBlogFeedCollector>());
+builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<InstagramFeedCollector>());
+
+builder.Services.AddScoped<ISocialCollectorService, SocialCollectorService>();
+builder.Services.AddHostedService<SocialCollectorHostedService>();
+
 // Incremento 10: Observabilidad con Health Checks Oficiales de ASP.NET Core
 builder.Services.AddHealthChecks()
     .AddCheck<SqliteDatabaseHealthCheck>("sqlite_db", tags: ["ready"])

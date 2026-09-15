@@ -4,6 +4,7 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @inject ISocialIngestionService IngestionService
+@inject ISocialCollectorService CollectorService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -46,7 +47,15 @@
                         @onclick="() => _showExpressModal = true"
                         class="px-4 py-2.5 rounded-2xl bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm">
                     <Icon Name="zap" Size="14" />
-                    <span>⚡ Alta Exprés por URL</span>
+                    <span>Alta Exprés por URL</span>
+                </button>
+
+                <button type="button"
+                        @onclick="CollectAllChannelsAsync"
+                        disabled="@(_isCollecting || _isLoading)"
+                        class="px-3.5 py-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500 text-xs font-semibold text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                    <Icon Name="rss" Size="14" Class="@(_isCollecting ? "animate-spin" : "")" />
+                    <span>@(_isCollecting ? "Sondeando..." : "Sondear Canales")</span>
                 </button>
 
                 <a href="/admin/canales-monitorizados"
@@ -57,7 +66,7 @@
 
                 <button type="button"
                         @onclick="LoadItemsAsync"
-                        disabled="@_isLoading"
+                        disabled="@(_isLoading || _isCollecting)"
                         class="p-2.5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center shadow-sm disabled:opacity-50">
                     <Icon Name="refresh-cw" Size="16" Class="@(_isLoading ? "animate-spin" : "")" />
                 </button>
@@ -456,6 +465,30 @@
 
     private string? _actionSuccessMessage;
     private string? _actionErrorMessage;
+    private bool _isCollecting;
+
+    private async Task CollectAllChannelsAsync()
+    {
+        if (_isCollecting) return;
+        _isCollecting = true;
+        _actionSuccessMessage = null;
+        _actionErrorMessage = null;
+
+        try
+        {
+            var result = await CollectorService.CollectAllAccountsAsync();
+            _actionSuccessMessage = $"Sondeo completado: {result.AccountsScanned} canales examinados. {result.ItemsImported} publicaciones nuevas agregadas a la bandeja ({result.ItemsSkippedDuplicates} omitidas por duplicado).";
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionErrorMessage = $"Error durante el sondeo: {ex.Message}";
+        }
+        finally
+        {
+            _isCollecting = false;
+        }
+    }
 
     private bool CanModerate =>
         CurrentUserService.IsFoundingTeam ||

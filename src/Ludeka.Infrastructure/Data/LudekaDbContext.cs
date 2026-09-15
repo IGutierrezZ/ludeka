@@ -462,6 +462,7 @@ public class LudekaDbContext : DbContext
         monitoredAccount.Property(a => a.Name).IsRequired().HasMaxLength(200);
         monitoredAccount.Property(a => a.HandleOrChannelId).IsRequired().HasMaxLength(150);
         monitoredAccount.Property(a => a.ProfileUrl).IsRequired().HasMaxLength(500);
+        monitoredAccount.Property(a => a.ResolvedFeedUrl).HasMaxLength(500);
         monitoredAccount.Property(a => a.Notes).HasMaxLength(1000);
     }
 }

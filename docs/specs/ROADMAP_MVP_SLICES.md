@@ -425,10 +425,18 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
-## Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram)
+## Incremento 44: Worker de Recolección Multicanal Automática (YouTube RSS, Telegram, Feeds de Editoriales e Instagram)
 - **Identificador SDD:** `change-44-social-collector-worker`
-- **Objetivo Principal:** Sondeo desatendido de fuentes y canales monitorizados en `MonitoredSocialAccount` mediante RSS y scrapers no invasivos para poblar automáticamente la bandeja de moderación sin intervención manual.
-- **Estado:** 📋 **Planificado**.
+- **Objetivo Principal:** Sondeo desatendido y bajo demanda de fuentes y canales monitorizados en `MonitoredSocialAccount` sin APIs de pago ni servicios externos de scraping (cero Apify):
+  1. Feeds Atom oficiales de canales de YouTube (`/feeds/videos.xml?channel_id=...`) con resolución de `@handle`.
+  2. Extracción limpia de la vista web pública oficial `https://t.me/s/{canal}` de canales de difusión abiertos de Telegram.
+  3. Soporte universal de feeds RSS 2.0 y Atom de blogs y webs de editoriales y tiendas.
+  4. Estrategia híbrida para Instagram con plantillas de RSS-Bridge, crawler no invasivo de cortesía y modo simulado para desarrollo/CI.
+  5. Orquestador `ISocialCollectorService` con deduplicación estricta contra `SocialInboxItems` y depósito en estado `PendingReview` con análisis de IA y miniaturas WebP en Cloudflare R2.
+  6. Servicio en segundo plano `SocialCollectorHostedService` y controles interactivos en `/admin/canales-monitorizados` e `/admin/ingesta-social`.
+- **Estado:** ✅ **Completado y Archivado** (suite 988/988 en verde al 100%; +20 pruebas unitarias nuevas sin dependencias de mock).
+- **Documento:** [`inc-44-social-collector-worker.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-44-social-collector-worker.md).
+- **Módulos del Sistema:** [`30-recolector-canales-sociales.md`](file:///c:/repos/Ludeka/docs/specs/sistema/30-recolector-canales-sociales.md) y [`28-hub-ingesta-social-moderacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion.md).
 
 ---
 

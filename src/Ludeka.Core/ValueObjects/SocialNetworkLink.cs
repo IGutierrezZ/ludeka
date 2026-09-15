@@ -41,6 +41,8 @@ public record SocialNetworkLink
         SocialPlatform.BoardGameGeek => "🎲",
         SocialPlatform.Twitch => "📺",
         SocialPlatform.TikTok => "📱",
+        SocialPlatform.Telegram => "✈️",
+        SocialPlatform.RssFeed => "📰",
         _ => "🔗"
     };
 
@@ -58,6 +60,8 @@ public record SocialNetworkLink
         SocialPlatform.BoardGameGeek => "BoardGameGeek",
         SocialPlatform.Twitch => "Twitch",
         SocialPlatform.TikTok => "TikTok",
+        SocialPlatform.Telegram => "Telegram",
+        SocialPlatform.RssFeed => "Feed RSS / Blog",
         _ => "Enlace externo"
     };
 }
