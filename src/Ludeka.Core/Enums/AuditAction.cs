@@ -38,5 +38,10 @@ public enum AuditAction
     /// <summary>
     /// Publicación oficial en redes sociales o canales externos.
     /// </summary>
-    Published
+    Published,
+
+    /// <summary>
+    /// Vinculación explícita de una identidad externa con la cuenta del equipo fundador.
+    /// </summary>
+    LinkedFounderIdentity
 }

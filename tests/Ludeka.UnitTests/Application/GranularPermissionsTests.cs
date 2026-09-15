@@ -227,4 +227,62 @@ public class GranularPermissionsTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.ApproveMediaAsync(item.Id));
     }
+
+    [Fact]
+    public void All_WithTenGranularFlags_EqualsExpectedMask()
+    {
+        Assert.Equal(1023, (int)ModeratorPermission.All);
+    }
+
+    [Theory]
+    [InlineData(ModeratorPermission.CanEditGames)]
+    [InlineData(ModeratorPermission.CanUploadImages)]
+    [InlineData(ModeratorPermission.CanManagePublishers)]
+    [InlineData(ModeratorPermission.CanManageCreators)]
+    [InlineData(ModeratorPermission.CanApproveMedia)]
+    [InlineData(ModeratorPermission.CanResolveReports)]
+    [InlineData(ModeratorPermission.CanManageStoreLinks)]
+    [InlineData(ModeratorPermission.CanPublishInstagram)]
+    [InlineData(ModeratorPermission.CanManageUsers)]
+    [InlineData(ModeratorPermission.CanViewAuditLog)]
+    public void All_IncludesEveryGranularFlag(ModeratorPermission flag)
+    {
+        Assert.True(ModeratorPermission.All.HasFlag(flag));
+    }
+
+    [Fact]
+    public void CanManageUsers_DoesNotGrantCatalogMediaOrAuditPermissions()
+    {
+        var mask = ModeratorPermission.CanManageUsers;
+
+        Assert.False(mask.HasFlag(ModeratorPermission.CanEditGames));
+        Assert.False(mask.HasFlag(ModeratorPermission.CanApproveMedia));
+        Assert.False(mask.HasFlag(ModeratorPermission.CanViewAuditLog));
+    }
+
+    [Fact]
+    public void CanViewAuditLog_DoesNotGrantManagementOrPublishingPermissions()
+    {
+        var mask = ModeratorPermission.CanViewAuditLog;
+
+        Assert.False(mask.HasFlag(ModeratorPermission.CanManageUsers));
+        Assert.False(mask.HasFlag(ModeratorPermission.CanResolveReports));
+        Assert.False(mask.HasFlag(ModeratorPermission.CanPublishInstagram));
+    }
+
+    [Fact]
+    public async Task PublisherService_WithOnlyNewFlags_ThrowsUnauthorized()
+    {
+        var pubRepo = new FakePublisherRepo();
+        var gameRepo = new FakeGameRepo();
+        var currentUser = new TestCurrentUserService
+        {
+            Permissions = ModeratorPermission.CanManageUsers | ModeratorPermission.CanViewAuditLog
+        };
+
+        var service = new PublisherService(pubRepo, gameRepo, currentUser);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.CreateAsync(new CreatePublisherDto("Devir", "devir", null, null, null, null, null, null)));
+    }
 }
