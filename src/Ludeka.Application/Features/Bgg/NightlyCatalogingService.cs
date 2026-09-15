@@ -30,6 +30,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
     private readonly INightlyCatalogingLogRepository _logRepo;
     private readonly IAiGameSummaryService? _aiSummaryService;
     private readonly IBggMassIngestionService? _massIngestionService;
+    private readonly IBggDiscoveryService? _discoveryService;
     private readonly NightlyCatalogingOptions _options;
     private readonly ILogger<NightlyCatalogingService> _logger;
 
@@ -44,7 +45,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
         IOptions<NightlyCatalogingOptions> options,
         ILogger<NightlyCatalogingService> logger,
         IAiGameSummaryService? aiSummaryService = null,
-        IBggMassIngestionService? massIngestionService = null)
+        IBggMassIngestionService? massIngestionService = null,
+        IBggDiscoveryService? discoveryService = null)
     {
         _pendingRepo = pendingRepo ?? throw new ArgumentNullException(nameof(pendingRepo));
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
@@ -57,6 +59,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _aiSummaryService = aiSummaryService;
         _massIngestionService = massIngestionService;
+        _discoveryService = discoveryService;
     }
 
     public async Task<NightlyCatalogingResultDto> ExecuteNightlyCatalogingAsync(int? customLimit = null, CancellationToken ct = default)
@@ -68,6 +71,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
 
         int queueProcessedCount = 0;
         int newsDiscoveryCount = 0;
+        int bggDiscoveryCount = 0;
         int topBackfillCount = 0;
         int failedCount = 0;
         var catalogedTitles = new List<string>();
@@ -87,7 +91,22 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 _logger.LogWarning(ex, "Advertencia en Fase 1 (Detección en Novedades): {Message}", ex.Message);
             }
 
-            // --- FASE 2: Procesamiento de Cola Prioritaria (Usuarios y Novedades) ---
+            // --- FASE 1.5: Auto-descubrimiento de Novedades y Tendencias BGG ---
+            if (_discoveryService != null)
+            {
+                try
+                {
+                    var discoveryResult = await _discoveryService.DiscoverAndEnqueueBggTrendsAsync(maxItems: 50, ct);
+                    bggDiscoveryCount = discoveryResult.EnqueuedCount;
+                    _logger.LogInformation("Fase 1.5 completada: {Count} tendencias/lanzamientos BGG descubiertos y encolados.", bggDiscoveryCount);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Advertencia en Fase 1.5 (Auto-descubrimiento BGG): {Message}", ex.Message);
+                }
+            }
+
+            // --- FASE 2: Procesamiento de Cola Prioritaria (Usuarios, Novedades y Tendencias BGG) ---
             var topPending = await _pendingRepo.GetTopPendingAsync(limit, ct);
             _logger.LogInformation("Fase 2: {Count} juegos pendientes encontrados en la cola prioritaria.", topPending.Count);
 
@@ -242,12 +261,13 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 topBackfill: topBackfillCount,
                 totalCataloged: catalogedTitles.Count,
                 failed: failedCount,
-                titles: catalogedTitles
+                titles: catalogedTitles,
+                bggDiscovery: bggDiscoveryCount
             );
             await _logRepo.UpdateAsync(log, ct);
 
-            _logger.LogInformation("Ciclo nocturno finalizado con éxito: {Total} catalogados ({Queue} cola, {Backfill} Top BGG, {Failed} fallos).",
-                catalogedTitles.Count, queueProcessedCount, topBackfillCount, failedCount);
+            _logger.LogInformation("Ciclo nocturno finalizado con éxito: {Total} catalogados ({Queue} cola, {Backfill} Top BGG, {Failed} fallos, {BggDisc} descubiertos BGG).",
+                catalogedTitles.Count, queueProcessedCount, topBackfillCount, failedCount, bggDiscoveryCount);
 
             return new NightlyCatalogingResultDto(
                 LogId: log.Id,
@@ -260,7 +280,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 FailedCount: failedCount,
                 CatalogedTitles: catalogedTitles,
                 Status: log.Status,
-                ErrorMessage: null
+                ErrorMessage: null,
+                BggDiscoveryCount: bggDiscoveryCount
             );
         }
         catch (Exception fatalEx)
@@ -280,7 +301,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 FailedCount: failedCount,
                 CatalogedTitles: catalogedTitles,
                 Status: "Failed",
-                ErrorMessage: fatalEx.Message
+                ErrorMessage: fatalEx.Message,
+                BggDiscoveryCount: bggDiscoveryCount
             );
         }
     }
@@ -311,7 +333,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 FailedCount: l.FailedCount,
                 CatalogedTitles: titles,
                 Status: l.Status,
-                ErrorMessage: l.ErrorMessage
+                ErrorMessage: l.ErrorMessage,
+                BggDiscoveryCount: l.BggDiscoveryCount
             );
         }).ToList();
     }

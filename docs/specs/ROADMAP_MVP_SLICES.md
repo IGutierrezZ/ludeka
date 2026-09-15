@@ -411,6 +411,34 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 43: Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno
+- **Identificador SDD:** `change-43-ingesta-continua-bgg`
+- **Objetivo Principal:** Auto-descubrimiento y catalogación continua de los lanzamientos y tendencias mundiales de BoardGameGeek:
+  1. Servicio de descubrimiento `IBggDiscoveryService`: escaneo del Hotness (`/xmlapi2/hot?type=boardgame`) y filtrado de lanzamientos recientes del año.
+  2. Deduplicación estricta contra `Games`, `PendingBggImports` y `BggCatalogStaging`.
+  3. Nuevos orígenes de cola: `CatalogQueueOrigin.BggNewReleases` y `CatalogQueueOrigin.BggHotness`.
+  4. Fase 1.5 en el orquestador nocturno `NightlyCatalogingService` con trazabilidad en bitácora.
+  5. UI de administración en `/admin/cola-catalogacion` con botón de escaneo bajo demanda, filtrado por origen y badges editoriales.
+- **Estado:** ✅ **Completado y Archivado** (suite 968/968 en verde al 100%; +8 pruebas unitarias nuevas sin dependencias de mock).
+- **Documento:** [`inc-43-ingesta-continua-bgg.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-43-ingesta-continua-bgg.md).
+- **Módulos del Sistema:** [`29-ingesta-continua-novedades-bgg.md`](file:///c:/repos/Ludeka/docs/specs/sistema/29-ingesta-continua-novedades-bgg.md).
+
+---
+
+## Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram)
+- **Identificador SDD:** `change-44-social-collector-worker`
+- **Objetivo Principal:** Sondeo desatendido de fuentes y canales monitorizados en `MonitoredSocialAccount` mediante RSS y scrapers no invasivos para poblar automáticamente la bandeja de moderación sin intervención manual.
+- **Estado:** 📋 **Planificado**.
+
+---
+
+## Incremento 45: Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar'
+- **Identificador SDD:** `change-45-price-radar-discounts`
+- **Objetivo Principal:** Registro histórico de precios de tiendas, detección de ofertas destacadas y notificaciones automáticas a usuarios que tengan el título en su radar de compra.
+- **Estado:** 📋 **Planificado**.
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
