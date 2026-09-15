@@ -443,7 +443,9 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 ## Incremento 45: Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar'
 - **Identificador SDD:** `change-45-price-radar-discounts`
 - **Objetivo Principal:** Registro histórico de precios de tiendas, detección de ofertas destacadas y notificaciones automáticas a usuarios que tengan el título en su radar de compra.
-- **Estado:** 📋 **Planificado**.
+- **Estado:** ✅ **Completado y Archivado** (suite 1.005/1.005 en verde al 100%; +17 pruebas unitarias y de marcado nuevas sin dependencias de mock).
+- **Documento:** [`inc-45-price-radar-discounts.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-45-price-radar-discounts.md).
+- **Módulos del Sistema:** [`31-radar-precios-minimos-historicos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/31-radar-precios-minimos-historicos.md).
 
 ---
 

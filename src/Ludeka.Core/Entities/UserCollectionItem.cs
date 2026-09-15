@@ -136,4 +136,13 @@ public class UserCollectionItem
         GameId = gameId;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Asocia la entidad Game para navegación y pruebas unitarias.
+    /// </summary>
+    public void AttachGame(Game game)
+    {
+        Game = game ?? throw new ArgumentNullException(nameof(game));
+        GameId = game.Id;
+    }
 }

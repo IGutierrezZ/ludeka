@@ -188,6 +188,12 @@ builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<Sim
 builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<HtmlSchemaStoreStockClient>());
 builder.Services.AddScoped<IStoreStockService, StoreStockService>();
 
+// Incremento 45: Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar'
+builder.Services.Configure<PriceRadarOptions>(builder.Configuration.GetSection(PriceRadarOptions.SectionName));
+builder.Services.AddScoped<IGamePriceRepository, SqliteGamePriceRepository>();
+builder.Services.AddScoped<IPriceRadarService, PriceRadarService>();
+builder.Services.AddHostedService<PriceRadarHostedService>();
+
 // Incremento 6: Sorteos, Novedades del Viernes, Q&A de Reglas y Tarjetas Sociales
 builder.Services.AddScoped<IGiveawayRepository, SqliteGiveawayRepository>();
 builder.Services.AddScoped<IGiveawayService, GiveawayService>();

@@ -4,6 +4,7 @@
 @inject IUserLocationService LocationService
 @inject IStoreStockService StockService
 @inject IAffiliateUrlResolver AffiliateResolver
+@inject IPriceRadarService PriceRadarService
 
 <div id="donde-comprar" class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -17,6 +18,17 @@
                         <span class="px-2 py-0.5 rounded-md text-[0.68rem] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 inline-flex items-center gap-1">
                             <span>@CountryCatalog.GetFlag(_effectiveCountry)</span>
                             <span>@_effectiveCountry</span>
+                        </span>
+                    }
+                    @if (_priceMetrics?.AllTimeLowPrice.HasValue == true)
+                    {
+                        <span class="px-2.5 py-0.5 rounded-md text-[0.68rem] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 inline-flex items-center gap-1" title="@($"Mínimo histórico registrado: {_priceMetrics.AllTimeLowPrice:0.00} €")">
+                            <Icon Name="trending-down" Size="12" />
+                            <span>Mínimo histórico: @_priceMetrics.AllTimeLowPrice.Value.ToString("0.00") €</span>
+                            @if (!string.IsNullOrWhiteSpace(_priceMetrics.AllTimeLowStore))
+                            {
+                                <span class="opacity-75 font-normal">(@_priceMetrics.AllTimeLowStore)</span>
+                            }
                         </span>
                     }
                     @if (_isCheckingStock)
@@ -75,13 +87,19 @@
                         </div>
 
                         @* Precio orientativo o en vivo *@
-                        <div class="flex items-baseline gap-2 pt-1">
+                        <div class="flex items-baseline gap-2 pt-1 flex-wrap">
                             @if (stock?.CurrentPrice.HasValue == true)
                             {
                                 <span class="text-lg font-black text-[var(--text-primary)]">
                                     @($"{stock.CurrentPrice.Value:0.00} {offer.Currency}")
                                 </span>
                                 <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">En vivo</span>
+                                @if (_priceMetrics?.AllTimeLowPrice.HasValue == true && stock.CurrentPrice.Value <= _priceMetrics.AllTimeLowPrice.Value + 0.01m)
+                                {
+                                    <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30 inline-flex items-center gap-0.5">
+                                        <Icon Name="trending-down" Size="10" /> Mínimo histórico
+                                    </span>
+                                }
                             }
                             else if (offer.Price.HasValue)
                             {
@@ -89,6 +107,12 @@
                                     @offer.FormattedPrice
                                 </span>
                                 <span class="text-[0.65rem] text-[var(--text-muted)]">PVP orientativo</span>
+                                @if (_priceMetrics?.AllTimeLowPrice.HasValue == true && offer.Price.Value <= _priceMetrics.AllTimeLowPrice.Value + 0.01m)
+                                {
+                                    <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/30 inline-flex items-center gap-0.5">
+                                        <Icon Name="trending-down" Size="10" /> Mínimo histórico
+                                    </span>
+                                }
                             }
                             else
                             {
@@ -242,15 +266,31 @@
     [Parameter]
     public string? GameTitle { get; set; }
 
+    [Parameter]
+    public Guid? GameId { get; set; }
+
     private string? _effectiveCountry;
     private IReadOnlyList<GamePurchaseLink> _displayedOffers = [];
     private readonly Dictionary<string, StoreStockInfo> _stockByUrl = new(StringComparer.OrdinalIgnoreCase);
     private bool _isCheckingStock;
     private bool _hasLoadedInitialStock;
+    private GamePriceMetrics? _priceMetrics;
 
     protected override async Task OnParametersSetAsync()
     {
         _effectiveCountry = await LocationService.GetEffectiveCountryAsync();
+
+        if (GameId.HasValue && GameId.Value != Guid.Empty)
+        {
+            try
+            {
+                _priceMetrics = await PriceRadarService.GetGamePriceMetricsAsync(GameId.Value);
+            }
+            catch
+            {
+                // Silencioso por resiliencia
+            }
+        }
 
         if (Offers == null || Offers.Count == 0)
         {
@@ -278,6 +318,17 @@
                 _stockByUrl[offer.AffiliateUrl] = offer.InStock
                     ? StoreStockInfo.InStock(price: offer.Price, note: "Disponibilidad orientativa")
                     : StoreStockInfo.OutOfStock(note: "Agotado orientativo");
+            }
+
+            if (GameId.HasValue && GameId.Value != Guid.Empty && offer.Price.HasValue && offer.Price.Value > 0)
+            {
+                _ = PriceRadarService.RecordPriceObservationAsync(
+                    GameId.Value,
+                    offer.StoreName,
+                    offer.AffiliateUrl,
+                    offer.Price.Value,
+                    offer.InStock,
+                    offer.Currency);
             }
         }
     }
@@ -315,6 +366,38 @@
             {
                 _stockByUrl[kvp.Key] = kvp.Value;
             }
+
+            if (GameId.HasValue && GameId.Value != Guid.Empty)
+            {
+                foreach (var offer in _displayedOffers)
+                {
+                    if (_stockByUrl.TryGetValue(offer.AffiliateUrl, out var s) && s.CurrentPrice.HasValue && s.CurrentPrice.Value > 0)
+                    {
+                        try
+                        {
+                            await PriceRadarService.RecordPriceObservationAsync(
+                                GameId.Value,
+                                offer.StoreName,
+                                offer.AffiliateUrl,
+                                s.CurrentPrice.Value,
+                                s.IsInStock,
+                                offer.Currency);
+                        }
+                        catch
+                        {
+                            // Silencioso
+                        }
+                    }
+                }
+
+                try
+                {
+                    _priceMetrics = await PriceRadarService.GetGamePriceMetricsAsync(GameId.Value);
+                }
+                catch
+                {
+                }
+            }
         }
         catch
         {
@@ -340,6 +423,25 @@
         {
             var updated = await StockService.GetStockAsync(offer.StoreName, offer.AffiliateUrl);
             _stockByUrl[offer.AffiliateUrl] = updated;
+
+            if (GameId.HasValue && GameId.Value != Guid.Empty && updated.CurrentPrice.HasValue && updated.CurrentPrice.Value > 0)
+            {
+                try
+                {
+                    await PriceRadarService.RecordPriceObservationAsync(
+                        GameId.Value,
+                        offer.StoreName,
+                        offer.AffiliateUrl,
+                        updated.CurrentPrice.Value,
+                        updated.IsInStock,
+                        offer.Currency);
+
+                    _priceMetrics = await PriceRadarService.GetGamePriceMetricsAsync(GameId.Value);
+                }
+                catch
+                {
+                }
+            }
         }
         catch
         {

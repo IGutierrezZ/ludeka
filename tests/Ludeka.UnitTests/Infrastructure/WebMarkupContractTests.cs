@@ -618,6 +618,19 @@ public class WebMarkupContractTests
         { "SocialCardModal (sin emojis)", "src/Ludeka.Web/Components/Shared/SocialCardModal.razor",
           new[] { "<Icon Name=\"palette\"", "<Icon Name=\"clipboard-copy\"", "<Icon Name=\"inbox\"" },
           new[] { "🎨", "📋", "📥" } },
+
+        // ===== INC-45: Radar de Precios, Mínimos Históricos y Alertas 'Quiero comprar' =====
+        { "StoreOffersCard (mínimos históricos e integración radar)", "src/Ludeka.Web/Components/Shared/StoreOffersCard.razor",
+          new[] { "Mínimo histórico", "PriceRadarService", "GetGamePriceMetricsAsync", "RecordPriceObservationAsync" },
+          Array.Empty<string>() },
+
+        { "MyLibrary (alertas de compra y radar de precios)", "src/Ludeka.Web/Components/Pages/MyLibrary.razor",
+          new[] { "PriceRadarService", "GetUserWantToBuyAlertsAsync", "Radar de Compra Inteligente" },
+          Array.Empty<string>() },
+
+        { "Radar (pestaña ofertas y mínimos históricos)", "src/Ludeka.Web/Components/Pages/Radar.razor",
+          new[] { "PriceRadarService", "GetTopDiscountsAsync", "panel-deals", "Ofertas &amp; Mínimos Históricos" },
+          Array.Empty<string>() },
     };
 
     [Theory]

@@ -2,111 +2,331 @@
 @page "/radar"
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 @inject IGiveawayService GiveawayService
+@inject IPriceRadarService PriceRadarService
+@inject IAffiliateUrlResolver AffiliateResolver
 @inject ICurrentUserService CurrentUserService
 @inject IUserLocationService LocationService
+@inject NavigationManager Navigation
 
-<PageTitle>Radar de Sorteos — Ludeka</PageTitle>
+<PageTitle>@(_currentTab == RadarTab.Deals ? "Radar de Ofertas y Mínimos Históricos" : "Radar de Sorteos") — Ludeka</PageTitle>
 
 <div class="container-ludeka py-8 space-y-8">
-    <PageHeaderEditorial Badge="Radar de Sorteos Comunitarios"
+    <PageHeaderEditorial Badge="Radar Comunitario"
                          BadgeIcon="gift"
-                         Subtitle="Oportunidades lúdicas verificadas sin spam. Sorteos activos en Instagram, YouTube y redes con alertas de expiración y destacados oficiales.">
-        <Title>Sorteos de Juegos de Mesa</Title>
+                         Subtitle="@(_currentTab == RadarTab.Deals ? "Detección inteligente de bajadas de precio, mínimos históricos y alertas en tiendas especializadas en español." : "Oportunidades lúdicas verificadas sin spam. Sorteos activos en Instagram, YouTube y redes con alertas de expiración y destacados oficiales.")">
+        <Title>@(_currentTab == RadarTab.Deals ? "Radar de Ofertas y Mínimos" : "Sorteos de Juegos de Mesa")</Title>
         <Actions>
-            @if (IsModerator)
+            @if (_currentTab == RadarTab.Giveaways)
             {
+                @if (IsModerator)
+                {
+                    <button type="button"
+                            @onclick="() => _isExpressModalOpen = true"
+                            class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                        <Icon Name="zap" Size="12" /> Alta Exprés
+                    </button>
+                }
                 <button type="button"
-                        @onclick="() => _isExpressModalOpen = true"
-                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="zap" Size="12" /> Alta Exprés
+                        @onclick="() => _isCreateModalOpen = true"
+                        class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="plus" Size="12" /> Proponer Sorteo
                 </button>
             }
-            <button type="button"
-                    @onclick="() => _isCreateModalOpen = true"
-                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                <Icon Name="plus" Size="12" /> Proponer Sorteo
-            </button>
+            else
+            {
+                <a href="/mi-ludoteca"
+                   class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                    <Icon Name="bell" Size="14" /> Mis Alertas de Compra
+                </a>
+            }
         </Actions>
     </PageHeaderEditorial>
 
-    @* Filtro de activos / todos y filtro territorial *@
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <div class="flex items-center gap-2 flex-wrap">
-            <button type="button"
-                    @onclick="() => ToggleExpiredFilter(false)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(!_includeExpired ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                Vigentes (@_giveaways.Count(g => !g.IsExpired))
-            </button>
-            <button type="button"
-                    @onclick="() => ToggleExpiredFilter(true)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_includeExpired ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                Incluir Finalizados
-            </button>
-
-            <span class="text-[var(--border-subtle)]">|</span>
-
-            @* Filtro territorial *@
-            <button type="button"
-                    @onclick="() => SetCountryFilter(null)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(string.IsNullOrWhiteSpace(_countryFilter) ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="globe" Size="12" /> Global (Todos)
-            </button>
-            @if (!string.IsNullOrWhiteSpace(_userActiveCountry) && _userActiveCountry != "Internacional")
+    @* Selector de pestañas principales *@
+    <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-2" role="tablist" aria-label="Secciones del radar">
+        <button type="button"
+                role="tab"
+                id="tab-deals"
+                aria-selected="@(_currentTab == RadarTab.Deals ? "true" : "false")"
+                aria-controls="panel-deals"
+                @onclick="() => SwitchTab(RadarTab.Deals)"
+                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @(_currentTab == RadarTab.Deals ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+            <Icon Name="trending-down" Size="14" />
+            <span>Ofertas &amp; Mínimos Históricos</span>
+            @if (_topDeals.Count > 0)
             {
-                <button type="button"
-                        @onclick="() => SetCountryFilter(_userActiveCountry)"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_countryFilter == _userActiveCountry ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    @CountryCatalog.GetFlag(_userActiveCountry) Solo @_userActiveCountry
-                </button>
+                <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @(_currentTab == RadarTab.Deals ? "bg-white/20 text-white" : "bg-[var(--brand-primary)] text-white")">
+                    @_topDeals.Count
+                </span>
             }
-            <select @bind="_countryFilter"
-                    @bind:after="OnCountryDropdownChanged"
-                    class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
-                <option value="">Otros países...</option>
-                @foreach (var c in CountryCatalog.GetAllCountries())
-                {
-                    <option value="@c.Name">@c.FlagEmoji @c.Name</option>
-                }
-            </select>
-        </div>
+        </button>
 
-        <span class="text-xs text-[var(--text-muted)]">
-            <Icon Name="star" Size="12" /> Sorteos promocionados en cabecera &bull; Internacionales siempre visibles
-        </span>
+        <button type="button"
+                role="tab"
+                id="tab-giveaways"
+                aria-selected="@(_currentTab == RadarTab.Giveaways ? "true" : "false")"
+                aria-controls="panel-giveaways"
+                @onclick="() => SwitchTab(RadarTab.Giveaways)"
+                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @(_currentTab == RadarTab.Giveaways ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+            <Icon Name="gift" Size="14" />
+            <span>Sorteos Comunitarios</span>
+            @if (_giveaways.Count(g => !g.IsExpired) > 0)
+            {
+                <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @(_currentTab == RadarTab.Giveaways ? "bg-white/20 text-white" : "bg-[var(--brand-primary)] text-white")">
+                    @_giveaways.Count(g => !g.IsExpired)
+                </span>
+            }
+        </button>
     </div>
 
-    @if (_isLoading)
+    @if (_currentTab == RadarTab.Deals)
     {
-        <div class="py-16 text-center text-[var(--text-muted)]">
-            <div class="inline-block animate-spin mb-2"><Icon Name="dices" Size="30" /></div>
-            <p class="text-sm font-semibold">Sintonizando el radar de sorteos...</p>
-        </div>
-    }
-    else if (_giveaways.Count == 0)
-    {
-        <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-            <span class="inline-block mb-3"><Icon Name="radar" Size="40" /></span>
-            <h3 class="text-base font-bold text-[var(--text-primary)] mb-1">Sin sorteos registrados</h3>
-            <p class="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-4">
-                Actualmente no hay sorteos activos en el radar. ¿Conoces alguno en marcha? ¡Añádelo con un clic!
-            </p>
-            <button type="button"
-                    @onclick="() => _isCreateModalOpen = true"
-                    class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity">
-                <Icon Name="plus" Size="12" /> Añadir Sorteo
-            </button>
+        @* Pestaña de Ofertas y Mínimos Históricos *@
+        <div id="panel-deals" role="tabpanel" aria-labelledby="tab-deals" class="space-y-6">
+            @* Filtros de ofertas *@
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button"
+                            @onclick="() => ToggleOnlyAllTimeLows(false)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(!_onlyAllTimeLows ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        Todas las Ofertas (@_topDeals.Count)
+                    </button>
+                    <button type="button"
+                            @onclick="() => ToggleOnlyAllTimeLows(true)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_onlyAllTimeLows ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        <Icon Name="trending-down" Size="12" class="inline mr-1" /> Solo Mínimos Históricos (@_topDeals.Count(d => d.IsAllTimeLow))
+                    </button>
+
+                    <span class="text-[var(--border-subtle)]">|</span>
+
+                    @* Filtro territorial *@
+                    <button type="button"
+                            @onclick="() => SetCountryFilter(null)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(string.IsNullOrWhiteSpace(_countryFilter) ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        <Icon Name="globe" Size="12" /> Global (Todos)
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(_userActiveCountry) && _userActiveCountry != "Internacional")
+                    {
+                        <button type="button"
+                                @onclick="() => SetCountryFilter(_userActiveCountry)"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_countryFilter == _userActiveCountry ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            @CountryCatalog.GetFlag(_userActiveCountry) Solo @_userActiveCountry
+                        </button>
+                    }
+                    <select @bind="_countryFilter"
+                            @bind:after="OnCountryDropdownChanged"
+                            class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                        <option value="">Otros países...</option>
+                        @foreach (var c in CountryCatalog.GetAllCountries())
+                        {
+                            <option value="@c.Name">@c.FlagEmoji @c.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <span class="text-xs text-[var(--text-muted)]">
+                    <Icon Name="check-circle" Size="12" /> Monitorización continua de tiendas especializadas
+                </span>
+            </div>
+
+            @{
+                var displayedDeals = _onlyAllTimeLows ? _topDeals.Where(d => d.IsAllTimeLow).ToList() : _topDeals;
+            }
+
+            @if (_isLoadingDeals)
+            {
+                <div class="py-16 text-center text-[var(--text-muted)]">
+                    <div class="inline-block animate-spin mb-2"><Icon Name="dices" Size="30" /></div>
+                    <p class="text-sm font-semibold">Sintonizando el radar de ofertas y bajadas de precio...</p>
+                </div>
+            }
+            else if (displayedDeals.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] max-w-lg mx-auto">
+                    <span class="inline-block mb-3 p-3 rounded-2xl bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]"><Icon Name="trending-down" Size="36" /></span>
+                    <h3 class="text-base font-bold text-[var(--text-primary)] mb-1">Sin bajadas de precio recientes</h3>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        No hay ofertas registradas que superen el umbral de descuento o alcancen mínimos históricos para este filtro. Ludeka escanea tiendas colaboradoras de forma regular.
+                    </p>
+                    @if (!string.IsNullOrWhiteSpace(_countryFilter))
+                    {
+                        <button type="button"
+                                @onclick="() => SetCountryFilter(null)"
+                                class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white font-bold text-xs transition-opacity shadow-sm">
+                            Ver ofertas internacionales
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    @foreach (var deal in displayedDeals)
+                    {
+                        var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(deal.AffiliateUrl, deal.StoreName);
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col justify-between gap-3 shadow-sm group">
+                            <div class="space-y-3">
+                                <div class="flex gap-3 items-start">
+                                    <a href="/juegos/@deal.GameSlug" class="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
+                                        @if (!string.IsNullOrWhiteSpace(deal.GameCoverUrl))
+                                        {
+                                            <img src="@deal.GameCoverUrl" alt="@deal.GameTitle" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                        }
+                                        else
+                                        {
+                                            <img src="/images/game-placeholder.svg" alt="@deal.GameTitle" class="w-full h-full object-cover opacity-80" />
+                                        }
+                                    </a>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                            @if (deal.IsAllTimeLow)
+                                            {
+                                                <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 inline-flex items-center gap-0.5">
+                                                    <Icon Name="trending-down" Size="10" /> Mínimo histórico
+                                                </span>
+                                            }
+                                            @if (deal.DiscountPercentage > 0)
+                                            {
+                                                <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 inline-flex items-center gap-0.5">
+                                                    -@deal.DiscountPercentage.ToString("0.#")%
+                                                </span>
+                                            }
+                                        </div>
+                                        <a href="/juegos/@deal.GameSlug" class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate" title="@deal.GameTitle">
+                                            @deal.GameTitle
+                                        </a>
+                                        <div class="flex items-center gap-1.5 mt-1 text-xs text-[var(--text-secondary)]">
+                                            <span class="font-medium text-[var(--text-primary)]">@deal.StoreName</span>
+                                            @if (!string.IsNullOrWhiteSpace(deal.Country))
+                                            {
+                                                <span>&bull;</span>
+                                                <span>@CountryCatalog.GetFlag(deal.Country) @deal.Country</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-baseline justify-between gap-2">
+                                    <div>
+                                        <span class="text-[0.65rem] text-[var(--text-muted)] block">Precio oferta</span>
+                                        <span class="text-lg font-black text-emerald-500">@deal.FormattedCurrentPrice</span>
+                                    </div>
+                                    @if (deal.ReferencePrice.HasValue)
+                                    {
+                                        <div class="text-right">
+                                            <span class="text-[0.65rem] text-[var(--text-muted)] block">Anterior</span>
+                                            <span class="text-xs font-semibold line-through text-[var(--text-muted)]">@deal.FormattedReferencePrice</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                                <a href="@targetPurchaseUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer sponsored"
+                                   class="flex-1 px-3 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors text-center inline-flex items-center justify-center gap-1.5 shadow-sm">
+                                    <span>Ver en tienda</span>
+                                    <span class="text-[0.7rem]">&nearr;</span>
+                                </a>
+                                <a href="/juegos/@deal.GameSlug"
+                                   class="px-3 py-2 rounded-xl text-xs font-semibold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] transition-colors text-center"
+                                   title="Ver ficha completa">
+                                    Ficha
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     }
     else
     {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            @foreach (var giveaway in _giveaways)
+        @* Pestaña de Sorteos Comunitarios *@
+        <div id="panel-giveaways" role="tabpanel" aria-labelledby="tab-giveaways" class="space-y-6">
+            @* Filtro de activos / todos y filtro territorial *@
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button"
+                            @onclick="() => ToggleExpiredFilter(false)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(!_includeExpired ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        Vigentes (@_giveaways.Count(g => !g.IsExpired))
+                    </button>
+                    <button type="button"
+                            @onclick="() => ToggleExpiredFilter(true)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_includeExpired ? "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        Incluir Finalizados
+                    </button>
+
+                    <span class="text-[var(--border-subtle)]">|</span>
+
+                    @* Filtro territorial *@
+                    <button type="button"
+                            @onclick="() => SetCountryFilter(null)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(string.IsNullOrWhiteSpace(_countryFilter) ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                        <Icon Name="globe" Size="12" /> Global (Todos)
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(_userActiveCountry) && _userActiveCountry != "Internacional")
+                    {
+                        <button type="button"
+                                @onclick="() => SetCountryFilter(_userActiveCountry)"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors @(_countryFilter == _userActiveCountry ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            @CountryCatalog.GetFlag(_userActiveCountry) Solo @_userActiveCountry
+                        </button>
+                    }
+                    <select @bind="_countryFilter"
+                            @bind:after="OnCountryDropdownChanged"
+                            class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                        <option value="">Otros países...</option>
+                        @foreach (var c in CountryCatalog.GetAllCountries())
+                        {
+                            <option value="@c.Name">@c.FlagEmoji @c.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <span class="text-xs text-[var(--text-muted)]">
+                    <Icon Name="star" Size="12" /> Sorteos promocionados en cabecera &bull; Internacionales siempre visibles
+                </span>
+            </div>
+
+            @if (_isLoadingGiveaways)
             {
-                <GiveawayCard Giveaway="@giveaway"
-                              CanModerate="@IsModerator"
-                              OnTogglePromoted="@HandleTogglePromoted" />
+                <div class="py-16 text-center text-[var(--text-muted)]">
+                    <div class="inline-block animate-spin mb-2"><Icon Name="dices" Size="30" /></div>
+                    <p class="text-sm font-semibold">Sintonizando el radar de sorteos...</p>
+                </div>
+            }
+            else if (_giveaways.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                    <span class="inline-block mb-3"><Icon Name="radar" Size="40" /></span>
+                    <h3 class="text-base font-bold text-[var(--text-primary)] mb-1">Sin sorteos registrados</h3>
+                    <p class="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-4">
+                        Actualmente no hay sorteos activos en el radar. ¿Conoces alguno en marcha? ¡Añádelo con un clic!
+                    </p>
+                    <button type="button"
+                            @onclick="() => _isCreateModalOpen = true"
+                            class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity">
+                        <Icon Name="plus" Size="12" /> Añadir Sorteo
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    @foreach (var giveaway in _giveaways)
+                    {
+                        <GiveawayCard Giveaway="@giveaway"
+                                      CanModerate="@IsModerator"
+                                      OnTogglePromoted="@HandleTogglePromoted" />
+                    }
+                </div>
             }
         </div>
     }
@@ -246,9 +466,19 @@
                               OnItemCreated="HandleExpressItemCreated" />
 
 @code {
+    private enum RadarTab
+    {
+        Deals,
+        Giveaways
+    }
+
+    private RadarTab _currentTab = RadarTab.Deals;
+    private bool _onlyAllTimeLows = false;
     private bool _includeExpired;
-    private bool _isLoading = true;
-    private IReadOnlyList<GiveawayDto> _giveaways = new List<GiveawayDto>();
+    private bool _isLoadingGiveaways = true;
+    private bool _isLoadingDeals = true;
+    private IReadOnlyList<GiveawayDto> _giveaways = [];
+    private IReadOnlyList<PriceDropAlertDto> _topDeals = [];
     private string? _userActiveCountry;
     private string? _countryFilter;
 
@@ -270,39 +500,76 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (Navigation.Uri.Contains("/sorteos", StringComparison.OrdinalIgnoreCase))
+        {
+            _currentTab = RadarTab.Giveaways;
+        }
+
         _userActiveCountry = await LocationService.GetEffectiveCountryAsync();
         _countryFilter = _userActiveCountry;
-        await LoadDataAsync();
+        await LoadAllDataAsync();
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadAllDataAsync()
     {
-        _isLoading = true;
+        await Task.WhenAll(LoadDealsDataAsync(), LoadGiveawaysDataAsync());
+    }
+
+    private async Task LoadDealsDataAsync()
+    {
+        _isLoadingDeals = true;
+        try
+        {
+            _topDeals = await PriceRadarService.GetTopDiscountsAsync(limit: 60, country: _countryFilter);
+        }
+        catch
+        {
+            _topDeals = [];
+        }
+        finally
+        {
+            _isLoadingDeals = false;
+        }
+    }
+
+    private async Task LoadGiveawaysDataAsync()
+    {
+        _isLoadingGiveaways = true;
         try
         {
             _giveaways = await GiveawayService.GetGiveawaysAsync(_includeExpired, _countryFilter);
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingGiveaways = false;
         }
+    }
+
+    private void SwitchTab(RadarTab tab)
+    {
+        _currentTab = tab;
+    }
+
+    private void ToggleOnlyAllTimeLows(bool onlyAllTimeLows)
+    {
+        _onlyAllTimeLows = onlyAllTimeLows;
     }
 
     private async Task ToggleExpiredFilter(bool includeExpired)
     {
         _includeExpired = includeExpired;
-        await LoadDataAsync();
+        await LoadGiveawaysDataAsync();
     }
 
     private async Task SetCountryFilter(string? country)
     {
         _countryFilter = country;
-        await LoadDataAsync();
+        await LoadAllDataAsync();
     }
 
     private async Task OnCountryDropdownChanged()
     {
-        await LoadDataAsync();
+        await LoadAllDataAsync();
     }
 
     private async Task HandleTogglePromoted(Guid giveawayId)
@@ -312,7 +579,7 @@
 
         bool newPromoted = !target.IsPromoted;
         await GiveawayService.SetPromotedAsync(giveawayId, newPromoted);
-        await LoadDataAsync();
+        await LoadGiveawaysDataAsync();
     }
 
     private async Task HandleSubmitGiveaway()
@@ -363,12 +630,12 @@
         _formIsCommunityExclusive = false;
         _formIsPromoted = false;
 
-        await LoadDataAsync();
+        await LoadGiveawaysDataAsync();
     }
 
     private async Task HandleExpressItemCreated(Ludeka.Application.DTOs.SocialInboxItemDto item)
     {
         _isExpressModalOpen = false;
-        await LoadDataAsync();
+        await LoadGiveawaysDataAsync();
     }
 }
