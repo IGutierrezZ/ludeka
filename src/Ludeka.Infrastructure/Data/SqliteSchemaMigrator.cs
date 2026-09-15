@@ -794,6 +794,7 @@ public static class SqliteSchemaMigrator
                         "ProfileUrl" TEXT NOT NULL,
                         "IsEnabled" INTEGER NOT NULL,
                         "LastCheckedAt" TEXT NULL,
+                        "ResolvedFeedUrl" TEXT NULL,
                         "Notes" TEXT NULL,
                         "CreatedAt" TEXT NOT NULL,
                         "UpdatedAt" TEXT NULL
@@ -803,6 +804,16 @@ public static class SqliteSchemaMigrator
                 """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("MonitoredSocialAccounts");
+            }
+            else
+            {
+                var accountCols = await GetTableColumnsAsync(connection, "MonitoredSocialAccounts", ct);
+                if (!accountCols.Contains("ResolvedFeedUrl"))
+                {
+                    using var addCol = connection.CreateCommand();
+                    addCol.CommandText = "ALTER TABLE \"MonitoredSocialAccounts\" ADD COLUMN \"ResolvedFeedUrl\" TEXT NULL;";
+                    await addCol.ExecuteNonQueryAsync(ct);
+                }
             }
         }
         finally

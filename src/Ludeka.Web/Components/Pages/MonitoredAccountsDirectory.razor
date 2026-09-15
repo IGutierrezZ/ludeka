@@ -4,6 +4,7 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @inject IMonitoredAccountService AccountService
+@inject ISocialCollectorService CollectorService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -57,6 +58,14 @@
                     <span>@(_isSyncing ? "Sincronizando..." : "Sincronizar Directorio")</span>
                 </button>
 
+                <button type="button"
+                        @onclick="CollectAllChannelsAsync"
+                        disabled="@(_isCollecting || _isSyncing)"
+                        class="px-3.5 py-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500 text-xs font-semibold text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                    <Icon Name="rss" Size="14" Class="@(_isCollecting ? "animate-spin" : "")" />
+                    <span>@(_isCollecting ? "Sondeando Canales..." : "Sondear Canales")</span>
+                </button>
+
                 <a href="/admin/ingesta-social"
                    class="px-3.5 py-2.5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm">
                     <Icon Name="inbox" Size="14" />
@@ -107,6 +116,8 @@
                     <option value="">Todas las plataformas</option>
                     <option value="@SocialPlatform.Instagram">Instagram</option>
                     <option value="@SocialPlatform.YouTube">YouTube</option>
+                    <option value="@SocialPlatform.Telegram">Telegram</option>
+                    <option value="@SocialPlatform.RssFeed">Feed RSS / Blog</option>
                     <option value="@SocialPlatform.Twitter">Twitter / X</option>
                     <option value="@SocialPlatform.TikTok">TikTok</option>
                     <option value="@SocialPlatform.Website">Sitio Web</option>
@@ -238,6 +249,14 @@
                                         class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors flex items-center">
                                     <Icon Name="@(account.IsEnabled ? "pause" : "play")" Size="14" />
                                 </button>
+
+                                <button type="button"
+                                        @onclick="() => CollectSingleAccountAsync(account.Id)"
+                                        disabled="@(_collectingAccountId == account.Id || _isCollecting)"
+                                        title="Sondear publicaciones recientes de este canal"
+                                        class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 hover:bg-indigo-500/20 transition-colors flex items-center disabled:opacity-50">
+                                    <Icon Name="rss" Size="14" Class="@(_collectingAccountId == account.Id ? "animate-spin" : "")" />
+                                </button>
                             </div>
 
                             @* Botón de Alta Exprés prepoblada con este organizador *@
@@ -245,7 +264,7 @@
                                     @onclick="() => LaunchExpressIngestForAccount(account)"
                                     class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 text-xs font-bold transition-all flex items-center gap-1.5 border border-amber-500/30">
                                 <Icon Name="zap" Size="13" />
-                                <span>⚡ Publicación</span>
+                                <span>Publicación Exprés</span>
                             </button>
                         </div>
                     </div>
@@ -291,6 +310,8 @@
                                 class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
                             <option value="@SocialPlatform.Instagram">Instagram</option>
                             <option value="@SocialPlatform.YouTube">YouTube</option>
+                            <option value="@SocialPlatform.Telegram">Telegram</option>
+                            <option value="@SocialPlatform.RssFeed">Feed RSS / Blog</option>
                             <option value="@SocialPlatform.Twitter">Twitter / X</option>
                             <option value="@SocialPlatform.TikTok">TikTok</option>
                             <option value="@SocialPlatform.Website">Sitio Web</option>
@@ -387,6 +408,10 @@
 
     private string? _statusMessage;
     private string? _errorMessage;
+
+    // Sondeo automático
+    private bool _isCollecting;
+    private Guid? _collectingAccountId;
 
     // Alta Exprés modal
     private bool _showExpressModal;
@@ -625,10 +650,66 @@
         await Task.CompletedTask;
     }
 
+    private async Task CollectAllChannelsAsync()
+    {
+        if (_isCollecting) return;
+        _isCollecting = true;
+        _statusMessage = null;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await CollectorService.CollectAllAccountsAsync();
+            _statusMessage = $"Sondeo completado: {result.AccountsScanned} canales examinados. {result.ItemsImported} publicaciones nuevas en moderación ({result.ItemsSkippedDuplicates} omitidas por duplicado).";
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error durante el sondeo de canales: {ex.Message}";
+        }
+        finally
+        {
+            _isCollecting = false;
+        }
+    }
+
+    private async Task CollectSingleAccountAsync(Guid accountId)
+    {
+        if (_collectingAccountId.HasValue || _isCollecting) return;
+        _collectingAccountId = accountId;
+        _statusMessage = null;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await CollectorService.CollectAccountAsync(accountId);
+            var summary = result.AccountSummaries.FirstOrDefault();
+            if (summary?.HasError == true)
+            {
+                _errorMessage = $"Incidencia en canal '{summary.AccountName}': {summary.ErrorMessage}";
+            }
+            else
+            {
+                _statusMessage = $"Canal '{summary?.AccountName}' sondeado: {result.ItemsImported} publicaciones nuevas ({result.ItemsSkippedDuplicates} omitidas por duplicado).";
+            }
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al sondear canal: {ex.Message}";
+        }
+        finally
+        {
+            _collectingAccountId = null;
+        }
+    }
+
     private static string GetPlatformIcon(SocialPlatform platform) => platform switch
     {
         SocialPlatform.Instagram => "instagram",
         SocialPlatform.YouTube => "youtube",
+        SocialPlatform.Telegram => "send",
+        SocialPlatform.RssFeed => "rss",
         SocialPlatform.Twitter => "twitter",
         SocialPlatform.TikTok => "video",
         _ => "globe"
@@ -638,6 +719,8 @@
     {
         SocialPlatform.Instagram => "bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600",
         SocialPlatform.YouTube => "bg-rose-600",
+        SocialPlatform.Telegram => "bg-sky-500",
+        SocialPlatform.RssFeed => "bg-amber-600",
         SocialPlatform.Twitter => "bg-zinc-800",
         SocialPlatform.TikTok => "bg-black",
         _ => "bg-blue-600"

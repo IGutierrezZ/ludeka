@@ -14,5 +14,7 @@ public enum SocialPlatform
     BoardGameGeek = 6,
     Twitch = 7,
     TikTok = 8,
-    Other = 9
+    Other = 9,
+    Telegram = 10,
+    RssFeed = 11
 }

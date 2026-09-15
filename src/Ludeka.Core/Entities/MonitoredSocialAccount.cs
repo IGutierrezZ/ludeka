@@ -17,6 +17,7 @@ public class MonitoredSocialAccount
     public string ProfileUrl { get; private set; } = string.Empty;
     public bool IsEnabled { get; private set; } = true;
     public DateTimeOffset? LastCheckedAt { get; private set; }
+    public string? ResolvedFeedUrl { get; private set; }
     public string? Notes { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; private set; }
@@ -33,7 +34,8 @@ public class MonitoredSocialAccount
         string? notes = null,
         bool isEnabled = true,
         Guid? id = null,
-        DateTimeOffset? createdAt = null)
+        DateTimeOffset? createdAt = null,
+        string? resolvedFeedUrl = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("El nombre de la cuenta o canal no puede estar vacío.", nameof(name));
@@ -53,6 +55,7 @@ public class MonitoredSocialAccount
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         IsEnabled = isEnabled;
         CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
+        ResolvedFeedUrl = string.IsNullOrWhiteSpace(resolvedFeedUrl) ? null : resolvedFeedUrl.Trim();
     }
 
     public void ToggleStatus(bool isEnabled)
@@ -84,6 +87,12 @@ public class MonitoredSocialAccount
         AccountType = accountType;
         ProfileUrl = profileUrl.Trim();
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetResolvedFeedUrl(string? feedUrl)
+    {
+        ResolvedFeedUrl = string.IsNullOrWhiteSpace(feedUrl) ? null : feedUrl.Trim();
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
