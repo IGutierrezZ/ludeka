@@ -59,12 +59,23 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-43** | Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno | ✅ Archivado | [inc-43-ingesta-continua-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-43-ingesta-continua-bgg.md) |
 | **INC-44** | Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram) | ✅ Archivado | [inc-44-social-collector-worker.md](archive/inc-44-social-collector-worker.md) |
 | **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | ✅ Archivado | [inc-45-price-radar-discounts.md](archive/inc-45-price-radar-discounts.md) |
+| **INC-46** | Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada | ⏳ Planificado | [inc-46-autenticacion-real.md](inc-46-autenticacion-real.md) |
+| **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ⏳ Planificado | [inc-47-workers-cloud-run.md](inc-47-workers-cloud-run.md) |
+| **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ⏳ En progreso (migración entregada) | [inc-48-persistencia-produccion-postgres.md](inc-48-persistencia-produccion-postgres.md) |
+
+## 🚨 Bloqueo de Salida a Producción
+
+Los incrementos **INC-46**, **INC-47** y **INC-48** son **prerrequisitos de la salida a producción**. Hasta que los tres estén archivados, Ludeka no debe exponerse públicamente:
+
+1. **INC-46** — sin él, cualquier visitante es la Mesa Fundadora con permisos totales y puede escalar privilegios desde la interfaz.
+2. **INC-47** — sin él, los trabajos se duplican al escalar y las notificaciones se pierden al escalar a cero.
+3. **INC-48** — sin él, el esquema de producción arranca incompleto y las imágenes no persisten.
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Ninguno actualmente — todos los incrementos planificados del MVP y extensiones han sido completados y archivados)*
+- **Planificación de producción** — worktree `C:\repos\ludeka-wt\incrementos-produccion`, rama `inc/incrementos-produccion`. Contiene los documentos de INC-46, INC-47 e INC-48 y la migración PostgreSQL de INC-48. Cada incremento obtendrá su propio worktree al pasar a implementación.
 
 
 

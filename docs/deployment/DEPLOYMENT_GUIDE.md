@@ -2,6 +2,9 @@
 
 Esta guía describe el procedimiento técnico para desplegar, operar y mantener la plataforma **Ludeka** (.NET 10 y Blazor Web App) en cualquier servidor VPS Linux (Ubuntu 22.04/24.04 LTS o Debian 12) utilizando Docker, Docker Compose y Nginx.
 
+> [!IMPORTANT]
+> **Producción usa PostgreSQL (Supabase) como base de datos y Cloudflare R2 como almacenamiento de medios.** SQLite queda reservado exclusivamente para las pruebas automatizadas y el desarrollo local; nunca es una opción de producción.
+
 ---
 
 ## 1. Requisitos de Infraestructura Recomendados
@@ -66,23 +69,27 @@ nano .env
 
 Asegúrate de configurar:
 - `PORT=5081` (puerto interno en el que escucha el contenedor frente al host).
-- `ConnectionStrings__DefaultConnection=Data Source=/app/data/ludeka.db`.
+- `ConnectionStrings__DefaultConnection` con la cadena de conexión PostgreSQL de Supabase (por ejemplo `Host=db.xxxx.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=...;SSL Mode=Require;Trust Server Certificate=true;`).
+- `Database__Provider=PostgreSql` para seleccionar el proveedor Npgsql. La aplicación también lo autodetecta si la cadena contiene `Host=`, `Server=`, `Port=5432`, `supabase.co`, `postgres://` o `postgresql://`.
+- `Database__SeedDemoData=false` para que la base de datos de producción arranque sin catálogo ni datos ficticios.
 - Tokens de BGG, Discord y Telegram según corresponda.
 - Establecer `CommunityNotifications__DryRun=false` para habilitar notificaciones reales a la comunidad.
 
 ---
 
-## 4. Despliegue con Docker Compose
+## 4. Despliegue con Docker Compose (Producción)
+
+El despliegue de producción utiliza `docker-compose.prod.yml`, que fija PostgreSQL como proveedor, desactiva el semillado de demostración y lee los secretos desde `.env`. El `docker-compose.yml` de la raíz se reserva para el entorno local con SQLite.
 
 Para construir la imagen multi-stage (compilación de Tailwind CSS + .NET 10 SDK) y levantar el servicio en segundo plano:
 
 ```bash
-# Construir y arrancar el contenedor
-docker compose up -d --build
+# Construir y arrancar el contenedor de producción
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
 # Verificar estado y logs
-docker compose ps
-docker compose logs -f ludeka-web
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f ludeka
 ```
 
 ---
@@ -91,17 +98,17 @@ docker compose logs -f ludeka-web
 
 El contenedor incluye dos sondas HTTP estándar de ASP.NET Core:
 
-1. **Liveness Probe (`/healthz`):**
+1. **Liveness Probe (`/healthz`):** confirma únicamente que el host web está activo; no evalúa ninguna dependencia.
    ```bash
    curl -i http://localhost:5081/healthz
    ```
    *Respuesta esperada:* HTTP `200 OK` con `{"status":"Healthy","mode":"liveness"}`.
 
-2. **Readiness Probe (`/ready`):**
+2. **Readiness Probe (`/ready`):** evalúa las dependencias críticas: conectividad real con la base de datos configurada (`CanConnectAsync` + `SELECT 1` sobre el proveedor activo), permisos de lectura/escritura en el directorio de datos y disponibilidad de la cola de notificaciones en segundo plano.
    ```bash
    curl -i http://localhost:5081/ready
    ```
-   *Respuesta esperada:* HTTP `200 OK` evaluando conectividad con SQLite, permisos de escritura en el volumen y el estado de la cola en segundo plano.
+   *Respuesta esperada:* HTTP `200 OK` con `{"status":"Healthy","mode":"readiness"}`. Si alguna dependencia falla, responde `503 Service Unavailable`.
 
 ---
 
@@ -136,27 +143,35 @@ sudo certbot --nginx -d ludeka.es -d www.ludeka.es
 
 ---
 
-## 7. Automatización de Copias de Seguridad de SQLite
+## 7. Copias de Seguridad de la Base de Datos PostgreSQL (Supabase)
 
-La base de datos SQLite opera en modo WAL (Write-Ahead Logging). El script `deploy/backup-sqlite.sh` genera respaldos en caliente consistentes sin bloquear las lecturas o escrituras de los usuarios.
+La base de datos de producción reside en **Supabase (PostgreSQL)**, por lo que el respaldo se realiza con `pg_dump` contra esa instancia mediante el script oficial `scripts/supabase-backup.ps1`. El script genera volcados comprimidos `.sql.gz` y aplica retención rotativa (7 días por defecto).
 
-### 7.1 Dar permisos de ejecución
-```bash
-chmod +x /opt/ludeka/deploy/backup-sqlite.sh
-chmod +x /opt/ludeka/deploy/restore-sqlite.sh
+### 7.1 Requisitos
+- Tener instaladas las utilidades cliente de PostgreSQL (`pg_dump`) en el host que ejecute el respaldo.
+- Definir la cadena de conexión en la variable de entorno `SUPABASE_DB_URL` (o pasarla con `-ConnectionString`).
+
+### 7.2 Ejecución Manual
+```powershell
+pwsh ./scripts/supabase-backup.ps1 -OutputDir /var/backups/ludeka -RetentionDays 7
 ```
 
-### 7.2 Programar Backup Diario con Cron
+Si `pg_dump` no está disponible localmente, el propio script propone el equivalente directo:
+```bash
+pg_dump "$SUPABASE_DB_URL" | gzip > /var/backups/ludeka/ludeka_prod_$(date +%F_%H%M%S).sql.gz
+```
+
+### 7.3 Programar Backup Diario con Cron
 Editar el crontab del sistema:
 ```bash
 sudo crontab -e
 ```
 Añadir la siguiente línea para ejecutar el respaldo todas las noches a las 04:00 AM:
 ```cron
-0 4 * * * /opt/ludeka/deploy/backup-sqlite.sh >> /var/log/ludeka_backup.log 2>&1
+0 4 * * * cd /opt/ludeka && SUPABASE_DB_URL="$SUPABASE_DB_URL" pwsh ./scripts/supabase-backup.ps1 -OutputDir /var/backups/ludeka >> /var/log/ludeka_backup.log 2>&1
 ```
 
-El script conserva automáticamente los últimos 7 días de respaldos y purga copias más antiguas.
+El script conserva automáticamente los últimos 7 días de respaldos (configurable con `-RetentionDays`) y purga copias más antiguas.
 
 ---
 
@@ -170,14 +185,14 @@ cd /opt/ludeka
 # 1. Obtener últimos cambios
 git pull origin main
 
-# 2. Reconstruir imagen y recrear contenedor sin pérdida de volumen
-docker compose up -d --build
+# 2. Reconstruir imagen y recrear el contenedor de producción
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
 # 3. Comprobar salud tras el despliegue
 curl -f http://localhost:5081/ready || echo "ALERTA: Despliegue fallido"
 ```
 
-Los datos persistentes residen en el volumen Docker nombrado `ludeka_data`, por lo que nunca se borran al actualizar la imagen del contenedor.
+Los datos de aplicación residen en **Supabase (PostgreSQL)**, por lo que reconstruir la imagen no los borra. El volumen `ludeka_data` pertenece al entorno local (`docker-compose.yml`) y no se usa en producción.
 
 ---
 
@@ -188,5 +203,30 @@ Los datos persistentes residen en el volumen Docker nombrado `ludeka_data`, por 
 - **Solución:** Revisa que `proxy_buffering off;` y las cabeceras `Upgrade` y `Connection` estén presentes en la configuración de Nginx.
 
 ### B. Error `503 Service Unavailable` en `/ready`
-- **Causa:** La base de datos SQLite no puede abrirse o el directorio carece de permisos de escritura para el usuario `app` (UID 1654).
-- **Solución:** Ejecuta `docker compose logs ludeka-web` para identificar la excepción y verifica los permisos del volumen con `docker exec -it ludeka-web ls -la /app/data`.
+- **Causa:** La base de datos configurada no responde (conectividad PostgreSQL/Supabase, credenciales o cadena de conexión incorrectas) o el directorio de datos carece de permisos de escritura para el usuario `app` (UID 1654).
+- **Solución:** Ejecuta `docker compose -f docker-compose.prod.yml logs ludeka` para identificar la excepción y verifica la conectividad con Supabase y los permisos del volumen con `docker exec -it ludeka_app_prod ls -la /app/data`.
+
+---
+
+## 10. Persistencia de Medios: Cloudflare R2 en Producción y Fallback Local
+
+Ludeka guarda los medios en **Cloudflare R2** (API compatible con S3) mediante `CloudflareR2StorageService`. La selección del servicio se decide en `src/Ludeka.Web/Program.cs` según `CloudflareR2Options.HasValidCredentials`.
+
+> [!WARNING]
+> Hoy, si no hay credenciales R2 válidas, la aplicación usa `SimulatedImageStorageService`, que guarda las imágenes **en memoria** y las pierde al reiniciar el contenedor. Es una carencia conocida pendiente del **INC-48**, no un comportamiento aceptable en producción. `PhysicalFileImageStorageService` está registrado pero hoy no se selecciona.
+
+### 10.1 Producción (Cloudflare R2)
+
+1. Crear el bucket `ludeka-media` en Cloudflare R2.
+2. Crear un token de API R2 con permiso *Object Read & Write* limitado a ese bucket.
+3. Anotar el *Account ID* de Cloudflare.
+4. Configurar un dominio público o subdominio `r2.dev` para el bucket y usarlo como `Cloudflare__PublicCdnBaseUrl`.
+5. Guardar en Google Secret Manager: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
+6. Inyectar en el runtime: `Cloudflare__AccountId`, `Cloudflare__AccessKeyId`, `Cloudflare__SecretAccessKey`, `Cloudflare__BucketName=ludeka-media`, `Cloudflare__PublicCdnBaseUrl=<dominio>` y `Cloudflare__Simulate=false`.
+7. Verificar con una subida real y comprobar el objeto en el bucket.
+
+### 10.2 Local y Pruebas (Fallback en Disco)
+
+1. Dejar `Cloudflare__Simulate=true` o las credenciales vacías.
+2. Definir la ruta local de medios.
+3. Las pruebas automatizadas usan almacenamiento en memoria o un directorio temporal.

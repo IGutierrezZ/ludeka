@@ -1,4 +1,19 @@
 -- ==============================================================================
+-- ADVERTENCIA — ESTE ARCHIVO NO ES LA FUENTE DE VERDAD DEL ESQUEMA
+-- ==============================================================================
+-- Este script está DESACTUALIZADO respecto al modelo real. Le faltan las tablas
+-- BggCatalogStaging, SocialInboxItems, MonitoredSocialAccounts y
+-- GamePriceSnapshots, y contiene columnas obsoletas.
+--
+-- La única fuente de verdad del esquema son las migraciones de Entity Framework
+-- Core en src/Ludeka.Infrastructure/Migrations/, aplicadas automáticamente por
+-- MigrateAsync() al arrancar la aplicación contra PostgreSQL.
+--
+-- NO ejecutar este script a mano contra Supabase: produce un esquema incompatible
+-- con EF Core. Su regeneración o retirada está planificada en el INC-48.
+-- ==============================================================================
+
+-- ==============================================================================
 -- Ludeka / Ludist — Esquema Maestro DDL para PostgreSQL (Supabase)
 -- Versión: 1.0.0 (INC-38)
 -- Compatible con: EF Core 10, Npgsql, Supabase SQL Editor

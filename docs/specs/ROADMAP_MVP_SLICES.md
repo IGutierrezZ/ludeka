@@ -149,10 +149,10 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 - **Estado:** ✅ **Completado y Verificado** (195 tests en verde al 100%).
 - **Alcance Funcional y Técnico:**
   1. **Dockerfile Multi-Stage Optimizado:** Imagen de construcción .NET 10 SDK, compilación de frontend y runtime chiseled/alpine ultra-ligero y seguro ejecutándose con usuario no-root.
-  2. **Orquestación con Docker Compose (`docker-compose.yml`):** Definición de servicios para entornos local, staging y producción, con volúmenes persistentes para la base de datos SQLite (`ludeka.db`), uploads de fotos de mesa y logs estructurados.
-  3. **Endpoints de Health Checks (`/healthz` y `/ready`):** Diagnóstico en tiempo real del estado de la aplicación, conectividad con la base de datos SQLite, espacio en disco y disponibilidad del runtime.
+  2. **Orquestación con Docker Compose (`docker-compose.yml`):** Definición de servicios para el entorno **local** con volúmenes persistentes para la base de datos SQLite (`ludeka.db`), uploads de fotos de mesa y logs estructurados. En producción la persistencia es **PostgreSQL en Supabase** (`docker-compose.prod.yml`).
+  3. **Endpoints de Health Checks (`/healthz` y `/ready`):** Diagnóstico en tiempo real del estado de la aplicación, conectividad con la base de datos configurada, permisos de escritura en el directorio de datos y disponibilidad del runtime.
   4. **Seguridad y Gestión de Secretos:** Configuración mediante variables de entorno (`ASPNETCORE_ENVIRONMENT`, cadenas de conexión, tokens y webhooks) sin credenciales en el repositorio.
-  5. **Guía Operativa de Despliegue y Mantenimiento:** Documentación técnica paso a paso para despliegue en VPS Linux, procedimientos de backup/restore de la base de datos SQLite y rotación de registros.
+  5. **Guía Operativa de Despliegue y Mantenimiento:** Documentación técnica paso a paso para despliegue en VPS Linux, procedimientos de backup/restore de **PostgreSQL en Supabase** (`scripts/supabase-backup.ps1`) y rotación de registros.
 
 ---
 

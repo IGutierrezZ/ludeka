@@ -1,7 +1,7 @@
 # 09. Arquitectura, Persistencia y Despliegue
 
 ## 1. Visión General y Estándares Técnicos
-Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con capas estrictamente desacopladas, persistencia relacional en SQLite con auto-migración no destructiva, empaquetado Docker multi-stage y endpoints de diagnóstico de salud.
+Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con capas estrictamente desacopladas, persistencia relacional en **PostgreSQL (Supabase)** en producción y **SQLite** únicamente para pruebas automatizadas y desarrollo local, empaquetado Docker multi-stage y endpoints de diagnóstico de salud.
 
 ---
 
@@ -11,7 +11,7 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
 |---|---|---|---|
 | [`src/Ludeka.Core`](file:///c:/repos/Ludeka/src/Ludeka.Core) | Class Library | Entidades de dominio, Enums, Value Objects | **Ninguna** (cero dependencias) |
 | [`src/Ludeka.Application`](file:///c:/repos/Ludeka/src/Ludeka.Application) | Class Library | Casos de uso, interfaces, DTOs, validaciones | `Ludeka.Core` |
-| [`src/Ludeka.Infrastructure`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure) | Class Library | SQLite EF Core, cliente BGG, webhooks, seeder | `Ludeka.Core`, `Ludeka.Application`, EF Core SQLite |
+| [`src/Ludeka.Infrastructure`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure) | Class Library | EF Core con doble proveedor (PostgreSQL en producción, SQLite en pruebas), cliente BGG, webhooks, seeder | `Ludeka.Core`, `Ludeka.Application`, EF Core (Npgsql + Sqlite) |
 | [`src/Ludeka.Web`](file:///c:/repos/Ludeka/src/Ludeka.Web) | Blazor Web App | UI Blazor SSR + Server interactivo, Tailwind CSS | Todas las capas |
 | [`tests/Ludeka.UnitTests`](file:///c:/repos/Ludeka/tests/Ludeka.UnitTests) | xUnit Project | Pruebas unitarias y de integración | xUnit, Moq, FluentAssertions |
 
@@ -26,8 +26,9 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
 - **Reconciliador de Esquema SQLite (`SqliteSchemaMigrator`):**
   - Ubicación: [`src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs)
   - Inspecciona `PRAGMA table_info` al arrancar la aplicación en SQLite y añade dinámicamente columnas faltantes sin borrar ni reiniciar bases de datos de desarrollo. Se desactiva automáticamente cuando el proveedor es PostgreSQL.
-- **Script SQL Canónico de Supabase (`docs/database/supabase_schema.sql`):**
-  - DDL completo, determinista e idempotente para crear o auditar la totalidad de las 24 tablas, tipos `jsonb`, índices y claves foráneas en Supabase con 1 clic desde el SQL Editor.
+- **Esquema Real y Fuente de Verdad del Esquema:**
+  - El modelo consta de **31 tablas** reales. La única fuente de verdad son las migraciones de Entity Framework Core en `src/Ludeka.Infrastructure/Migrations/`, aplicadas automáticamente con `MigrateAsync()` al arrancar contra PostgreSQL.
+  - El script [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) está **desactualizado** respecto al modelo (le faltan `BggCatalogStaging`, `SocialInboxItems`, `MonitoredSocialAccounts` y `GamePriceSnapshots`, y contiene columnas obsoletas) y no debe ejecutarse contra Supabase. Su regeneración o retirada está planificada en el INC-48.
 - **Usuario Administrador Fundador Garantizado (`AdminUserSeeder`):**
   - Ubicación: [`src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs)
   - En entornos limpios de producción o desarrollo, garantiza de forma idempotente la existencia de un usuario con rol `FoundingTeam` y permisos totales (`ModeratorPermission.All`), parametrizable mediante `AdminUserOptions`.
@@ -55,17 +56,17 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
   - [`docker-compose.prod.yml`](file:///c:/repos/Ludeka/docker-compose.prod.yml): Entorno de producción con mapeo de variables de entorno y soporte `.env`.
 - **Pipeline de Integración y Entrega Continua (GitHub Actions):**
   - Archivo: [`.github/workflows/ci-cd.yml`](file:///c:/repos/Ludeka/.github/workflows/ci-cd.yml).
-  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 887 tests.
+  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 1005 pruebas.
   - *CD:* Despliegue desatendido a Google Cloud Run al hacer merge a `main` si los secretos están configurados.
 
 ---
 
 ## 5. Diagnóstico de Salud (Health Checks)
 
-- Ubicación: [`src/Ludeka.Web/Health/LudekaHealthCheck.cs`](file:///c:/repos/Ludeka/src/Ludeka.Web/Health/LudekaHealthCheck.cs)
+- Ubicación: `src/Ludeka.Web/Health/` (`SqliteDatabaseHealthCheck`, `StorageHealthCheck`, `NotificationQueueHealthCheck`).
 - Endpoints expuestos:
-  - `/healthz`: Liveness check del proceso web.
-  - `/ready`: Readiness check que comprueba conectividad real con SQLite (`SELECT 1`) y espacio libre en disco (>50 MB).
+  - `/healthz`: Liveness check del proceso web, sin evaluación de dependencias.
+  - `/ready`: Readiness check (health checks con tag `ready`) que evalúa la conectividad real con la base de datos configurada (`CanConnectAsync` + `SELECT 1` y recuento de juegos), una prueba de escritura/lectura en el directorio de datos y la disponibilidad de la cola de notificaciones. La sonda de base de datos aún etiqueta el proveedor como SQLite y no distingue PostgreSQL, por lo que la verificación por proveedor está pendiente en el INC-48.
 
 ---
 
