@@ -113,7 +113,7 @@ Añade los siguientes secretos:
    ```
    *(Nota: Puedes usar tanto el puerto directo `5432` como el Transaction Pooler `6543` de Supabase).*
 3. Al arrancar Ludeka por primera vez contra Supabase, **las migraciones oficiales de Entity Framework Core se ejecutarán automáticamente**, creando todas las tablas, índices nativos `jsonb` y el **usuario Administrador Fundador inicial permanente** (`admin-fundador` / `admin@ludeka.es`).
-4. Si prefieres revisar o crear las tablas manualmente de antemano, puedes copiar el contenido de [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) y pegarlo en el **SQL Editor de Supabase**.
+4. No ejecutes [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) a mano en el **SQL Editor de Supabase**: está desactualizado y produce un esquema incompatible con EF Core. Las migraciones son la única fuente de verdad (su regeneración o retirada está planificada en el INC-48).
 
 ---
 
@@ -154,3 +154,11 @@ nano .env # Completar variables de Supabase y APIs
 # 2. Levantar con Docker Compose de producción
 docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 ```
+
+---
+
+## 8. Notas Operativas (PostgreSQL en Producción)
+
+- **Acceso a secretos:** la cuenta de servicio que ejecuta el runtime necesita `roles/secretmanager.secretAccessor` para leer los secretos almacenados en Secret Manager.
+- **Medios en Cloudflare R2:** hoy las variables `Cloudflare__*` no se inyectan en el despliegue de Cloud Run, por lo que la aplicación cae en el almacenamiento simulado y las imágenes quedan **en memoria** (se pierden al reiniciar la instancia). Es una carencia conocida pendiente del INC-48.
+- **Readiness probe:** configura `/ready` como *readiness probe* en Cloud Run para que el tráfico no llegue a instancias con dependencias (base de datos, almacenamiento o cola) no disponibles.

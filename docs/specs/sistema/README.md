@@ -13,7 +13,7 @@ Ludeka está construido sobre **.NET 10 (C# 13)** adoptando principios de **Clea
 ```mermaid
 graph TD
     Web[Ludeka.Web: Blazor Web App SSR + Interactivo] --> App[Ludeka.Application: Casos de Uso, DTOs y Contratos]
-    Web --> Infra[Ludeka.Infrastructure: SQLite, BGG Client, Webhooks]
+    Web --> Infra[Ludeka.Infrastructure: PostgreSQL (Supabase) / SQLite, BGG Client, Webhooks]
     Infra --> App
     App --> Core[Ludeka.Core: Entidades de Dominio, Enums y Value Objects]
     Infra --> Core
