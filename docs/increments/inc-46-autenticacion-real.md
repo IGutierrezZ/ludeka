@@ -68,7 +68,7 @@ Ludeka **no tiene autenticación**. No es una carencia parcial: es ausencia tota
 - Eliminar el conmutador de rol de `MainLayout.razor:99-116,431-445`.
 - Eliminar los botones `SwitchToFounder` de `AuditLogViewer.razor:362`, `MediaModeration.razor:453` y `GameReportsModeration.razor:600`.
 - Eliminar la simulación de usuario de `UserManagement.razor:350-360`; la página pasa a listar y administrar usuarios reales.
-- Los 12 dobles de test que implementan `ICurrentUserService` se simplifican al nuevo contrato.
+- Los **13** dobles de test que implementan `ICurrentUserService` se simplifican al nuevo contrato.
 
 ### 2.5. Política de anonimia (requisito duro derivado de la evidencia)
 
