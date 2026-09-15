@@ -169,4 +169,14 @@ public class UserManagementDomainTests
         Assert.Equal("Catan Antiguo", entry.Changes[0].OldValue);
         Assert.Equal("Catan: El Juego", entry.Changes[0].NewValue);
     }
+
+    [Fact]
+    public void AuditAction_LinkedFounderIdentity_IsAppendedWithoutRenumbering()
+    {
+        // La acción se persiste como entero: la nueva entrada DEBE añadirse al
+        // final para no reinterpretar las filas de auditoría ya almacenadas.
+        Assert.Equal(7, (int)AuditAction.LinkedFounderIdentity);
+        Assert.Equal(6, (int)AuditAction.Published);
+        Assert.Equal(0, (int)AuditAction.Created);
+    }
 }
