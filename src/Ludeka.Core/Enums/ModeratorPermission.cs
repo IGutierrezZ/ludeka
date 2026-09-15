@@ -55,7 +55,17 @@ public enum ModeratorPermission
     CanPublishInstagram = 1 << 7, // 128
 
     /// <summary>
+    /// Permiso para gestionar cuentas de usuario, roles y máscaras de permisos de moderación.
+    /// </summary>
+    CanManageUsers = 1 << 8, // 256
+
+    /// <summary>
+    /// Permiso para consultar la bitácora de auditoría editorial.
+    /// </summary>
+    CanViewAuditLog = 1 << 9, // 512
+
+    /// <summary>
     /// Conjunción de todos los permisos granulares del sistema.
     /// </summary>
-    All = CanEditGames | CanUploadImages | CanManagePublishers | CanManageCreators | CanApproveMedia | CanResolveReports | CanManageStoreLinks | CanPublishInstagram // 255
+    All = CanEditGames | CanUploadImages | CanManagePublishers | CanManageCreators | CanApproveMedia | CanResolveReports | CanManageStoreLinks | CanPublishInstagram | CanManageUsers | CanViewAuditLog // 1023
 }
