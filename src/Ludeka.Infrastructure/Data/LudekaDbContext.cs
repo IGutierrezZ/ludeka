@@ -35,6 +35,7 @@ public class LudekaDbContext : DbContext
     public DbSet<BggCatalogStagingItem> BggCatalogStaging => Set<BggCatalogStagingItem>();
     public DbSet<SocialInboxItem> SocialInboxItems => Set<SocialInboxItem>();
     public DbSet<MonitoredSocialAccount> MonitoredSocialAccounts => Set<MonitoredSocialAccount>();
+    public DbSet<GamePriceSnapshot> GamePriceSnapshots => Set<GamePriceSnapshot>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -464,5 +465,16 @@ public class LudekaDbContext : DbContext
         monitoredAccount.Property(a => a.ProfileUrl).IsRequired().HasMaxLength(500);
         monitoredAccount.Property(a => a.ResolvedFeedUrl).HasMaxLength(500);
         monitoredAccount.Property(a => a.Notes).HasMaxLength(1000);
+
+        // --- Configuración de GamePriceSnapshot (Incremento 45) ---
+        var priceSnapshot = modelBuilder.Entity<GamePriceSnapshot>();
+        priceSnapshot.ToTable("GamePriceSnapshots");
+        priceSnapshot.HasKey(s => s.Id);
+        priceSnapshot.HasIndex(s => new { s.GameId, s.RecordedAtUtc });
+        priceSnapshot.HasIndex(s => s.Price);
+        priceSnapshot.HasIndex(s => new { s.GameId, s.StoreName });
+        priceSnapshot.Property(s => s.StoreName).IsRequired().HasMaxLength(150);
+        priceSnapshot.Property(s => s.AffiliateUrl).IsRequired().HasMaxLength(500);
+        priceSnapshot.Property(s => s.Currency).IsRequired().HasMaxLength(10);
     }
 }

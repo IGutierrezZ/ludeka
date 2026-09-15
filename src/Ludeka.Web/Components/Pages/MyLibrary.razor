@@ -1,6 +1,7 @@
 @page "/mi-ludoteca"
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
 @using Ludeka.Core.ValueObjects
 @inject IUserLibraryService LibraryService
 @inject IGamePlayLogService PlayLogService
@@ -8,6 +9,7 @@
 @inject IUserPreferenceService PreferenceService
 @inject IUserLocationService LocationService
 @inject IUserLibraryStatsService StatsService
+@inject IPriceRadarService PriceRadarService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -693,13 +695,32 @@
             <div id="panel-collection" role="tabpanel" aria-labelledby="@($"tab-{_activeTab.ToString().ToLowerInvariant()}")">
                 @if (_activeTab == TabType.WantToBuy)
                 {
-                    <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center gap-3 text-xs text-sky-700 dark:text-sky-300 shadow-sm mb-6">
-                        <span class="shrink-0"><Icon Name="bell" Size="24" /></span>
-                        <div>
-                            <strong class="font-bold block text-sm mb-0.5">Radar de Compra Inteligente Activo</strong>
-                            <span>Ludeka monitoriza bajadas de precio, ofertas especiales, sorteos y reimpresiones en tiendas para todos los títulos de tu lista de seguimiento para comprar.</span>
+                    @if (_wantToBuyAlerts != null && _wantToBuyAlerts.Count > 0)
+                    {
+                        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-700 dark:text-emerald-300 shadow-sm mb-6">
+                            <div class="flex items-center gap-3">
+                                <span class="shrink-0 p-2 rounded-xl bg-emerald-500/20 text-emerald-500"><Icon Name="trending-down" Size="22" /></span>
+                                <div>
+                                    <strong class="font-bold block text-sm mb-0.5">¡Tienes @_wantToBuyAlerts.Count @(_wantToBuyAlerts.Count == 1 ? "oferta detectada" : "ofertas detectadas") en tu lista de compra!</strong>
+                                    <span>Títulos de tu lista de seguimiento han bajado de precio o alcanzado su mínimo histórico en tiendas colaboradoras.</span>
+                                </div>
+                            </div>
+                            <a href="/radar" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm">
+                                <Icon Name="radar" Size="14" />
+                                <span>Ver Radar de Ofertas</span>
+                            </a>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center gap-3 text-xs text-sky-700 dark:text-sky-300 shadow-sm mb-6">
+                            <span class="shrink-0"><Icon Name="bell" Size="24" /></span>
+                            <div>
+                                <strong class="font-bold block text-sm mb-0.5">Radar de Compra Inteligente Activo</strong>
+                                <span>Ludeka monitoriza bajadas de precio, ofertas especiales, sorteos y reimpresiones en tiendas para todos los títulos de tu lista de seguimiento para comprar.</span>
+                            </div>
+                        </div>
+                    }
                 }
 
                 @{
@@ -809,6 +830,13 @@
                                                 <Icon Name="package" Size="12" /> Prestado
                                             </div>
                                         }
+                                        else if (_activeTab == TabType.WantToBuy && item.GameId.HasValue && _alertsByGameId.TryGetValue(item.GameId.Value, out var imgAlert))
+                                        {
+                                            <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-emerald-950/85 backdrop-blur-sm border border-emerald-500/40 text-[0.62rem] font-black text-emerald-300 shadow-md flex items-center gap-1" title="@($"Oferta en {imgAlert.StoreName}: {imgAlert.FormattedCurrentPrice}")">
+                                                <Icon Name="trending-down" Size="12" />
+                                                <span>@(imgAlert.IsAllTimeLow ? "Mínimo" : $"-{imgAlert.DiscountPercentage:0.#}%")</span>
+                                            </div>
+                                        }
                                     </a>
                                 }
 
@@ -828,6 +856,22 @@
                                             <a href="/juegos/@item.GameSlug" class="text-xs font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors line-clamp-2">
                                                 @item.GameTitle
                                             </a>
+                                        }
+                                        @if (_activeTab == TabType.WantToBuy && item.GameId.HasValue && _alertsByGameId.TryGetValue(item.GameId.Value, out var cardAlert))
+                                        {
+                                            <div class="mt-1.5 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[0.65rem] space-y-0.5">
+                                                <div class="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                                                    <span class="truncate">@cardAlert.StoreName</span>
+                                                    <span class="shrink-0">@cardAlert.FormattedCurrentPrice</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-[0.6rem] text-emerald-500/80">
+                                                    <span>@(cardAlert.IsAllTimeLow ? "Mínimo histórico" : $"Bajada de {cardAlert.DiscountPercentage:0.#}%")</span>
+                                                    @if (cardAlert.ReferencePrice.HasValue)
+                                                    {
+                                                        <span class="line-through text-[var(--text-muted)]">@cardAlert.FormattedReferencePrice</span>
+                                                    }
+                                                </div>
+                                            </div>
                                         }
                                     </div>
                                     <div class="text-[0.62rem] text-[var(--text-muted)] font-medium">
@@ -882,6 +926,8 @@
     private string? _countrySaveMessage;
     private bool _isOfflineMode = false;
     private string? _offlineTimestamp;
+    private IReadOnlyList<PriceDropAlertDto>? _wantToBuyAlerts;
+    private Dictionary<Guid, PriceDropAlertDto> _alertsByGameId = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -947,6 +993,26 @@
             }
             catch
             {
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+                {
+                    var alerts = await PriceRadarService.GetUserWantToBuyAlertsAsync(CurrentUserService.UserId);
+                    _wantToBuyAlerts = alerts;
+                    _alertsByGameId = alerts.ToDictionary(a => a.GameId, a => a);
+                }
+                else
+                {
+                    _wantToBuyAlerts = [];
+                    _alertsByGameId = new();
+                }
+            }
+            catch
+            {
+                _wantToBuyAlerts = [];
+                _alertsByGameId = new();
             }
 
             if (_activeTab == TabType.Stats)

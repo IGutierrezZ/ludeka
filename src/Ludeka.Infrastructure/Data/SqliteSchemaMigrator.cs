@@ -815,6 +815,30 @@ public static class SqliteSchemaMigrator
                     await addCol.ExecuteNonQueryAsync(ct);
                 }
             }
+
+            // 21. Tabla GamePriceSnapshots (Incremento 45: Radar de Bajadas de Precios y Mínimos Históricos)
+            if (!existingTables.Contains("GamePriceSnapshots"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "GamePriceSnapshots" (
+                        "Id" TEXT PRIMARY KEY,
+                        "GameId" TEXT NOT NULL,
+                        "StoreName" TEXT NOT NULL,
+                        "AffiliateUrl" TEXT NOT NULL,
+                        "Price" REAL NOT NULL,
+                        "Currency" TEXT NOT NULL,
+                        "InStock" INTEGER NOT NULL,
+                        "RecordedAtUtc" TEXT NOT NULL,
+                        FOREIGN KEY ("GameId") REFERENCES "Games"("Id") ON DELETE CASCADE
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_GamePriceSnapshots_GameId_RecordedAtUtc" ON "GamePriceSnapshots" ("GameId", "RecordedAtUtc" DESC);
+                    CREATE INDEX IF NOT EXISTS "IX_GamePriceSnapshots_Price" ON "GamePriceSnapshots" ("Price");
+                    CREATE INDEX IF NOT EXISTS "IX_GamePriceSnapshots_GameId_StoreName" ON "GamePriceSnapshots" ("GameId", "StoreName");
+                """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("GamePriceSnapshots");
+            }
         }
         finally
         {

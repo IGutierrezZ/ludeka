@@ -58,17 +58,14 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-42** | Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Canales) | ✅ Archivado | [inc-42-ingesta-social-moderacion.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-42-ingesta-social-moderacion.md) |
 | **INC-43** | Ingesta Continua y Auto-Descubrimiento de Novedades BGG en el Lote Nocturno | ✅ Archivado | [inc-43-ingesta-continua-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-43-ingesta-continua-bgg.md) |
 | **INC-44** | Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram) | ✅ Archivado | [inc-44-social-collector-worker.md](archive/inc-44-social-collector-worker.md) |
-| **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | 📋 Planificado | inc-45-price-radar-discounts.md |
+| **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | ✅ Archivado | [inc-45-price-radar-discounts.md](archive/inc-45-price-radar-discounts.md) |
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-44: Worker de Recolección Multicanal Automática (YouTube RSS, Telegram, Feeds de Editoriales e Instagram)**
-  - Worktree: `C:\repos\ludeka-wt\social-collector-worker`
-  - Rama: `inc/social-collector-worker`
-  - Responsable: Antigravity / OpenCode
-  - Estado: Verificado (988 tests en verde), listo para PR a main
+*(Ninguno actualmente — todos los incrementos planificados del MVP y extensiones han sido completados y archivados)*
+
 
 
 
