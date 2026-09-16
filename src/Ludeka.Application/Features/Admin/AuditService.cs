@@ -28,13 +28,21 @@ public class AuditService : IAuditService
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        // Invariante de anonimia: la bitácora solo registra identidades reales de sesión, nunca
+        // identidades vacías ni simuladas.
+        string actorUserId = SessionIdentity.Require(command.UserId);
+        if (string.IsNullOrWhiteSpace(command.UserName))
+        {
+            throw new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage);
+        }
+
         var changes = command.Changes?
             .Select(c => new AuditFieldChange(c.FieldName, c.OldValue, c.NewValue))
             .ToList();
 
         var entry = new AuditLogEntry(
-            userId: command.UserId,
-            userName: command.UserName,
+            userId: actorUserId,
+            userName: command.UserName.Trim(),
             action: command.Action,
             entityType: command.EntityType,
             entityId: command.EntityId,

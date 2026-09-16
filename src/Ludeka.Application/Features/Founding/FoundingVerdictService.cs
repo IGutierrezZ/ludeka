@@ -68,6 +68,9 @@ public class FoundingVerdictService : IFoundingVerdictService
 
     public async Task<AiGameSummaryDto> RequestAiSummaryGenerationAsync(Guid gameId, CancellationToken ct = default)
     {
+        // Invariante de anonimia: la generación bajo demanda exige sesión real.
+        SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsInRole("FoundingTeam") && !_currentUserService.IsInRole("Moderator"))
         {
             throw new UnauthorizedAccessException("Solo miembros de la Mesa Fundadora o moderadores pueden solicitar la generación bajo demanda de síntesis con IA.");
@@ -148,6 +151,9 @@ public class FoundingVerdictService : IFoundingVerdictService
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // Invariante de anonimia: el veredicto se firma siempre con la identidad real de la sesión.
+        string authorUserId = SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsInRole("FoundingTeam") && !_currentUserService.IsInRole("Moderator"))
         {
             throw new UnauthorizedAccessException("Acceso denegado: solo miembros del equipo fundador o moderadores pueden emitir o editar veredictos.");
@@ -163,7 +169,7 @@ public class FoundingVerdictService : IFoundingVerdictService
         {
             existing = new FoundingVerdict(
                 request.GameId,
-                _currentUserService.UserId,
+                authorUserId,
                 _currentUserService.UserName,
                 request.Recommendation,
                 request.OverallVerdict,
@@ -221,6 +227,8 @@ public class FoundingVerdictService : IFoundingVerdictService
 
     public async Task DeleteVerdictAsync(Guid gameId, CancellationToken ct = default)
     {
+        SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsInRole("FoundingTeam") && !_currentUserService.IsInRole("Moderator"))
         {
             throw new UnauthorizedAccessException("Acceso denegado: solo miembros del equipo fundador o moderadores pueden eliminar veredictos.");

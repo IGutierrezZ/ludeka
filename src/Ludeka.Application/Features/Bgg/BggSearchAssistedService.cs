@@ -93,7 +93,8 @@ public class BggSearchAssistedService : IBggSearchAssistedService
         if (bggId <= 0)
             throw new ArgumentException("El identificador BGG debe ser mayor a cero.", nameof(bggId));
 
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: añadir a la colección exige sesión antes de tocar BGG o la base.
+        string userId = SessionIdentity.Require(_currentUserService);
         var existingGame = await _gameRepo.GetByBggIdAsync(bggId, ct);
 
         Guid gameId;

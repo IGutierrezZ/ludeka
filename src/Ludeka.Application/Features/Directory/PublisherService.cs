@@ -226,6 +226,9 @@ public class PublisherService : IPublisherService
     {
         if (_currentUserService == null) return;
 
+        // Invariante de anonimia: sin sesión no hay permiso que valga ni escritura posible.
+        SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanManagePublishers))
         {
             throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanManagePublishers' para dar de alta o editar editoriales.");

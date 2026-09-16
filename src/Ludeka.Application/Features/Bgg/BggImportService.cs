@@ -44,7 +44,8 @@ public class BggImportService : IBggImportService
         if (string.IsNullOrWhiteSpace(request.Username))
             throw new ArgumentException("El nombre de usuario de BGG no puede estar vacío.", nameof(request.Username));
 
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: importar la colección escribe identidad y exige sesión.
+        string userId = SessionIdentity.Require(_currentUserService);
         progress?.Report(new BggImportProgressReport(BggImportPhase.Initializing, "Iniciando proceso de importación..."));
 
         var bggItems = await _bggClient.FetchUserCollectionAsync(request.Username.Trim(), progress, ct);

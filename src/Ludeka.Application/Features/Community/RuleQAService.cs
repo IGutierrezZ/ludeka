@@ -65,9 +65,12 @@ public class RuleQAService : IRuleQAService
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // Invariante de anonimia: publicar una duda de reglas exige sesión.
+        string authorUserId = SessionIdentity.Require(userId);
+
         var question = new RuleQuestion(
             gameId: request.GameId,
-            userId: userId,
+            userId: authorUserId,
             userName: userName,
             title: request.Title,
             body: request.Body);
@@ -80,12 +83,15 @@ public class RuleQAService : IRuleQAService
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // Invariante de anonimia: responder a una duda exige sesión.
+        string authorUserId = SessionIdentity.Require(userId);
+
         var question = await _repository.GetQuestionWithAnswersAsync(request.QuestionId, ct)
             ?? throw new InvalidOperationException($"No se encontró la pregunta con ID {request.QuestionId}.");
 
         var answer = new RuleAnswer(
             questionId: request.QuestionId,
-            userId: userId,
+            userId: authorUserId,
             userName: userName,
             body: request.Body,
             officialRuleReference: request.OfficialRuleReference);
@@ -108,10 +114,13 @@ public class RuleQAService : IRuleQAService
 
     public async Task<bool> ToggleVoteQuestionAsync(Guid questionId, string userId, CancellationToken ct = default)
     {
+        // Invariante de anonimia: votar exige sesión.
+        string voterUserId = SessionIdentity.Require(userId);
+
         var question = await _repository.GetQuestionWithAnswersAsync(questionId, ct)
             ?? throw new InvalidOperationException($"No se encontró la pregunta con ID {questionId}.");
 
-        var existingVote = await _repository.GetUserVoteAsync(userId, questionId: questionId, answerId: null, ct);
+        var existingVote = await _repository.GetUserVoteAsync(voterUserId, questionId: questionId, answerId: null, ct);
 
         if (existingVote != null)
         {
@@ -122,7 +131,7 @@ public class RuleQAService : IRuleQAService
         }
         else
         {
-            var vote = new RuleVote(userId, questionId: questionId, answerId: null);
+            var vote = new RuleVote(voterUserId, questionId: questionId, answerId: null);
             await _repository.AddVoteAsync(vote, ct);
             question.Upvote();
             await _repository.UpdateQuestionAsync(question, ct);
@@ -132,10 +141,12 @@ public class RuleQAService : IRuleQAService
 
     public async Task<bool> ToggleVoteAnswerAsync(Guid answerId, string userId, CancellationToken ct = default)
     {
+        string voterUserId = SessionIdentity.Require(userId);
+
         var answer = await _repository.GetAnswerByIdAsync(answerId, ct)
             ?? throw new InvalidOperationException($"No se encontró la respuesta con ID {answerId}.");
 
-        var existingVote = await _repository.GetUserVoteAsync(userId, questionId: null, answerId: answerId, ct);
+        var existingVote = await _repository.GetUserVoteAsync(voterUserId, questionId: null, answerId: answerId, ct);
 
         if (existingVote != null)
         {
@@ -146,7 +157,7 @@ public class RuleQAService : IRuleQAService
         }
         else
         {
-            var vote = new RuleVote(userId, questionId: null, answerId: answerId);
+            var vote = new RuleVote(voterUserId, questionId: null, answerId: answerId);
             await _repository.AddVoteAsync(vote, ct);
             answer.Upvote();
             await _repository.UpdateAnswerAsync(answer, ct);
@@ -156,10 +167,12 @@ public class RuleQAService : IRuleQAService
 
     public async Task<RuleQuestionDto> MarkAcceptedAnswerAsync(Guid questionId, Guid answerId, string requestingUserId, bool isModerator, CancellationToken ct = default)
     {
+        string requesterUserId = SessionIdentity.Require(requestingUserId);
+
         var question = await _repository.GetQuestionWithAnswersAsync(questionId, ct)
             ?? throw new InvalidOperationException($"No se encontró la pregunta con ID {questionId}.");
 
-        question.MarkAcceptedAnswer(answerId, requestingUserId, isModerator);
+        question.MarkAcceptedAnswer(answerId, requesterUserId, isModerator);
 
         await _repository.UpdateQuestionAsync(question, ct);
         foreach (var ans in question.Answers)
@@ -196,10 +209,12 @@ public class RuleQAService : IRuleQAService
 
     public async Task<RuleQuestionDto> UnmarkAcceptedAnswerAsync(Guid questionId, string requestingUserId, bool isModerator, CancellationToken ct = default)
     {
+        string requesterUserId = SessionIdentity.Require(requestingUserId);
+
         var question = await _repository.GetQuestionWithAnswersAsync(questionId, ct)
             ?? throw new InvalidOperationException($"No se encontró la pregunta con ID {questionId}.");
 
-        question.UnmarkAcceptedAnswer(requestingUserId, isModerator);
+        question.UnmarkAcceptedAnswer(requesterUserId, isModerator);
 
         await _repository.UpdateQuestionAsync(question, ct);
         foreach (var ans in question.Answers)

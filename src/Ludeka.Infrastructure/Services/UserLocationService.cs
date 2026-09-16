@@ -49,6 +49,8 @@ public class UserLocationService : IUserLocationService
 
     public async Task<string?> GetEffectiveCountryAsync(CancellationToken cancellationToken = default)
     {
+        // Sin sesión no hay identidad que escribir ni preferencia que leer: este servicio solo
+        // consulta, de modo que la navegación pública se mantiene y ninguna guarda de anonimia aplica.
         // 1. Si el usuario actual tiene ID, consultar preferencia persistida
         if (_currentUserService != null && !string.IsNullOrWhiteSpace(_currentUserService.UserId) && _userPreferenceService != null)
         {

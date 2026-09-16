@@ -167,6 +167,9 @@ public class UserManagementService : IUserManagementService
 
     private void EnsureFoundingTeam()
     {
+        // Invariante de anonimia: sin sesión real no hay privilegios ni auditoría posible.
+        SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsFoundingTeam)
         {
             throw new UnauthorizedAccessException("Acceso denegado: Se requieren privilegios de la Mesa Fundadora para gestionar usuarios.");
