@@ -2,6 +2,9 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Community;
+using Ludeka.Application.Features.Events;
 using Ludeka.Application.Features.Media;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
@@ -142,5 +145,225 @@ public class MediaBrokenLinksWriteGuardTests : AdministrativeWriteGuardTestBase
         Assert.Equal(1, report.BrokenCount);
         var stored = await Context.MediaItems.AsNoTracking().SingleAsync(m => m.Id == item.Id);
         Assert.True(stored.IsBroken);
+    }
+}
+
+/// <summary>Eventos lúdicos: sin sesión, con permiso insuficiente o con la cuenta suspendida no se escribe.</summary>
+public class BoardGameEventWriteGuardTests : AdministrativeWriteGuardTestBase
+{
+    private static CreateBoardGameEventRequest CreateRequest() => new(
+        Title: "Feria de prueba",
+        Description: "Feria lúdica de prueba.",
+        ImageUrl: "https://example.test/cartel.jpg",
+        StartDate: new DateOnly(2026, 10, 1),
+        EndDate: new DateOnly(2026, 10, 3),
+        Location: "Madrid",
+        Country: "España");
+
+    private BoardGameEventService CreateService(ISessionPermissionGuard? guard = null)
+        => new(new SqliteBoardGameEventRepository(Context), guard);
+
+    [Fact]
+    public async Task CreateEventAsync_WithoutSession_DeniesAndPersistsNothing()
+    {
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.CreateEventAsync(CreateRequest()));
+
+        Assert.Empty(await Context.BoardGameEvents.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateEventAsync_WithSuspendedAccount_DeniesEvenWithLiveCookie()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanManageEvents));
+        await SuspendAsync(ModeratorId);
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.CreateEventAsync(CreateRequest()));
+
+        Assert.Empty(await Context.BoardGameEvents.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateEventAsync_WithThePermission_PersistsTheEvent()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanManageEvents));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var created = await service.CreateEventAsync(CreateRequest());
+
+        Assert.Equal("Feria de prueba", created.Title);
+        var stored = await Context.BoardGameEvents.AsNoTracking().SingleAsync();
+        Assert.Equal("Feria de prueba", stored.Title);
+    }
+
+    [Fact]
+    public async Task DeleteEventAsync_WithoutThePermission_DeniesAndKeepsTheEvent()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var evt = new BoardGameEvent(
+            title: "Feria existente",
+            description: "Evento sembrado para la prueba.",
+            imageUrl: "https://example.test/cartel.jpg",
+            startDate: new DateOnly(2026, 10, 1),
+            endDate: new DateOnly(2026, 10, 3),
+            location: "Madrid",
+            websiteUrl: "https://example.test/feria",
+            organizer: "Asociación Lúdica",
+            isOfficial: true,
+            country: "España");
+        Context.BoardGameEvents.Add(evt);
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.DeleteEventAsync(evt.Id));
+
+        Assert.True(await Context.BoardGameEvents.AsNoTracking().AnyAsync(e => e.Id == evt.Id));
+    }
+}
+
+/// <summary>Novedades editoriales: la creación manual revalida permiso de moderación de contenido.</summary>
+public class WeeklyReleaseWriteGuardTests : AdministrativeWriteGuardTestBase
+{
+    private CreateWeeklyReleaseRequest CreateRequest() => new(
+        Title: "Lanzamiento de prueba",
+        Publisher: "Editorial Local",
+        ReleaseDate: new DateOnly(2026, 10, 2),
+        GameId: Game.Id);
+
+    private WeeklyReleaseService CreateService(ISessionPermissionGuard? guard = null)
+        => new(new SqliteWeeklyReleaseRepository(Context), guard);
+
+    [Fact]
+    public async Task CreateReleaseAsync_WithoutSession_DeniesAndPersistsNothing()
+    {
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.CreateReleaseAsync(CreateRequest()));
+
+        Assert.Empty(await Context.WeeklyReleases.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateReleaseAsync_WithSuspendedAccount_DeniesEvenWithLiveCookie()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        await SuspendAsync(ModeratorId);
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.CreateReleaseAsync(CreateRequest()));
+
+        Assert.Empty(await Context.WeeklyReleases.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateReleaseAsync_WithoutThePermission_DeniesAndPersistsNothing()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanEditGames));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.CreateReleaseAsync(CreateRequest()));
+
+        Assert.Empty(await Context.WeeklyReleases.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateReleaseAsync_WithThePermission_PersistsTheRelease()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var created = await service.CreateReleaseAsync(CreateRequest());
+
+        Assert.Equal("Lanzamiento de prueba", created.Title);
+        var stored = await Context.WeeklyReleases.AsNoTracking().SingleAsync();
+        Assert.Equal("Editorial Local", stored.Publisher);
+    }
+}
+
+/// <summary>Sorteos comunitarios: crear y promover exigen el permiso de moderación de contenido.</summary>
+public class GiveawayWriteGuardTests : AdministrativeWriteGuardTestBase
+{
+    private static CreateGiveawayRequest CreateRequest() => new(
+        Title: "Sorteo de prueba",
+        Organizer: "Editorial Local",
+        Collaborator: null,
+        Url: "https://example.test/sorteo",
+        Platform: GiveawayPlatform.Instagram,
+        DeadlineAt: DateTimeOffset.UtcNow.AddDays(7));
+
+    private GiveawayService CreateService(ISessionPermissionGuard? guard = null)
+        => new(new SqliteGiveawayRepository(Context), guard);
+
+    private async Task<Giveaway> SeedGiveawayAsync()
+    {
+        var giveaway = new Giveaway(
+            title: "Sorteo existente",
+            organizer: "Editorial Local",
+            url: "https://example.test/sorteo-existente",
+            platform: GiveawayPlatform.Instagram,
+            deadlineAt: DateTimeOffset.UtcNow.AddDays(3),
+            isPromoted: false);
+
+        Context.Giveaways.Add(giveaway);
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+        return giveaway;
+    }
+
+    [Fact]
+    public async Task CreateOrMergeGiveawayAsync_WithoutSession_DeniesAndPersistsNothing()
+    {
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.CreateOrMergeGiveawayAsync(CreateRequest()));
+
+        Assert.Empty(await Context.Giveaways.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task SetPromotedAsync_WithSuspendedAccount_DeniesEvenWithLiveCookie()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        await SuspendAsync(ModeratorId);
+        var giveaway = await SeedGiveawayAsync();
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.SetPromotedAsync(giveaway.Id, isPromoted: true));
+
+        var stored = await Context.Giveaways.AsNoTracking().SingleAsync(g => g.Id == giveaway.Id);
+        Assert.False(stored.IsPromoted);
+    }
+
+    [Fact]
+    public async Task CreateOrMergeGiveawayAsync_WithThePermission_PersistsTheGiveaway()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var created = await service.CreateOrMergeGiveawayAsync(CreateRequest());
+
+        Assert.Equal("Sorteo de prueba", created.Title);
+        var stored = await Context.Giveaways.AsNoTracking().SingleAsync();
+        Assert.Equal("Editorial Local", stored.Organizer);
+    }
+
+    [Fact]
+    public async Task SetPromotedAsync_AfterRevocationBetweenOperations_DeniesAndKeepsTheGiveaway()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var giveaway = await SeedGiveawayAsync();
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await service.SetPromotedAsync(giveaway.Id, isPromoted: true);
+        await RevokeAsync(ModeratorId, ModeratorPermission.CanApproveMedia);
+
+        await AssertDenied(() => service.SetPromotedAsync(giveaway.Id, isPromoted: false));
+
+        var stored = await Context.Giveaways.AsNoTracking().SingleAsync(g => g.Id == giveaway.Id);
+        Assert.True(stored.IsPromoted);
     }
 }

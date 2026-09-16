@@ -6,17 +6,34 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 
 namespace Ludeka.Application.Features.Community;
 
 public class GiveawayService : IGiveawayService
 {
-    private readonly IGiveawayRepository _repository;
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para crear o promover sorteos.";
 
-    public GiveawayService(IGiveawayRepository repository)
+    private readonly IGiveawayRepository _repository;
+    private readonly ISessionPermissionGuard? _permissionGuard;
+
+    public GiveawayService(
+        IGiveawayRepository repository,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1). Los sorteos se
+    /// crean y promueven desde una página pública, así que la única puerta es esta comprobación.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
 
     public async Task<IReadOnlyList<GiveawayDto>> GetGiveawaysAsync(bool includeExpired = false, string? country = null, CancellationToken ct = default)
     {
@@ -42,6 +59,8 @@ public class GiveawayService : IGiveawayService
 
     public async Task SetPromotedAsync(Guid id, bool isPromoted, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var giveaway = await _repository.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"No se encontró ningún sorteo con el identificador '{id}'.");
 
@@ -51,6 +70,7 @@ public class GiveawayService : IGiveawayService
 
     public async Task<GiveawayDto> CreateOrMergeGiveawayAsync(CreateGiveawayRequest request, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(request);
 
         // Buscar posible colaboración o duplicado
