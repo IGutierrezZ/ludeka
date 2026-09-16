@@ -108,6 +108,9 @@ public class SocialCollectorServiceTests
         public List<string> IngestedUrls = new();
 
         public Task<SocialInboxItemDto> IngestFromUrlAsync(string url, string? manualCaption = null, CancellationToken ct = default)
+            => IngestFromCollectorAsync(url, manualCaption, ct);
+
+        public Task<SocialInboxItemDto> IngestFromCollectorAsync(string url, string? manualCaption = null, CancellationToken ct = default)
         {
             IngestedUrls.Add(url);
             var item = new SocialInboxItem(

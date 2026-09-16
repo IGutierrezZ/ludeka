@@ -16,6 +16,9 @@ namespace Ludeka.Application.Features.Community;
 
 public class CommunityNotificationService : ICommunityNotificationService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanManageNotifications' para gestionar las notificaciones comunitarias.";
+
     private readonly CommunityNotificationOptions _options;
     private readonly ICommunityNotificationRepository _repository;
     private readonly IDiscordWebhookClient _discordClient;
@@ -23,6 +26,7 @@ public class CommunityNotificationService : ICommunityNotificationService
     private readonly IGiveawayRepository _giveawayRepository;
     private readonly IWeeklyReleaseRepository _weeklyReleaseRepository;
     private readonly ILogger<CommunityNotificationService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public CommunityNotificationService(
         IOptions<CommunityNotificationOptions> options,
@@ -31,7 +35,8 @@ public class CommunityNotificationService : ICommunityNotificationService
         ITelegramBotClient telegramClient,
         IGiveawayRepository giveawayRepository,
         IWeeklyReleaseRepository weeklyReleaseRepository,
-        ILogger<CommunityNotificationService> logger)
+        ILogger<CommunityNotificationService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _options = options.Value;
         _repository = repository;
@@ -40,7 +45,17 @@ public class CommunityNotificationService : ICommunityNotificationService
         _giveawayRepository = giveawayRepository;
         _weeklyReleaseRepository = weeklyReleaseRepository;
         _logger = logger;
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1). Solo las acciones
+    /// manuales del panel pasan por aquí; el despachador programado usa las rutas de sistema.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanManageNotifications, DenialMessage, ct);
 
     public async Task<IReadOnlyList<NotificationDispatchResult>> BroadcastAsync(
         CommunityNotificationMessage message,
@@ -222,6 +237,8 @@ public class CommunityNotificationService : ICommunityNotificationService
 
     public async Task<NotificationDispatchResult> RetryFailedNotificationAsync(Guid logId, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var log = await _repository.GetByIdAsync(logId, ct);
         if (log == null)
         {
@@ -270,6 +287,14 @@ public class CommunityNotificationService : ICommunityNotificationService
 
     public async Task TriggerExpiringGiveawaysScanAsync(CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
+        await RunExpiringGiveawaysScanAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task RunExpiringGiveawaysScanAsync(CancellationToken ct = default)
+    {
         var activeGiveaways = await _giveawayRepository.GetGiveawaysAsync(includeExpired: false, ct);
         var threshold = DateTimeOffset.UtcNow.AddHours(24);
 
@@ -300,6 +325,14 @@ public class CommunityNotificationService : ICommunityNotificationService
     }
 
     public async Task TriggerFridayReleasesBulletinAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        await RunFridayReleasesBulletinAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task RunFridayReleasesBulletinAsync(CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         int diff = (7 + ((int)today.DayOfWeek - (int)DayOfWeek.Monday)) % 7;
@@ -342,6 +375,8 @@ public class CommunityNotificationService : ICommunityNotificationService
 
     public async Task SendTestPingAsync(NotificationChannel? channel = null, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var message = new CommunityNotificationMessage(
             NotificationEventType.CustomTestPing,
             "🔔 Ping de Prueba de Notificaciones — Ludeka",

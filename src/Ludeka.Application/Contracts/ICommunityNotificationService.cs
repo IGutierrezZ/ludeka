@@ -16,7 +16,18 @@ public interface ICommunityNotificationService
     Task<IReadOnlyList<CommunityNotificationLogDto>> GetHistoryAsync(int limit = 50, CancellationToken ct = default);
     Task<IReadOnlyList<NotificationChannelStatusDto>> GetChannelStatusesAsync(CancellationToken ct = default);
     Task<NotificationDispatchResult> RetryFailedNotificationAsync(Guid logId, CancellationToken ct = default);
+
+    /// <summary>Disparo manual del panel: exige sesión y permiso de notificaciones (INC-46, W1).</summary>
     Task TriggerExpiringGiveawaysScanAsync(CancellationToken ct = default);
+
+    /// <summary>Ciclo programado del despachador en segundo plano: ruta de sistema sin sesión.</summary>
+    Task RunExpiringGiveawaysScanAsync(CancellationToken ct = default);
+
+    /// <summary>Disparo manual del panel: exige sesión y permiso de notificaciones (INC-46, W1).</summary>
     Task TriggerFridayReleasesBulletinAsync(CancellationToken ct = default);
+
+    /// <summary>Ciclo programado del despachador en segundo plano: ruta de sistema sin sesión.</summary>
+    Task RunFridayReleasesBulletinAsync(CancellationToken ct = default);
+
     Task SendTestPingAsync(NotificationChannel? channel = null, CancellationToken ct = default);
 }

@@ -81,14 +81,14 @@ public class CommunityNotificationDispatcherHostedService : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<ICommunityNotificationService>();
 
-                // 1. Escaneo de sorteos próximos a expirar (24h)
-                await service.TriggerExpiringGiveawaysScanAsync(stoppingToken);
+                // 1. Escaneo de sorteos próximos a expirar (24h) — ruta de sistema sin sesión.
+                await service.RunExpiringGiveawaysScanAsync(stoppingToken);
 
                 // 2. Boletín de viernes (si es viernes y no se ha emitido hoy)
                 var now = DateTimeOffset.UtcNow;
                 if (now.DayOfWeek == DayOfWeek.Friday && _lastFridayBulletinDispatched.Date != now.Date)
                 {
-                    await service.TriggerFridayReleasesBulletinAsync(stoppingToken);
+                    await service.RunFridayReleasesBulletinAsync(stoppingToken);
                     _lastFridayBulletinDispatched = now;
                 }
             }

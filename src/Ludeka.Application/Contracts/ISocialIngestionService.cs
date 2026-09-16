@@ -9,7 +9,15 @@ namespace Ludeka.Application.Contracts;
 
 public interface ISocialIngestionService
 {
+    /// <summary>Alta exprés desde la interfaz: exige sesión y permiso de moderación de medios.</summary>
     Task<SocialInboxItemDto> IngestFromUrlAsync(string url, string? manualCaption = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Alta exprés del recolector en segundo plano (INC-46, W1). Es una ruta de sistema sin sesión:
+    /// la usan los servicios hospedados que descubren publicaciones, nunca los manejadores de la interfaz.
+    /// </summary>
+    Task<SocialInboxItemDto> IngestFromCollectorAsync(string url, string? manualCaption = null, CancellationToken ct = default);
+
     Task<SocialInboxItemDto> IngestManualAdvancedAsync(SocialInboxManualInputDto input, CancellationToken ct = default);
     Task<SocialInboxItemDto> UpdateItemAsync(SocialInboxUpdateDto dto, CancellationToken ct = default);
     Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default);

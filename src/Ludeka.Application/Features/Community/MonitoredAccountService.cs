@@ -12,25 +12,40 @@ namespace Ludeka.Application.Features.Community;
 
 public class MonitoredAccountService : IMonitoredAccountService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para gestionar las cuentas monitorizadas.";
+
     private readonly IMonitoredAccountRepository _repository;
     private readonly IPublisherRepository _publisherRepository;
     private readonly ICreatorRepository _creatorRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly ILogger<MonitoredAccountService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public MonitoredAccountService(
         IMonitoredAccountRepository repository,
         IPublisherRepository publisherRepository,
         ICreatorRepository creatorRepository,
         IStoreRepository storeRepository,
-        ILogger<MonitoredAccountService> logger)
+        ILogger<MonitoredAccountService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _publisherRepository = publisherRepository ?? throw new ArgumentNullException(nameof(publisherRepository));
         _creatorRepository = creatorRepository ?? throw new ArgumentNullException(nameof(creatorRepository));
         _storeRepository = storeRepository ?? throw new ArgumentNullException(nameof(storeRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): el panel de canales
+    /// monitorizados escribe cuentas y su sincronización con el directorio.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
 
     public async Task<IReadOnlyList<MonitoredAccountDto>> GetAccountsAsync(
         SocialPlatform? platform = null,
@@ -55,6 +70,7 @@ public class MonitoredAccountService : IMonitoredAccountService
 
     public async Task<MonitoredAccountDto> CreateAccountAsync(MonitoredAccountDto dto, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(dto);
 
         if (string.IsNullOrWhiteSpace(dto.Name))
@@ -86,6 +102,7 @@ public class MonitoredAccountService : IMonitoredAccountService
 
     public async Task UpdateAccountAsync(MonitoredAccountDto dto, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(dto);
 
         var account = await _repository.GetByIdAsync(dto.Id, ct)
@@ -105,6 +122,8 @@ public class MonitoredAccountService : IMonitoredAccountService
 
     public async Task ToggleAccountStatusAsync(Guid id, bool isEnabled, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var account = await _repository.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"No se encontró ninguna cuenta monitorizada con ID '{id}'.");
 
@@ -115,12 +134,16 @@ public class MonitoredAccountService : IMonitoredAccountService
 
     public async Task DeleteAccountAsync(Guid id, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         await _repository.DeleteAsync(id, ct);
         _logger.LogInformation("Cuenta monitorizada {Id} eliminada", id);
     }
 
     public async Task<int> SyncFromDirectoryAsync(CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         _logger.LogInformation("Iniciando sincronización de cuentas desde el directorio de editoriales, creadores y tiendas");
         var syncedCount = 0;
 

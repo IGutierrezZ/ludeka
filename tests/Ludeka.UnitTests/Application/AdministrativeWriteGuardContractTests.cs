@@ -4,6 +4,7 @@ using System.Linq;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.Features.Community;
 using Ludeka.Application.Features.Events;
+using Ludeka.Infrastructure.YouTube;
 using Xunit;
 
 namespace Ludeka.UnitTests.Application;
@@ -22,6 +23,11 @@ public class AdministrativeWriteGuardContractTests
         typeof(BoardGameEventService),
         typeof(WeeklyReleaseService),
         typeof(GiveawayService),
+        typeof(SocialIngestionService),
+        typeof(SocialCollectorService),
+        typeof(MonitoredAccountService),
+        typeof(CommunityNotificationService),
+        typeof(YouTubeSearchService),
     };
 
     [Theory]

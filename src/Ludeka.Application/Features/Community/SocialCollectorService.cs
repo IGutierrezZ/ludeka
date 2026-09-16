@@ -16,12 +16,16 @@ namespace Ludeka.Application.Features.Community;
 
 public class SocialCollectorService : ISocialCollectorService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para sondear las cuentas monitorizadas.";
+
     private readonly IMonitoredAccountRepository _accountRepository;
     private readonly ISocialInboxRepository _inboxRepository;
     private readonly ISocialIngestionService _ingestionService;
     private readonly IEnumerable<ISocialChannelCollector> _collectors;
     private readonly IOptionsMonitor<SocialCollectorOptions> _optionsMonitor;
     private readonly ILogger<SocialCollectorService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public SocialCollectorService(
         IMonitoredAccountRepository accountRepository,
@@ -29,7 +33,8 @@ public class SocialCollectorService : ISocialCollectorService
         ISocialIngestionService ingestionService,
         IEnumerable<ISocialChannelCollector> collectors,
         IOptionsMonitor<SocialCollectorOptions> optionsMonitor,
-        ILogger<SocialCollectorService> logger)
+        ILogger<SocialCollectorService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _accountRepository = accountRepository ?? throw new ArgumentNullException(nameof(accountRepository));
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
@@ -37,9 +42,27 @@ public class SocialCollectorService : ISocialCollectorService
         _collectors = collectors ?? throw new ArgumentNullException(nameof(collectors));
         _optionsMonitor = optionsMonitor ?? throw new ArgumentNullException(nameof(optionsMonitor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
     }
 
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): el sondeo manual
+    /// escribe en las cuentas y en la bandeja, así que exige el permiso de moderación de medios.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
+
     public async Task<SocialCollectorRunResultDto> CollectAllAccountsAsync(int maxItemsPerAccount = 5, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await RunScheduledCollectionAsync(maxItemsPerAccount, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<SocialCollectorRunResultDto> RunScheduledCollectionAsync(int maxItemsPerAccount = 5, CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
         var options = _optionsMonitor.CurrentValue;
@@ -99,6 +122,8 @@ public class SocialCollectorService : ISocialCollectorService
 
     public async Task<SocialCollectorRunResultDto> CollectAccountAsync(Guid accountId, int maxItems = 5, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var sw = Stopwatch.StartNew();
         var options = _optionsMonitor.CurrentValue;
         var limit = maxItems > 0 ? maxItems : options.MaxItemsPerAccount;
@@ -199,7 +224,7 @@ public class SocialCollectorService : ISocialCollectorService
                 // Ingestar en la bandeja de moderación como borrador PendingReview
                 try
                 {
-                    await _ingestionService.IngestFromUrlAsync(post.SourceUrl, post.Description, ct);
+                    await _ingestionService.IngestFromCollectorAsync(post.SourceUrl, post.Description, ct);
                     importedCount++;
                     _logger.LogInformation("Publicación autodescubierta e importada: {Url} ({Title})", post.SourceUrl, post.Title);
                 }
