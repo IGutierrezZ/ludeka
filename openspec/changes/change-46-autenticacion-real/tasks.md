@@ -86,14 +86,18 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 3 — Retirada de la identidad simulada (Paso 2; PRs 5–6)
 
-- [ ] 3.1 RED: crear `tests/Ludeka.UnitTests/Web/AuthenticatedCurrentUserServiceTests.cs` (sin sesión `UserId=""` y todo `false`; roles y permisos desde `AppUser`; `Suspended` denegado).
-- [ ] 3.2 GREEN: quitar `SwitchRole`/`SwitchUser` y el cuerpo por defecto de `HasPermission` de `src/Ludeka.Application/Contracts/ICurrentUserService.cs`.
-- [ ] 3.3 GREEN: crear `src/Ludeka.Web/Services/AuthenticatedCurrentUserService.cs`, el snapshot de identidad y `UserCircuitHandler` (Scoped; `IHttpContextAccessor` en SSR).
-- [ ] 3.4 GREEN: registrar `AddScoped<ICurrentUserService, AuthenticatedCurrentUserService>` en `Program.cs` y eliminar `src/Ludeka.Infrastructure/Services/DefaultCurrentUserService.cs`.
-- [ ] 3.5 GREEN: migrar los 13 dobles de `tests/Ludeka.UnitTests/` al contrato sin conmutadores (7 ficheros usan `SwitchRole`/`SwitchUser`) y los usos directos de `DefaultCurrentUserService` en `tests/Ludeka.UnitTests/Application/FoundingVerdictServiceTests.cs`.
-- [ ] 3.6 GREEN: eliminar los 5 puntos de UI del conmutador en `src/Ludeka.Web/Components/Layout/MainLayout.razor`, `src/Ludeka.Web/Components/Pages/UserManagement.razor`, `AuditLogViewer.razor`, `MediaModeration.razor` y `GameReportsModeration.razor`.
-- [ ] 3.7 GREEN: implementar `IUserSessionInvalidator`, la invalidación al cambiar `Status`/permisos desde `UserManagementService` y `src/Ludeka.Web/Components/Shared/SessionGuard.razor` con `forceLoad: true`.
-- [ ] 3.8 `dotnet test Ludeka.sln` verde: fin del Paso 2, sin identidad simulada.
+> Ejecutada como slice F3 (`inc/autenticacion-real-f3`, base `83063bd`). Los PR 5 y 6 del desglose
+> se entregaron como una sola unidad de trabajo verificable: sin el contrato sin conmutadores no
+> compila ninguno de los dos, y la invalidación de circuito es la mitad natural del mismo retirado.
+
+- [x] 3.1 RED: crear `tests/Ludeka.UnitTests/Web/AuthenticatedCurrentUserServiceTests.cs` (sin sesión `UserId=""` y todo `false`; roles y permisos desde `AppUser`; `Suspended` denegado).
+- [x] 3.2 GREEN: quitar `SwitchRole`/`SwitchUser` y el cuerpo por defecto de `HasPermission` de `src/Ludeka.Application/Contracts/ICurrentUserService.cs`.
+- [x] 3.3 GREEN: crear `src/Ludeka.Web/Services/AuthenticatedCurrentUserService.cs`, el snapshot de identidad y `UserCircuitHandler` (Scoped; `IHttpContextAccessor` en SSR).
+- [x] 3.4 GREEN: registrar `AddScoped<ICurrentUserService, AuthenticatedCurrentUserService>` en `Program.cs` y eliminar `src/Ludeka.Infrastructure/Services/DefaultCurrentUserService.cs`.
+- [x] 3.5 GREEN: migrar los 13 dobles de `tests/Ludeka.UnitTests/` al contrato sin conmutadores (7 ficheros usan `SwitchRole`/`SwitchUser`) y los usos directos de `DefaultCurrentUserService` en `tests/Ludeka.UnitTests/Application/FoundingVerdictServiceTests.cs`.
+- [x] 3.6 GREEN: eliminar los 5 puntos de UI del conmutador en `src/Ludeka.Web/Components/Layout/MainLayout.razor`, `src/Ludeka.Web/Components/Pages/UserManagement.razor`, `AuditLogViewer.razor`, `MediaModeration.razor` y `GameReportsModeration.razor`.
+- [x] 3.7 GREEN: implementar `IUserSessionInvalidator`, la invalidación al cambiar `Status`/permisos desde `UserManagementService` y `src/Ludeka.Web/Components/Shared/SessionGuard.razor` con `forceLoad: true`.
+- [x] 3.8 `dotnet test Ludeka.sln` verde: fin del Paso 2, sin identidad simulada.
 
 ## Fase 4 — Revalidación en escritura, anonimia y smoke (PR 7)
 
