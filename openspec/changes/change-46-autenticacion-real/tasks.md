@@ -38,7 +38,7 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 - R1: F2 y F3 exceden 400 líneas por PR; los PR 3–7 pueden requerir un corte adicional (p. ej. PR 4 en handler/políticas y páginas/rutas; PR 7 por grupos de servicios).
 - R2: `design.md` no fija el mapeo página→política de `/admin/ingesta-social` y `/admin/canales-monitorizados` (hoy `CanApproveMedia` OR `Moderator`); la tarea 2.11 queda bloqueada hasta confirmación.
-- R3: `design.md` §9 deja abiertas la pantalla de vinculación del fundador (§9.2) y la reasignación de `/admin/eventos` y `/admin/notificaciones` a `PermisoGestionarEditores` (§9.3); el desglose no las implementa. También queda abierto si `Enabled=true` sin credenciales debe registrar el esquema.
+- R3: `design.md` §9 deja abiertas la pantalla de vinculación del fundador (§9.2) y la reasignación de `/admin/eventos` y `/admin/notificaciones` a `PermisoGestionarEditores` (§9.3); el desglose no las implementa. La parte de §9.3 queda **resuelta en la Fase 2-bis** con dos banderas propias (`CanManageEvents`/`CanManageNotifications`) en lugar de `PermisoGestionarEditores`; §9.2 sigue abierta. También queda abierto si `Enabled=true` sin credenciales debe registrar el esquema.
 - R4: `ModeratorPermission.All` pasa de 255 a 1023; comprobar que ningún test ni dato persistido dependa del valor numérico.
 - R5: sin `AsNoTracking()` en la relectura del `AppUser` del circuito, la revocación en caliente no surte efecto.
 
@@ -68,7 +68,8 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 > de apply el mapeo de las tareas 2.10/2.11: `SocialInboxModeration` y `MonitoredAccountsDirectory`
 > quedan bajo `PermisoAprobarMedios` (ya no bloqueadas por R2) y `EventsManagement` y `AdminNotifications`
 > bajo la política de rol `RolModerador` —no `PermisoGestionarEditores`— para preservar exactamente el
-> público actual (`IsFoundingTeam || IsInRole("Moderator")`). Queda como punto a confirmar por el maintainer.
+> público actual (`IsFoundingTeam || IsInRole("Moderator")`). **Punto cerrado en la Fase 2-bis**: el
+> maintainer decidió permiso granular propio para ambas páginas.
 
 - [x] 2.1 RED: crear `tests/Ludeka.UnitTests/Web/WebAuthenticationRegistrationTests.cs` (proveedor `Enabled=false` sin esquema; cookie `HttpOnly`/`Secure`/`SameSite=Lax` y caducidad; `/healthz` y `/ready` anónimos).
 - [x] 2.2 GREEN: crear `src/Ludeka.Application/Features/Identity/AuthenticationOptions.cs` y la sección `Authentication` en `src/Ludeka.Web/appsettings.json` (`Enabled=false` hasta que el maintainer configure credenciales; R3).
@@ -79,10 +80,25 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 - [x] 2.7 RED: crear `tests/Ludeka.UnitTests/Web/PolicyAuthorizationTests.cs` (anónimo, `CommunityUser`, `Moderator` con y sin el flag, `FoundingTeam`, `Suspended`) sobre SQLite `:memory:`.
 - [x] 2.8 GREEN: crear `src/Ludeka.Web/Authentication/PermissionAuthorizationHandler.cs` (Singleton con `IServiceScopeFactory` y `AsNoTracking`) y `AuthorizationPolicies.cs` con las 9 políticas del diseño.
 - [x] 2.9 GREEN: registrar en `Program.cs` la cookie, `AddAuthorization`, `AddCascadingAuthenticationState` y `UseAuthentication`/`UseAuthorization` antes de `UseAntiforgery`; `.AllowAnonymous()` en `/healthz` y `/ready`.
-- [x] 2.10 GREEN: aplicar `[Authorize(Policy = …)]` en `src/Ludeka.Web/Components/Pages/` a UserManagement→`PermisoGestionarUsuarios`, AuditLogViewer→`PermisoVerAuditoria`, MediaModeration→`PermisoAprobarMedios`, GameReportsModeration→`PermisoResolverReportes`, InstagramModeration→`PermisoPublicarInstagram`, CatalogQueueAdmin→`PermisoEditarFichas`; EventsManagement y AdminNotifications→`RolModerador` (punto a confirmar); ajustar `src/Ludeka.Web/Components/_Imports.razor`; el marcado queda solo como ocultación.
+- [x] 2.10 GREEN: aplicar `[Authorize(Policy = …)]` en `src/Ludeka.Web/Components/Pages/` a UserManagement→`PermisoGestionarUsuarios`, AuditLogViewer→`PermisoVerAuditoria`, MediaModeration→`PermisoAprobarMedios`, GameReportsModeration→`PermisoResolverReportes`, InstagramModeration→`PermisoPublicarInstagram`, CatalogQueueAdmin→`PermisoEditarFichas`; EventsManagement y AdminNotifications→`RolModerador` (superado por 2b.4: pasan a `PermisoGestionarEventos` y `PermisoGestionarNotificaciones`); ajustar `src/Ludeka.Web/Components/_Imports.razor`; el marcado queda solo como ocultación.
 - [x] 2.11 GREEN: `[Authorize]` de SocialInboxModeration (`/admin/ingesta-social`) y MonitoredAccountsDirectory (`/admin/canales-monitorizados`) bajo `PermisoAprobarMedios` por decisión del maintainer en el prompt de apply (resuelve R2).
 - [x] 2.12 GREEN: pasar `src/Ludeka.Web/Components/Routes.razor` a `AuthorizeRouteView` y crear `src/Ludeka.Web/Components/Shared/RedirectToLogin.razor`.
 - [x] 2.13 `dotnet test Ludeka.sln` verde: fin del Paso 1, con la autorización efectiva y la simulación todavía viva (1120 correctas, 0 con error, 0 omitidas).
+
+## Fase 2-bis — Confirmación del maintainer: permiso granular para eventos y notificaciones
+
+> Ejecutada como slice `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`). Cierra el punto
+> a confirmar de 2.10 y sustituye la decisión abierta de `design.md` §9.3 (`PermisoGestionarEditores`)
+> por dos banderas propias: `CanManageEvents` (1<<10) y `CanManageNotifications` (1<<11). Sin migraciones
+> ni cambios de esquema: `AppUsers.Permissions` conserva el entero y los bits nuevos no desplazan ningún
+> valor almacenado.
+
+- [x] 2b.1 RED: ampliar `tests/Ludeka.UnitTests/Application/GranularPermissionsTests.cs` con `All = 4095`, las posiciones de bit 1024/2048 y el invariante OR de las 12 banderas.
+- [x] 2b.2 GREEN: añadir `CanManageEvents` y `CanManageNotifications` a `src/Ludeka.Core/Enums/ModeratorPermission.cs` y recalcular `All` a 4095.
+- [x] 2b.3 RED: ampliar `tests/Ludeka.UnitTests/Web/PolicyAuthorizationTests.cs` a las 11 políticas (congeladas, mapeo bandera→política, denegación cruzada) y apuntar `AuthorizationPipelineContractTests` a las políticas nuevas.
+- [x] 2b.4 GREEN: añadir `PermisoGestionarEventos` y `PermisoGestionarNotificaciones` a `src/Ludeka.Web/Authentication/AuthorizationPolicies.cs` y migrar `EventsManagement.razor` y `AdminNotifications.razor`; `RolModerador` se conserva registrado, ya sin páginas que lo declaren.
+- [x] 2b.5 `dotnet test Ludeka.sln --configuration Release` verde: 1247 correctas, 0 con error, 0 omitidas (base 1231).
+- [x] 2b.6 Humo real (`Production` + SQLite, sin credenciales OAuth): `/admin/eventos` y `/admin/notificaciones` **302** a `/login`; públicas **200**; 0 excepciones no controladas.
 
 ## Fase 3 — Retirada de la identidad simulada (Paso 2; PRs 5–6)
 

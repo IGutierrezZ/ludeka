@@ -1,4 +1,4 @@
-# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2, F3 y F4
+# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2, F2-bis, F3 y F4
 
 > Fase SDD `sdd-apply`. Store: openspec (este archivo + `tasks.md`).
 > Worktree: `C:\repos\ludeka-wt\autenticacion-real`.
@@ -6,10 +6,12 @@
 > · Slice **PR-2 / F1**: rama `inc/autenticacion-real-f1`, base `3ec23d5`, mergeado a `main` en `06e53cc`.
 > · Slice **PR-3 / F2**: rama `inc/autenticacion-real-f2`, base `06e53cc`, mergeado a `main` en `83063bd` (PR #14).
 > · Slice **PR-5/PR-6 / F3**: rama `inc/autenticacion-real-f3`, base `83063bd`, mergeado a `main` en `51e16f3` (PR #15).
-> · Slice **PR-7 / F4** (este): rama `inc/autenticacion-real-f4`, base `51e16f3` (`origin/main`).
+> · Slice **PR-7 / F4**: rama `inc/autenticacion-real-f4`, base `51e16f3`, mergeado a `main` en `fc9e50b` (PR #16).
+> · Slice **F2-bis** (este): rama `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`); cierra
+>   el punto a confirmar de 2.10/2.11 (permiso granular propio para `/admin/eventos` y `/admin/notificaciones`).
 > Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Cadena `stacked-to-main`.
-> Alcance: Paso 3 de la migración — revalidación de sesión en las escrituras con identidad, anonimia
-> observable en la interfaz y smoke del criterio 11. **Sin** `sdd-archive` (F5).
+> Alcance de este slice: dos banderas nuevas de dominio, dos políticas y la migración de las dos páginas.
+> **Sin** `sdd-archive` (F5).
 
 ## Estado por fase
 
@@ -18,9 +20,66 @@
 | F0 — Artefactos y dominio de permisos | 6/6 | ✅ mergeada en `main` (`3ec23d5`) |
 | F1 — Persistencia de identidad externa | 8/8 | ✅ mergeada en `main` (`06e53cc`) |
 | F2 — Autenticación social y autorización por política | 13/13 | ✅ mergeada en `main` (`83063bd`) |
+| F2-bis — Permiso granular de eventos y notificaciones | 6/6 | ✅ completada (este slice) |
 | F3 — Retirada de la identidad simulada | 8/8 | ✅ mergeada en `main` (`51e16f3`) |
-| F4 — Revalidación en escritura y anonimia | 6/6 | ✅ completada (este slice) |
+| F4 — Revalidación en escritura y anonimia | 6/6 | ✅ mergeada en `main` (`fc9e50b`, PR #16) |
 | F5 — Verificación, documentación y archive | 0/6 | ⬜ sin tocar |
+
+## Estado F2-bis: COMPLETADO ✅
+
+> Slice `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`). Cierra el punto a confirmar
+> de las tareas 2.10/2.11 y la decisión abierta de `design.md` §9.3: `/admin/eventos` y
+> `/admin/notificaciones` dejan la política de rol `RolModerador` y pasan a dos permisos granulares
+> propios. Sin migraciones, sin cambios de esquema, sin tocar F5.
+
+| Tarea | Estado | Ciclo TDD | Commit |
+|---|---|---|---|
+| 2b.1 + 2b.2 `CanManageEvents` y `CanManageNotifications`; `All` = 4095 | ✅ | ROJO por aserción (1023 vs 4095) → ROJO por compilación (CS0117) → VERDE 26/26 focal | `2a5b5dc` |
+| 2b.3 + 2b.4 Políticas `PermisoGestionarEventos`/`PermisoGestionarNotificaciones` y migración de las dos páginas | ✅ | ROJO ejecutable en `PolicyAuthorizationTests` (12/58) + ROJO por compilación (CS0117) del contrato de páginas → VERDE 79/79 focal (59 + 20) | `2aac16e` |
+| 2b.5 `dotnet test Ludeka.sln --configuration Release` verde | ✅ | VERDE **1247/1247** en Release (0 errores, 0 omitidas; base 1231, +16) | (docs) |
+| 2b.6 Humo real (criterio de F2 repetido) | ✅ | `/admin/eventos` y `/admin/notificaciones` **302** a `/login`; públicas **200**; 0 excepciones no controladas | (docs) |
+
+### Commits del slice F2-bis (rama `inc/autenticacion-real-permisos`, base `fc9e50b`)
+
+| Sha | Mensaje | Cambios |
+|---|---|---|
+| `2a5b5dc` | `feat(core): añadir los permisos granulares de eventos y notificaciones` | 2 archivos · +37/−3 |
+| `2aac16e` | `feat(web): dar permiso granular propio a eventos y notificaciones` | 5 archivos · +35/−14 |
+| (docs) | `docs(sdd): registrar el progreso de apply del slice de permisos granulares` | `tasks.md` + este archivo |
+
+### TDD Cycle Evidence (F2-bis)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2b.1 + 2b.2 | `Application/GranularPermissionsTests.cs` | Unit (dominio) | ✅ 1231/1231 base | ✅ ROJO por aserción `All_WithTwelveGranularFlags_EqualsExpectedMask` (esperado 4095, actual 1023; 1/21 en rojo) y ROJO por compilación CS0117 de los dos miembros | ✅ 26/26 focal | ✅ Teoría de las 12 banderas dentro de `All`, posiciones de bit 1024/2048 (contrato de persistencia) e invariante `All_ShouldEqualTheOrOfEveryDeclaredFlag` sobre `Enum.GetValues` | ➖ Ninguno necesario (enum declarativo) |
+| 2b.3 + 2b.4 | `Web/PolicyAuthorizationTests.cs` | Integration (SQLite `:memory:` + `IAuthorizationService` real) | ✅ 1231/1231 base | ✅ 12/58 en rojo: política inexistente en anónimo, comunidad, fundador, suspendida, mapeo bandera→política y conteo de las 11 | ✅ 79/79 focal (59 + 20 del contrato) | ✅ Once políticas × cinco escenarios + denegación cruzada entre las dos banderas nuevas + revocación en caliente | ✅ Lista congelada actualizada y doc de clase alineada con las 11 políticas |
+| 2b.3 + 2b.4 | `Web/AuthorizationPipelineContractTests.cs` | Contract (fuente) | ✅ 1231/1231 base | ✅ ROJO por compilación CS0117 (`PermisoGestionarEventos`/`PermisoGestionarNotificaciones`) al apuntar la tabla de páginas | ✅ 20/20 del archivo | ✅ Las dos páginas se contrastan contra su `@page` y su `@attribute [Authorize(Policy = …)]` reales | ➖ Ninguno necesario |
+
+### Work Unit Evidence (F2-bis)
+
+| Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
+|---|---|---|---|
+| U2b-A Banderas nuevas / `2a5b5dc` | `--filter FullyQualifiedName~GranularPermissionsTests` → **26/26** | N/A: solo dominio y contrato de bits; el efecto se comprueba en U2b-B | Revertir el commit: desaparecen las dos banderas y `All` vuelve a 1023; ninguna política ni página las usa en este punto |
+| U2b-B Políticas y páginas / `2aac16e` | `--filter FullyQualifiedName~PolicyAuthorizationTests\|FullyQualifiedName~AuthorizationPipelineContractTests` → **79/79** | Arranque real (`Production`, SQLite temporal, sin credenciales OAuth): `/admin/eventos` y `/admin/notificaciones` **302** a `/login?ReturnUrl=…`; `/`, `/catalogo`, `/eventos`, `/radar` y `/healthz` **200**; 0 excepciones no controladas | Revertir el commit: las dos páginas vuelven a `RolModerador` y desaparecen las dos políticas |
+
+### Verificación observada (registro) — F2-bis
+
+| Comando / comprobación | Resultado observado |
+|---|---|
+| Línea base antes de tocar código: `dotnet test Ludeka.sln --configuration Release` en `fc9e50b` | **1231 correctas, 0 con error, 0 omitidas** |
+| `dotnet test Ludeka.sln --configuration Release` (final) | **1247 correctas, 0 con error, 0 omitidas** (+16: 5 del enum, 11 de las políticas) |
+| Arranque real (`ASPNETCORE_ENVIRONMENT=Production`, SQLite temporal en `%TEMP%`, `Database__SeedDemoData=false`, sin credenciales OAuth, `PORT=5187`, `dotnet bin\Release\net10.0\Ludeka.Web.dll`) | Matriz solicitada sin ningún **500**: `/` **200**, `/catalogo` **200**, `/eventos` **200**, `/radar` **200**, `/healthz` **200**, `/admin/eventos` **302** → `/login?ReturnUrl=/admin/eventos`, `/admin/notificaciones` **302** → `/login?ReturnUrl=/admin/notificaciones`; 0 excepciones no controladas en el log |
+| Comprobación aritmética del enum | 12 banderas declaradas, **12 bits únicos** y OR de las 12 = **4095**; el OR de `All` enumera 12 términos y su comentario dice 4095 |
+| Búsqueda de `RolModerador` en `src/` y `tests/` (`*.cs`, `*.razor`) | **3 resultados**: la constante y su registro en `AuthorizationPolicies.cs`, y la aserción de `PolicyAuthorizationTests` que fija que sigue declarada. **Ninguna página la declara** |
+| Búsqueda del literal `1023` en el repositorio | **1 resultado restante**: la nota histórica R4 de este `tasks.md`. El único test que dependía del valor (`GranularPermissionsTests`) ya exige 4095; ningún dato persistido depende del literal (bits 10 y 11 son nuevos, sin desplazamiento) |
+
+### Desviaciones y hallazgos (F2-bis)
+
+1. **`design.md` §9.3 queda superado por decisión del maintainer**: el diseño proponía `PermisoGestionarEditores` (`CanManagePublishers`) para `/admin/eventos` y `/admin/notificaciones`; el maintainer pidió permiso granular propio, así que se añadieron dos banderas nuevas. Queda registrado en R3 de `tasks.md`.
+2. **`RolModerador` se conserva**: ya no lo declara ninguna página, pero la constante, su registro en `Configure` y su prueba siguen en pie por indicación explícita (otros incrementos pueden depender de él). No se eliminó ni se tocaron sus pruebas.
+3. **Público efectivo preservado**: quien puede pasar las políticas nuevas es la Mesa Fundadora (por rol) y un Moderador con la bandera exacta; el marcado de las dos páginas sigue condicionado a `IsFoundingTeam || IsInRole("Moderator")`, que es un subconjunto de ese público, de modo que nadie autorizado ve el aviso de acceso restringido.
+4. **Hueco preexistente (fuera del alcance exclusivo, se reporta)**: `UserPermissionsModal.razor` solo ofrece 8 casillas, no incluye `CanManageUsers`, `CanViewAuditLog`, `CanPublishInstagram` ni las dos banderas nuevas; además reconstruye la máscara desde esas 8 casillas, así que guardar desde el modal **borra** los permisos que no muestra. Hoy no hay forma de conceder `CanManageEvents`/`CanManageNotifications` desde la interfaz. `UserManagementService.GetPermissionNames` también enumera 7 banderas para las insignias. Es un defecto anterior a este slice (F2 lo dejó así al añadir dos banderas), no una regresión.
+5. **Sin migraciones ni cambios de esquema**: `ModeratorPermission` se persiste como entero; las banderas nuevas ocupan bits vírgenes y no desplazan ningún valor guardado. La frontera de reversión es exacta (`fc9e50b`).
 
 ## Estado F4: COMPLETADO ✅
 
@@ -314,8 +373,15 @@
 - **Frontera**: de `51e16f3` a la anonimia efectiva en escritura, con redirección al acceso en la interfaz; sin `sdd-archive` (F5) y sin migraciones.
 - **Reversión**: revertir los 4 commits devuelve el árbol a `51e16f3`.
 
+## Presupuesto y frontera de PR (F2-bis)
+
+- **Líneas cambiadas del slice F2-bis**: `git diff --shortstat fc9e50b` → **72 inserciones y 17 supresiones en 7 archivos** de `src/` y `tests/` (commits `2a5b5dc` y `2aac16e`); artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Muy por debajo del presupuesto de 1500 líneas del slice.
+- **Modo**: chained/stacked PR slice (`stacked-to-main`); es un refuerzo de F2 nacido de la confirmación del maintainer, no un PR nuevo del desglose original.
+- **Frontera**: de `fc9e50b` a los dos permisos granulares propios con las dos páginas migradas y `RolModerador` conservado sin páginas; sin migraciones, sin cambios de esquema y sin `sdd-archive` (F5).
+- **Reversión**: revertir los 2 commits devuelve el árbol a `fc9e50b`.
+
 ## Estado acumulado
 
-- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F3: 8/8** (mergeada en `51e16f3`). **F4: 6/6** (este slice).
-- Suite completa: **1231/1231** en Release, 0 con error, 0 omitidas (línea base de F4 `51e16f3`: 1142).
-- Listo para la verificación independiente de `sdd-verify` sobre el slice F4. F5 queda sin tocar.
+- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F2-bis: 6/6** (este slice). **F3: 8/8** (mergeada en `51e16f3`). **F4: 6/6** (mergeada en `fc9e50b`).
+- Suite completa: **1247/1247** en Release, 0 con error, 0 omitidas (línea base de F2-bis `fc9e50b`: 1231).
+- Listo para la verificación independiente de `sdd-verify` sobre el slice F2-bis (y, si el maintainer lo pide, sobre el conjunto F0–F2-bis antes de F5). F5 queda sin tocar.
