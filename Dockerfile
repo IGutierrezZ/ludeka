@@ -51,10 +51,13 @@ ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_EnableDiagnostics=0 \
     ConnectionStrings__DefaultConnection="Data Source=/app/data/ludeka.db"
 
-# Instalar cURL y sqlite3 para diagnósticos/backups y preparar directorios con permisos
+# Instalar cURL (lo usa la sonda de salud del contenedor) y preparar directorios con permisos.
+# No se instala sqlite3: la aplicación usa SQLite embebido vía SQLitePCLRaw y la persistencia
+# de producción es PostgreSQL. Además, su paquete en los espejos de Ubuntu provoca fallos de
+# construcción intermitentes por 404 cuando el índice de la imagen base queda desfasado.
 USER root
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl sqlite3 \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/data /app/logs \
     && chown -R app:app /app/data /app/logs
