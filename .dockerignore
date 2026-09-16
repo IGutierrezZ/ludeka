@@ -10,7 +10,7 @@
 **/*.db-wal
 **/*.db-shm
 **/*.log
-.openspec
+openspec
 docs
 tests
 deploy

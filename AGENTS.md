@@ -24,7 +24,7 @@ Este proyecto se construye bajo la metodología **Spec-Driven Development (SDD)*
 ```
 
 ### Principios de la Máquina de Estados de SDD
-1. **File-System como Fuente de la Verdad:** El estado de las fases reside en `.openspec/` y `docs/specs/`. No confiar en la memoria volátil del chat.
+1. **File-System como Fuente de la Verdad:** El estado de las fases reside en `openspec/` y `docs/specs/`. No confiar en la memoria volátil del chat. `openspec/` (sin punto) es el único almacén canónico: es el `planning_home` que resuelve `gentle-ai sdd-status`.
 2. **Lossless Blocking Prompts:** Antes de pasar de `sdd-propose` a `sdd-spec` o de `sdd-design` a `sdd-apply`, presentar la propuesta o diseño al usuario en español y esperar aprobación explícita.
 3. **Delegación con Subagentes:** Usar la primitiva de delegación de la plataforma para delegar exploraciones profundas, investigación externa y verificaciones independientes, recordando siempre el idioma español (en OpenCode: herramienta `task` con los subagentes `sdd-*` del orquestador de Gentle AI; en Antigravity: `invoke_subagent`).
 4. **Presupuestos y CAS (Compare-And-Swap):** En `sdd-apply`, implementar exclusivamente contra los requerimientos acordados en la especificación y tareas definidas.
@@ -42,7 +42,7 @@ Todo incremento se desarrolla en un **worktree propio** sobre una **rama nueva**
 
 1. **Inicio del incremento:** ejecutar `scripts/sdd-worktree.ps1 new <slug>`: crea el worktree en `C:\repos\ludeka-wt\<slug>` y la rama `inc/<slug>` desde `main` actualizado. El slug va en kebab-case y minúsculas (ej. `portada-creadores`).
 2. **Trabajo aislado:** todos los agentes de implementación, verificación y revisión trabajan con ese worktree como directorio de trabajo. Un solo escritor por worktree.
-3. **Artefactos en la rama:** el código, los tests y TODOS los artefactos del incremento (`docs/specs/`, `.openspec/`, `docs/increments/ROADMAP.md`) viven en la rama `inc/<slug>` y entran al PR.
+3. **Artefactos en la rama:** el código, los tests y TODOS los artefactos del incremento (`docs/specs/`, `openspec/`, `docs/increments/ROADMAP.md`) viven en la rama `inc/<slug>` y entran al PR.
 4. **Cierre:** con la verificación en verde, ejecutar `scripts/sdd-worktree.ps1 pr <slug>`: pushea la rama y abre el PR a `main` (automático con `gh` CLI; si no está autenticado, imprime la URL para abrirlo a mano).
 5. **Post-merge:** ejecutar `scripts/sdd-worktree.ps1 done <slug>`: elimina el worktree y la rama local, y actualiza `main` local.
 6. **Orquestador SDD:** al lanzar `sdd-apply` y `sdd-verify` (y cualquier subagente que escriba código), el workdir DEBE ser el worktree del incremento; `sdd-archive` termina con el paso 4 y 5 (PR + cleanup).

@@ -1,7 +1,7 @@
 # Incremento 20: Gestión de Usuarios, Permisos Granulares de Moderación y Auditoría para la Mesa Fundadora
 
 - **Identificador SDD:** `change-20-user-management-permissions-audit`
-- **Estado:** ✅ **Completado y Archivado** (`.openspec/changes/archive/2026-09-07-change-20-user-management-permissions-audit/`)
+- **Estado:** ✅ **Completado y Archivado** (`openspec/changes/archive/2026-09-07-change-20-user-management-permissions-audit/`)
 - **Puntos del MVP cubiertos:** Gobernanza del sistema, Seguridad y autorización granular (RBAC), Auditoría y trazabilidad editorial.
 - **Pruebas Automatizadas:** 433/433 pasadas con éxito (100%).
 - **Objetivo Principal:** Proporcionar a los miembros de la Mesa Fundadora un panel centralizado para gestionar usuarios y roles, asignando a los moderadores permisos granulares por cada tipo de edición posible (juegos, imágenes, editoriales, creadores, multimedia, reportes comunitarios y tiendas), complementado con una ventana de auditoría que registre de forma indeleble quién modificó qué dato, en qué fecha y qué valores cambiaron.

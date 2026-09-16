@@ -23,7 +23,7 @@ Este proyecto se construye bajo la metodología **Spec-Driven Development (SDD)*
 ```
 
 ### Principios de la Máquina de Estados de SDD
-1. **File-System como Fuente de la Verdad:** El estado de las fases reside en `.openspec/` y `docs/specs/`. No confiar en la memoria volátil del chat.
+1. **File-System como Fuente de la Verdad:** El estado de las fases reside en `openspec/` y `docs/specs/`. No confiar en la memoria volátil del chat. `openspec/` (sin punto) es el único almacén canónico: es el `planning_home` que resuelve `gentle-ai sdd-status`.
 2. **Lossless Blocking Prompts:** Antes de pasar de `sdd-propose` a `sdd-spec` o de `sdd-design` a `sdd-apply`, presentar la propuesta o diseño al usuario en español y esperar aprobación explícita.
 3. **Delegación con Subagentes:** Usar la primitiva de delegación de la plataforma para delegar exploraciones profundas, investigación externa y verificaciones independientes, recordando siempre el idioma español (en OpenCode: herramienta `task` con los subagentes `sdd-*` del orquestador de Gentle AI; en Antigravity: `invoke_subagent`).
 4. **Presupuestos y CAS (Compare-And-Swap):** En `sdd-apply`, implementar exclusivamente contra los requerimientos acordados en la especificación y tareas definidas.
