@@ -180,6 +180,9 @@ public class MediaService : IMediaService
 
     public async Task<BrokenLinkReportDto> CheckBrokenLinksAsync(CancellationToken ct = default)
     {
+        // La verificación marca recursos rotos: es una escritura administrativa y revalida permiso.
+        EnsurePermission();
+
         return await _brokenLinkChecker.CheckLinksAsync(ct);
     }
 

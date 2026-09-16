@@ -249,6 +249,10 @@ builder.Services.AddScoped<UserIdentitySnapshot>();
 builder.Services.AddScoped<ICurrentUserService, AuthenticatedCurrentUserService>();
 builder.Services.AddScoped<CircuitHandler, UserCircuitHandler>();
 builder.Services.AddSingleton<IUserSessionInvalidator, InMemoryUserSessionInvalidator>();
+
+// Hallazgo W1: las escrituras administrativas revalidan el permiso sobre el AppUser actual (relectura
+// sin rastreo), de modo que la suspensión o la revocación en caliente bloquean la siguiente operación.
+builder.Services.AddScoped<ISessionPermissionGuard, SessionPermissionGuard>();
 builder.Services.AddScoped<IUserLibraryService, UserLibraryService>();
 builder.Services.AddScoped<IUserLibraryStatsService, UserLibraryStatsService>();
 builder.Services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
