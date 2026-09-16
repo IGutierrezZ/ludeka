@@ -39,6 +39,7 @@ using Ludeka.Web.Health;
 using Ludeka.Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
@@ -438,9 +439,24 @@ app.MapHealthChecks("/ready", new HealthCheckOptions
 
 // Incremento 46: acceso social y cierre de sesión. El POST solo desafía al proveedor habilitado;
 // el esquema externo resuelve la identidad y firma la cookie de sesión propia de Ludeka.
-// El token antiforgery del formulario se valida automáticamente al ligar datos del formulario.
-app.MapPost("/login/external", ([FromForm] string? provider, IOptions<AuthenticationOptions> options) =>
+// El token antiforgery se valida antes de leer el formulario y un token ausente responde 400.
+app.MapPost("/login/external", async (
+    HttpContext httpContext,
+    [FromServices] IAntiforgery antiforgery,
+    [FromServices] IOptions<AuthenticationOptions> options) =>
 {
+    try
+    {
+        await antiforgery.ValidateRequestAsync(httpContext);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.BadRequest(new { error = "Token antiforgery ausente o inválido." });
+    }
+
+    var form = await httpContext.Request.ReadFormAsync();
+    var provider = form["provider"].ToString();
+
     var registration = ExternalAuthenticationSchemes
         .GetEnabledProviders(options.Value)
         .FirstOrDefault(candidate => string.Equals(candidate.Name, provider, StringComparison.OrdinalIgnoreCase));
