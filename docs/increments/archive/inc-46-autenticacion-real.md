@@ -1,11 +1,11 @@
 # INC-46: Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada
 
-> **Estado:** ⏳ En progreso (alcance aprobado el 2026-09-15)
+> **Estado:** ✅ Archivado (2026-09-16) — verificado con `pass_with_warnings`, 17/17 requisitos y 42/42 escenarios conformes, 0 hallazgos CRITICAL; suite final 1.345/1.345  
 > **Fecha de Inicio:** 2026-09-15
-> **Rama de Trabajo:** `inc/autenticacion-real`
+> **Rama de Trabajo:** `inc/autenticacion-real` (cierre en `inc/autenticacion-real-cierre`)
 > **Worktree:** `C:\repos\ludeka-wt\autenticacion-real`
 > **Dependencias:** INC-20 (Gestión de Usuarios, Permisos y Auditoría), INC-38 (PostgreSQL/Supabase), INC-39 (Docker/Cloud Run), INC-46 (este incremento) es **bloqueante de la salida a producción**
-> **Especificación Viva del Sistema:** [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md)
+> **Especificación Viva del Sistema:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md)
 
 ---
 

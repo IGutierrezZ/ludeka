@@ -449,6 +449,22 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 46: Autenticación Real, Autorización por Permisos y Retirada de la Identidad Simulada
+- **Identificador SDD:** `change-46-autenticacion-real`
+- **Objetivo Principal:** Sustituir la identidad simulada (singleton mutable que concedía `FoundingTeam` a cualquier visitante) por una sesión autenticada y verificable:
+  1. Acceso social de un solo clic con Google, Discord y Facebook opcional, dirigido por configuración (`Authentication__Providers__*`), sin cuentas con correo/contraseña ni infraestructura de correo.
+  2. Entidad `ExternalLogin` con índice único `(Provider, ProviderKey)` y vinculación en cascada: par reincidente → correo verificado → alta `CommunityUser`/`None`; nunca `FoundingTeam` ni fusión por correo sin verificar.
+  3. Cookie de sesión propia `ludeka.session` (`HttpOnly`, `SecurePolicy.Always`, `SameSite=Lax`, caducidad deslizante), `AddCascadingAuthenticationState` y `AuthorizeRouteView` con `RedirectToLogin`.
+  4. 11 políticas de permiso sobre 12 banderas (`All = 4095`), `[Authorize(Policy)]` en 10 páginas (14 rutas con alias) y `PermissionAuthorizationHandler` que relee el `AppUser` y deniega a `Suspended`.
+  5. Revalidación de sesión y permiso en los 15 servicios administrativos de escritura (`SessionIdentity` e `ISessionPermissionGuard`, relectura sin rastreo) con rutas de sistema para los ciclos programados.
+  6. Retirada de `DefaultCurrentUserService`, `SwitchRole`/`SwitchUser` y sus cinco puntos de interfaz; invalidación de circuito (`IUserSessionInvalidator` + `SessionGuard` con recarga forzada) al suspender una cuenta o cambiar permisos.
+  7. Política de anonimia: navegación pública intacta sin sesión, escrituras con identidad solo con sesión real, sin `UserId` vacío ni usuario centinela.
+- **Estado:** ✅ **Completado y Archivado** (suite 1.345/1.345 en verde al 100%; +340 pruebas sobre la base de 1.005; verificación independiente `pass_with_warnings` con 17/17 requisitos y 42/42 escenarios conformes y 0 hallazgos CRITICAL).
+- **Documento:** [`inc-46-autenticacion-real.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-46-autenticacion-real.md).
+- **Módulos del Sistema:** [`32-autenticacion-y-autorizacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md), [`14-gestion-usuarios-permisos-y-auditoria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md) y [`09-arquitectura-y-despliegue.md`](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
