@@ -15,6 +15,7 @@ using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Instagram;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Affiliates;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
@@ -28,6 +29,7 @@ using Ludeka.Infrastructure.Stores;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web.Components;
+using Ludeka.Web.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -36,6 +38,10 @@ using System.Text.RegularExpressions;
 using Ludeka.Web.Health;
 using Ludeka.Infrastructure.Options;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
+using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +59,16 @@ builder.Services.AddRazorComponents()
 // Configuración de Opciones de Base de Datos y Administrador
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection(AdminUserOptions.SectionName));
+
+// Incremento 46: cookie de sesión propia y esquemas sociales dirigidos por configuración.
+// Un proveedor habilitado sin credenciales no tumba el arranque: se avisa y no se registra.
+var authenticationOptions = builder.Configuration
+    .GetSection(AuthenticationOptions.SectionName)
+    .Get<AuthenticationOptions>() ?? new AuthenticationOptions();
+builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.SectionName));
+builder.Services.AddLudekaAuthentication(authenticationOptions);
+builder.Services.AddScoped<IExternalLoginRepository, ExternalLoginRepository>();
+builder.Services.AddScoped<IExternalLoginService, ExternalLoginService>();
 
 // Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
 var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
@@ -296,6 +312,12 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Aviso explícito de proveedores habilitados sin credenciales: la aplicación arranca sin ellos.
+foreach (var authenticationWarning in ExternalAuthenticationSchemes.GetConfigurationWarnings(authenticationOptions))
+{
+    app.Logger.LogWarning("{AuthenticationWarning}", authenticationWarning);
+}
+
 // Inicialización automática y siembra del catálogo Offline-First con resiliencia de directorios en Docker
 using (var scope = app.Services.CreateScope())
 {
@@ -361,11 +383,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Incremento 46: la autenticación y la autorización preceden al antiforgery, según el diseño.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 app.UseOutputCache();
 
 // Incremento 10: Endpoints de Diagnóstico y Salud
-// Liveness probe (/healthz): confirma que el host está activo sin penalizar dependencias
+// Liveness probe (/healthz): confirma que el host está activo sin penalizar dependencias.
+// Ambas sondas quedan explícitamente anónimas y fuera de cualquier política de fallback
+// para no romper los probes de Cloud Run.
 app.MapHealthChecks("/healthz", new HealthCheckOptions
 {
     Predicate = _ => false,
@@ -380,7 +409,7 @@ app.MapHealthChecks("/healthz", new HealthCheckOptions
         };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
     }
-});
+}).AllowAnonymous();
 
 // Readiness probe (/ready): evalúa dependencias críticas (base de datos, almacenamiento y cola)
 app.MapHealthChecks("/ready", new HealthCheckOptions
@@ -406,7 +435,45 @@ app.MapHealthChecks("/ready", new HealthCheckOptions
         };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
     }
-});
+}).AllowAnonymous();
+
+// Incremento 46: acceso social y cierre de sesión. El POST solo desafía al proveedor habilitado;
+// el esquema externo resuelve la identidad y firma la cookie de sesión propia de Ludeka.
+// El token antiforgery se valida antes de leer el formulario y un token ausente responde 400.
+app.MapPost("/login/external", async (
+    HttpContext httpContext,
+    [FromServices] IAntiforgery antiforgery,
+    [FromServices] IOptions<AuthenticationOptions> options) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(httpContext);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.BadRequest(new { error = "Token antiforgery ausente o inválido." });
+    }
+
+    var form = await httpContext.Request.ReadFormAsync();
+    var provider = form["provider"].ToString();
+
+    var registration = ExternalAuthenticationSchemes
+        .GetEnabledProviders(options.Value)
+        .FirstOrDefault(candidate => string.Equals(candidate.Name, provider, StringComparison.OrdinalIgnoreCase));
+
+    if (registration is null)
+    {
+        return Results.BadRequest(new { error = "El proveedor de acceso indicado no está habilitado." });
+    }
+
+    return Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [registration.Scheme]);
+}).AllowAnonymous();
+
+app.MapGet("/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
+    return Results.Redirect("/");
+}).AllowAnonymous();
 
 // Endpoint de entrega de tarjeta vectorial para Instagram (Incremento 28)
 app.MapGet("/api/instagram/card/{draftId:guid}.svg", async (Guid draftId, IInstagramPublisherService publisherService) =>

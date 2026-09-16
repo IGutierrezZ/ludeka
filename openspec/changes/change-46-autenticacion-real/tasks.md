@@ -64,19 +64,25 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 2 — Autenticación social y autorización por política (Paso 1, simulación viva; PRs 3–4)
 
-- [ ] 2.1 RED: crear `tests/Ludeka.UnitTests/Web/WebAuthenticationRegistrationTests.cs` (proveedor `Enabled=false` sin esquema; cookie `HttpOnly`/`Secure`/`SameSite=Lax` y caducidad; `/healthz` y `/ready` anónimos).
-- [ ] 2.2 GREEN: crear `src/Ludeka.Application/Features/Identity/AuthenticationOptions.cs` y la sección `Authentication` en `src/Ludeka.Web/appsettings.json` (`Enabled=false` hasta que el maintainer configure credenciales; R3).
-- [ ] 2.3 GREEN: crear `src/Ludeka.Web/Authentication/ExternalAuthenticationSchemes.cs` (Google, Discord, Facebook dirigidos por configuración) y añadir los paquetes `Microsoft.AspNetCore.Authentication.Google`, `Microsoft.AspNetCore.Authentication.Facebook` y `AspNet.Security.OAuth.Discord` a `src/Ludeka.Web/Ludeka.Web.csproj`; callbacks `/signin-{google|discord|facebook}`.
-- [ ] 2.4 RED: crear `tests/Ludeka.UnitTests/Application/ExternalLoginServiceTests.cs` con los 5 escenarios de la spec (par reincidente, correo verificado, alta `CommunityUser`/`None`, correo sin verificar, nunca `FoundingTeam`).
-- [ ] 2.5 GREEN: crear `IExternalLoginService.cs` y `ExternalLoginService.ResolveAsync` en `src/Ludeka.Application/Features/Identity/`; los eventos del proveedor solo extraen claims y firman la cookie.
-- [ ] 2.6 GREEN: crear `src/Ludeka.Web/Components/Pages/Login.razor` (`/login`) y los endpoints `POST /login/external` y `GET /logout` en `src/Ludeka.Web/Program.cs`, con la cookie de sesión propia.
-- [ ] 2.7 RED: crear `tests/Ludeka.UnitTests/Web/PolicyAuthorizationTests.cs` (anónimo, `CommunityUser`, `Moderator` con y sin el flag, `FoundingTeam`, `Suspended`) sobre SQLite `:memory:`.
-- [ ] 2.8 GREEN: crear `src/Ludeka.Web/Authentication/PermissionAuthorizationHandler.cs` (Singleton con `IServiceScopeFactory` y `AsNoTracking`) y `AuthorizationPolicies.cs` con las 9 políticas del diseño.
-- [ ] 2.9 GREEN: registrar en `Program.cs` la cookie, `AddAuthorization`, `AddCascadingAuthenticationState` y `UseAuthentication`/`UseAuthorization` antes de `UseAntiforgery`; `.AllowAnonymous()` en `/healthz` y `/ready`.
-- [ ] 2.10 GREEN: aplicar `[Authorize(Policy = …)]` en `src/Ludeka.Web/Components/Pages/` a UserManagement→`PermisoGestionarUsuarios`, AuditLogViewer→`PermisoVerAuditoria`, MediaModeration→`PermisoAprobarMedios`, GameReportsModeration→`PermisoResolverReportes`, InstagramModeration→`PermisoPublicarInstagram`, CatalogQueueAdmin→`PermisoEditarFichas`, EventsManagement y AdminNotifications→`PermisoGestionarEditores`; ajustar `src/Ludeka.Web/Components/_Imports.razor`; el marcado queda solo como ocultación.
-- [ ] 2.11 BLOQUEADA (R2): `[Authorize]` de SocialInboxModeration (`/admin/ingesta-social`) y MonitoredAccountsDirectory (`/admin/canales-monitorizados`) a la espera del mapeo del maintainer.
-- [ ] 2.12 GREEN: pasar `src/Ludeka.Web/Components/Routes.razor` a `AuthorizeRouteView` y crear `src/Ludeka.Web/Components/Shared/RedirectToLogin.razor`.
-- [ ] 2.13 `dotnet test Ludeka.sln` verde: fin del Paso 1, con la autorización efectiva y la simulación todavía viva.
+> Ejecutada como slice PR-3 (`inc/autenticacion-real-f2`, base `06e53cc`). El maintainer fijó en el prompt
+> de apply el mapeo de las tareas 2.10/2.11: `SocialInboxModeration` y `MonitoredAccountsDirectory`
+> quedan bajo `PermisoAprobarMedios` (ya no bloqueadas por R2) y `EventsManagement` y `AdminNotifications`
+> bajo la política de rol `RolModerador` —no `PermisoGestionarEditores`— para preservar exactamente el
+> público actual (`IsFoundingTeam || IsInRole("Moderator")`). Queda como punto a confirmar por el maintainer.
+
+- [x] 2.1 RED: crear `tests/Ludeka.UnitTests/Web/WebAuthenticationRegistrationTests.cs` (proveedor `Enabled=false` sin esquema; cookie `HttpOnly`/`Secure`/`SameSite=Lax` y caducidad; `/healthz` y `/ready` anónimos).
+- [x] 2.2 GREEN: crear `src/Ludeka.Application/Features/Identity/AuthenticationOptions.cs` y la sección `Authentication` en `src/Ludeka.Web/appsettings.json` (`Enabled=false` hasta que el maintainer configure credenciales; R3).
+- [x] 2.3 GREEN: crear `src/Ludeka.Web/Authentication/ExternalAuthenticationSchemes.cs` (Google, Discord, Facebook dirigidos por configuración) y añadir los paquetes `Microsoft.AspNetCore.Authentication.Google`, `Microsoft.AspNetCore.Authentication.Facebook` y `AspNet.Security.OAuth.Discord` a `src/Ludeka.Web/Ludeka.Web.csproj`; callbacks `/signin-{google|discord|facebook}`.
+- [x] 2.4 RED: crear `tests/Ludeka.UnitTests/Application/ExternalLoginServiceTests.cs` con los 5 escenarios de la spec (par reincidente, correo verificado, alta `CommunityUser`/`None`, correo sin verificar, nunca `FoundingTeam`).
+- [x] 2.5 GREEN: crear `IExternalLoginService.cs` y `ExternalLoginService.ResolveAsync` en `src/Ludeka.Application/Features/Identity/`; los eventos del proveedor solo extraen claims y firman la cookie.
+- [x] 2.6 GREEN: crear `src/Ludeka.Web/Components/Pages/Login.razor` (`/login`) y los endpoints `POST /login/external` y `GET /logout` en `src/Ludeka.Web/Program.cs`, con la cookie de sesión propia.
+- [x] 2.7 RED: crear `tests/Ludeka.UnitTests/Web/PolicyAuthorizationTests.cs` (anónimo, `CommunityUser`, `Moderator` con y sin el flag, `FoundingTeam`, `Suspended`) sobre SQLite `:memory:`.
+- [x] 2.8 GREEN: crear `src/Ludeka.Web/Authentication/PermissionAuthorizationHandler.cs` (Singleton con `IServiceScopeFactory` y `AsNoTracking`) y `AuthorizationPolicies.cs` con las 9 políticas del diseño.
+- [x] 2.9 GREEN: registrar en `Program.cs` la cookie, `AddAuthorization`, `AddCascadingAuthenticationState` y `UseAuthentication`/`UseAuthorization` antes de `UseAntiforgery`; `.AllowAnonymous()` en `/healthz` y `/ready`.
+- [x] 2.10 GREEN: aplicar `[Authorize(Policy = …)]` en `src/Ludeka.Web/Components/Pages/` a UserManagement→`PermisoGestionarUsuarios`, AuditLogViewer→`PermisoVerAuditoria`, MediaModeration→`PermisoAprobarMedios`, GameReportsModeration→`PermisoResolverReportes`, InstagramModeration→`PermisoPublicarInstagram`, CatalogQueueAdmin→`PermisoEditarFichas`; EventsManagement y AdminNotifications→`RolModerador` (punto a confirmar); ajustar `src/Ludeka.Web/Components/_Imports.razor`; el marcado queda solo como ocultación.
+- [x] 2.11 GREEN: `[Authorize]` de SocialInboxModeration (`/admin/ingesta-social`) y MonitoredAccountsDirectory (`/admin/canales-monitorizados`) bajo `PermisoAprobarMedios` por decisión del maintainer en el prompt de apply (resuelve R2).
+- [x] 2.12 GREEN: pasar `src/Ludeka.Web/Components/Routes.razor` a `AuthorizeRouteView` y crear `src/Ludeka.Web/Components/Shared/RedirectToLogin.razor`.
+- [x] 2.13 `dotnet test Ludeka.sln` verde: fin del Paso 1, con la autorización efectiva y la simulación todavía viva (1120 correctas, 0 con error, 0 omitidas).
 
 ## Fase 3 — Retirada de la identidad simulada (Paso 2; PRs 5–6)
 

@@ -2,6 +2,7 @@
 @page "/moderacion/multimedia"
 @page "/admin/moderacion-medios"
 @page "/admin/multimedia"
+@attribute [Authorize(Policy = AuthorizationPolicies.PermisoAprobarMedios)]
 @rendermode InteractiveServer
 @inject IMediaService MediaService
 @inject ICatalogService CatalogService

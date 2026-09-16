@@ -10,6 +10,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- INC-46: proveedores sociales. Ninguno forma parte del shared framework de ASP.NET Core. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.11" />
+    <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
