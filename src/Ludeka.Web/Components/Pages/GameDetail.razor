@@ -265,14 +265,15 @@ else
 
     @* Bloque de Interacción de Usuario: Colección, Estados y Préstamos *@
     <div class="container-ludeka pt-6">
-        <CollectionActionBar
-            CurrentItem="@_collectionItem"
-            ActiveLoan="@_activeLoan"
-            PlayCount="@_userPlaysCount"
-            OnStatusSelected="HandleStatusSelected"
-            OnTogglePlayed="HandleTogglePlayed"
-            OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
-            OnLoanClicked="() => _isLoanModalOpen = true" />
+<CollectionActionBar
+    CurrentItem="@_collectionItem"
+    ActiveLoan="@_activeLoan"
+    PlayCount="@_userPlaysCount"
+    IsSessionActive="@HasSession"
+    OnStatusSelected="HandleStatusSelected"
+    OnTogglePlayed="HandleTogglePlayed"
+    OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
+    OnLoanClicked="() => _isLoanModalOpen = true" />
 
         @if (_activeLoan != null)
         {
@@ -518,6 +519,9 @@ else
     private string? _aiSummaryMessage;
     private int _userPlaysCount;
 
+    /// <summary>Indica si hay sesión iniciada: las acciones con identidad la exigen (INC-46 F4).</summary>
+    private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
     private void HandleGameUpdated(GameDetailDto updated)
     {
         Game = updated;
@@ -635,8 +639,16 @@ else
         bool wasUnrated = _userReview == null;
         bool wasPlayed = _collectionItem?.IsPlayed == true;
 
-        _collectionItem = await LibraryService.TogglePlayedStateAsync(Game.Id);
-        await RefreshPlaysCountAsync();
+        try
+        {
+            _collectionItem = await LibraryService.TogglePlayedStateAsync(Game.Id);
+            await RefreshPlaysCountAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         if (wasUnrated && !wasPlayed && _collectionItem?.IsPlayed == true)
         {
@@ -647,9 +659,17 @@ else
     private async Task HandlePlayRecorded(RecordPlayRequest req)
     {
         if (Game == null) return;
-        await PlayLogService.RecordPlayAsync(req);
-        _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
-        await RefreshPlaysCountAsync();
+
+        try
+        {
+            await PlayLogService.RecordPlayAsync(req);
+            _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
+            await RefreshPlaysCountAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task RefreshPlaysCountAsync()
@@ -666,8 +686,16 @@ else
         bool wasUnrated = _userReview == null;
         var prevStatus = _collectionItem?.Status;
 
-        _collectionItem = await LibraryService.SetCollectionStateAsync(Game.Id, status);
-        _activeLoan = await LibraryService.GetActiveLoanAsync(Game.Id);
+        try
+        {
+            _collectionItem = await LibraryService.SetCollectionStateAsync(Game.Id, status);
+            _activeLoan = await LibraryService.GetActiveLoanAsync(Game.Id);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         // Disparador de valoración: si el juego pasa a En mi ludoteca por primera vez y no tiene valoración, sugerir valoración
         if (wasUnrated && _collectionItem != null &&
@@ -682,43 +710,71 @@ else
     {
         if (Game == null) return;
 
-        await LibraryService.CreateLoanAsync(new CreateLoanRequest(Game.Id, req.BorrowerName, req.LoanDate, req.Notes));
-        await LoadUserDataAsync();
+        try
+        {
+            await LibraryService.CreateLoanAsync(new CreateLoanRequest(Game.Id, req.BorrowerName, req.LoanDate, req.Notes));
+            await LoadUserDataAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task HandleReturnLoan(Guid loanId)
     {
-        await LibraryService.ReturnLoanAsync(loanId);
-        await LoadUserDataAsync();
+        try
+        {
+            await LibraryService.ReturnLoanAsync(loanId);
+            await LoadUserDataAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task HandleSubmitReview(SubmitReviewRequest req)
     {
         if (Game == null) return;
 
-        await LibraryService.SubmitReviewAsync(new SubmitReviewRequest(
-            Game.Id,
-            req.Score,
-            req.MicroReview,
-            req.PlayerCountVotes,
-            req.FamilyExperience,
-            req.PlayContext
-        ));
+        try
+        {
+            await LibraryService.SubmitReviewAsync(new SubmitReviewRequest(
+                Game.Id,
+                req.Score,
+                req.MicroReview,
+                req.PlayerCountVotes,
+                req.FamilyExperience,
+                req.PlayContext
+            ));
 
-        // Refrescar ficha del juego para reflejar el consenso actualizado
-        Game = await CatalogService.GetGameBySlugAsync(Slug);
-        await LoadUserDataAsync();
+            // Refrescar ficha del juego para reflejar el consenso actualizado
+            Game = await CatalogService.GetGameBySlugAsync(Slug);
+            await LoadUserDataAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task HandleSaveFoundingVerdict(SaveFoundingVerdictRequest req)
     {
         if (Game == null) return;
 
-        await FoundingService.SaveVerdictAsync(req);
+        try
+        {
+            await FoundingService.SaveVerdictAsync(req);
 
-        // Refrescar ficha y datos del veredicto
-        Game = await CatalogService.GetGameBySlugAsync(Slug);
-        await LoadUserDataAsync();
+            // Refrescar ficha y datos del veredicto
+            Game = await CatalogService.GetGameBySlugAsync(Slug);
+            await LoadUserDataAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task HandleRequestAiSummary()
@@ -733,6 +789,10 @@ else
             _aiSummary = await FoundingService.RequestAiSummaryGenerationAsync(Game.Id);
             _aiSummaryMessage = "Síntesis estructurada generada y guardada correctamente con IA.";
             Game = await CatalogService.GetGameBySlugAsync(Slug);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         catch (Exception ex)
         {

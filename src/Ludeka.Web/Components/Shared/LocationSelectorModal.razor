@@ -4,6 +4,7 @@
 @inject IUserPreferenceService PreferenceService
 @inject ICurrentUserService CurrentUserService
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 @if (IsOpen)
 {
@@ -170,7 +171,18 @@
     private async Task SelectCountryAsync(string? country)
     {
         _currentCountry = country;
-        await PreferenceService.SetUserCountryAsync(CurrentUserService.UserId, country);
+
+        try
+        {
+            // Preferencia con identidad: sin sesión la acción lleva al acceso (INC-46 F4).
+            await PreferenceService.SetUserCountryAsync(CurrentUserService.UserId, country);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+
         LocationService.SetUserCountry(country);
 
         try

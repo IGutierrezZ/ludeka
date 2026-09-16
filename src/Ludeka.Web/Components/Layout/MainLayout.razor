@@ -400,6 +400,11 @@
             await JS.InvokeVoidAsync("setLudekaTheme", theme, CurrentUserService.UserId);
             await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            // El tema ya se aplicó localmente; sin sesión la preferencia lleva al acceso (INC-46 F4).
+            Navigation.TryRedirectToLogin(ex);
+        }
         catch
         {
         }

@@ -36,7 +36,7 @@
         <div class="flex flex-wrap items-center gap-2">
             <button type="button"
                     disabled="@_isOfflineMode"
-                    @onclick="() => _showBggImportModal = true"
+                    @onclick="OpenBggImportModal"
                     class="px-4 py-2 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-600 text-zinc-300" : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white") transition-all inline-flex items-center gap-1.5 shadow-sm"
                     title="@(_isOfflineMode ? "La importación de BGG requiere conexión a internet" : "")">
                 <Icon Name="download" Size="14" />
@@ -44,7 +44,7 @@
             </button>
             <button type="button"
                     disabled="@_isOfflineMode"
-                    @onclick="() => _showBggSearchModal = true"
+                    @onclick="OpenBggSearchModal"
                     class="px-4 py-2 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-700 text-zinc-400" : "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]") transition-colors inline-flex items-center gap-1.5 shadow-sm"
                     title="@(_isOfflineMode ? "La búsqueda asistida requiere conexión a internet" : "")">
                 <Icon Name="dices" Size="14" />
@@ -56,6 +56,25 @@
             </a>
         </div>
     </div>
+
+    @* Invitación al acceso: sin sesión no hay ludoteca ni preferencias que persistir (INC-46 F4) *@
+    @if (!HasSession)
+    {
+        <div class="p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm" role="status">
+            <div class="flex items-center gap-2 text-[var(--text-secondary)] font-medium">
+                <span><Icon Name="user" Size="14" /></span>
+                <span>
+                    <strong class="text-[var(--text-primary)]">Estás navegando sin sesión.</strong>
+                    Tu ludoteca, tu diario de partidas, tus préstamos y tus preferencias se guardan asociados a tu cuenta.
+                </span>
+            </div>
+            <a href="@ExternalAuthenticationSchemes.LoginPath"
+               class="px-3.5 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold self-start sm:self-auto transition-colors flex items-center gap-1.5 shadow-sm">
+                <Icon Name="shield" Size="14" />
+                <span>Inicia sesión para guardar</span>
+            </a>
+        </div>
+    }
 
     @if (_isOfflineMode)
     {
@@ -454,18 +473,29 @@
                         </p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button type="button"
-                                @onclick="CopyPublicProfileLinkAsync"
-                                class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="@(_copiedProfileLink ? "check" : "copy")" Size="12" />
-                            <span>@(_copiedProfileLink ? "¡Enlace copiado!" : "Copiar enlace de mi perfil")</span>
-                        </button>
-                        <a href="/u/@CurrentUserService.UserId"
-                           target="_blank"
-                           class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="eye" Size="12" />
-                            <span>Ver Perfil Público</span>
-                        </a>
+                        @if (HasSession)
+                        {
+                            <button type="button"
+                                    @onclick="CopyPublicProfileLinkAsync"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="@(_copiedProfileLink ? "check" : "copy")" Size="12" />
+                                <span>@(_copiedProfileLink ? "¡Enlace copiado!" : "Copiar enlace de mi perfil")</span>
+                            </button>
+                            <a href="@PublicProfilePath"
+                               target="_blank"
+                               class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="eye" Size="12" />
+                                <span>Ver Perfil Público</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@ExternalAuthenticationSchemes.LoginPath"
+                               class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="shield" Size="12" />
+                                <span>Inicia sesión para publicar tu perfil</span>
+                            </a>
+                        }
                     </div>
                 </div>
 
@@ -929,6 +959,22 @@
     private IReadOnlyList<PriceDropAlertDto>? _wantToBuyAlerts;
     private Dictionary<Guid, PriceDropAlertDto> _alertsByGameId = new();
 
+    /// <summary>Indica si hay sesión iniciada: la ludoteca y sus preferencias la exigen (INC-46 F4).</summary>
+    private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
+    /// <summary>
+    /// Ruta del perfil público, o <c>null</c> cuando no hay una identidad real que mostrar. El
+    /// enlace nunca se construye con un identificador vacío.
+    /// </summary>
+    private string? PublicProfilePath
+    {
+        get
+        {
+            string userId = CurrentUserService.UserId;
+            return string.IsNullOrWhiteSpace(userId) ? null : $"/u/{userId.Trim()}";
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadSummaryAsync();
@@ -1083,9 +1129,15 @@
 
     private async Task CopyPublicProfileLinkAsync()
     {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
         try
         {
-            string url = Navigation.ToAbsoluteUri($"/u/{CurrentUserService.UserId}").ToString();
+            string url = Navigation.ToAbsoluteUri(PublicProfilePath!).ToString();
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
             _copiedProfileLink = true;
             StateHasChanged();
@@ -1098,10 +1150,41 @@
         }
     }
 
+    /// <summary>Abre la importación de BGG solo con sesión; sin ella lleva al acceso.</summary>
+    private void OpenBggImportModal()
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
+        _showBggImportModal = true;
+    }
+
+    /// <summary>Abre la búsqueda asistida de BGG solo con sesión; sin ella lleva al acceso.</summary>
+    private void OpenBggSearchModal()
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
+        _showBggSearchModal = true;
+    }
+
     private async Task HandleReturnLoan(Guid loanId)
     {
-        await LibraryService.ReturnLoanAsync(loanId);
-        await LoadSummaryAsync();
+        try
+        {
+            await LibraryService.ReturnLoanAsync(loanId);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
     }
 
     private async Task SelectUserTheme(string theme)
@@ -1113,6 +1196,11 @@
             await JS.InvokeVoidAsync("setLudekaTheme", theme, CurrentUserService.UserId);
             await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
             _saveMessage = $"Tema '{GetThemeDisplayName(theme)}' guardado para {CurrentUserService.UserName}";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
         }
         catch
         {
@@ -1148,6 +1236,11 @@
             _countrySaveMessage = country != null
                 ? $"País configurado a {CountryCatalog.GetFlag(country)} {country} para {CurrentUserService.UserName}."
                 : "Ámbito global restablecido (sin filtro). Todo el contenido es visible.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
         }
         catch (Exception ex)
         {

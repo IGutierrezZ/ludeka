@@ -2,6 +2,7 @@
 @using Ludeka.Application.DTOs
 @inject IRuleQAService RuleQAService
 @inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
 
 <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
     @* Encabezado de la Sección *@
@@ -324,7 +325,16 @@
         }
 
         var request = new CreateRuleQuestionRequest(GameId, _newQuestionTitle, _newQuestionBody);
-        await RuleQAService.CreateQuestionAsync(request, CurrentUserService.UserId, CurrentUserService.UserName);
+
+        try
+        {
+            await RuleQAService.CreateQuestionAsync(request, CurrentUserService.UserId, CurrentUserService.UserName);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         _isAskingQuestion = false;
         _newQuestionTitle = string.Empty;
@@ -352,7 +362,16 @@
         }
 
         var request = new CreateRuleAnswerRequest(questionId, _answerBody, _answerRuleRef);
-        await RuleQAService.AddAnswerAsync(request, CurrentUserService.UserId, CurrentUserService.UserName);
+
+        try
+        {
+            await RuleQAService.AddAnswerAsync(request, CurrentUserService.UserId, CurrentUserService.UserName);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         _activeAnsweringQuestionId = null;
         _answerBody = string.Empty;
@@ -363,33 +382,67 @@
 
     private async Task HandleVoteQuestion(Guid questionId)
     {
-        await RuleQAService.ToggleVoteQuestionAsync(questionId, CurrentUserService.UserId);
+        try
+        {
+            await RuleQAService.ToggleVoteQuestionAsync(questionId, CurrentUserService.UserId);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+
         await LoadQuestionsAsync();
     }
 
     private async Task HandleVoteAnswer(Guid answerId)
     {
-        await RuleQAService.ToggleVoteAnswerAsync(answerId, CurrentUserService.UserId);
+        try
+        {
+            await RuleQAService.ToggleVoteAnswerAsync(answerId, CurrentUserService.UserId);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+
         await LoadQuestionsAsync();
     }
 
     private async Task HandleMarkAccepted(Guid questionId, Guid answerId)
     {
-        await RuleQAService.MarkAcceptedAnswerAsync(
-            questionId,
-            answerId,
-            CurrentUserService.UserId,
-            CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"));
+        try
+        {
+            await RuleQAService.MarkAcceptedAnswerAsync(
+                questionId,
+                answerId,
+                CurrentUserService.UserId,
+                CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         await LoadQuestionsAsync();
     }
 
     private async Task HandleUnmarkAccepted(Guid questionId)
     {
-        await RuleQAService.UnmarkAcceptedAnswerAsync(
-            questionId,
-            CurrentUserService.UserId,
-            CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"));
+        try
+        {
+            await RuleQAService.UnmarkAcceptedAnswerAsync(
+                questionId,
+                CurrentUserService.UserId,
+                CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         await LoadQuestionsAsync();
     }

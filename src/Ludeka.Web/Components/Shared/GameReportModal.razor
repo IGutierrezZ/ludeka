@@ -3,6 +3,7 @@
 @using Ludeka.Core.Enums
 @inject IGameIssueReportService ReportService
 @inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
 
 @if (IsOpen)
 {
@@ -179,6 +180,9 @@
     private bool _isSuccess;
     private string? _errorMessage;
 
+    /// <summary>Los reportes exigen sesión iniciada (INC-46, spec anonymity-policy).</summary>
+    private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
     private static readonly (GameIssueType Type, string Label, string Icon)[] _issueTypes =
     [
         (GameIssueType.WrongImage, "Imagen incorrecta o de otra edición", "image"),
@@ -194,6 +198,13 @@
     private async Task SubmitReport()
     {
         _errorMessage = null;
+
+        // Sin sesión no hay escritura: la acción lleva al acceso (criterio 11 de INC-46).
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
 
         if (_selectedIssueType == GameIssueType.Other && string.IsNullOrWhiteSpace(_details))
         {
@@ -228,6 +239,10 @@
             {
                 await OnReportSubmitted.InvokeAsync(report);
             }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         catch (Exception ex)
         {
