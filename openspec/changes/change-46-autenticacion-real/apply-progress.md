@@ -1,4 +1,4 @@
-# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2, F3 y F4
+# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2, F2-bis, F3 y F4
 
 > Fase SDD `sdd-apply`. Store: openspec (este archivo + `tasks.md`).
 > Worktree: `C:\repos\ludeka-wt\autenticacion-real`.
@@ -6,10 +6,12 @@
 > · Slice **PR-2 / F1**: rama `inc/autenticacion-real-f1`, base `3ec23d5`, mergeado a `main` en `06e53cc`.
 > · Slice **PR-3 / F2**: rama `inc/autenticacion-real-f2`, base `06e53cc`, mergeado a `main` en `83063bd` (PR #14).
 > · Slice **PR-5/PR-6 / F3**: rama `inc/autenticacion-real-f3`, base `83063bd`, mergeado a `main` en `51e16f3` (PR #15).
-> · Slice **PR-7 / F4** (este): rama `inc/autenticacion-real-f4`, base `51e16f3` (`origin/main`).
+> · Slice **PR-7 / F4**: rama `inc/autenticacion-real-f4`, base `51e16f3`, mergeado a `main` en `fc9e50b` (PR #16).
+> · Slice **F2-bis** (este): rama `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`); cierra
+>   el punto a confirmar de 2.10/2.11 (permiso granular propio para `/admin/eventos` y `/admin/notificaciones`).
 > Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Cadena `stacked-to-main`.
-> Alcance: Paso 3 de la migración — revalidación de sesión en las escrituras con identidad, anonimia
-> observable en la interfaz y smoke del criterio 11. **Sin** `sdd-archive` (F5).
+> Alcance de este slice: dos banderas nuevas de dominio, dos políticas y la migración de las dos páginas.
+> **Sin** `sdd-archive` (F5).
 
 ## Estado por fase
 
@@ -18,9 +20,66 @@
 | F0 — Artefactos y dominio de permisos | 6/6 | ✅ mergeada en `main` (`3ec23d5`) |
 | F1 — Persistencia de identidad externa | 8/8 | ✅ mergeada en `main` (`06e53cc`) |
 | F2 — Autenticación social y autorización por política | 13/13 | ✅ mergeada en `main` (`83063bd`) |
+| F2-bis — Permiso granular de eventos y notificaciones | 6/6 | ✅ completada (este slice) |
 | F3 — Retirada de la identidad simulada | 8/8 | ✅ mergeada en `main` (`51e16f3`) |
-| F4 — Revalidación en escritura y anonimia | 6/6 | ✅ completada (este slice) |
+| F4 — Revalidación en escritura y anonimia | 6/6 | ✅ mergeada en `main` (`fc9e50b`, PR #16) |
 | F5 — Verificación, documentación y archive | 0/6 | ⬜ sin tocar |
+
+## Estado F2-bis: COMPLETADO ✅
+
+> Slice `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`). Cierra el punto a confirmar
+> de las tareas 2.10/2.11 y la decisión abierta de `design.md` §9.3: `/admin/eventos` y
+> `/admin/notificaciones` dejan la política de rol `RolModerador` y pasan a dos permisos granulares
+> propios. Sin migraciones, sin cambios de esquema, sin tocar F5.
+
+| Tarea | Estado | Ciclo TDD | Commit |
+|---|---|---|---|
+| 2b.1 + 2b.2 `CanManageEvents` y `CanManageNotifications`; `All` = 4095 | ✅ | ROJO por aserción (1023 vs 4095) → ROJO por compilación (CS0117) → VERDE 26/26 focal | `2a5b5dc` |
+| 2b.3 + 2b.4 Políticas `PermisoGestionarEventos`/`PermisoGestionarNotificaciones` y migración de las dos páginas | ✅ | ROJO ejecutable en `PolicyAuthorizationTests` (12/58) + ROJO por compilación (CS0117) del contrato de páginas → VERDE 79/79 focal (59 + 20) | `2aac16e` |
+| 2b.5 `dotnet test Ludeka.sln --configuration Release` verde | ✅ | VERDE **1247/1247** en Release (0 errores, 0 omitidas; base 1231, +16) | (docs) |
+| 2b.6 Humo real (criterio de F2 repetido) | ✅ | `/admin/eventos` y `/admin/notificaciones` **302** a `/login`; públicas **200**; 0 excepciones no controladas | (docs) |
+
+### Commits del slice F2-bis (rama `inc/autenticacion-real-permisos`, base `fc9e50b`)
+
+| Sha | Mensaje | Cambios |
+|---|---|---|
+| `2a5b5dc` | `feat(core): añadir los permisos granulares de eventos y notificaciones` | 2 archivos · +37/−3 |
+| `2aac16e` | `feat(web): dar permiso granular propio a eventos y notificaciones` | 5 archivos · +35/−14 |
+| (docs) | `docs(sdd): registrar el progreso de apply del slice de permisos granulares` | `tasks.md` + este archivo |
+
+### TDD Cycle Evidence (F2-bis)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2b.1 + 2b.2 | `Application/GranularPermissionsTests.cs` | Unit (dominio) | ✅ 1231/1231 base | ✅ ROJO por aserción `All_WithTwelveGranularFlags_EqualsExpectedMask` (esperado 4095, actual 1023; 1/21 en rojo) y ROJO por compilación CS0117 de los dos miembros | ✅ 26/26 focal | ✅ Teoría de las 12 banderas dentro de `All`, posiciones de bit 1024/2048 (contrato de persistencia) e invariante `All_ShouldEqualTheOrOfEveryDeclaredFlag` sobre `Enum.GetValues` | ➖ Ninguno necesario (enum declarativo) |
+| 2b.3 + 2b.4 | `Web/PolicyAuthorizationTests.cs` | Integration (SQLite `:memory:` + `IAuthorizationService` real) | ✅ 1231/1231 base | ✅ 12/58 en rojo: política inexistente en anónimo, comunidad, fundador, suspendida, mapeo bandera→política y conteo de las 11 | ✅ 79/79 focal (59 + 20 del contrato) | ✅ Once políticas × cinco escenarios + denegación cruzada entre las dos banderas nuevas + revocación en caliente | ✅ Lista congelada actualizada y doc de clase alineada con las 11 políticas |
+| 2b.3 + 2b.4 | `Web/AuthorizationPipelineContractTests.cs` | Contract (fuente) | ✅ 1231/1231 base | ✅ ROJO por compilación CS0117 (`PermisoGestionarEventos`/`PermisoGestionarNotificaciones`) al apuntar la tabla de páginas | ✅ 20/20 del archivo | ✅ Las dos páginas se contrastan contra su `@page` y su `@attribute [Authorize(Policy = …)]` reales | ➖ Ninguno necesario |
+
+### Work Unit Evidence (F2-bis)
+
+| Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
+|---|---|---|---|
+| U2b-A Banderas nuevas / `2a5b5dc` | `--filter FullyQualifiedName~GranularPermissionsTests` → **26/26** | N/A: solo dominio y contrato de bits; el efecto se comprueba en U2b-B | Revertir el commit: desaparecen las dos banderas y `All` vuelve a 1023; ninguna política ni página las usa en este punto |
+| U2b-B Políticas y páginas / `2aac16e` | `--filter FullyQualifiedName~PolicyAuthorizationTests\|FullyQualifiedName~AuthorizationPipelineContractTests` → **79/79** | Arranque real (`Production`, SQLite temporal, sin credenciales OAuth): `/admin/eventos` y `/admin/notificaciones` **302** a `/login?ReturnUrl=…`; `/`, `/catalogo`, `/eventos`, `/radar` y `/healthz` **200**; 0 excepciones no controladas | Revertir el commit: las dos páginas vuelven a `RolModerador` y desaparecen las dos políticas |
+
+### Verificación observada (registro) — F2-bis
+
+| Comando / comprobación | Resultado observado |
+|---|---|
+| Línea base antes de tocar código: `dotnet test Ludeka.sln --configuration Release` en `fc9e50b` | **1231 correctas, 0 con error, 0 omitidas** |
+| `dotnet test Ludeka.sln --configuration Release` (final) | **1247 correctas, 0 con error, 0 omitidas** (+16: 5 del enum, 11 de las políticas) |
+| Arranque real (`ASPNETCORE_ENVIRONMENT=Production`, SQLite temporal en `%TEMP%`, `Database__SeedDemoData=false`, sin credenciales OAuth, `PORT=5187`, `dotnet bin\Release\net10.0\Ludeka.Web.dll`) | Matriz solicitada sin ningún **500**: `/` **200**, `/catalogo` **200**, `/eventos` **200**, `/radar` **200**, `/healthz` **200**, `/admin/eventos` **302** → `/login?ReturnUrl=/admin/eventos`, `/admin/notificaciones` **302** → `/login?ReturnUrl=/admin/notificaciones`; 0 excepciones no controladas en el log |
+| Comprobación aritmética del enum | 12 banderas declaradas, **12 bits únicos** y OR de las 12 = **4095**; el OR de `All` enumera 12 términos y su comentario dice 4095 |
+| Búsqueda de `RolModerador` en `src/` y `tests/` (`*.cs`, `*.razor`) | **3 resultados**: la constante y su registro en `AuthorizationPolicies.cs`, y la aserción de `PolicyAuthorizationTests` que fija que sigue declarada. **Ninguna página la declara** |
+| Búsqueda del literal `1023` en el repositorio | **1 resultado restante**: la nota histórica R4 de este `tasks.md`. El único test que dependía del valor (`GranularPermissionsTests`) ya exige 4095; ningún dato persistido depende del literal (bits 10 y 11 son nuevos, sin desplazamiento) |
+
+### Desviaciones y hallazgos (F2-bis)
+
+1. **`design.md` §9.3 queda superado por decisión del maintainer**: el diseño proponía `PermisoGestionarEditores` (`CanManagePublishers`) para `/admin/eventos` y `/admin/notificaciones`; el maintainer pidió permiso granular propio, así que se añadieron dos banderas nuevas. Queda registrado en R3 de `tasks.md`.
+2. **`RolModerador` se conserva**: ya no lo declara ninguna página, pero la constante, su registro en `Configure` y su prueba siguen en pie por indicación explícita (otros incrementos pueden depender de él). No se eliminó ni se tocaron sus pruebas.
+3. **Público efectivo preservado**: quien puede pasar las políticas nuevas es la Mesa Fundadora (por rol) y un Moderador con la bandera exacta; el marcado de las dos páginas sigue condicionado a `IsFoundingTeam || IsInRole("Moderator")`, que es un subconjunto de ese público, de modo que nadie autorizado ve el aviso de acceso restringido.
+4. **Hueco preexistente (fuera del alcance exclusivo, se reporta)**: `UserPermissionsModal.razor` solo ofrece 8 casillas, no incluye `CanManageUsers`, `CanViewAuditLog`, `CanPublishInstagram` ni las dos banderas nuevas; además reconstruye la máscara desde esas 8 casillas, así que guardar desde el modal **borra** los permisos que no muestra. Hoy no hay forma de conceder `CanManageEvents`/`CanManageNotifications` desde la interfaz. `UserManagementService.GetPermissionNames` también enumera 7 banderas para las insignias. Es un defecto anterior a este slice (F2 lo dejó así al añadir dos banderas), no una regresión.
+5. **Sin migraciones ni cambios de esquema**: `ModeratorPermission` se persiste como entero; las banderas nuevas ocupan bits vírgenes y no desplazan ningún valor guardado. La frontera de reversión es exacta (`fc9e50b`).
 
 ## Estado F4: COMPLETADO ✅
 
@@ -314,8 +373,88 @@
 - **Frontera**: de `51e16f3` a la anonimia efectiva en escritura, con redirección al acceso en la interfaz; sin `sdd-archive` (F5) y sin migraciones.
 - **Reversión**: revertir los 4 commits devuelve el árbol a `51e16f3`.
 
+## Presupuesto y frontera de PR (F2-bis)
+
+- **Líneas cambiadas del slice F2-bis**: `git diff --shortstat fc9e50b` → **72 inserciones y 17 supresiones en 7 archivos** de `src/` y `tests/` (commits `2a5b5dc` y `2aac16e`); artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Muy por debajo del presupuesto de 1500 líneas del slice.
+- **Modo**: chained/stacked PR slice (`stacked-to-main`); es un refuerzo de F2 nacido de la confirmación del maintainer, no un PR nuevo del desglose original.
+- **Frontera**: de `fc9e50b` a los dos permisos granulares propios con las dos páginas migradas y `RolModerador` conservado sin páginas; sin migraciones, sin cambios de esquema y sin `sdd-archive` (F5).
+- **Reversión**: revertir los 2 commits devuelve el árbol a `fc9e50b`.
+
+## Estado F2-ter: COMPLETADO ✅ — Corrección de la regresión de pérdida de permisos
+
+> Slice acotado de `sdd-apply` en la misma rama `inc/autenticacion-real-permisos`, base `723c668`.
+> Cierra el hallazgo 4 de F2-bis (`UserPermissionsModal` desactualizado): el modal solo ofrecía 8
+> casillas y reconstruía la máscara desde esa lista parcial, de modo que guardar los permisos de un
+> moderador borraba en silencio `CanManageUsers`, `CanViewAuditLog`, `CanManageEvents` y
+> `CanManageNotifications`, y no existía vía en la interfaz para concederlos. Sin migraciones ni
+> cambios de esquema; sin tocar la especificación viva, el ROADMAP ni F5.
+
+| Tarea | Estado | Ciclo TDD | Commit |
+|---|---|---|---|
+| 2t.1 RED del comportamiento del modal (`UserPermissionsModalTests`) y de su contrato de fuente (`UserPermissionsModalContractTests`) | ✅ | ROJO 8/11: máscara `CanEditGames\|…\|CanPublishInstagram` (255) en vez de `All`; render de 8 casillas en vez de 12; cuatro banderas sin referencia | `fc1bf4d` |
+| 2t.2 GREEN: las 12 casillas del modal con el mismo patrón y textos en español, y guardado que conserva los bits fuera de `ModeratorPermission.All` | ✅ | VERDE 7/7 focal del modal | `fc1bf4d` |
+| 2t.3 RED de `GetPermissionNames` (`PermissionNamesTests`, teoría sobre el enum) | ✅ | ROJO 2/4: `All` devolvía 7 nombres en vez de 12; las 5 banderas sin nombre devolvían lista vacía | `56a6d6c` |
+| 2t.4 GREEN: `GetPermissionNames` nombra las 12 banderas en el orden del enum | ✅ | VERDE 4/4 focal | `56a6d6c` |
+| 2t.5 `dotnet test Ludeka.sln --configuration Release` verde | ✅ | VERDE **1258/1258** (base 1247, +11) | (docs) |
+| 2t.6 Humo real (`Production` + SQLite, sin credenciales OAuth) y demostración de detección de la pérdida | ✅ | `/` **200**, `/healthz` **200**, `/admin/usuarios` **302** a `/login`; 0 excepciones no controladas; retirar una casilla o su línea de guardado vuelve a rojo | (docs) |
+
+### Commits del slice F2-ter (rama `inc/autenticacion-real-permisos`, base `723c668`)
+
+| Sha | Mensaje | Cambios |
+|---|---|---|
+| `fc1bf4d` | `fix(web): representar las doce banderas en el modal de permisos` | 3 archivos · +347 |
+| `56a6d6c` | `fix(application): nombrar las doce banderas en las insignias de permisos` | 2 archivos · +65 |
+
+### TDD Cycle Evidence (F2-ter)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2t.1 + 2t.2 | `Web/UserPermissionsModalTests.cs` | Unit + render real (`HtmlRenderer`) | ✅ 1247/1247 base | ✅ ROJO 5/7 del archivo: la máscara guardada era `CanEditGames \| ... \| CanPublishInstagram` (255) en vez de `All` (4095); el render ofrecía 8 casillas en vez de 12; las banderas nuevas no se cargaban ni se enviaban | ✅ 11/11 focal (5 + 2 + 4) | ✅ Usuario con `All`, con solo las 4 banderas nuevas, con bit fuera de la máscara declarada, rol no moderador y render con 12 casillas marcadas | ➖ Ninguno necesario (se conserva el patrón de casillas existente) |
+| 2t.1 + 2t.2 | `Web/UserPermissionsModalContractTests.cs` | Contract (fuente) | ✅ 1247/1247 base | ✅ ROJO 2/2: `CanManageUsers`, `CanViewAuditLog`, `CanManageEvents` y `CanManageNotifications` sin referencia en el modal; el bloque `SavePermissions` no reconstruía la máscara desde las 12 | ✅ 2/2 focal | ✅ Teoría de reflexión sobre `Enum.GetValues<ModeratorPermission>()` (12 banderas) y bloque de guardado aislado por marcadores | ➖ Ninguno necesario |
+| 2t.3 + 2t.4 | `Application/PermissionNamesTests.cs` | Unit (reflexión sobre el enum) | ✅ 1247/1247 base | ✅ ROJO 2/4: `GetPermissionNames(All, Moderator)` devolvía 7 nombres; `CanPublishInstagram`, `CanManageUsers`, `CanViewAuditLog`, `CanManageEvents` y `CanManageNotifications` devolvían lista vacía | ✅ 4/4 focal | ✅ Cada bandera por separado (exactamente un nombre), la máscara completa (12 nombres distintos), Mesa Fundadora y comunidad intactas, y máscara vacía | ➖ Ninguno necesario |
+
+### Demostración de que la prueba de regresión detecta la pérdida (F2-ter)
+
+| Mutación temporal (tras el commit) | Resultado observado |
+|---|---|
+| Retirar del guardado la línea `if (_canManageEvents) permissions \|= ModeratorPermission.CanManageEvents;` | **ROJO 3/7** en `UserPermissionsModal`: `SaveBlock_ShouldRebuildTheMaskFromEveryDeclaredGranularFlag`, `SavePermissions_WithEveryFlagInTheUserMask_ShouldSendTheWholeTwelveFlagMask` (`Expected: All` · `Actual: CanEditGames \| … \| CanViewAuditLog \| CanManageNotifications`) y `SavePermissions_WithOnlyNewGranularFlags_ShouldLoadAndSendExactlyThoseFlags` (`Expected: CanManageUsers \| CanViewAuditLog \| CanManageEvents \| CanManageNotifications` · `Actual` sin `CanManageEvents`). Árbol restaurado con `git checkout --` |
+| Retirar una casilla (bloque `9. CanManageUsers`) del marcado | **ROJO 1/7**: `RenderedModal_ForAModeratorWithEveryFlag_ShouldOfferOneCheckboxPerDeclaredFlag` (`Expected: 12` · `Actual: 11`). Árbol restaurado con `git checkout --` |
+
+### Work Unit Evidence (F2-ter)
+
+| Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
+|---|---|---|---|
+| U2t-A Modal de permisos / `fc1bf4d` | `--filter FullyQualifiedName~UserPermissionsModal` → **7/7** | Arranque real (`Production`, SQLite temporal, sin credenciales OAuth): `/` **200**, `/healthz` **200**, `/admin/usuarios` **302** → `/login?ReturnUrl=%2Fadmin%2Fusuarios`; 0 excepciones no controladas | Revertir el commit: el modal vuelve a 8 casillas y a reconstruir la máscara desde la lista parcial; nada más depende de él |
+| U2t-B Insignias de permisos / `56a6d6c` | `--filter FullyQualifiedName~PermissionNamesTests` → **4/4** | El mismo arranque real; las insignias se pintan en `/admin/usuarios` (ruta protegida, sin sesión no se puede abrir) y la teoría de reflexión cubre cada bandera | Revertir el commit: vuelven los 7 nombres y las 5 banderas sin insignia |
+
+### Verificación observada (registro) — F2-ter
+
+| Comando / comprobación | Resultado observado |
+|---|---|
+| Línea base antes de tocar código: `dotnet test Ludeka.sln --configuration Release` en `723c668` | **1247 correctas, 0 con error, 0 omitidas** |
+| `dotnet test Ludeka.sln --configuration Release` (final) | **1258 correctas, 0 con error, 0 omitidas** (+11: 5 de comportamiento del modal, 2 de contrato de fuente, 4 de `GetPermissionNames`) |
+| Suites vecinas (`WebMarkupContractTests`, `GranularPermissionsTests`, `UserManagementAndAuditServiceTests`, `PolicyAuthorizationTests`, `ProtectedPagesIconRenderTests`, `AuthorizationPipelineContractTests`, `IconCatalogTests`) | **242/242** |
+| Comprobación del modal | 12 casillas: las 8 previas + `CanManageUsers` (users), `CanViewAuditLog` (scroll), `CanManageEvents` (calendar) y `CanManageNotifications` (bell); ninguna bandera declarada queda fuera (teoría de reflexión sobre el enum) |
+| Auditoría de la cadena de permisos | Único punto que reconstruía la máscara: el modal (corregido). `GetPermissionNames` era el único que enumeraba banderas para mostrarlas (corregido). `UserManagement.razor` solo consulta `HasPermission`; `AppUser.UpdateRoleAndPermissions` aplica la regla de rol (Fundadora → `All`, resto → `None`); la cookie firma la máscara como entero y `Enum.TryParse` la restaura íntegra; sembradores y `AuthorizationPolicies` no reconstruyen máscaras |
+| Arranque real (`ASPNETCORE_ENVIRONMENT=Production`, SQLite temporal `%TEMP%\ludeka-smoke-permisos.db`, `Database__SeedDemoData=false`, sin credenciales OAuth, `PORT=5187`) | `/` **200**, `/healthz` **200**, `/admin/usuarios` **302** → `/login?ReturnUrl=%2Fadmin%2Fusuarios`; **0** excepciones no controladas en el log |
+
+### Desviaciones y hallazgos (F2-ter)
+
+1. **Ubicación real del modal**: el prompt lo situaba en `src/Ludeka.Web/Components/Pages/UserPermissionsModal.razor`, pero vive en `src/Ludeka.Web/Components/Shared/UserPermissionsModal.razor`. No se movió: así lo referencia `UserManagement.razor` y así lo fijan los contratos de markup existentes.
+2. **Decisión sobre los bits no representados**: se representan las 12 banderas (no se oculta ninguna) y, además, el guardado conserva `User.Permissions & ~ModeratorPermission.All`, de modo que un bit sin casilla (bandera futura o dato heredado) nunca se revoca desde el modal. La máscara conocida es el propio `All`, cuyo invariante `All_ShouldEqualTheOrOfEveryDeclaredFlag` ya está probado: no se añadió ninguna lista paralela que mantener y el contrato de fuente impide que una bandera declarada se quede sin representación.
+3. **`AuthorizationPolicies.PermissionPolicies` no es una reconstrucción de máscara**: es el mapa política → bandera (11 entradas; `CanUploadImages` no tiene política propia porque se exige en `GameEditorService.UpdateGameAsync`). No se tocó: cambiar la superficie de autorización queda fuera del alcance de esta corrección.
+4. **`WebMarkupContractTests` conserva sus contratos del modal**: los textos existentes («Gestionar Creadores de Contenido») y los iconos Lucide no se movieron ni reescribieron; las casillas nuevas siguen el mismo patrón de icono + título + descripción, y los cuatro iconos (`users`, `scroll`, `calendar`, `bell`) existen en `IconCatalog`.
+5. **Sin migraciones ni cambios de esquema**: `AppUsers.Permissions` sigue siendo el mismo entero; las banderas nuevas ya ocupaban bits vírgenes desde F2-bis.
+
+### Presupuesto y frontera de PR (F2-ter)
+
+- **Líneas cambiadas del slice**: `git diff --shortstat 723c668` → **412 inserciones y 0 supresiones en 5 archivos** de `src/` y `tests/`; artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Dentro del presupuesto de 1500 líneas indicado para el slice; por encima del presupuesto de revisión de 400 del incremento, que este slice acotado no cubría (el defecto es una regresión de F0/F2-bis, no un PR nuevo del desglose original).
+- **Modo**: corrección acotada sobre `inc/autenticacion-real-permisos` (giro de `stacked-to-main` dentro del mismo slice de F2-bis); sin migraciones y sin `sdd-archive` (F5).
+- **Frontera**: de `723c668` a las 12 casillas del modal con guardado sin pérdida y las 12 insignias.
+- **Reversión**: revertir los 2 commits de código devuelve el árbol a `723c668`.
+
 ## Estado acumulado
 
-- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F3: 8/8** (mergeada en `51e16f3`). **F4: 6/6** (este slice).
-- Suite completa: **1231/1231** en Release, 0 con error, 0 omitidas (línea base de F4 `51e16f3`: 1142).
-- Listo para la verificación independiente de `sdd-verify` sobre el slice F4. F5 queda sin tocar.
+- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F2-bis: 6/6**. **F2-ter: 6/6** (esta corrección). **F3: 8/8** (mergeada en `51e16f3`). **F4: 6/6** (mergeada en `fc9e50b`). **F5: 0/6**.
+- Suite completa: **1258/1258** en Release, 0 con error, 0 omitidas (línea base del slice corregido `723c668`: 1247).
+- Listo para la verificación independiente de `sdd-verify` sobre F2-bis + F2-ter (y, si el maintainer lo pide, sobre el conjunto F0–F4 antes de F5). F5 queda sin tocar.

@@ -16,13 +16,13 @@ using Xunit;
 namespace Ludeka.UnitTests.Web;
 
 /// <summary>
-/// Evaluación real de las 9 políticas de permiso de INC-46 (F2) contra el AppUser de la sesión:
+/// Evaluación real de las 11 políticas de permiso de INC-46 contra el AppUser de la sesión:
 /// anónimos y cuentas comunitarias denegados, moderador solo con el flag exacto, fundador
 /// permitido y cuentas suspendidas denegadas aunque conserven permisos.
 /// </summary>
 public class PolicyAuthorizationTests : IAsyncLifetime
 {
-    /// <summary>Las 9 políticas exigidas por el diseño, congeladas aquí para detectar ausencias.</summary>
+    /// <summary>Las 11 políticas de permiso del diseño, congeladas aquí para detectar ausencias.</summary>
     private static readonly string[] PermissionPolicies =
     [
         "PermisoEditarFichas",
@@ -33,7 +33,9 @@ public class PolicyAuthorizationTests : IAsyncLifetime
         "PermisoGestionarTiendas",
         "PermisoPublicarInstagram",
         "PermisoVerAuditoria",
-        "PermisoGestionarUsuarios"
+        "PermisoGestionarUsuarios",
+        "PermisoGestionarEventos",
+        "PermisoGestionarNotificaciones"
     ];
 
     private SqliteConnection _connection = null!;
@@ -118,6 +120,8 @@ public class PolicyAuthorizationTests : IAsyncLifetime
         Assert.True(await AuthorizeAsync("PermisoAprobarMedios", "laura_mod"));
         Assert.False(await AuthorizeAsync("PermisoResolverReportes", "laura_mod"));
         Assert.False(await AuthorizeAsync("PermisoGestionarUsuarios", "laura_mod"));
+        Assert.False(await AuthorizeAsync("PermisoGestionarEventos", "laura_mod"));
+        Assert.False(await AuthorizeAsync("PermisoGestionarNotificaciones", "laura_mod"));
     }
 
     [Theory]
@@ -150,12 +154,25 @@ public class PolicyAuthorizationTests : IAsyncLifetime
     [InlineData("PermisoPublicarInstagram", ModeratorPermission.CanPublishInstagram)]
     [InlineData("PermisoVerAuditoria", ModeratorPermission.CanViewAuditLog)]
     [InlineData("PermisoGestionarUsuarios", ModeratorPermission.CanManageUsers)]
+    [InlineData("PermisoGestionarEventos", ModeratorPermission.CanManageEvents)]
+    [InlineData("PermisoGestionarNotificaciones", ModeratorPermission.CanManageNotifications)]
     public async Task EachPolicy_ShouldBeGrantedByItsExactFlag(string policyName, ModeratorPermission permission)
     {
         var userId = $"mod-{permission}";
         await SeedUserAsync(new AppUser(userId, userId, $"{userId}@ludeka.es", UserRole.Moderator, permission));
 
         Assert.True(await AuthorizeAsync(policyName, userId));
+    }
+
+    [Fact]
+    public async Task NewPermissionPolicies_ShouldNotCrossGrantEachOther()
+    {
+        await SeedUserAsync(new AppUser(
+            "nuria_eventos", "Nuria", "nuria@ludeka.es",
+            UserRole.Moderator, ModeratorPermission.CanManageEvents));
+
+        Assert.True(await AuthorizeAsync("PermisoGestionarEventos", "nuria_eventos"));
+        Assert.False(await AuthorizeAsync("PermisoGestionarNotificaciones", "nuria_eventos"));
     }
 
     [Fact]
@@ -179,7 +196,7 @@ public class PolicyAuthorizationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void PolicyNames_ShouldExposeTheNinePermissionPoliciesPlusTheModeratorRolePolicy()
+    public void PolicyNames_ShouldExposeTheElevenPermissionPoliciesPlusTheModeratorRolePolicy()
     {
         Assert.Equal(PermissionPolicies.Length, AuthorizationPolicies.PermissionPolicies.Count);
         Assert.All(PermissionPolicies, name => Assert.True(AuthorizationPolicies.PermissionPolicies.ContainsKey(name)));

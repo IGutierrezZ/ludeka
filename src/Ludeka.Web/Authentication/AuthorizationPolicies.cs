@@ -6,9 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 namespace Ludeka.Web.Authentication;
 
 /// <summary>
-/// Nombres, mapeo y configuración de las 9 políticas de permiso de INC-46 —una por
-/// <see cref="ModeratorPermission"/>— y de la política de rol que preserva el acceso actual
-/// de las páginas administrativas que hoy solo comprueban el rol en el marcado.
+/// Nombres, mapeo y configuración de las 11 políticas de permiso de INC-46 —una por
+/// <see cref="ModeratorPermission"/>— y de la política de rol conservada por compatibilidad.
 /// </summary>
 public static class AuthorizationPolicies
 {
@@ -21,10 +20,13 @@ public static class AuthorizationPolicies
     public const string PermisoPublicarInstagram = nameof(PermisoPublicarInstagram);
     public const string PermisoVerAuditoria = nameof(PermisoVerAuditoria);
     public const string PermisoGestionarUsuarios = nameof(PermisoGestionarUsuarios);
+    public const string PermisoGestionarEventos = nameof(PermisoGestionarEventos);
+    public const string PermisoGestionarNotificaciones = nameof(PermisoGestionarNotificaciones);
 
     /// <summary>
-    /// Política de rol para las páginas que hoy exigen rol en el marcado: mantenerla evita ampliar
-    /// o reducir su público mientras el maintainer no decida un permiso específico (INC-46 §9.3).
+    /// Política de rol que conservaba el público de `/admin/eventos` y `/admin/notificaciones`
+    /// mientras el maintainer no decidía un permiso específico (INC-46 §9.3). Ya no la declara
+    /// ninguna página, pero se mantiene registrada porque otros incrementos pueden depender de ella.
     /// </summary>
     public const string RolModerador = nameof(RolModerador);
 
@@ -41,9 +43,11 @@ public static class AuthorizationPolicies
             [PermisoPublicarInstagram] = ModeratorPermission.CanPublishInstagram,
             [PermisoVerAuditoria] = ModeratorPermission.CanViewAuditLog,
             [PermisoGestionarUsuarios] = ModeratorPermission.CanManageUsers,
+            [PermisoGestionarEventos] = ModeratorPermission.CanManageEvents,
+            [PermisoGestionarNotificaciones] = ModeratorPermission.CanManageNotifications,
         };
 
-    /// <summary>Registra las 9 políticas de permiso y la política de rol.</summary>
+    /// <summary>Registra las 11 políticas de permiso y la política de rol.</summary>
     public static void Configure(AuthorizationOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);

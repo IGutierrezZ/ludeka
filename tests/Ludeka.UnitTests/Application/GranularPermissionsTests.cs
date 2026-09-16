@@ -221,9 +221,9 @@ public class GranularPermissionsTests
     }
 
     [Fact]
-    public void All_WithTenGranularFlags_EqualsExpectedMask()
+    public void All_WithTwelveGranularFlags_EqualsExpectedMask()
     {
-        Assert.Equal(1023, (int)ModeratorPermission.All);
+        Assert.Equal(4095, (int)ModeratorPermission.All);
     }
 
     [Theory]
@@ -237,9 +237,33 @@ public class GranularPermissionsTests
     [InlineData(ModeratorPermission.CanPublishInstagram)]
     [InlineData(ModeratorPermission.CanManageUsers)]
     [InlineData(ModeratorPermission.CanViewAuditLog)]
+    [InlineData(ModeratorPermission.CanManageEvents)]
+    [InlineData(ModeratorPermission.CanManageNotifications)]
     public void All_IncludesEveryGranularFlag(ModeratorPermission flag)
     {
         Assert.True(ModeratorPermission.All.HasFlag(flag));
+    }
+
+    [Theory]
+    [InlineData(ModeratorPermission.CanManageEvents, 1 << 10)]
+    [InlineData(ModeratorPermission.CanManageNotifications, 1 << 11)]
+    public void NewFlags_ShouldKeepTheNextTwoBitPositionsWithoutShiftingStoredMasks(
+        ModeratorPermission flag,
+        int expectedBitValue)
+    {
+        // Contrato de persistencia: AppUsers.Permissions guarda el entero de la máscara, así que
+        // las banderas nuevas deben ocupar bits vírgenes y no desplazar los valores ya almacenados.
+        Assert.Equal(expectedBitValue, (int)flag);
+    }
+
+    [Fact]
+    public void All_ShouldEqualTheOrOfEveryDeclaredFlag()
+    {
+        var everyDeclaredFlag = Enum.GetValues<ModeratorPermission>()
+            .Where(flag => flag != ModeratorPermission.All)
+            .Aggregate(ModeratorPermission.None, (mask, flag) => mask | flag);
+
+        Assert.Equal(ModeratorPermission.All, everyDeclaredFlag);
     }
 
     [Fact]
