@@ -188,6 +188,50 @@
                                     <p class="text-[0.68rem] text-[var(--text-muted)] mt-0.5">Componer y publicar posts en la cuenta oficial de Instagram.</p>
                                 </div>
                             </label>
+
+                            @* 9. CanManageUsers (INC-46 F0) *@
+                            <label class="p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 @(_canManageUsers ? "bg-sky-500/10 border-sky-500/30 text-[var(--text-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] opacity-80")">
+                                <input type="checkbox" @bind="_canManageUsers" class="mt-0.5 rounded text-[var(--brand-primary)] focus:ring-0" />
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <Icon Name="users" Size="14" /> <span>Gestionar Cuentas y Privilegios</span>
+                                    </div>
+                                    <p class="text-[0.68rem] text-[var(--text-muted)] mt-0.5">Altas, roles, suspensiones y concesión de permisos de moderación.</p>
+                                </div>
+                            </label>
+
+                            @* 10. CanViewAuditLog (INC-46 F0) *@
+                            <label class="p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 @(_canViewAuditLog ? "bg-sky-500/10 border-sky-500/30 text-[var(--text-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] opacity-80")">
+                                <input type="checkbox" @bind="_canViewAuditLog" class="mt-0.5 rounded text-[var(--brand-primary)] focus:ring-0" />
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <Icon Name="scroll" Size="14" /> <span>Consultar la Bitácora de Auditoría</span>
+                                    </div>
+                                    <p class="text-[0.68rem] text-[var(--text-muted)] mt-0.5">Lectura del historial de cambios editoriales y de gobernanza.</p>
+                                </div>
+                            </label>
+
+                            @* 11. CanManageEvents (INC-46 F2-bis) *@
+                            <label class="p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 @(_canManageEvents ? "bg-sky-500/10 border-sky-500/30 text-[var(--text-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] opacity-80")">
+                                <input type="checkbox" @bind="_canManageEvents" class="mt-0.5 rounded text-[var(--brand-primary)] focus:ring-0" />
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <Icon Name="calendar" Size="14" /> <span>Gestionar Eventos Lúdicos</span>
+                                    </div>
+                                    <p class="text-[0.68rem] text-[var(--text-muted)] mt-0.5">Alta, edición y baja de grandes eventos lúdicos y sus carteles.</p>
+                                </div>
+                            </label>
+
+                            @* 12. CanManageNotifications (INC-46 F2-bis) *@
+                            <label class="p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 @(_canManageNotifications ? "bg-sky-500/10 border-sky-500/30 text-[var(--text-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] opacity-80")">
+                                <input type="checkbox" @bind="_canManageNotifications" class="mt-0.5 rounded text-[var(--brand-primary)] focus:ring-0" />
+                                <div>
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <Icon Name="bell" Size="14" /> <span>Gestionar Notificaciones Comunitarias</span>
+                                    </div>
+                                    <p class="text-[0.68rem] text-[var(--text-muted)] mt-0.5">Canales, webhooks y disparadores de las notificaciones del sistema.</p>
+                                </div>
+                            </label>
                         </div>
                     }
                 </div>
@@ -235,6 +279,10 @@
     private bool _canResolveReports;
     private bool _canManageStoreLinks;
     private bool _canPublishInstagram;
+    private bool _canManageUsers;
+    private bool _canViewAuditLog;
+    private bool _canManageEvents;
+    private bool _canManageNotifications;
 
     private bool _isSaving;
     private string? _errorMessage;
@@ -253,6 +301,10 @@
             _canResolveReports = perms.HasFlag(ModeratorPermission.CanResolveReports);
             _canManageStoreLinks = perms.HasFlag(ModeratorPermission.CanManageStoreLinks);
             _canPublishInstagram = perms.HasFlag(ModeratorPermission.CanPublishInstagram);
+            _canManageUsers = perms.HasFlag(ModeratorPermission.CanManageUsers);
+            _canViewAuditLog = perms.HasFlag(ModeratorPermission.CanViewAuditLog);
+            _canManageEvents = perms.HasFlag(ModeratorPermission.CanManageEvents);
+            _canManageNotifications = perms.HasFlag(ModeratorPermission.CanManageNotifications);
             _errorMessage = null;
         }
     }
@@ -272,6 +324,10 @@
         _canResolveReports = true;
         _canManageStoreLinks = true;
         _canPublishInstagram = true;
+        _canManageUsers = true;
+        _canViewAuditLog = true;
+        _canManageEvents = true;
+        _canManageNotifications = true;
     }
 
     private void ClearAllPermissions()
@@ -284,6 +340,10 @@
         _canResolveReports = false;
         _canManageStoreLinks = false;
         _canPublishInstagram = false;
+        _canManageUsers = false;
+        _canViewAuditLog = false;
+        _canManageEvents = false;
+        _canManageNotifications = false;
     }
 
     private async Task SavePermissions()
@@ -298,6 +358,11 @@
             var permissions = ModeratorPermission.None;
             if (_selectedRole == UserRole.Moderator)
             {
+                // Los bits fuera de ModeratorPermission.All no tienen casilla en este modal (banderas
+                // futuras o datos heredados). Se conservan siempre: guardar desde aquí nunca debe
+                // revocar en silencio un permiso que la interfaz no representa.
+                permissions = User.Permissions & ~ModeratorPermission.All;
+
                 if (_canEditGames) permissions |= ModeratorPermission.CanEditGames;
                 if (_canUploadImages) permissions |= ModeratorPermission.CanUploadImages;
                 if (_canManagePublishers) permissions |= ModeratorPermission.CanManagePublishers;
@@ -306,6 +371,10 @@
                 if (_canResolveReports) permissions |= ModeratorPermission.CanResolveReports;
                 if (_canManageStoreLinks) permissions |= ModeratorPermission.CanManageStoreLinks;
                 if (_canPublishInstagram) permissions |= ModeratorPermission.CanPublishInstagram;
+                if (_canManageUsers) permissions |= ModeratorPermission.CanManageUsers;
+                if (_canViewAuditLog) permissions |= ModeratorPermission.CanViewAuditLog;
+                if (_canManageEvents) permissions |= ModeratorPermission.CanManageEvents;
+                if (_canManageNotifications) permissions |= ModeratorPermission.CanManageNotifications;
             }
 
             var updated = await UserService.UpdateUserRoleAndPermissionsAsync(new UpdateUserRoleAndPermissionsCommand(
