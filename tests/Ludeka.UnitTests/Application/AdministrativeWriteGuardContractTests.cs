@@ -2,8 +2,10 @@ using System;
 using System.IO;
 using System.Linq;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Application.Features.Community;
 using Ludeka.Application.Features.Events;
+using Ludeka.Infrastructure.Services;
 using Ludeka.Infrastructure.YouTube;
 using Xunit;
 
@@ -28,6 +30,11 @@ public class AdministrativeWriteGuardContractTests
         typeof(MonitoredAccountService),
         typeof(CommunityNotificationService),
         typeof(YouTubeSearchService),
+        typeof(BggCatalogQueueService),
+        typeof(BggDiscoveryService),
+        typeof(BggMassIngestionService),
+        typeof(NightlyCatalogingService),
+        typeof(GeminiGameSummaryService),
     };
 
     [Theory]

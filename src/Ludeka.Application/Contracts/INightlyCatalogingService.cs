@@ -17,6 +17,12 @@ public interface INightlyCatalogingService
     Task<NightlyCatalogingResultDto> ExecuteNightlyCatalogingAsync(int? customLimit = null, CancellationToken ct = default);
 
     /// <summary>
+    /// Ciclo de sistema del servicio hospedado (INC-46, W1): misma catalogación sin la guarda de la
+    /// interfaz, para que el proceso programado no dependa de ninguna sesión.
+    /// </summary>
+    Task<NightlyCatalogingResultDto> RunScheduledCatalogingAsync(int? customLimit = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Obtiene el historial de ejecuciones recientes registradas en la bitácora.
     /// </summary>
     Task<IReadOnlyList<NightlyCatalogingExecutionLogDto>> GetExecutionHistoryAsync(int limit = 20, CancellationToken ct = default);

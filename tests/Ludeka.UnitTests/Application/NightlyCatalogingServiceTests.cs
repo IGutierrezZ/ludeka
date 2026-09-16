@@ -413,6 +413,12 @@ public class NightlyCatalogingServiceTests
             return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
         }
 
+        public Task<BggDiscoveryResultDto> RunBggTrendsDiscoveryAsync(int maxItems = 50, CancellationToken ct = default)
+        {
+            WasCalled = true;
+            return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
+        }
+
         public Task<BggDiscoveryResultDto> DiscoverAndEnqueueNewReleasesAsync(int? targetYear = null, int maxItems = 50, CancellationToken ct = default)
         {
             WasCalled = true;

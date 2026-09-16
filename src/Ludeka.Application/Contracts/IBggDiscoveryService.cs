@@ -18,6 +18,11 @@ public interface IBggDiscoveryService
     Task<BggDiscoveryResultDto> DiscoverAndEnqueueBggTrendsAsync(int maxItems = 50, CancellationToken ct = default);
 
     /// <summary>
+    /// Escaneo de sistema del ciclo nocturno (INC-46, W1): misma lógica sin la guarda de la interfaz.
+    /// </summary>
+    Task<BggDiscoveryResultDto> RunBggTrendsDiscoveryAsync(int maxItems = 50, CancellationToken ct = default);
+
+    /// <summary>
     /// Escanea y encola específicamente lanzamientos de un año objetivo (por defecto año actual y previo).
     /// </summary>
     Task<BggDiscoveryResultDto> DiscoverAndEnqueueNewReleasesAsync(int? targetYear = null, int maxItems = 50, CancellationToken ct = default);

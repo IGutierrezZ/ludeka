@@ -22,6 +22,9 @@ namespace Ludeka.Application.Features.Bgg;
 /// </summary>
 public class BggMassIngestionService : IBggMassIngestionService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanEditGames' para ejecutar el drenaje del staging de catálogo.";
+
     private readonly IBggCatalogStagingRepository _stagingRepo;
     private readonly IBggClient _bggClient;
     private readonly IGeekDoImagesClient _geekDoClient;
@@ -31,6 +34,7 @@ public class BggMassIngestionService : IBggMassIngestionService
     private readonly HttpClient _httpClient;
     private readonly BggMassIngestionOptions _options;
     private readonly ILogger<BggMassIngestionService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public BggMassIngestionService(
         IBggCatalogStagingRepository stagingRepo,
@@ -41,7 +45,8 @@ public class BggMassIngestionService : IBggMassIngestionService
         IGameRepository gameRepo,
         HttpClient httpClient,
         IOptions<BggMassIngestionOptions> options,
-        ILogger<BggMassIngestionService> logger)
+        ILogger<BggMassIngestionService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _stagingRepo = stagingRepo ?? throw new ArgumentNullException(nameof(stagingRepo));
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
@@ -52,7 +57,18 @@ public class BggMassIngestionService : IBggMassIngestionService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new BggMassIngestionOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): el drenaje se dispara
+    /// desde el panel de cola; el ciclo nocturno usa la ruta de sistema. Las fases por lote son
+    /// primitivas internas del propio ciclo y no se exponen a la interfaz.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
 
     public async Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 30, CancellationToken ct = default)
     {
@@ -445,6 +461,14 @@ public class BggMassIngestionService : IBggMassIngestionService
     }
 
     public async Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await RunScheduledDrainCycleAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<BggMassIngestionCycleResultDto> RunScheduledDrainCycleAsync(CancellationToken ct = default)
     {
         _logger.LogInformation("Iniciando ciclo progresivo de drenaje de staging de catálogo...");
 
