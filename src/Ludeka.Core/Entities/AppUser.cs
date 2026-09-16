@@ -65,29 +65,11 @@ public class AppUser
 
     /// <summary>
     /// Determina si el usuario posee un permiso de moderación concreto considerando su estado y rol.
+    /// La regla vive en <see cref="ModeratorPermissionRules"/> para compartirla con la proyección
+    /// de la identidad de la sesión.
     /// </summary>
     public bool HasPermission(ModeratorPermission permission)
-    {
-        // Usuarios suspendidos no tienen ningún tipo de privilegio
-        if (Status == UserStatus.Suspended)
-            return false;
-
-        // Los miembros de la Mesa Fundadora tienen siempre todos los permisos
-        if (Role == UserRole.FoundingTeam)
-            return true;
-
-        // Los moderadores activos evalúan su máscara de permisos
-        if (Role == UserRole.Moderator)
-        {
-            if (permission == ModeratorPermission.None)
-                return true;
-
-            return (Permissions & permission) == permission;
-        }
-
-        // Usuarios comunitarios no tienen permisos de moderación
-        return false;
-    }
+        => ModeratorPermissionRules.Grants(Role, Status, Permissions, permission);
 
     /// <summary>
     /// Actualiza el rol y la máscara granular de permisos del usuario.

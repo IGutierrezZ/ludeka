@@ -23,19 +23,22 @@ public class SqliteUserRepository : IUserRepository
     {
         if (string.IsNullOrWhiteSpace(id)) return null;
         var cleanId = id.Trim().ToLowerInvariant();
-        return await _db.AppUsers.FirstOrDefaultAsync(u => u.Id == cleanId, ct);
+
+        // AsNoTracking: la identidad se relee en cada comprobación (políticas, circuito e
+        // invalidación en caliente) y una entidad rastreada devolvería permisos obsoletos.
+        return await _db.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cleanId, ct);
     }
 
     public async Task<AppUser?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(email)) return null;
         var cleanEmail = email.Trim().ToLowerInvariant();
-        return await _db.AppUsers.FirstOrDefaultAsync(u => u.Email == cleanEmail, ct);
+        return await _db.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Email == cleanEmail, ct);
     }
 
     public async Task<IReadOnlyList<AppUser>> GetAllAsync(string? search = null, UserRole? role = null, UserStatus? status = null, CancellationToken ct = default)
     {
-        var query = _db.AppUsers.AsQueryable();
+        var query = _db.AppUsers.AsNoTracking().AsQueryable();
 
         if (role.HasValue)
         {

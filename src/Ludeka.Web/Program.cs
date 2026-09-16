@@ -30,6 +30,7 @@ using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web.Components;
 using Ludeka.Web.Authentication;
+using Ludeka.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -40,6 +41,7 @@ using Ludeka.Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Mvc;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
@@ -239,8 +241,13 @@ builder.Services.AddScoped<ICommunityNotificationRepository, SqliteCommunityNoti
 builder.Services.AddScoped<ICommunityNotificationService, CommunityNotificationService>();
 builder.Services.AddHostedService<CommunityNotificationDispatcherHostedService>();
 
-// Servicio de identidad en demo (Singleton para permitir alternancia interactiva de roles en la sesión)
-builder.Services.AddSingleton<ICurrentUserService, DefaultCurrentUserService>();
+// Incremento 46 (Paso 2): la identidad se resuelve desde la sesión autenticada y la simulación
+// se retira. Scoped por ámbito (petición SSR o circuito) y poblada por UserCircuitHandler; sin
+// sesión, UserId vacío y todo denegado, sin usuario centinela.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UserIdentitySnapshot>();
+builder.Services.AddScoped<ICurrentUserService, AuthenticatedCurrentUserService>();
+builder.Services.AddScoped<CircuitHandler, UserCircuitHandler>();
 builder.Services.AddScoped<IUserLibraryService, UserLibraryService>();
 builder.Services.AddScoped<IUserLibraryStatsService, UserLibraryStatsService>();
 builder.Services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
