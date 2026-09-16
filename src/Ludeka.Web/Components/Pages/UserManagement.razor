@@ -7,29 +7,23 @@
 @using Ludeka.Web.Components.Shared
 @inject IUserManagementService UserService
 @inject ICurrentUserService CurrentUserService
-@inject NavigationManager Navigation
 
 <PageTitle>Gestión de Usuarios y Permisos | Ludeka</PageTitle>
 
 <div class="container-ludeka py-8 space-y-6">
-    @* Verificación de Rol *@
-    @if (!CurrentUserService.IsFoundingTeam)
+    @* Verificación de Permiso (mejora de experiencia: la autorización real la ejerce la política) *@
+    @if (!CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers))
     {
         <div class="max-w-md mx-auto py-16 text-center space-y-4">
             <span class="inline-block"><Icon Name="shield" Size="48" /></span>
-            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Exclusivo Mesa Fundadora</h1>
+            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Gestión de Usuarios Restringida</h1>
             <p class="text-sm text-[var(--text-secondary)]">
-                La administración de cuentas, asignación de roles y configuración de permisos granulares está reservada a la Mesa Fundadora de Ludeka.
+                La administración de cuentas, la asignación de roles y la configuración de permisos granulares exige el permiso de gestión de usuarios.
             </p>
             <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                <p class="mb-2">
-                    <Icon Name="lightbulb" Size="14" /> Para fines de demostración, puedes activar el <strong>Modo Fundador</strong> en la barra superior.
+                <p>
+                    <Icon Name="lightbulb" Size="14" /> El permiso se concede por cuenta y se revisa en cada operación; no puede activarse desde la interfaz.
                 </p>
-                <button type="button"
-                        @onclick="SwitchToFounder"
-                        class="px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-opacity">
-                    Activar Modo Fundador Ahora
-                </button>
             </div>
             <a href="/" class="inline-block text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline">
                 &larr; Volver al Catálogo
@@ -65,18 +59,6 @@
                 </a>
             </div>
         </div>
-
-        @* Notificación de Simulación en Vivo *@
-        @if (!string.IsNullOrWhiteSpace(_simulationMessage))
-        {
-            <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between animate-fade-in">
-                <div class="flex items-center gap-2">
-                    <Icon Name="drama" Size="16" />
-                    <span>@_simulationMessage</span>
-                </div>
-                <button type="button" @onclick="() => _simulationMessage = null" class="text-amber-400 hover:text-white font-bold">&times;</button>
-            </div>
-        }
 
         @* Barra de Filtros y Búsqueda *@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs">
@@ -205,14 +187,6 @@
                         @* Acciones de la Mesa Fundadora *@
                         <div class="flex flex-wrap items-center gap-2 self-end md:self-center shrink-0">
                             <button type="button"
-                                    @onclick="() => SimulateUser(user)"
-                                    title="Simular navegación activa bajo este usuario"
-                                    class="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-amber-400 font-semibold border border-[var(--border-subtle)] transition-colors flex items-center gap-1">
-                                <Icon Name="drama" Size="14" />
-                                <span>Simular</span>
-                            </button>
-
-                            <button type="button"
                                     @onclick="() => OpenPermissionsModal(user)"
                                     class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)]/15 hover:bg-[var(--brand-primary)]/25 text-[var(--brand-primary)] font-bold border border-[var(--brand-primary)]/30 transition-colors flex items-center gap-1">
                                 <Icon Name="settings" Size="14" />
@@ -260,7 +234,6 @@
 
     private bool _isPermissionsModalOpen;
     private AppUserDto? _selectedUserForEdit;
-    private string? _simulationMessage;
 
     private IReadOnlyList<AppUserDto> FilteredUsers
     {
@@ -298,7 +271,7 @@
         try
         {
             _isLoading = true;
-            if (CurrentUserService.IsFoundingTeam)
+            if (CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers))
             {
                 var list = await UserService.GetUsersAsync();
                 _users = list.ToList();
@@ -346,18 +319,6 @@
         var newStatus = user.Status == UserStatus.Active ? UserStatus.Suspended : UserStatus.Active;
         var updated = await UserService.UpdateUserStatusAsync(new UpdateUserStatusCommand(user.Id, newStatus));
         HandleUserUpdated(updated);
-    }
-
-    private void SimulateUser(AppUserDto user)
-    {
-        CurrentUserService.SwitchUser(user.Id);
-        _simulationMessage = $"Sesión simulada activa como '{user.UserName}' ({user.RoleDisplayName}). Los controles de navegación y botones se adaptarán a sus permisos.";
-    }
-
-    private void SwitchToFounder()
-    {
-        CurrentUserService.SwitchRole("FoundingTeam");
-        Navigation.NavigateTo("/admin/usuarios", forceLoad: true);
     }
 
     private static string GetRoleIcon(UserRole role) => role switch

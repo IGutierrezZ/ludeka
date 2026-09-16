@@ -180,7 +180,7 @@ public class GamePlayLogServiceTests
         public IReadOnlyList<string> Roles { get; set; } = ["User"];
         public bool IsFoundingTeam => IsInRole("FoundingTeam");
         public bool IsInRole(string role) => Roles.Contains(role);
-        public void SwitchRole(string role) => Roles = [role];
+        public bool HasPermission(ModeratorPermission permission) => IsFoundingTeam || IsInRole("Moderator");
     }
 
     private static Game CreateGame(string title = "Catan")

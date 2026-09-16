@@ -8,29 +8,23 @@
 @inject IGameIssueReportService ReportService
 @inject ICurrentUserService CurrentUserService
 @inject ICatalogService CatalogService
-@inject NavigationManager Navigation
 
 <PageTitle>Bandeja de Reportes de Catálogo | Ludeka</PageTitle>
 
 <div class="container-ludeka py-8 space-y-6">
-    @* Verificación de Rol y Permisos *@
-    @if (!CurrentUserService.IsFoundingTeam && !(CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports)))
+    @* Verificación de Permiso (mejora de experiencia: la autorización real la ejerce la política) *@
+    @if (!CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
     {
         <div class="max-w-md mx-auto py-16 text-center space-y-4">
             <span class="inline-block"><Icon Name="shield" Size="48" /></span>
             <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Restringido</h1>
             <p class="text-sm text-[var(--text-secondary)]">
-                Esta sección está reservada para moderadores y el equipo fundador de Ludeka.
+                La bandeja de reportes de catálogo exige el permiso de resolución de reportes.
             </p>
             <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                <p class="mb-2">
-                    <Icon Name="lightbulb" Size="14" /> Para fines de demostración, puedes activar el <strong>Modo Fundador</strong> en la barra superior.
+                <p>
+                    <Icon Name="lightbulb" Size="14" /> El permiso se concede por cuenta y se revisa en cada operación; no puede activarse desde la interfaz.
                 </p>
-                <button type="button"
-                        @onclick="SwitchToFounder"
-                        class="px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-opacity">
-                    Activar Modo Fundador Ahora
-                </button>
             </div>
             <a href="/" class="inline-block text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline">
                 &larr; Volver al Catálogo
@@ -594,12 +588,6 @@
         ));
 
         await LoadDataAsync();
-    }
-
-    private void SwitchToFounder()
-    {
-        CurrentUserService.SwitchRole("FoundingTeam");
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
     private static string GetIssueIcon(GameIssueType type) => type switch

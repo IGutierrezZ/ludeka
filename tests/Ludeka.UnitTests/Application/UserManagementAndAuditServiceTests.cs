@@ -119,17 +119,6 @@ public class UserManagementAndAuditServiceTests
             if (IsFoundingTeam) return true;
             return (Permissions & permission) == permission;
         }
-
-        public void SwitchRole(string role)
-        {
-            RolesList.Clear();
-            RolesList.Add(role);
-        }
-
-        public void SwitchUser(string userId)
-        {
-            UserId = userId;
-        }
     }
 
     [Fact]
@@ -138,7 +127,7 @@ public class UserManagementAndAuditServiceTests
         var userRepo = new FakeUserRepository();
         var auditRepo = new FakeAuditLogRepository();
         var currentUser = new FakeCurrentUserService();
-        currentUser.SwitchRole("User"); // No es fundador
+        currentUser.RolesList = ["User"]; // No es fundador
 
         var auditService = new AuditService(auditRepo, currentUser);
         var userService = new UserManagementService(userRepo, auditService, currentUser);

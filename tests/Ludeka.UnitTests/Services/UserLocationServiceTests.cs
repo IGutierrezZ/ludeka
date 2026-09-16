@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Services;
 using Xunit;
 
@@ -19,7 +20,7 @@ public class UserLocationServiceTests
         public IReadOnlyList<string> Roles => ["User"];
         public bool IsFoundingTeam => false;
         public bool IsInRole(string role) => false;
-        public void SwitchRole(string role) { }
+        public bool HasPermission(ModeratorPermission permission) => false;
     }
 
     private class FakeUserPreferenceService : IUserPreferenceService
