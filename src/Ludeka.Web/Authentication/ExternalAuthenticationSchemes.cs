@@ -160,6 +160,8 @@ public static class ExternalAuthenticationSchemes
                     google.SignInScheme = SessionCookieScheme;
                     AddScope(google.Scope, "email");
                     AddScope(google.Scope, "profile");
+                    google.ClaimActions.MapJsonKey(ExternalLoginEvents.EmailVerifiedClaim, "email_verified");
+                    google.ConfigureExternalLogin(registration.Name);
                 });
                 break;
 
@@ -172,6 +174,8 @@ public static class ExternalAuthenticationSchemes
                     discord.SignInScheme = SessionCookieScheme;
                     AddScope(discord.Scope, "identify");
                     AddScope(discord.Scope, "email");
+                    discord.ClaimActions.MapJsonKey(ExternalLoginEvents.EmailVerifiedClaim, "verified");
+                    discord.ConfigureExternalLogin(registration.Name);
                 });
                 break;
 
@@ -185,6 +189,8 @@ public static class ExternalAuthenticationSchemes
                     AddScope(facebook.Scope, "email");
                     if (!facebook.Fields.Contains("email")) facebook.Fields.Add("email");
                     if (!facebook.Fields.Contains("name")) facebook.Fields.Add("name");
+                    facebook.ClaimActions.MapJsonKey(ExternalLoginEvents.EmailVerifiedClaim, "verified");
+                    facebook.ConfigureExternalLogin(registration.Name);
                 });
                 break;
         }

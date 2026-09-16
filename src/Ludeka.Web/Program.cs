@@ -38,6 +38,9 @@ using System.Text.RegularExpressions;
 using Ludeka.Web.Health;
 using Ludeka.Infrastructure.Options;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
+using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +64,10 @@ builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection(Ad
 var authenticationOptions = builder.Configuration
     .GetSection(AuthenticationOptions.SectionName)
     .Get<AuthenticationOptions>() ?? new AuthenticationOptions();
+builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.SectionName));
 builder.Services.AddLudekaAuthentication(authenticationOptions);
+builder.Services.AddScoped<IExternalLoginRepository, ExternalLoginRepository>();
+builder.Services.AddScoped<IExternalLoginService, ExternalLoginService>();
 
 // Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
 var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
@@ -422,6 +428,29 @@ app.MapHealthChecks("/ready", new HealthCheckOptions
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
     }
 });
+
+// Incremento 46: acceso social y cierre de sesión. El POST solo desafía al proveedor habilitado;
+// el esquema externo resuelve la identidad y firma la cookie de sesión propia de Ludeka.
+// El token antiforgery del formulario se valida automáticamente al ligar datos del formulario.
+app.MapPost("/login/external", ([FromForm] string? provider, IOptions<AuthenticationOptions> options) =>
+{
+    var registration = ExternalAuthenticationSchemes
+        .GetEnabledProviders(options.Value)
+        .FirstOrDefault(candidate => string.Equals(candidate.Name, provider, StringComparison.OrdinalIgnoreCase));
+
+    if (registration is null)
+    {
+        return Results.BadRequest(new { error = "El proveedor de acceso indicado no está habilitado." });
+    }
+
+    return Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [registration.Scheme]);
+}).AllowAnonymous();
+
+app.MapGet("/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
+    return Results.Redirect("/");
+}).AllowAnonymous();
 
 // Endpoint de entrega de tarjeta vectorial para Instagram (Incremento 28)
 app.MapGet("/api/instagram/card/{draftId:guid}.svg", async (Guid draftId, IInstagramPublisherService publisherService) =>

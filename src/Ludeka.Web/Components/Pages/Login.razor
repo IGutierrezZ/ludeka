@@ -1,0 +1,63 @@
+@page "/login"
+@using Ludeka.Application.Features.Identity
+@using Microsoft.Extensions.Options
+@inject IOptions<AuthenticationOptions> AuthenticationOptionsAccessor
+
+<PageTitle>Acceso | Ludeka</PageTitle>
+
+<div class="container-ludeka py-16 max-w-md mx-auto">
+    <section class="rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-8 space-y-8">
+        <header class="space-y-3 text-center">
+            <span class="inline-block"><Icon Name="dices" Size="40" /></span>
+            <h1 class="text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">Acceso a Ludeka</h1>
+            <p class="text-sm text-[var(--text-secondary)]">
+                El Letterboxd de los juegos de mesa en español. Entra con tu cuenta social:
+                sin registro, sin contraseña y sin correo de confirmación.
+            </p>
+        </header>
+
+        @if (_providers.Count == 0)
+        {
+            <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)]"
+                 role="status">
+                <p class="font-bold text-[var(--text-primary)]">El acceso social aún no está configurado.</p>
+                <p class="mt-1 text-xs">
+                    La Mesa Fundadora debe habilitar un proveedor con sus credenciales
+                    (<code>Authentication:Providers</code>) antes de poder iniciar sesión.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-3">
+                @foreach (var provider in _providers)
+                {
+                    <form method="post" action="/login/external" data-enhance="false">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="provider" value="@provider.Name" />
+                        <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--brand-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity"
+                                aria-label="Continuar con @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)">
+                            <Icon Name="shield" Size="18" />
+                            Continuar con @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+
+        <p class="text-center text-xs text-[var(--text-secondary)]">
+            Al continuar aceptas el funcionamiento público de la comunidad y la
+            <a href="/transparencia" class="underline hover:text-[var(--text-primary)]">política de transparencia</a>.
+        </p>
+    </section>
+</div>
+
+@code {
+    private IReadOnlyList<ExternalProviderRegistration> _providers = [];
+
+    protected override void OnInitialized()
+    {
+        _providers = ExternalAuthenticationSchemes.GetEnabledProviders(AuthenticationOptionsAccessor.Value);
+    }
+}
