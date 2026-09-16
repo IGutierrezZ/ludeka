@@ -69,7 +69,7 @@ Lo corrobora el test `UnverifiedEmail_ShouldNotFuseAccountsAndShouldProvisionANe
 
 ### 4. Superficie de UI de cuenta
 
-**No existe ninguna página bajo `/cuenta` ni de ajustes de perfil** (búsqueda sin resultados en todo `src/Ludeka.Web`). Tampoco existe ningún patrón "página para cualquier usuario autenticado, sin permiso granular": las 11 páginas con `[Authorize(Policy = ...)]` (`AuthorizationPolicies.cs:14-24`, todas atadas a un `ModeratorPermission`) son de administración o moderación.
+**No existe ninguna página bajo `/cuenta` ni de ajustes de perfil** (búsqueda sin resultados en todo `src/Ludeka.Web`). Tampoco existe ningún patrón "página para cualquier usuario autenticado, sin permiso granular": las 10 páginas con `[Authorize(Policy = ...)]` (`AuthorizationPolicies.cs:14-24`, todas atadas a un `ModeratorPermission`) son de administración o moderación.
 
 La página más parecida por audiencia es `MyLibrary.razor` (`/mi-ludoteca`, `@rendermode InteractiveServer`), pero **no** lleva `[Authorize]`: es pública, inyecta `ICurrentUserService` (línea 8) y muestra un aviso de "estás navegando sin sesión" cuando `!HasSession` (líneas 60-70), degradando en vez de redirigir.
 
@@ -224,7 +224,7 @@ Explorar sin decidir. La evidencia apunta a que la ruta de menor riesgo técnico
 - El flujo de colisión (§2.4) exige tocar `ExternalLoginService.ResolveAsync`, hoy cubierto por pruebas verdes de INC-46: cualquier cambio necesita pruebas de regresión explícitas para no romper la cascada existente.
 - Sin resolver la decisión 2, cualquier lectura de "correo verificado" construida sobre el dato actual sería incorrecta desde el primer commit.
 - La ausencia de FK real en 12 de las 13 entidades relacionadas con `AppUser` significa que ni una fusión ni un borrado de cuenta tienen red de seguridad de integridad referencial en la base de datos: todo el cuidado recae en el código de aplicación.
-- `/cuenta/conexiones` como página "solo para sesión iniciada" no tiene precedente exacto (las 11 páginas `[Authorize]` existentes exigen permiso granular, no solo autenticación); el diseño debe fijar explícitamente ese patrón nuevo.
+- `/cuenta/conexiones` como página "solo para sesión iniciada" no tiene precedente exacto (las 10 páginas `[Authorize]` existentes exigen permiso granular, no solo autenticación); el diseño debe fijar explícitamente ese patrón nuevo.
 
 ---
 
