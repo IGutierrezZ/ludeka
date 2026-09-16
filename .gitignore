@@ -39,3 +39,8 @@ Thumbs.db
 
 # Staging local de assets del usuario (no versionar)
 assets-usuario/
+
+# Artefactos generados por el tooling de agentes (se regeneran solos)
+.atl/skill-registry.md
+.atl/.skill-registry.cache.json
+.axiom/cache/autoskills/index.json
