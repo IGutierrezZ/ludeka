@@ -22,8 +22,8 @@ public class AuthorizationPipelineContractTests
         { "MonitoredAccountsDirectory.razor", "/admin/canales-monitorizados", AuthorizationPolicies.PermisoAprobarMedios },
         { "MediaModeration.razor", "/moderacion-media", AuthorizationPolicies.PermisoAprobarMedios },
         { "GameReportsModeration.razor", "/moderacion/reportes", AuthorizationPolicies.PermisoResolverReportes },
-        { "AdminNotifications.razor", "/admin/notificaciones", AuthorizationPolicies.RolModerador },
-        { "EventsManagement.razor", "/admin/eventos", AuthorizationPolicies.RolModerador },
+        { "AdminNotifications.razor", "/admin/notificaciones", AuthorizationPolicies.PermisoGestionarNotificaciones },
+        { "EventsManagement.razor", "/admin/eventos", AuthorizationPolicies.PermisoGestionarEventos },
     };
 
     [Fact]
