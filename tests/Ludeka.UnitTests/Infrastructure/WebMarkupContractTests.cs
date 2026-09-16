@@ -91,9 +91,11 @@ public class WebMarkupContractTests
           new[] { "@page \"/sorteos\"", "@page \"/radar\"" },
           new[] { "¡Radar renovado!", "IsLegacyRoute" } },
 
-        // Icon: SVG Lucide inline, currentColor, aria-hidden por defecto; sin <img> ni peticiones de red
+        // Icon: SVG Lucide inline, currentColor, aria-hidden por defecto; sin <img> ni peticiones de red.
+        // INC-46 F3: acepta atributos adicionales (class, aria-*) aplicados al SVG; sin ese paso
+        // directo, las llamadas que los pasaban lanzaban InvalidOperationException al renderizar.
         { "Icon (SVG Lucide inline)", "src/Ludeka.Web/Components/Shared/Icon.razor",
-          new[] { "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "aria-hidden=\"true\"" },
+          new[] { "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "aria-hidden=\"true\"", "[Parameter(CaptureUnmatchedValues = true)]", "@attributes=\"AdditionalAttributes\"" },
           new[] { "<img", "http" } },
 
         // DefaultImage: SVG inline temable por variables de tema; sin <img> roto

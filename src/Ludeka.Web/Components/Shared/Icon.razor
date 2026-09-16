@@ -2,16 +2,17 @@
    para heredar el color del tema, sin peticiones de red (sin etiqueta de imagen ni fuente externa).
    Con Title (señal semántica) se expone role="img" con su texto accesible; sin Title el
    icono es decorativo y queda oculto a lectores de pantalla (aria-hidden="true").
-   Un nombre fuera del catálogo no renderiza nada: sin SVG, sin emoji y sin error. *@
+   Un nombre fuera del catálogo no renderiza nada: sin SVG, sin emoji y sin error.
+   Los atributos adicionales (clases, aria-*, data-*) se aplican al SVG por paso directo. *@
 @if (IconCatalog.Icons.TryGetValue(Name, out var paths))
 {
     @if (Title is null)
     {
-        <svg width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="@StrokeWidth" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">@((MarkupString)paths)</svg>
+        <svg @attributes="AdditionalAttributes" width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="@StrokeWidth" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">@((MarkupString)paths)</svg>
     }
     else
     {
-        <svg width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="@StrokeWidth" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="@Title" focusable="false"><title>@Title</title>@((MarkupString)paths)</svg>
+        <svg @attributes="AdditionalAttributes" width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="@StrokeWidth" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="@Title" focusable="false"><title>@Title</title>@((MarkupString)paths)</svg>
     }
 }
 
@@ -27,4 +28,10 @@
 
     /// <summary>Texto accesible si el icono transmite significado; null => decorativo.</summary>
     [Parameter] public string? Title { get; set; }
+
+    /// <summary>
+    /// Atributos adicionales aplicados al SVG (por ejemplo <c>class</c> o <c>aria-hidden</c>).
+    /// Los atributos propios del componente tienen precedencia si hay colisión.
+    /// </summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 }
