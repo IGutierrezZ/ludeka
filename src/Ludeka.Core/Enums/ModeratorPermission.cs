@@ -65,7 +65,17 @@ public enum ModeratorPermission
     CanViewAuditLog = 1 << 9, // 512
 
     /// <summary>
+    /// Permiso para dar de alta, editar y eliminar grandes eventos lúdicos y sus carteles.
+    /// </summary>
+    CanManageEvents = 1 << 10, // 1024
+
+    /// <summary>
+    /// Permiso para gestionar los canales, webhooks y disparadores de las notificaciones comunitarias.
+    /// </summary>
+    CanManageNotifications = 1 << 11, // 2048
+
+    /// <summary>
     /// Conjunción de todos los permisos granulares del sistema.
     /// </summary>
-    All = CanEditGames | CanUploadImages | CanManagePublishers | CanManageCreators | CanApproveMedia | CanResolveReports | CanManageStoreLinks | CanPublishInstagram | CanManageUsers | CanViewAuditLog // 1023
+    All = CanEditGames | CanUploadImages | CanManagePublishers | CanManageCreators | CanApproveMedia | CanResolveReports | CanManageStoreLinks | CanPublishInstagram | CanManageUsers | CanViewAuditLog | CanManageEvents | CanManageNotifications // 4095
 }
