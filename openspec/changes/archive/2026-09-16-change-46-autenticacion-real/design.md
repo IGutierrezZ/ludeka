@@ -80,5 +80,5 @@ N/A — el cambio no toca routing de agente, shell, subprocesos, VCS/PR ni clasi
 ## 9. Preguntas Abiertas (confirmación del maintainer)
 
 1. **Aplazar la pantalla de vinculación manual**, documentando que un segundo proveedor con correo no coincidente crea una cuenta separada.
-2. **Procedimiento de vinculación del fundador**: página protegida y auditada, no la vinculación automática de `AdminUser__Email` al primer login.
+2. **Procedimiento de vinculación del fundador**: página protegida y auditada, no la vinculación automática de `AdminUser__Email` al primer login. *(Resolución de archivo (2026-09-16, W3): no se implementa en este cambio —`/admin/vinculacion-fundador` no existe—; el maintainer traslada la pantalla de vinculación manual de proveedores y la política de cuentas sin correo verificado al INC-49, fuera del alcance de INC-46.)*
 3. **Dos flags nuevos**, `PermisoGestionarEditores`→`CanManagePublishers` y `/admin/eventos` y `/admin/notificaciones` bajo `PermisoGestionarEditores` (hoy los abre cualquier `Moderator`).

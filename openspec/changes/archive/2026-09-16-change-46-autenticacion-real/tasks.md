@@ -165,9 +165,12 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 5 — Verificación, documentación y archive (PR 8)
 
-- [ ] 5.1 `dotnet test Ludeka.sln` completo en verde; registrar el conteo de pruebas superadas.
-- [ ] 5.2 Volcar el incremento en `docs/specs/sistema/` (módulo de autenticación nuevo, actualización de `docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md`) y en `docs/specs/sistema/README.md`.
-- [ ] 5.3 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-- [ ] 5.4 Mover `docs/increments/inc-46-autenticacion-real.md` a `docs/increments/archive/inc-46-autenticacion-real.md`.
-- [ ] 5.5 Ejecutar `gentle-ai sdd-archive-compose` sobre los deltas contra las specs canónicas ya normalizadas (depende de 0.1–0.3) y mover el cambio a `openspec/changes/archive/`.
-- [ ] 5.6 Publicar los PRs encadenados y limpiar el worktree con `scripts/sdd-worktree.ps1` (read-only).
+> Ejecutada por `sdd-archive` el 2026-09-16 sobre la rama `inc/autenticacion-real-cierre` (worktree `autenticacion-real`), con autorización explícita del orquestador para ejecutar las tareas de cierre (5.1–5.5). La tarea 5.6 (PR/cleanup) queda diferida a la entrega: la fase de archivo tiene prohibido `git push`/PR por instrucción del orquestador. Correcciones de archivo aplicadas: **W2** (recuento del delta `policy-based-authorization`: «11 páginas» → «10 páginas (14 rutas con alias)», y enumeración de PA-2 alineada a las 11 políticas reales) y **W3** (cierre de `design.md` §9.2: la página del fundador se traslada al INC-49).
+
+- [x] 5.1 `dotnet test Ludeka.sln --configuration Release` completo en verde; conteo registrado: **1345/1345, 0 errores, 0 omitidas** (reejecutado en el cierre; log en `%TEMP%\inc46-archive-final-test.log`).
+- [x] 5.2 Volcado a `docs/specs/sistema/`: módulo nuevo **32-autenticacion-y-autorizacion.md**, actualización de `14-gestion-usuarios-permisos-y-auditoria.md` y `09-arquitectura-y-despliegue.md`, e índice `README.md` con el módulo y el total real de **1.345** pruebas.
+- [x] 5.3 `docs/increments/ROADMAP.md` (INC-46 ✅ Archivado, bloqueo de producción y worktrees actualizados) y `docs/specs/ROADMAP_MVP_SLICES.md` (Incremento 46 con estado y módulos).
+- [x] 5.4 `docs/increments/inc-46-autenticacion-real.md` trasladado con `git mv` a `docs/increments/archive/inc-46-autenticacion-real.md`; `diff -r` contra la instantánea previa vacío.
+- [x] 5.5 `gentle-ai sdd-archive-compose` sobre los deltas contra las specs canónicas normalizadas: `editorial-role-management` y `media-moderation-panel` con salida 0 (1 MODIFIED + 1 REMOVED; 1 MODIFIED); las tres capacidades nuevas (`social-login-authentication`, `policy-based-authorization`, `anonymity-policy`) copiadas mecánicamente con `diff -r` vacío; cambio movido a `openspec/changes/archive/2026-09-16-change-46-autenticacion-real/`.
+- [ ] 5.6 Publicar los PRs encadenados y limpiar el worktree con `scripts/sdd-worktree.ps1` (read-only). **DIFERIDA a la entrega**: la fase de archivo tiene prohibido `git push`/PR; la publicación del PR y la limpieza del worktree quedan para el flujo de entrega posterior.
+
