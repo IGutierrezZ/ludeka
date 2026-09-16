@@ -25,7 +25,7 @@ public class BggImportServiceTests
         public bool IsModerator => false;
         public IReadOnlyList<string> Roles => ["User"];
         public bool IsInRole(string role) => false;
-        public void SwitchRole(string role) { }
+        public bool HasPermission(ModeratorPermission permission) => false;
     }
 
     private class FakeBggClient : IBggClient

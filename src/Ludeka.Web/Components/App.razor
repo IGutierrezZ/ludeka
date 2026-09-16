@@ -24,7 +24,8 @@
     <script>
         (function() {
             try {
-                var activeUserId = localStorage.getItem('ludeka-active-user-id') || 'usuario-fundador-ludeka';
+                // Sin identidad simulada: el tema se resuelve por usuario autenticado o por el tema global.
+                var activeUserId = localStorage.getItem('ludeka-active-user-id');
                 var theme = localStorage.getItem('ludeka-theme-' + activeUserId) || localStorage.getItem('ludeka-theme') || 'charcoal';
                 document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}

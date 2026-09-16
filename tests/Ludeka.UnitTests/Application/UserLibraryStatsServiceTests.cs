@@ -22,7 +22,7 @@ public class UserLibraryStatsServiceTests
         public IReadOnlyList<string> Roles { get; set; } = ["User"];
         public bool IsFoundingTeam => false;
         public bool IsInRole(string role) => Roles.Contains(role);
-        public void SwitchRole(string role) => Roles = [role];
+        public bool HasPermission(ModeratorPermission permission) => false;
     }
 
     private class FakeCollectionRepo : IUserCollectionRepository

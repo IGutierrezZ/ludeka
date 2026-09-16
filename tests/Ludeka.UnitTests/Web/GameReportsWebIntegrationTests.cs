@@ -75,7 +75,8 @@ public class GameReportsWebIntegrationTests
         var content = File.ReadAllText(path);
         Assert.Contains("@page \"/moderacion/reportes\"", content);
         Assert.Contains("@page \"/admin/reportes\"", content);
-        Assert.Contains("CurrentUserService.IsFoundingTeam", content);
+        // INC-46 F3: el marcado refleja el permiso de la política, ya sin la identidad simulada.
+        Assert.Contains("CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports)", content);
         Assert.Contains("Pendientes", content);
         Assert.Contains("En Revisión", content);
         Assert.Contains("Resueltos", content);

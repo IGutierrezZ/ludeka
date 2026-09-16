@@ -22,7 +22,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
     private IGameRepository _gameRepository = null!;
     private IUserReviewRepository _reviewRepository = null!;
     private IFoundingVerdictRepository _verdictRepository = null!;
-    private DefaultCurrentUserService _currentUserService = null!;
+    private FakeCurrentUserService _currentUserService = null!;
     private FoundingVerdictService _service = null!;
 
     public async Task InitializeAsync()
@@ -40,7 +40,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
         _gameRepository = new SqliteGameRepository(_context);
         _reviewRepository = new SqliteUserReviewRepository(_context);
         _verdictRepository = new SqliteFoundingVerdictRepository(_context);
-        _currentUserService = new DefaultCurrentUserService();
+        _currentUserService = new FakeCurrentUserService();
 
         _service = new FoundingVerdictService(
             _verdictRepository,
@@ -128,7 +128,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
     public async Task RequestAiSummaryGenerationAsync_WhenUserLacksModerationRole_ShouldThrowUnauthorized()
     {
         var game = await SeedGameAsync();
-        _currentUserService.SwitchRole("User");
+        _currentUserService.RolesList = ["User"];
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.RequestAiSummaryGenerationAsync(game.Id));
@@ -138,7 +138,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
     public async Task RequestAiSummaryGenerationAsync_WhenUserIsFoundingOrModerator_ShouldGenerateAndPersistSummary()
     {
         var game = await SeedGameAsync();
-        _currentUserService.SwitchRole("Moderator");
+        _currentUserService.RolesList = ["Moderator"];
 
         var result = await _service.RequestAiSummaryGenerationAsync(game.Id);
 
@@ -157,7 +157,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
     public async Task SaveVerdictAsync_WhenUserLacksFoundingRole_ShouldThrowUnauthorized()
     {
         var game = await SeedGameAsync();
-        _currentUserService.SwitchRole("User");
+        _currentUserService.RolesList = ["User"];
 
         var request = new SaveFoundingVerdictRequest(
             game.Id,
@@ -201,20 +201,26 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
         Assert.Equal(10.0, updatedGame.LudistRating);
     }
 
-    [Fact]
-    public void CurrentUserService_SwitchRole_ShouldTogglePermissions()
+    /// <summary>
+    /// Identidad de sesión controlada por el test que sustituye al antiguo servicio simulado
+    /// (<c>DefaultCurrentUserService</c>, retirado en INC-46 F3): los roles ya no se conmutan,
+    /// se fijan en el constructor del doble.
+    /// </summary>
+    private sealed class FakeCurrentUserService : ICurrentUserService
     {
-        var service = new DefaultCurrentUserService();
-        Assert.True(service.IsFoundingTeam);
-        Assert.True(service.IsInRole("Moderator"));
+        public string UserId { get; set; } = "carlos_fundador";
+        public string UserName { get; set; } = "Carlos Fundador";
+        public List<string> RolesList { get; set; } = ["FoundingTeam", "Moderator"];
+        public ModeratorPermission Permissions { get; set; } = ModeratorPermission.All;
 
-        service.SwitchRole("User");
-        Assert.False(service.IsFoundingTeam);
-        Assert.False(service.IsInRole("Moderator"));
-        Assert.True(service.IsInRole("User"));
+        public IReadOnlyList<string> Roles => RolesList;
+        public bool IsFoundingTeam => RolesList.Contains("FoundingTeam", StringComparer.OrdinalIgnoreCase);
+        public bool IsInRole(string role) => RolesList.Any(r => r.Equals(role, StringComparison.OrdinalIgnoreCase));
 
-        service.SwitchRole("FoundingTeam");
-        Assert.True(service.IsFoundingTeam);
-        Assert.True(service.IsInRole("Moderator"));
+        public bool HasPermission(ModeratorPermission permission)
+        {
+            if (IsFoundingTeam) return true;
+            return IsInRole("Moderator") && (Permissions & permission) == permission;
+        }
     }
 }

@@ -96,25 +96,6 @@
                     <span class="hidden sm:inline">Mi Ludoteca</span>
                 </a>
 
-                @* Selector demostrativo de rol *@
-                <button type="button"
-                        @onclick="ToggleUserRole"
-                        title="Alternar entre rol de la Mesa Fundadora y rol de Usuario Comunitario"
-                        aria-label="Alternar rol entre Mesa Fundadora y Usuario Comunitario"
-                        class="px-2.5 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 @(CurrentUserService.IsFoundingTeam ? "bg-[var(--brand-primary)] border-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    @if (CurrentUserService.IsFoundingTeam)
-                    {
-                        <Icon Name="shield" Size="14" />
-                        <span>Mesa</span>
-                    }
-                    else
-                    {
-                        <Icon Name="user" Size="14" />
-                        <span>Usuario</span>
-                    }
-                    <span class="text-[0.65rem] opacity-80 underline">Cambiar</span>
-                </button>
-
                 @* Menú Desplegable de Gestión / Mesa (Solo Administradores y Moderadores) *@
                 @if (CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"))
                 {
@@ -213,7 +194,8 @@
                                 </div>
 
                                 @* Bloque: Gobernanza *@
-                                @if (CurrentUserService.IsFoundingTeam)
+                                @if (CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers) ||
+                                     CurrentUserService.HasPermission(ModeratorPermission.CanViewAuditLog))
                                 {
                                     <div class="pt-2 space-y-1">
                                         <span class="px-2 text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Gobernanza del Sistema</span>
@@ -315,6 +297,9 @@
     IsOpen="@_showLocationModal"
     OnClose="() => _showLocationModal = false"
     OnCountryChanged="HandleCountryChanged" />
+
+@* Recarga el circuito cuando la cuenta de la sesión se suspende o cambian sus permisos. *@
+<SessionGuard />
 
 <div id="blazor-error-ui" class="hidden">
     Ha ocurrido un error inesperado.
@@ -425,22 +410,6 @@
         _activeCountry = country;
         _showLocationModal = false;
         StateHasChanged();
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
-    }
-
-    private async Task ToggleUserRole()
-    {
-        string nextRole = CurrentUserService.IsFoundingTeam ? "User" : "FoundingTeam";
-        CurrentUserService.SwitchRole(nextRole);
-
-        try
-        {
-            await JS.InvokeVoidAsync("setActiveUserTheme", CurrentUserService.UserId);
-        }
-        catch
-        {
-        }
-
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 }

@@ -52,9 +52,12 @@ public class GameEditorServiceTests
         public string UserName { get; set; } = "Moderador Principal";
         public IReadOnlyList<string> Roles { get; set; } = ["Moderator"];
         public bool IsFoundingTeam { get; set; } = false;
+        public ModeratorPermission Permissions { get; set; } = ModeratorPermission.All;
 
         public bool IsInRole(string role) => Roles.Contains(role);
-        public void SwitchRole(string role) { }
+
+        public bool HasPermission(ModeratorPermission permission)
+            => IsFoundingTeam || (IsInRole("Moderator") && (Permissions & permission) == permission);
     }
 
     private class FakeEditLogRepository : IGameEditLogRepository

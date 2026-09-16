@@ -15,15 +15,18 @@ public class UserManagementService : IUserManagementService
     private readonly IUserRepository _userRepository;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IUserSessionInvalidator? _sessionInvalidator;
 
     public UserManagementService(
         IUserRepository userRepository,
         IAuditService auditService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IUserSessionInvalidator? sessionInvalidator = null)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _sessionInvalidator = sessionInvalidator;
     }
 
     public async Task<IReadOnlyList<AppUserDto>> GetUsersAsync(UserFilterDto? filter = null, CancellationToken ct = default)
@@ -117,6 +120,8 @@ public class UserManagementService : IUserManagementService
             Changes: changes
         ), ct);
 
+        InvalidateSession(user.Id);
+
         return MapToDto(user);
     }
 
@@ -149,8 +154,16 @@ public class UserManagementService : IUserManagementService
             ]
         ), ct);
 
+        InvalidateSession(user.Id);
+
         return MapToDto(user);
     }
+
+    /// <summary>
+    /// Avisa a los circuitos del usuario afectado para que reevalúen su identidad: la suspensión o
+    /// el cambio de permisos debe surtir efecto sin esperar al cierre de sesión.
+    /// </summary>
+    private void InvalidateSession(string userId) => _sessionInvalidator?.Invalidate(userId);
 
     private void EnsureFoundingTeam()
     {

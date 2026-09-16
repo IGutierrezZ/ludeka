@@ -91,9 +91,11 @@ public class WebMarkupContractTests
           new[] { "@page \"/sorteos\"", "@page \"/radar\"" },
           new[] { "¡Radar renovado!", "IsLegacyRoute" } },
 
-        // Icon: SVG Lucide inline, currentColor, aria-hidden por defecto; sin <img> ni peticiones de red
+        // Icon: SVG Lucide inline, currentColor, aria-hidden por defecto; sin <img> ni peticiones de red.
+        // INC-46 F3: acepta atributos adicionales (class, aria-*) aplicados al SVG; sin ese paso
+        // directo, las llamadas que los pasaban lanzaban InvalidOperationException al renderizar.
         { "Icon (SVG Lucide inline)", "src/Ludeka.Web/Components/Shared/Icon.razor",
-          new[] { "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "aria-hidden=\"true\"" },
+          new[] { "viewBox=\"0 0 24 24\"", "stroke=\"currentColor\"", "aria-hidden=\"true\"", "[Parameter(CaptureUnmatchedValues = true)]", "@attributes=\"AdditionalAttributes\"" },
           new[] { "<img", "http" } },
 
         // DefaultImage: SVG inline temable por variables de tema; sin <img> roto
@@ -398,10 +400,11 @@ public class WebMarkupContractTests
           new[] { "🛡", "💡", "🎬", "🚩", "📺", "🔍", "⚠", "✅", "✕", "⏳", "📦", "🎲", "✨", "👥", "👁", "🔗", "❌", "⚡", "💬" } },
 
         // UserManagement: cabeceras, pestañas de rol, buscador y acciones por iconos Lucide
-        // (el switch de rol devuelve el nombre del icono, no un emoji; reactivación por punto CSS)
+        // (el switch de rol devuelve el nombre del icono, no un emoji; reactivación por punto CSS).
+        // INC-46 F3: el botón «Simular» de la identidad simulada se retira con su icono drama.
         { "UserManagement (sin emojis)", "src/Ludeka.Web/Components/Pages/UserManagement.razor",
           new[] { "<Icon Name=\"shield\"", "<Icon Name=\"lightbulb\"", "<Icon Name=\"users\"", "<Icon Name=\"scroll\"",
-                  "<Icon Name=\"flag\"", "<Icon Name=\"drama\"", "<Icon Name=\"search\"", "<Icon Name=\"crown\"",
+                  "<Icon Name=\"flag\"", "<Icon Name=\"search\"", "<Icon Name=\"crown\"",
                   "<Icon Name=\"user\"", "<Icon Name=\"hourglass\"", "<Icon Name=\"sparkles\"", "<Icon Name=\"settings\"",
                   "<Icon Name=\"ban\"", "rounded-full bg-emerald-400", "GetRoleIcon" },
           new[] { "🛡", "💡", "👥", "📜", "🚩", "🎭", "🔍", "👑", "👤", "⏳", "✨", "⚙", "🚫", "🟢" } },

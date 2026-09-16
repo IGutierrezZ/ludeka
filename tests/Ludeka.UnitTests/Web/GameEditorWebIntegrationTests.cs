@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.Features.Catalog;
+using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
 using Ludeka.Infrastructure.Services;
@@ -155,6 +156,6 @@ public class GameEditorWebIntegrationTests
         public System.Collections.Generic.IReadOnlyList<string> Roles => ["Moderator"];
         public bool IsFoundingTeam => true;
         public bool IsInRole(string role) => true;
-        public void SwitchRole(string role) { }
+        public bool HasPermission(ModeratorPermission permission) => true;
     }
 }

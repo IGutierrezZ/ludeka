@@ -634,14 +634,6 @@ public class MediaServiceTests : IAsyncLifetime
             if (IsFoundingTeam) return true;
             return (Permissions & permission) == permission;
         }
-
-        public void SwitchRole(string role)
-        {
-            RolesList.Clear();
-            RolesList.Add(role);
-        }
-
-        public void SwitchUser(string userId) => UserId = userId;
     }
 
     private class TestAuditService : IAuditService

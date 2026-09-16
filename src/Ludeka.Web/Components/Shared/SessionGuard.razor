@@ -1,0 +1,47 @@
+@*
+    Guardián del circuito (INC-46 F3). Cuando la cuenta de la sesión se suspende o cambian sus
+    permisos, fuerza una recarga completa de la página para que el pipeline de autorización y el
+    circuito vuelvan a resolver la identidad, sin esperar al cierre de sesión. No renderiza nada y
+    solo se suscribe dentro del circuito interactivo; en SSR no hay nada que invalidar.
+*@
+
+@inject IUserSessionInvalidator SessionInvalidator
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+
+@code {
+    private bool _isSubscribed;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _isSubscribed || !RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        SessionInvalidator.Invalidated += HandleSessionInvalidated;
+        _isSubscribed = true;
+    }
+
+    private void HandleSessionInvalidated(object? sender, UserSessionInvalidatedEventArgs args)
+    {
+        var currentUserId = CurrentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(currentUserId) ||
+            !string.Equals(currentUserId, args.UserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // El circuito interactivo no reejecuta el pipeline HTTP por evento: la recarga completa
+        // obliga al middleware y al circuito a reevaluar la identidad y los permisos.
+        _ = InvokeAsync(() => Navigation.NavigateTo(Navigation.Uri, forceLoad: true));
+    }
+
+    public void Dispose()
+    {
+        if (_isSubscribed)
+        {
+            SessionInvalidator.Invalidated -= HandleSessionInvalidated;
+        }
+    }
+}

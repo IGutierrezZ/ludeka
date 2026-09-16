@@ -6,29 +6,23 @@
 @using Ludeka.Core.Enums
 @inject IAuditService AuditService
 @inject ICurrentUserService CurrentUserService
-@inject NavigationManager Navigation
 
 <PageTitle>Bitácora de Auditoría Editorial | Ludeka</PageTitle>
 
 <div class="container-ludeka py-8 space-y-6">
-    @* Verificación de Rol *@
-    @if (!CurrentUserService.IsFoundingTeam)
+    @* Verificación de Permiso (mejora de experiencia: la autorización real la ejerce la política) *@
+    @if (!CurrentUserService.HasPermission(ModeratorPermission.CanViewAuditLog))
     {
         <div class="max-w-md mx-auto py-16 text-center space-y-4">
             <span class="inline-block"><Icon Name="scroll" Size="48" /></span>
-            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Exclusivo Mesa Fundadora</h1>
+            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Restringido a la Bitácora</h1>
             <p class="text-sm text-[var(--text-secondary)]">
-                El registro histórico de auditoría editorial contiene información de gobernanza reservada a la Mesa Fundadora.
+                El registro histórico de auditoría editorial contiene información de gobernanza y exige el permiso de consulta de auditoría.
             </p>
             <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                <p class="mb-2">
-                    <Icon Name="lightbulb" Size="14" /> Para fines de demostración, puedes activar el <strong>Modo Fundador</strong> en la barra superior.
+                <p>
+                    <Icon Name="lightbulb" Size="14" /> El permiso se concede por cuenta y se revisa en cada operación; no puede activarse desde la interfaz.
                 </p>
-                <button type="button"
-                        @onclick="SwitchToFounder"
-                        class="px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs transition-opacity">
-                    Activar Modo Fundador Ahora
-                </button>
             </div>
             <a href="/" class="inline-block text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline">
                 &larr; Volver al Catálogo
@@ -288,7 +282,7 @@
         _errorMessage = null;
         try
         {
-            if (CurrentUserService.IsFoundingTeam)
+            if (CurrentUserService.HasPermission(ModeratorPermission.CanViewAuditLog))
             {
                 AuditEntityType? entityType = null;
                 if (Enum.TryParse<AuditEntityType>(_filterEntityType, out var et)) entityType = et;
@@ -356,12 +350,6 @@
             _expandedEntryIds.Remove(id);
         else
             _expandedEntryIds.Add(id);
-    }
-
-    private void SwitchToFounder()
-    {
-        CurrentUserService.SwitchRole("FoundingTeam");
-        Navigation.NavigateTo("/admin/auditoria", forceLoad: true);
     }
 
     private static string GetEntityTypeIcon(AuditEntityType type) => type switch
