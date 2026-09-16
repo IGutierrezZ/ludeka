@@ -1,73 +1,91 @@
-# Apply Progress: change-46-autenticacion-real (INC-46) — Fase F0 (PR 1)
+# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0 y F1
 
-> Fase SDD `sdd-apply`, slice **PR-1 / Fase F0** (tareas 0.1–0.6). Store: openspec (este archivo + `tasks.md`).
-> Worktree: `C:\repos\ludeka-wt\autenticacion-real`, rama `inc/autenticacion-real`. Base: `e3b9951` (encima de `04a89fe`).
-> Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Estrategia de cadena: `stacked-to-main` (PR 1 de 8).
+> Fase SDD `sdd-apply`. Store: openspec (este archivo + `tasks.md`).
+> Worktree: `C:\repos\ludeka-wt\autenticacion-real`.
+> · Slice **PR-1 / Fase F0**: rama `inc/autenticacion-real`, base `e3b9951` (encima de `04a89fe`), mergeado a `main` en `3ec23d5`.
+> · Slice **PR-2 / Fase F1**: rama `inc/autenticacion-real-f1`, base `3ec23d5` (= `origin/main`).
+> Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Estrategia de cadena: `stacked-to-main` (PR 2 de 8).
 
-## Estado F0: COMPLETADO ✅
+## Estado F1: COMPLETADO ✅
 
 | Tarea | Estado | Ciclo TDD | Commit |
 |---|---|---|---|
-| 0.1 Normalizar encabezados de `editorial-role-management` (3 + 5) | ✅ | Estructural (solo encabezados, sin lógica) | `ff6eaee` |
-| 0.2 Normalizar encabezados de `media-moderation-panel` (4 + 6) | ✅ | Estructural (solo encabezados, sin lógica) | `ff6eaee` |
-| 0.3 `.gitattributes` `*.md text eol=lf` + re-materialización LF | ✅ | Estructural (atributos y checkout) | `ff6eaee` |
-| 0.4 RED de `GranularPermissionsTests` (banderas nuevas en `All` y granularidad intacta) | ✅ | ROJO ejecutado (255 ≠ 1023) + ROJO por compilación (CS0117) | `c18f652` |
-| 0.5 GREEN de `ModeratorPermission` (`1 << 8`, `1 << 9`, `All` = 1023) | ✅ | VERDE 21/21 focal | `c18f652` |
-| 0.6 `AuditAction.LinkedFounderIdentity` (apéndice sin renumerar) | ✅ | ROJO por compilación (CS0117) → VERDE 30/30 focal | `ee582cb` |
+| 1.1 RED de `ExternalLoginTests` (constructor rechaza `UserId`/`Provider`/`ProviderKey` vacíos; expone `LinkedAt`) | ✅ | ROJO por compilación (CS0246) | `b4ab43a` |
+| 1.2 GREEN de `ExternalLogin` (`Id` Guid, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail?`, `LinkedAt`) | ✅ | VERDE 14/14 focal | `b4ab43a` |
+| 1.3 RED de `ExternalLoginPersistenceTests` (índice único, FK `Cascade`, repositorio y reconciliador SQLite) | ✅ | ROJO por compilación (CS0246 de `IExternalLoginRepository`/`ExternalLoginRepository`) | `21eb78a` |
+| 1.4 GREEN de `LudekaDbContext` (`DbSet<ExternalLogin>`, índice único y FK `Cascade` a `AppUsers`) | ✅ | VERDE 7/7 focal | `21eb78a` |
+| 1.5 GREEN de `SqliteSchemaMigrator` (tabla `ExternalLogins` + índice único + índice de FK) | ✅ | VERDE 7/7 focal (caso `OnLegacyDatabase`) | `21eb78a` |
+| 1.6 GREEN de `IExternalLoginRepository` y `ExternalLoginRepository` | ✅ | VERDE 7/7 focal | `21eb78a` |
+| 1.7 Migración `AddExternalLogins` con `Database__Provider=PostgreSql` y tipos Npgsql en el snapshot | ✅ | Estructural (artefacto generado por EF; verificado con `migrations script`) | `36cb30f` |
+| 1.8 `dotnet test Ludeka.sln` verde | ✅ | VERDE 1041/1041 en Release | (docs) |
 
-### Commits (rama `inc/autenticacion-real`)
+### Commits del slice F1 (rama `inc/autenticacion-real-f1`, base `3ec23d5`)
+
+| Sha | Mensaje |
+|---|---|
+| `b4ab43a` | `feat(core): añadir la entidad ExternalLogin con validación de identidad externa` |
+| `21eb78a` | `feat(infrastructure): persistir la identidad externa con índice único y FK en cascada` |
+| `36cb30f` | `feat(infrastructure): generar la migración EF AddExternalLogins para PostgreSQL` |
+| (docs) | `docs(sdd): registrar el progreso de apply de la fase F1 de INC-46` |
+
+### Commits del slice F0 (rama histórica `inc/autenticacion-real`)
 
 | Sha | Mensaje |
 |---|---|
 | `ff6eaee` | `fix(sdd): normalizar encabezados de specs canónicas y fijar Markdown a LF` |
 | `c18f652` | `feat(core): añadir CanManageUsers y CanViewAuditLog a ModeratorPermission` |
 | `ee582cb` | `feat(core): añadir AuditAction.LinkedFounderIdentity` |
-| (docs) | `docs(sdd): registrar el progreso de apply de la fase F0 de INC-46` |
 
 ## TDD Cycle Evidence
 
 | Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
 |------|-----------|-------|------------|-----|-------|-------------|----------|
-| 0.1–0.3 | — (sin producción de código) | Artefacto | N/A | N/A | `git check-attr` → `lf`; 0 archivos `*.md` con `w/crlf` | ➖ Estructural: conteo exacto 3+5 y 4+6 y ausencia de encabezados antiguos | ➖ No needed |
-| 0.4 + 0.5 | `tests/Ludeka.UnitTests/Application/GranularPermissionsTests.cs` | Unit | ✅ 7/7 pre-cambio | ✅ Ejecutado: `Expected: 1023 / Actual: 255`; además CS0117 de `CanManageUsers`/`CanViewAuditLog` | ✅ 21/21 focal | ✅ Teoría sobre las 10 banderas, disjunción de los dos flags nuevos, denegación granular en `PublisherService` con solo los flags nuevos | ✅ Documentación XML de los dos flags y comentario de `All` actualizado a 1023 |
-| 0.6 | `tests/Ludeka.UnitTests/Domain/UserManagementDomainTests.cs` | Unit | ✅ 8/8 pre-cambio | ✅ CS0117: `AuditAction` no contiene `LinkedFounderIdentity` | ✅ 30/30 focal (dominio + permisos) | ✅ Ordinales ancla `Created=0`, `Published=6`, `LinkedFounderIdentity=7` (contrato persistido) | ➖ No needed (enum puro con ordinal apéndice) |
+| 0.1–0.3 (F0) | — (sin producción de código) | Artefacto | N/A | N/A | `git check-attr` → `lf`; 0 archivos `*.md` con `w/crlf` | ➖ Estructural: conteo exacto 3+5 y 4+6 | ➖ No needed |
+| 0.4–0.5 (F0) | `Application/GranularPermissionsTests.cs` | Unit | ✅ 7/7 | ✅ `Expected: 1023 / Actual: 255` + CS0117 | ✅ 21/21 focal | ✅ Teoría de 10 banderas y disjunción | ✅ Docs XML |
+| 0.6 (F0) | `Domain/UserManagementDomainTests.cs` | Unit | ✅ 8/8 | ✅ CS0117 `LinkedFounderIdentity` | ✅ 30/30 focal | ✅ Ordinales ancla del enum | ➖ No needed |
+| 1.1 + 1.2 | `Domain/ExternalLoginTests.cs` | Unit | N/A (entidad nueva) | ✅ CS0246: `ExternalLogin` no existe | ✅ 14/14 focal (`--filter FullyQualifiedName~ExternalLoginTests`) | ✅ 3 teorías de validación (null/vacío/espacios en cada campo), `LinkedAt` explícito y por defecto, `ProviderEmail` nulo, normalización por trim e Ids distintos | ➖ No needed: entidad inmutable y sin ramas ocultas |
+| 1.3 + 1.4 + 1.5 + 1.6 | `Infrastructure/ExternalLoginPersistenceTests.cs` | Integration (SQLite `:memory:`) | N/A (archivos existentes sin tests propios; suite base 1020/1020 ejecutada antes) | ✅ CS0246: `IExternalLoginRepository`, `ExternalLoginRepository` y `ExternalLogins` no existen | ✅ 7/7 focal (`--filter FullyQualifiedName~ExternalLoginPersistenceTests`) | ✅ Modelo (índice único + FK `Cascade`), lectura existente/desconocida, duplicado rechazado por `DbUpdateException`, borrado en cascada real y tabla creada por el reconciliador con 2 índices | ✅ `AsNoTracking` en la relectura del repositorio; validación en un solo punto del dominio |
 
 ## Work Unit Evidence
 
 | Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
 |---|---|---|---|
-| U0-Encabezados / `ff6eaee` | `gentle-ai sdd-archive-compose --canonical … --delta … --output -` → **exit 0** en ambas specs | N/A: solo specs canónicas y `.gitattributes`; sin código de aplicación | Revertir el commit: encabezados y atributos vuelven al estado de `e3b9951` |
-| U0-Banderas / `c18f652` | `dotnet test Ludeka.sln --filter FullyQualifiedName~GranularPermissionsTests` → **21/21** (7 base + 14 nuevas) | N/A: enum de dominio sin frontera de ejecución propia; la denegación granular se ejerce vía `PublisherService` en la suite | Revertir el commit: `ModeratorPermission` vuelve a 8 banderas/255 y los tests nuevos desaparecen con él |
-| U0-Auditoría / `ee582cb` | `dotnet test Ludeka.sln --filter "FullyQualifiedName~UserManagementDomainTests\|FullyQualifiedName~GranularPermissionsTests"` → **30/30** | N/A: valor de enum; la emisión real de la acción llega en F1/F2 | Revertir el commit: el enum vuelve a terminar en `Published` |
+| U1-Dominio / `b4ab43a` | `dotnet test Ludeka.sln --filter FullyQualifiedName~ExternalLoginTests` → **14/14** | N/A: entidad de dominio sin frontera de ejecución propia | Revertir el commit: la entidad y su prueba desaparecen; nada más la referencia todavía |
+| U1-Persistencia / `21eb78a` | `dotnet test Ludeka.sln --filter FullyQualifiedName~ExternalLoginPersistenceTests` → **7/7** | SQLite `:memory:` real: `EnsureCreatedAsync` + `SqliteSchemaMigrator.EnsureSchemaUpToDateAsync` sobre esquema legado; arranque local = `EnsureCreatedAsync` + reconciliador (`Program.cs:328-338`), cubierto por el caso `OnLegacyDatabase` | Revertir el commit: `DbSet`, config, repositorio y sección 22 del reconciliador vuelven atrás |
+| U1-Migración / `36cb30f` | `dotnet ef migrations script … -o tmp` → SQL PostgreSQL correcto | `dotnet ef migrations list` con `Database__Provider=PostgreSql` lista las 3 migraciones | Revertir el commit: se eliminan migración y snapshot; la tabla nueva no toca datos existentes |
 
 ## Verificación observada (registro)
 
 | Comando / comprobación | Resultado observado |
 |---|---|
-| `dotnet test Ludeka.sln --configuration Release` | **1020 correctas, 0 con error, 0 omitidas** (línea base `04a89fe`: 1005 → +15 casos nuevos; avisos preexistentes CS8629/CS8604/CS8625/xUnit2013 sin cambios) |
-| `git check-attr text eol -- openspec/specs/editorial-role-management/spec.md` | `text: set`, `eol: lf` |
-| `git check-attr text eol -- openspec/specs/media-moderation-panel/spec.md` | `text: set`, `eol: lf` |
-| `git ls-files --eol -- "*.md"` | **0** archivos con `w/crlf` (562 Markdown en LF en árbol e índice) |
-| Conteo de encabezados en `editorial-role-management/spec.md` | `### Requirement:` = **3**, `#### Scenario:` = **5**, `Requerimiento:` = 0, `Escenario:` = 0 (coincide con el conteo previo) |
-| Conteo de encabezados en `media-moderation-panel/spec.md` | `### Requirement:` = **4**, `#### Scenario:` = **6**, `Requerimiento:` = 0, `Escenario:` = 0 (coincide con el conteo previo) |
-| `gentle-ai sdd-archive-compose --canonical openspec/specs/editorial-role-management/spec.md --delta openspec/changes/change-46-autenticacion-real/specs/editorial-role-management/spec.md --output -` | **exit 0**; compone la canónica completa en stdout sin tocar el árbol (`git status`: solo `tasks.md`) |
-| `gentle-ai sdd-archive-compose --canonical openspec/specs/media-moderation-panel/spec.md --delta openspec/changes/change-46-autenticacion-real/specs/media-moderation-panel/spec.md --output -` | **exit 0**; ídem |
+| `dotnet test Ludeka.sln --configuration Release` | **1041 correctas, 0 con error, 0 omitidas** (línea base en `3ec23d5`: 1020 → +21 casos nuevos; avisos preexistentes CS8629/CS8604/CS8625/xUnit2013 sin cambios) |
+| `dotnet ef migrations list --project src/Ludeka.Infrastructure --startup-project src/Ludeka.Web` (con `Database__Provider=PostgreSql`) | Lista las **3** migraciones: `20260914001323_InitialSupabasePostgres`, `20260915100112_AddBggStagingSocialInboxPriceRadarAndGameImages`, `20260915164921_AddExternalLogins`. Sin PostgreSQL accesible avisa «Pending status not shown» y continúa (no se requiere base de datos) |
+| `dotnet ef migrations script 20260915100112_… 20260915164921_… --no-build -o %TEMP%\ludeka-inc46-f1.sql` | SQL PostgreSQL: `"Id" uuid NOT NULL`, `"UserId" character varying(100) NOT NULL`, `"ProviderKey" character varying(255) NOT NULL`, `"LinkedAt" timestamp with time zone NOT NULL`, `FOREIGN KEY … ON DELETE CASCADE`, `CREATE UNIQUE INDEX "IX_ExternalLogins_Provider_ProviderKey"`. Sin tipos SQLite |
+| Índice único `(Provider, ProviderKey)` | Presente en `LudekaDbContext.OnModelCreating` (`IsUnique()`), en la migración (`unique: true`), en el reconciliador SQLite y verificado por metadata del modelo + rechazo real de duplicados en SQLite |
+| FK `Cascade` a `AppUsers` | Presente en el modelo (`DeleteBehavior.Cascade`), en la migración (`ReferentialAction.Cascade`) y en el reconciliador; el borrado del principal elimina la fila dependiente en SQLite `:memory:` |
+| `SqliteSchemaMigrator` y arranque SQLite | Caso `SqliteSchemaMigrator_ShouldCreateExternalLoginsTable_OnLegacyDatabase` en verde: crea `ExternalLogins` y sus 2 índices sobre esquema legado. Filtro de esquema (`SqliteSchemaMigratorTests` + `ExternalLogin*` + `DatabaseProviderTests`) → **40/40**; suite completa verde con el arranque SQLite (`EnsureCreatedAsync` + reconciliador) |
+| `Up()` de la migración | Solo `CreateTable` + 2 `CreateIndex`; **sin `DROP`** ni alteraciones destructivas. `Down()` elimina la tabla nueva (reversión limpia) |
 
 ## Desviaciones y hallazgos
 
-1. **`design.md` §8 vs. decisión del desglose (CRLF)**: el diseño pedía «preservando los CRLF actuales», pero la decisión aprobada en `tasks.md` (línea 22) fija `.gitattributes` con `*.md text eol=lf` y árbol en LF, porque el compositor falla con CRLF. Se implementó la decisión del desglose; el diseño queda desactualizado en ese paréntesis.
-2. **`git checkout-index -f -a` no re-materializa**: git considera los archivos «sin cambios» por estadísticas y omite la escritura, de modo que el árbol siguió en CRLF aunque el atributo ya aplicaba. Se re-materializó eliminando los 562 Markdown y restaurándolos con `git checkout -- "*.md"` (los archivos ausentes se escriben siempre, aplicando `eol=lf`). Objetivo de la tarea 0.3 cumplido y verificado.
-3. **Aviso cosmético de `.gitattributes`**: `git add` avisa que `.gitattributes` pasará a CRLF (no está cubierto por su propia regla). Se verificó empíricamente que git tolera CRLF al parsear los atributos (`git check-attr` devuelve `text: set / eol: lf` con el archivo en CRLF), por lo que no se amplió el contenido indicado.
-4. **Etiqueta de auditoría pendiente**: `AuditService.GetActionDisplayName` mantiene el texto genérico «Operación» para `LinkedFounderIdentity`; la tarea 0.6 solo pedía el valor del enum y la acción aún no se emite (llega en F1/F2). Sin impacto en la suite.
-5. **Sin efectos de datos**: no se ejecutaron migraciones EF, no se tocó base de datos ni configuración de despliegue; el slice es reversible con `git revert` de sus tres commits.
+1. **Nombre del repositorio**: se usa `ExternalLoginRepository` (tarea 1.6) en `src/Ludeka.Infrastructure/Data/`, aunque el resto de repositorios del directorio llevan prefijo `Sqlite`. Se sigue el nombre literal de la tarea; el prefijo ya resulta engañoso porque el mismo repositorio sirve a PostgreSQL y SQLite.
+2. **Sin registro en DI**: `IExternalLoginRepository` no se registra en `Program.cs` en este slice; el registro llega con la composición de servicios de F2 (tarea 2.5/2.9). Ningún consumidor lo requiere todavía y el prompt prohíbe tocar `Program.cs` en F1.
+3. **`AsNoTracking()` en la lectura del repositorio**: añadido por coherencia con la decisión de revocación del diseño (§2, `AsNoTracking` en lecturas de identidad) y para que la prueba de ida y vuelta materialice la fila desde la base de datos.
+4. **`Dotnet ef migrations list` sin base de datos**: la CLI intenta conectar y, al no haber PostgreSQL, informa del fallo y sigue listando; el listado de las 3 migraciones es correcto. No se creó ninguna base de datos real.
+5. **Generado vs. autorado**: la migración, su `.Designer.cs` (2336 líneas) y `LudekaDbContextModelSnapshot.cs` (47) son artefactos generados por EF y quedan fuera del conteo de riesgo según `tasks.md`.
+6. **Fuera de alcance (intacto)**: F2 (esquemas externos, cookie, `PermissionAuthorizationHandler`, políticas, `[Authorize]`, `Program.cs`), F3 (retirada de `DefaultCurrentUserService` y conmutadores), F4 (anonimia y smoke) y F5 (docs y archive). No se ejecutó `sdd-archive`, no se hizo `git push` ni se abrió PR.
 
 ## Presupuesto y frontera de PR
 
-- **Líneas cambiadas del slice** (`git diff --shortstat e3b9951..HEAD`, sin contar este artefacto): **104 inserciones + 20 eliminaciones = 124**, dentro del presupuesto de 400.
-- **Modo**: chained/stacked PR slice (`stacked-to-main`), PR 1 de 8. Frontera: de `04a89fe`/`e3b9951` a las banderas nuevas y los encabezados normalizados.
-- **Fuera de alcance (intacto)**: F1 (entidad `ExternalLogin`), F2 (esquemas, handler, `[Authorize]`, `Program.cs`), F3 (retirada de `DefaultCurrentUserService` y conmutadores), F4 (anonimia y smoke), F5 (docs y archive). No se ejecutó `sdd-archive` ni `git push`.
+- **Líneas autoradas del slice F1** (sin `.Designer.cs` ni snapshot, generados por EF): **404** → dentro del presupuesto de 450.
+  - Producción: 141 (entidad 43, contrato 28, repositorio 33, `DbContext` +16, reconciliador +21).
+  - Pruebas: 318 (`ExternalLoginTests` 108, `ExternalLoginPersistenceTests` 210).
+  - Contando además el `.cs` de la migración (55, también generado por EF): 459.
+  - `git diff --shortstat 3ec23d5..HEAD`: 2897 inserciones totales, de las que 2383 son generadas por EF.
+- **Modo**: chained/stacked PR slice (`stacked-to-main`), PR 2 de 8. Frontera: de `3ec23d5` a la tabla `ExternalLogins` con migración PostgreSQL, persistencia SQLite reconciliada y repositorio listo para que F2 lo consuma.
 
 ## Estado acumulado
 
-- **6/6 tareas de F0 completadas**; F1–F5 sin tocar.
-- Listo para la verificación independiente de `sdd-verify` sobre el slice F0 (o para el siguiente apply de F1, según decisión del orquestador).
+- **F0: 6/6 tareas completadas** (mergeadas en `3ec23d5`).
+- **F1: 8/8 tareas completadas**; F2–F5 sin tocar.
+- Listo para la verificación independiente de `sdd-verify` sobre el slice F1.
