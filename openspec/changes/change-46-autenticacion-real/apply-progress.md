@@ -7,11 +7,14 @@
 > · Slice **PR-3 / F2**: rama `inc/autenticacion-real-f2`, base `06e53cc`, mergeado a `main` en `83063bd` (PR #14).
 > · Slice **PR-5/PR-6 / F3**: rama `inc/autenticacion-real-f3`, base `83063bd`, mergeado a `main` en `51e16f3` (PR #15).
 > · Slice **PR-7 / F4**: rama `inc/autenticacion-real-f4`, base `51e16f3`, mergeado a `main` en `fc9e50b` (PR #16).
-> · Slice **F2-bis** (este): rama `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`); cierra
+> · Slice **F2-bis**: rama `inc/autenticacion-real-permisos`, base `fc9e50b` (`origin/main`); cierra
 >   el punto a confirmar de 2.10/2.11 (permiso granular propio para `/admin/eventos` y `/admin/notificaciones`).
+>   Alcance: dos banderas nuevas de dominio, dos políticas y la migración de las dos páginas. **Sin** `sdd-archive` (F5).
+> · Slice **W1-slice** (este): rama `inc/autenticacion-real-cierre`, base `039fd21` (informe de verificación);
+>   remedia el hallazgo **W1** (revalidación de permiso en los 15 servicios administrativos de escritura).
+>   Alcance: guarda de sesión con relectura sin rastreo, rutas de sistema para los ciclos programados y las
+>   pruebas de los 15 servicios. **Sin** `sdd-archive` (F5) y sin migraciones.
 > Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Cadena `stacked-to-main`.
-> Alcance de este slice: dos banderas nuevas de dominio, dos políticas y la migración de las dos páginas.
-> **Sin** `sdd-archive` (F5).
 
 ## Estado por fase
 
@@ -20,10 +23,162 @@
 | F0 — Artefactos y dominio de permisos | 6/6 | ✅ mergeada en `main` (`3ec23d5`) |
 | F1 — Persistencia de identidad externa | 8/8 | ✅ mergeada en `main` (`06e53cc`) |
 | F2 — Autenticación social y autorización por política | 13/13 | ✅ mergeada en `main` (`83063bd`) |
-| F2-bis — Permiso granular de eventos y notificaciones | 6/6 | ✅ completada (este slice) |
+| F2-bis — Permiso granular de eventos y notificaciones | 6/6 | ✅ completada (slice anterior) |
 | F3 — Retirada de la identidad simulada | 8/8 | ✅ mergeada en `main` (`51e16f3`) |
 | F4 — Revalidación en escritura y anonimia | 6/6 | ✅ mergeada en `main` (`fc9e50b`, PR #16) |
+| W1-slice — Revalidación de los servicios administrativos | 8/8 | ✅ completada (este slice, rama `inc/autenticacion-real-cierre`) |
 | F5 — Verificación, documentación y archive | 0/6 | ⬜ sin tocar |
+
+## Estado W1-slice: COMPLETADO ✅
+
+> Slice `inc/autenticacion-real-cierre`, base `039fd21` (informe de verificación independiente). Remedia el
+> hallazgo **W1**: los servicios administrativos de escritura no consumían identidad y no revalidaban
+> permiso, de modo que un moderador suspendido o con permisos revocados podía seguir escribiendo con la
+> cookie vigente durante la ventana de revocación. Ampliado por auditoría propia desde los ocho servicios
+> señalados a la **superficie completa invocable desde la interfaz: 15 servicios**. Sin migraciones, sin
+> cambios de esquema, sin tocar `docs/specs/sistema/` ni el ROADMAP.
+
+| Tarea | Estado | Ciclo TDD | Commit |
+|---|---|---|---|
+| 6.1 + 6.2 Guarda `ISessionPermissionGuard`/`SessionPermissionGuard` + registro DI + `MediaService.CheckBrokenLinksAsync` | ✅ | ROJO por compilación (CS0246) → VERDE 11/11 focal | `47d93e9` |
+| 6.3 `BoardGameEventService`/`WeeklyReleaseService`/`GiveawayService` + contrato + UI pública | ✅ | ROJO por compilación (CS1729 ×3) → VERDE 16/16 focal + 19/19 con el contrato de UI | `cf0824e`, `fccf7fa` |
+| 6.4 Bandeja social, recolector, cuentas, notificaciones y YouTube + rutas de sistema | ✅ | ROJO por compilación (CS1729 ×4, CS1061 ×4) → VERDE 30/30 focal | `19f1cc4` |
+| 6.5 Cola, descubrimiento, staging, ciclo nocturno y IA + rutas de sistema | ✅ | ROJO por compilación (CS1729 ×5, CS1061 ×3) → VERDE 31/31 focal | `6aab13c` |
+| 6.6 Instagram + relectura en `MediaService` | ✅ | ROJO por compilación (CS1729) → VERDE 23/23 focal y 1345/1345 de suite | `9a6c54b`, `1f8addc` |
+| 6.7 Contrato por reflexión de los 15 servicios + registro en `Program.cs` | ✅ | Teoría sobre los 15 tipos; cada fila se añadió antes del constructor correspondiente | `47d93e9`…`1f8addc` |
+| 6.8 Suite completa y humo real | ✅ | VERDE **1345/1345** en Release (0 errores, 0 omitidas; base 1258, +87) | (docs) |
+
+### Commits del slice W1 (rama `inc/autenticacion-real-cierre`, base `039fd21`)
+
+| Sha | Mensaje | Cambios |
+|---|---|---|
+| `47d93e9` | `feat(application): revalidar el permiso de las escrituras administrativas con la sesion actual` | 6 archivos · +373 |
+| `cf0824e` | `feat(application): revalidar permiso en los servicios de eventos, novedades y sorteos` | 5 archivos · +340/−3 |
+| `fccf7fa` | `feat(web): llevar al acceso las escrituras administrativas de paginas publicas` | 5 archivos · +61/−4 |
+| `19f1cc4` | `feat(application): revalidar permiso en la bandeja social, canales monitorizados y notificaciones` | 13 archivos · +728/−10 |
+| `6aab13c` | `feat(application): revalidar permiso en la cola de catalogacion, descubrimiento BGG y cargas programadas` | 12 archivos · +580/−8 |
+| `9a6c54b` | `feat(application): revalidar permiso en la publicacion de Instagram` | 3 archivos · +176/−12 |
+| `1f8addc` | `feat(application): revalidar los enlaces multimedia con la relectura sin rastreo` | 5 archivos · +78/−6 |
+| (docs) | `docs(sdd): registrar la remediacion del hallazgo W1` | `tasks.md` + este archivo |
+
+### Lista final de servicios tratados, permiso y origen de la derivación
+
+| # | Servicio | Escrituras con guarda | Permiso exigido | Página de origen (política declarada) |
+|---|---|---|---|---|
+| 1 | `BoardGameEventService` | `CreateEventAsync`, `UpdateEventAsync`, `DeleteEventAsync` | `CanManageEvents` | `/admin/eventos` → `PermisoGestionarEventos` |
+| 2 | `CommunityNotificationService` | `SendTestPingAsync`, `RetryFailedNotificationAsync`, `TriggerExpiringGiveawaysScanAsync`, `TriggerFridayReleasesBulletinAsync` | `CanManageNotifications` | `/admin/notificaciones` → `PermisoGestionarNotificaciones` |
+| 3 | `SocialIngestionService` | `IngestFromUrlAsync`, `IngestManualAdvancedAsync`, `UpdateItemAsync`, `ApproveAndPublishAsync`, `RejectItemAsync` | `CanApproveMedia` | `/admin/ingesta-social` y `/admin/canales-monitorizados` → `PermisoAprobarMedios` (el modal exprés también se abre desde `/eventos`, `/novedades` y `/radar`, que no declaran política; se toma la única declarada por sus páginas de administración) |
+| 4 | `MonitoredAccountService` | `CreateAccountAsync`, `UpdateAccountAsync`, `ToggleAccountStatusAsync`, `DeleteAccountAsync`, `SyncFromDirectoryAsync` | `CanApproveMedia` | `/admin/canales-monitorizados` → `PermisoAprobarMedios` |
+| 5 | `BggCatalogQueueService` | `ProcessPendingQueueBatchAsync`, `ResetFailedItemsAsync` | `CanEditGames` | `/admin/cola-catalogacion` → `PermisoEditarFichas`; el panel «Cola comunitaria» de `/mi-ludoteca` (pública) ya marcaba con `CanEditGames` |
+| 6 | `InstagramPublisherService` | `CreateDraftFromGiveawayAsync`, `CreateDraftFromWeeklyReleaseAsync`, `CreateDraftFromGameAsync`, `UpdateDraftAsync`, `PublishDraftAsync`, `DeleteDraftAsync` | `CanPublishInstagram` | `/admin/instagram` → `PermisoPublicarInstagram` |
+| 7 | `WeeklyReleaseService` | `CreateReleaseAsync` | `CanApproveMedia` | `/novedades` (pública, sin política) y `/admin/instagram` (borradores); la creación de `WeeklyRelease` ya está gobernada por `PermisoAprobarMedios` en `ApproveAndPublishAsync` |
+| 8 | `GiveawayService` | `CreateOrMergeGiveawayAsync`, `SetPromotedAsync` | `CanApproveMedia` | `/radar` y `/sorteos` (públicas, sin política); la creación de `Giveaway` ya está gobernada por `PermisoAprobarMedios` en `ApproveAndPublishAsync` |
+| 9 | `SocialCollectorService` | `CollectAllAccountsAsync`, `CollectAccountAsync` | `CanApproveMedia` | `/admin/canales-monitorizados` y `/admin/ingesta-social` → `PermisoAprobarMedios` |
+| 10 | `NightlyCatalogingService` | `ExecuteNightlyCatalogingAsync` | `CanEditGames` | `/admin/cola-catalogacion` → `PermisoEditarFichas` |
+| 11 | `BggDiscoveryService` | `DiscoverAndEnqueueBggTrendsAsync`, `DiscoverAndEnqueueNewReleasesAsync` | `CanEditGames` | `/admin/cola-catalogacion` → `PermisoEditarFichas` |
+| 12 | `BggMassIngestionService` | `RunDrainCycleAsync` | `CanEditGames` | `/admin/cola-catalogacion` → `PermisoEditarFichas` |
+| 13 | `GeminiGameSummaryService` | `ProcessPendingSummariesBatchAsync` | `CanEditGames` | Panel «Cola comunitaria» (`/mi-ludoteca`, pública, marca `CanEditGames`) y `/admin/cola-catalogacion` |
+| 14 | `YouTubeSearchService` | `IngestVideoAsync`, `AutoSuggestAndIngestForGameAsync` | `CanApproveMedia` | `/moderacion-media` (alias `/moderacion/multimedia`, `/admin/multimedia`, `/admin/moderacion-medios`) → `PermisoAprobarMedios` |
+| 15 | `MediaService` | `CheckBrokenLinksAsync` | `CanApproveMedia` | `/moderacion-media` → `PermisoAprobarMedios` |
+
+**Excluidos con evidencia** (auditados y descartados, no son escrituras administrativas alcanzables por
+la interfaz): `InstagramComposerService` (solo compone SVG y pies de foto, cero persistencia),
+`PriceRadarService.ScanWantToBuyPricesAsync` (solo lo invoca `PriceRadarHostedService`),
+`PriceRadarService.RecordPriceObservationAsync` (telemetría anónima de precios sin identidad, por diseño),
+`ImageStorageService` (primitiva de almacenamiento sin contrato de identidad; sus escrituras de dominio se
+adjuntan desde servicios ya guardados), `MediaService.CreateMediaItemAsync` (sin ningún invocador en la
+interfaz), `UserLocationService` (solo estado en memoria; la persistencia pasa por el servicio de
+preferencias ya guardado), `ExpansionService`, `SocialCardService` y `BrokenLinkCheckerService` directo
+(solo lectura o exclusivamente a través de `MediaService`).
+
+### TDD Cycle Evidence (W1-slice)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 6.1 + 6.2 | `Application/SessionPermissionGuardTests.cs` | Integration (SQLite `:memory:` + repositorio real) | ✅ 1258/1258 base | ✅ CS0246 (`ISessionPermissionGuard` no existe) | ✅ 8/8 focal | ✅ Ocho escenarios: sin sesión, cuenta borrada, suspendida con cookie privilegiada, permiso revocado con cookie que lo declara, comunitaria, bandera exacta, Mesa Fundadora y retirada entre operaciones | ✅ La denegación se decide en un único punto (`RequireAsync`) con mensaje del servicio |
+| 6.2 | `Application/AdministrativeWriteGuardTests.cs` | Integration (SQLite `:memory:`) | ✅ 1269/1269 acumulada | ✅ 3/3 en rojo por aserción (la verificación de enlaces escribía sin permiso) | ✅ 3/3 focal | ✅ Sin sesión, sin bandera y con bandera; en el commit `1f8addc` se añaden suspendida y camino de la guarda | ✅ Mensaje de denegación extraído a constante |
+| 6.3 | `Application/AdministrativeWriteGuardTests.cs` | Integration (SQLite `:memory:`) | ✅ 1269/1269 acumulada | ✅ CS1729 ×3 (constructores sin guarda) | ✅ 12/12 focal | ✅ Cada servicio: sin sesión, suspendida con cookie viva, sin la bandera y con ella; sorteo además con revocación entre operaciones | ✅ `RequirePermissionAsync` privado por servicio con mensaje propio |
+| 6.3 | `Web/SessionDenialUiContractTests.cs` | Contract (fuente) | ✅ 1289/1289 acumulada | ✅ 4 filas nuevas en rojo antes de tocar las páginas | ✅ 19/19 del filtro | ✅ `/novedades`, `/radar`, `/events-management` y la «Cola comunitaria» traducen la denegación | ➖ Ninguno necesario |
+| 6.4 | `Application/CommunityWriteGuardTests.cs` | Integration (SQLite `:memory:` + dobles de canal y notificación) | ✅ 1289/1289 acumulada | ✅ CS1729 ×4 y CS1061 ×4 | ✅ 19/19 nuevos focal | ✅ Por servicio: denegación sin sesión, suspensión con cookie viva, permiso correcto y rutas de sistema sin sesión (ingesta del recolector, ciclo programado y escaneo de sorteos) | ✅ Dobles compartidos (`RecordingChannelCollector`, `NoopImageStorageService`) en el propio archivo |
+| 6.5 | `Application/CatalogWriteGuardTests.cs` | Integration (SQLite `:memory:` + cliente BGG instrumentado) | ✅ 1313/1313 acumulada | ✅ CS1729 ×5 y CS1061 ×3 | ✅ 17/17 nuevos focal | ✅ Por servicio: denegación sin sesión, suspensión, permiso correcto y ruta de sistema; la denegación de la cola se verifica además con **0 llamadas a BGG** | ✅ Cliente BGG instrumentado común a las cuatro clases |
+| 6.6 | `Application/InstagramWriteGuardTests.cs` | Integration (SQLite `:memory:` + cliente de Meta instrumentado) | ✅ 1335/1335 acumulada | ✅ CS1729 (constructor sin guarda) | ✅ 4/4 focal | ✅ Publicación denegada y publicada, alta de borrador sin permiso, suspensión con cookie viva y auditoría con la identidad de la sesión | ➖ Ninguno necesario |
+| 6.7 | `Application/AdministrativeWriteGuardContractTests.cs` | Contract (reflexión + fuente) | ✅ 1258/1258 base | ✅ Primera fila (eventos) en rojo antes del constructor; el resto se añadió unidad a unidad | ✅ 16/16 del archivo (15 tipos + registro DI) | ✅ Los 15 servicios declaran la guarda y `Program.cs` la registra `Scoped` | ✅ Lista de tipos como `TheoryData<Type>` |
+
+### Work Unit Evidence (W1-slice)
+
+| Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
+|---|---|---|---|
+| W1-A Guarda de sesión / `47d93e9` | `--filter FullyQualifiedName~SessionPermissionGuardTests\|FullyQualifiedName~MediaBrokenLinksWriteGuardTests` → **11/11** | Arranque real (`Production`, SQLite temporal, sin credenciales): `/` **200**, `/healthz` **200**, 0 excepciones en el log | Revertir el commit: desaparece la guarda y la verificación de enlaces vuelve a escribir sin revalidar |
+| W1-B Eventos, novedades y sorteos / `cf0824e` + `fccf7fa` | `--filter FullyQualifiedName~AdministrativeWriteGuard` → **16/16** · `--filter FullyQualifiedName~SessionDenialUiContract` → **19/19** | Navegación pública real: `/novedades`, `/radar` y `/mi-ludoteca` **200** sin sesión y sin escrituras; la denegación se traduce en `/login` | Revertir ambos: los tres servicios vuelven a escribir con solo el marcado por rol |
+| W1-C Comunidad y notificaciones / `19f1cc4` | `--filter FullyQualifiedName~WriteGuardTests\|FullyQualifiedName~SocialCollectorServiceTests` → **30/30** | Arranque real: 0 excepciones y el despachador conserva sus rutas de sistema (prueba `RunExpiringGiveawaysScanAsync` sin sesión) | Revertir el commit: vuelven las escrituras sin revalidación y los hospedados usan los métodos de interfaz |
+| W1-D Catálogo y programados / `6aab13c` | `--filter FullyQualifiedName~BggCatalogQueueWriteGuardTests\|FullyQualifiedName~BggDiscoveryWriteGuardTests\|FullyQualifiedName~BggMassIngestionWriteGuardTests\|FullyQualifiedName~NightlyCatalogingWriteGuardTests\|FullyQualifiedName~AiBatchSummaryWriteGuardTests` → **31/31** | Arranque real: `/admin/cola-catalogacion` **302** a `/login`; `/mi-ludoteca` **200**; 0 excepciones | Revertir el commit: la cola y los ciclos vuelven a escribirse sin revalidar |
+| W1-E Instagram y multimedia / `9a6c54b` + `1f8addc` | `--filter FullyQualifiedName~InstagramWriteGuardTests\|FullyQualifiedName~MediaBrokenLinksWriteGuardTests\|FullyQualifiedName~AdministrativeWriteGuardContractTests` → **23/23** | Arranque real: `/admin/instagram` y `/moderacion-media` **302**; 0 excepciones | Revertir los commits: el panel de Instagram y los enlaces vuelven a escribir sin revalidar |
+
+### Verificación observada (registro) — W1-slice
+
+| Comando / comprobación | Resultado observado |
+|---|---|
+| Línea base antes de tocar código: `dotnet test Ludeka.sln --configuration Release` en `039fd21` | **1258 correctas, 0 con error, 0 omitidas** |
+| `dotnet test Ludeka.sln --configuration Release` (final) | **1345 correctas, 0 con error, 0 omitidas** (+87: 8 de la guarda, 3 de enlaces multimedia, 12 de eventos/novedades/sorteos, 19 de comunidad, 17 de catálogo, 4 de Instagram, 4 de suspensión/permiso añadidos, 16 del contrato y 4 del contrato de UI) |
+| `dotnet build Ludeka.sln --configuration Release --no-incremental` | **0 errores** y **11 avisos**, todos preexistentes y documentados; ningún aviso nuevo |
+| Humo real (`ASPNETCORE_ENVIRONMENT=Production`, SQLite temporal, `Database__SeedDemoData=false`, `PORT=5313`, sin credenciales OAuth) | `/` **200** · `/healthz` **200** · `/admin/eventos` **302** → `/login?ReturnUrl=%2Fadmin%2Feventos` · `/admin/notificaciones` **302** → `/login?ReturnUrl=%2Fadmin%2Fnotificaciones` · `/admin/usuarios` **302** → `/login?ReturnUrl=%2Fadmin%2Fusuarios` · `/novedades` **200** · `/radar` **200** · `/mi-ludoteca` **200**; log de 70 527 bytes con **0** `fail:`, **0** `crit:`, **0** `Unhandled exception` y 1 aviso esperado de `HttpsRedirectionMiddleware` |
+| Contrato por reflexión | Los **15 servicios** declaran `ISessionPermissionGuard` en su constructor y `Program.cs` registra `AddScoped<ISessionPermissionGuard, SessionPermissionGuard>()` |
+| Búsqueda de invocaciones de escritura en la interfaz (`*Service.*Async(` en `Components/`) | Toda escritura administrativa invocable está en la lista de los 15; los excluidos quedan documentados arriba con su evidencia |
+
+### Veredicto sobre la afirmación de páginas públicas (alcance 4)
+
+1. **Camino confirmado y corregido**: un usuario con **marcado por rol** (`IsFoundingTeam || IsInRole("Moderator")`)
+   podía disparar escrituras administrativas desde las páginas públicas `/novedades`, `/radar`, `/eventos`
+   (modal exprés) y `/mi-ludoteca` («Cola comunitaria») aunque no tuviera la bandera granular, y la ventana
+   de revocación en caliente permitía lo mismo a una cuenta suspendida. Evidencia: los disparadores viven
+   dentro de bloques `@if (IsModerator)` (`News.razor:15/74/173`, `Radar.razor:25/428`, `Events.razor:19/116`)
+   y los servicios no consumían ninguna identidad (`git show 039fd21:src/Ludeka.Application/Features/Community/GiveawayService.cs`
+   y equivalentes: cero referencias a `ICurrentUserService`). **Corregido**: los servicios releen el permiso
+   y la interfaz traduce la denegación en `/login`.
+2. **Camino anónimo descartado**: un visitante sin sesión no puede alcanzar esas escrituras. No renderiza los
+   botones (marcado por rol) y Blazor Server no despacha manejadores de componentes no renderizados; además,
+   tras la corrección, el servicio deniega sin sesión. El humo real sirve las cuatro páginas públicas con
+   **200** y 0 excepciones, y las pruebas de los 15 servicios demuestran la denegación sin sesión.
+3. **Escrituras públicas deliberadas y no administrativas**: `PriceRadarService.RecordPriceObservationAsync`
+   (observación de precios anónima, sin identidad y por diseño del radar) — fuera del alcance de W1 y sin
+   cambio. `ImageStorageService` es una primitiva de almacenamiento sin contrato de identidad cuyas
+   escrituras de dominio se adjuntan desde servicios guardados.
+
+### Desviaciones y hallazgos (W1-slice)
+
+1. **Alcance ampliado de 8 a 15 servicios**: la auditoría propia encontró `SocialCollectorService`,
+   `NightlyCatalogingService`, `BggDiscoveryService`, `BggMassIngestionService`,
+   `GeminiGameSummaryService`, `YouTubeSearchService` y `MediaService.CheckBrokenLinksAsync` con el mismo
+   defecto y páginas de origen identificables. Todos quedan tratados y fijados por el contrato de reflexión.
+2. **Permiso elegido para las dos escrituras sin política de página** (`WeeklyReleaseService`,
+   `GiveawayService`): `/novedades` y `/radar` son públicas y no declaran política; el permiso elegido es
+   `CanApproveMedia` porque la creación de esas mismas entidades ya está gobernada por `PermisoAprobarMedios`
+   en la bandeja de moderación (`ApproveAndPublishAsync`) y es la política de las páginas de administración
+   que las moderan. Se registra la ambigüedad; no se inventó ninguna bandera nueva.
+3. **Rutas de sistema explícitas**: los ciclos programados no pueden pasar por la guarda de sesión
+   (no hay sesión en segundo plano), así que cada servicio compartido expone una ruta de sistema
+   documentada (`IngestFromCollectorAsync`, `RunScheduledCollectionAsync`, `RunExpiringGiveawaysScanAsync`,
+   `RunFridayReleasesBulletinAsync`, `RunBggTrendsDiscoveryAsync`, `RunScheduledDrainCycleAsync`,
+   `RunScheduledCatalogingAsync`) y los servicios hospedados la usan. Cada una tiene prueba de que
+   sigue funcionando sin sesión.
+4. **`MediaService` conserva las dos vías**: `CheckBrokenLinksAsync` usa la guarda nueva cuando el contexto
+   web la inyecta (relectura sin rastreo) y su `EnsurePermission` de F4 en caso contrario. El resto de
+   escrituras de `MediaService` mantiene la guarda de F4 sin cambios (fuera del alcance de W1).
+5. **La guarda no rompe los caminos existentes**: la dependencia es opcional en los constructores
+   (convención del repositorio: nulo = sin contexto web en pruebas y ejecuciones sin interfaz);
+   `Program.cs` la registra como `Scoped`, así que en el ciclo web siempre está presente, y el contrato por
+   reflexión impide que un servicio nuevo se cuele sin ella.
+6. **Las fases internas del staging no se guardan por separado**: `ProcessPendingDetailsBatchAsync` y
+   compañía son primitivas del propio `RunDrainCycleAsync` y del ciclo nocturno; guardarlas rompería la
+   composición interna. Se documentan como etapas de sistema y la puerta de la interfaz es el drenaje.
+7. **Sin migraciones ni cambios de esquema**: la frontera de reversión es `039fd21`.
+
+### Presupuesto y frontera de PR (W1-slice)
+
+- **Líneas cambiadas del slice W1**: `git diff --shortstat 039fd21 HEAD` → **2332 inserciones y 39 supresiones en 40 archivos** de `src/` y `tests/`; artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Dentro del presupuesto de 2500 líneas.
+- **Modo**: slice de corrección sobre la rama de cierre (`stacked-to-main` respecto de `039fd21`), sin `sdd-archive` (F5) y sin migraciones.
+- **Frontera**: de `039fd21` a la revalidación en caliente de los 15 servicios administrativos de escritura; reversión exacta al commit de verificación.
+
 
 ## Estado F2-bis: COMPLETADO ✅
 

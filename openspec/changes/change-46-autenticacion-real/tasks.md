@@ -146,6 +146,23 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 - [x] 4.5 `dotnet test Ludeka.sln` verde.
 - [x] 4.6 Smoke de navegador (criterio 11): `/admin/auditoria` sin sesión redirige a login; SQLite verificado con la matriz anónima de rutas y la demostración real en navegador del clic «En mi ludoteca» → `/login`. El arranque con PostgreSQL no se pudo reejecutar aquí (sin servidor ni Docker); F4 no toca persistencia.
 
+## Fase 6 — Remediación W1: revalidación de los servicios administrativos (slice de corrección)
+
+> Origen: hallazgo **W1** del informe de verificación (`verify-report.md`): ocho servicios administrativos
+> de escritura no consumían identidad y no revalidaban permiso. Ampliado por auditoría propia a toda la
+> superficie de escritura administrativa invocable desde la interfaz (**15 servicios**), con evidencia
+> de página → política → permiso. Slice `inc/autenticacion-real-cierre` (base `039fd21`). Sin migraciones
+> ni cambios de esquema; sin tocar `docs/specs/sistema/` ni el ROADMAP (fuera de alcance).
+
+- [x] 6.1 RED: `SessionPermissionGuardTests` (sin sesión, cuenta inexistente, suspendida, permiso revocado, permiso retirado entre operaciones, comunitaria, moderador con la bandera exacta y Mesa Fundadora).
+- [x] 6.2 GREEN: `ISessionPermissionGuard`/`SessionPermissionGuard` (relectura `AsNoTracking` del `AppUser` de la sesión) y su registro `Scoped` en `Program.cs`.
+- [x] 6.3 RED+GREEN: `BoardGameEventService` (`CanManageEvents`), `WeeklyReleaseService` y `GiveawayService` (`CanApproveMedia`), más las filas de contrato de `SessionDenialUiContractTests` y la traducción de la denegación en `/novedades`, `/radar`, el borrado de eventos y la «Cola comunitaria».
+- [x] 6.4 RED+GREEN: `SocialIngestionService`, `SocialCollectorService`, `MonitoredAccountService` y `YouTubeSearchService` (`CanApproveMedia`) y `CommunityNotificationService` (`CanManageNotifications`), con las rutas de sistema `IngestFromCollectorAsync`, `RunScheduledCollectionAsync`, `RunExpiringGiveawaysScanAsync` y `RunFridayReleasesBulletinAsync` para los servicios hospedados.
+- [x] 6.5 RED+GREEN: `BggCatalogQueueService`, `BggDiscoveryService`, `BggMassIngestionService`, `NightlyCatalogingService` y `GeminiGameSummaryService` (`CanEditGames`), con las rutas de sistema `RunBggTrendsDiscoveryAsync`, `RunScheduledDrainCycleAsync` y `RunScheduledCatalogingAsync`.
+- [x] 6.6 RED+GREEN: `InstagramPublisherService` (`CanPublishInstagram`) y `MediaService.CheckBrokenLinksAsync` con la guarda de relectura sin rastreo.
+- [x] 6.7 Contrato por reflexión `AdministrativeWriteGuardContractTests`: los 15 servicios declaran `ISessionPermissionGuard` en su constructor y `Program.cs` la registra.
+- [x] 6.8 `dotnet test Ludeka.sln --configuration Release` verde (**1345/1345**, 0 errores, 0 omitidas) y humo real (`Production` + SQLite, sin credenciales OAuth): `/` y `/healthz` **200**; `/admin/eventos`, `/admin/notificaciones` y `/admin/usuarios` **302** a `/login`; 0 excepciones no controladas.
+
 ## Fase 5 — Verificación, documentación y archive (PR 8)
 
 - [ ] 5.1 `dotnet test Ludeka.sln` completo en verde; registrar el conteo de pruebas superadas.
