@@ -15,6 +15,7 @@ using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Instagram;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Affiliates;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
@@ -28,6 +29,7 @@ using Ludeka.Infrastructure.Stores;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web.Components;
+using Ludeka.Web.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -53,6 +55,13 @@ builder.Services.AddRazorComponents()
 // Configuración de Opciones de Base de Datos y Administrador
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection(AdminUserOptions.SectionName));
+
+// Incremento 46: cookie de sesión propia y esquemas sociales dirigidos por configuración.
+// Un proveedor habilitado sin credenciales no tumba el arranque: se avisa y no se registra.
+var authenticationOptions = builder.Configuration
+    .GetSection(AuthenticationOptions.SectionName)
+    .Get<AuthenticationOptions>() ?? new AuthenticationOptions();
+builder.Services.AddLudekaAuthentication(authenticationOptions);
 
 // Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
 var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
@@ -295,6 +304,12 @@ builder.Services.AddHealthChecks()
     .AddCheck<NotificationQueueHealthCheck>("notification_queue", tags: ["ready"]);
 
 var app = builder.Build();
+
+// Aviso explícito de proveedores habilitados sin credenciales: la aplicación arranca sin ellos.
+foreach (var authenticationWarning in ExternalAuthenticationSchemes.GetConfigurationWarnings(authenticationOptions))
+{
+    app.Logger.LogWarning("{AuthenticationWarning}", authenticationWarning);
+}
 
 // Inicialización automática y siembra del catálogo Offline-First con resiliencia de directorios en Docker
 using (var scope = app.Services.CreateScope())
