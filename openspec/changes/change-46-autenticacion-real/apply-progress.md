@@ -1,14 +1,15 @@
-# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2 y F3
+# Apply Progress: change-46-autenticacion-real (INC-46) — Fases F0, F1, F2, F3 y F4
 
 > Fase SDD `sdd-apply`. Store: openspec (este archivo + `tasks.md`).
 > Worktree: `C:\repos\ludeka-wt\autenticacion-real`.
 > · Slice **PR-1 / F0**: rama `inc/autenticacion-real`, mergeado a `main` en `3ec23d5`.
 > · Slice **PR-2 / F1**: rama `inc/autenticacion-real-f1`, base `3ec23d5`, mergeado a `main` en `06e53cc`.
 > · Slice **PR-3 / F2**: rama `inc/autenticacion-real-f2`, base `06e53cc`, mergeado a `main` en `83063bd` (PR #14).
-> · Slice **PR-5/PR-6 / F3** (este): rama `inc/autenticacion-real-f3`, base `83063bd` (`origin/main`).
+> · Slice **PR-5/PR-6 / F3**: rama `inc/autenticacion-real-f3`, base `83063bd`, mergeado a `main` en `51e16f3` (PR #15).
+> · Slice **PR-7 / F4** (este): rama `inc/autenticacion-real-f4`, base `51e16f3` (`origin/main`).
 > Modo: **TDD estricto**. Runner contractual: `dotnet test Ludeka.sln`. Cadena `stacked-to-main`.
-> Alcance: Paso 2 de la migración — retirada de la identidad simulada **sin** revalidar todavía los
-> servicios de escritura (F4) y **sin** ejecutar `sdd-archive` (F5).
+> Alcance: Paso 3 de la migración — revalidación de sesión en las escrituras con identidad, anonimia
+> observable en la interfaz y smoke del criterio 11. **Sin** `sdd-archive` (F5).
 
 ## Estado por fase
 
@@ -17,9 +18,116 @@
 | F0 — Artefactos y dominio de permisos | 6/6 | ✅ mergeada en `main` (`3ec23d5`) |
 | F1 — Persistencia de identidad externa | 8/8 | ✅ mergeada en `main` (`06e53cc`) |
 | F2 — Autenticación social y autorización por política | 13/13 | ✅ mergeada en `main` (`83063bd`) |
-| F3 — Retirada de la identidad simulada | 8/8 | ✅ completada (este slice) |
-| F4 — Revalidación en escritura y anonimia | 0/6 | ⬜ sin tocar |
+| F3 — Retirada de la identidad simulada | 8/8 | ✅ mergeada en `main` (`51e16f3`) |
+| F4 — Revalidación en escritura y anonimia | 6/6 | ✅ completada (este slice) |
 | F5 — Verificación, documentación y archive | 0/6 | ⬜ sin tocar |
+
+## Estado F4: COMPLETADO ✅
+
+| Tarea | Estado | Ciclo TDD | Commit |
+|---|---|---|---|
+| 4.1 RED de `AnonymityPolicyTests` (denegación sin sesión en los servicios de identidad) | ✅ | ROJO por aserción: 24/34 en rojo sobre los servicios sin guarda → VERDE 34/34 focal | `3d23381` |
+| 4.1 RED de `SessionIdentity` | ✅ | ROJO por compilación (CS0103: `SessionIdentity` no existe) → VERDE 7/7 focal | `3d23381` |
+| 4.1 Invariante de las 9 entidades | ✅ | 9 teorías × 3 variantes (vacío, espacios, nulo) en verde con los constructores existentes (aprobación del invariante, no RED) | `3d23381` |
+| 4.2 Guarda de sesión en los 15 servicios | ✅ | `SessionIdentity.Require` en partidas, colección, préstamos, reseñas, reportes, preguntas, auditoría, preferencias, BGG y directorios | `3d23381` |
+| 4.2 Verificación de `UserLocationService` y `UserLibraryStatsService` | ✅ | Auditados: solo lecturas, ya toleran `UserId` vacío; ninguna entidad de identidad se instancia | `3d23381` |
+| 4.3 Redirección a `/login` y `/u/` sin identidad | ✅ | ROJO por compilación de `LoginRedirect` (CS1061/CS0103) y ROJO por contrato de marcado (11/17) → VERDE 17/17 focal | `0ccf1b8` |
+| 4.4 Auditoría solo con identidades reales | ✅ | `AuditService.RecordChangeAsync` exige identidad y nombre no vacíos; `UserManagementService` exige sesión antes del privilegio | `3d23381` |
+| 4.4 Retirada del revisor centinela `admin-system` | ✅ | ROJO por contrato de marcado del guardián de bandeja social → VERDE | `0ce34f6` |
+| 4.5 `dotnet test Ludeka.sln` verde | ✅ | VERDE **1231/1231** en Release (0 errores, 0 omitidas) | (docs) |
+| 4.6 Smoke de navegador (criterio 11) | ✅ | Clic real anónimo «En mi ludoteca» → `/login?ReturnUrl=%2Fjuegos%2Fbrass-birmingham`; voto en Q&A → mismo destino; estado sin cambios | (docs) |
+| Handoff F3: render de las tres páginas protegidas | ✅ | ROJO por aserción → VERDE 4/4 focal: 77 usos de `<Icon>` rendidos con sus atributos reales | `3bc5b8b` |
+
+### Commits del slice F4 (rama `inc/autenticacion-real-f4`, base `51e16f3`)
+
+| Sha | Mensaje | Cambios |
+|---|---|---|
+| `3d23381` | `feat(application): exigir sesion real en las escrituras con identidad` | 22 archivos · +1149/−35 |
+| `0ccf1b8` | `feat(web): llevar al acceso las acciones con identidad sin sesion` | 13 archivos · +574/−67 |
+| `3bc5b8b` | `test(web): renderizar los iconos de las paginas protegidas con sus atributos reales` | 1 archivo · +210 |
+| `0ce34f6` | `fix(web): retirar el revisor centinela de la bandeja social` | 1 archivo · +11/−2 |
+| (docs) | `docs(sdd): registrar el progreso de apply de la fase F4 de INC-46` | `tasks.md` + este archivo |
+
+### Servicios a los que se añadió guarda de sesión (F4)
+
+| # | Servicio | Guarda |
+|---|---|---|
+| 1 | `GamePlayLogService` (`RecordPlayAsync`, `DeletePlayAsync`) | `SessionIdentity.Require(_currentUserService)` |
+| 2 | `UserLibraryService` (colección, jugado, préstamos, reseñas) | `SessionIdentity.Require` en las 6 escrituras |
+| 3 | `GameIssueReportService.CreateReportAsync` | guarda + identidad forzada a la sesión |
+| 4 | `RuleQAService` (pregunta, respuesta, votos, respuesta aceptada) | `SessionIdentity.Require(userId)` |
+| 5 | `AuditService.RecordChangeAsync` | identidad y nombre no vacíos |
+| 6 | `SqliteUserPreferenceService` (tema, país) | `SessionIdentity.Require(userId)` |
+| 7 | `BggImportService.ImportUserCollectionAsync` | guarda antes de llamar a BGG |
+| 8 | `BggSearchAssistedService.AddGameToCollectionAsync` | guarda antes de llamar a BGG |
+| 9 | `MediaService.EnsurePermission` | guarda + permiso |
+| 10 | `CreatorService.EnsurePermission` | guarda + permiso |
+| 11 | `PublisherService.EnsurePermission` | guarda + permiso |
+| 12 | `StoreService.EnsurePermission` | guarda + permiso |
+| 13 | `GameEditorService.UpdateGameAsync` | guarda antes del permiso y de la bitácora |
+| 14 | `UserManagementService.EnsureFoundingTeam` | guarda antes del privilegio |
+| 15 | `FoundingVerdictService` (guardar, borrar, síntesis IA) | guarda antes del rol |
+| — | `SocialInboxModeration` (UI) | revisor centinela `admin-system` retirado |
+
+## TDD Cycle Evidence (F4)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.1 (entidades) | `Application/AnonymityPolicyTests.cs` | Unit (dominio) | ✅ 1142/1142 base | ➖ Invariante preexistente (9 entidades × 3 variantes) | ✅ 27/27 | ✅ Vacío, espacios y nulo por entidad | ➖ Ninguno necesario |
+| 4.1 + 4.2 | `Application/AnonymityPolicyTests.cs` | Integration (SQLite `:memory:` + repositorios reales) | ✅ 1142/1142 base | ✅ 24/34 en rojo por aserción (denegación ausente; hoy `ArgumentException` o escritura) | ✅ 34/34 focal | ✅ Cada escritura denegada + camino con sesión que sí persiste con el `UserId` de la sesión | ✅ `SessionIdentity` como punto único de decisión |
+| 4.1 + 4.2 | `Application/SessionIdentityTests.cs` | Unit (contrato) | ✅ 1142/1142 base | ✅ CS0103 `SessionIdentity` no existe | ✅ 7/7 focal | ✅ Servicio nulo, identidad vacía, espacios, nulo, normalización con recorte | ✅ Dos sobrecargas (`ICurrentUserService` y `string`) sobre una única regla |
+| 4.2 | `Application/AnonymityPolicyPrivilegedServicesTests.cs` | Integration (SQLite `:memory:`) | ✅ 1142/1142 base | ✅ 5/9 en rojo: con privilegios declarados y sin sesión se escribía y se rompía al auditar | ✅ 9/9 focal | ✅ Cada servicio deniega sin sesión pero escribe con sesión y permiso | ✅ Reutilización del `TextWriter` de auditoría y de los dobles de catálogo/verificador |
+| 4.3 | `Web/LoginRedirectTests.cs` | Unit (NavigationManager instrumentado) | N/A (API nueva) | ✅ CS1061/CS0103 `TryRedirectToLogin` y `LoginRedirect` | ✅ 6/6 focal | ✅ Denegación, fallo ajeno, excepción nula, ya en `/login`, `ReturnUrl` escapado, `forceLoad` | ✅ Resolución de `ReturnUrl` en una única función privada |
+| 4.3 | `Web/SessionDenialUiContractTests.cs` | Contract (fuente) | N/A (contrato nuevo) | ✅ 11/17 en rojo (las 8 superficies sin traducción y MyLibrary sin invitación) | ✅ 17/17 focal | ✅ Ocho componentes + invitación al acceso + ausencia de `/u/` vacío | ✅ `LoginRedirect` en `_Imports.razor` como extensión compartida |
+| Handoff F3 | `Web/ProtectedPagesIconRenderTests.cs` | Component (HtmlRenderer real) | N/A (prueba nueva) | ✅ ROJO por aserción (nombre de icono fuera del catálogo y expectativas de precedencia) | ✅ 4/4 focal | ✅ 77 combinaciones reales de atributos + nombre desconocido + precedencia de `aria-hidden` | ✅ Renderizador instanciado una vez por prueba y extracción de atributos en un único helper |
+
+## Work Unit Evidence (F4)
+
+| Unidad / commit | Prueba focal y resultado exacto | Arnés de ejecución y resultado exacto | Límite de rollback |
+|---|---|---|---|
+| U4-A Guardas en aplicación / `3d23381` | `--filter FullyQualifiedName~Anonymity\|FullyQualifiedName~SessionIdentity` → **42/42** | Arranque real (SQLite temporal, `Production`): matriz anónima completa sin 500 y `/mi-ludoteca` 200 | Revertir el commit: `SessionIdentity` desaparece y los servicios vuelven a escribir con `UserId` vacío |
+| U4-B Interfaz hacia el acceso / `0ccf1b8` | `--filter FullyQualifiedName~LoginRedirect\|FullyQualifiedName~SessionDenialUi` → **17/17** | Navegador real (Chrome DevTools, SQLite con datos demo, sin sesión): «En mi ludoteca» → **`/login?ReturnUrl=%2Fjuegos%2Fbrass-birmingham`**; voto en Q&A → mismo destino; la ficha sigue sin ítem de colección y con 2 votos | Revertir el commit: `LoginRedirect` desaparece y `MyLibrary` vuelve a construir `/u/` vacío |
+| U4-C Handoff F3 / `3bc5b8b` | `--filter FullyQualifiedName~ProtectedPagesIconRender` → **4/4** | Render real de `Icon` con los 77 conjuntos de atributos de las tres páginas protegidas, que además se comprueban protegidas con `[Authorize]` | Revertir el commit: sin cambios de producción, solo desaparece la verificación |
+| U4-D Anonimia de la bandeja social / `0ce34f6` | `dotnet test Ludeka.sln --configuration Release` → **1231/1231** | Arranque real: sin sesión las rutas de moderación siguen respondiendo **302** a `/login` | Revertir el commit: vuelve el revisor centinela `admin-system` |
+
+## Verificación observada (registro) — F4
+
+| Comando / comprobación | Resultado observado |
+|---|---|
+| Línea base antes de tocar código: `dotnet test Ludeka.sln --configuration Release` en `51e16f3` | **1142 correctas, 0 con error, 0 omitidas** |
+| `dotnet test Ludeka.sln --configuration Release` (final) | **1231 correctas, 0 con error, 0 omitidas** (+89 casos: 27 del invariante de las 9 entidades, 34 de la política de anonimia, 7 del contrato de `SessionIdentity`, 6 de `LoginRedirect`, 11 de contrato de la interfaz, 4 del render de las páginas protegidas) |
+| `dotnet build Ludeka.sln --configuration Release --no-incremental` | **0 errores**; solo los avisos preexistentes (`CS8629` `BggImportService.cs:150` —línea desplazada por la guarda—, `CS8604` `UserCollectionItemTests.cs:35` y `GameLoanTests.cs:38`, `CS8625` `SocialIngestionServiceTests.cs:108` y `GranularPermissionsTests.cs:278`, `xUnit2013` `WebMarkupContractTests.cs:739` y `SocialIngestionServiceTests.cs:257`); ningún aviso nuevo |
+| Búsqueda de `usuario-fundador-ludeka|SwitchRole|SwitchUser|DefaultCurrentUserService` en `src/` | **1 resultado**: `UserManagementSeeder.cs:39`, fila de datos demostrativos (`Database:SeedDemoData`) sin ninguna ruta de escritura que la use como identidad |
+| Búsqueda de `admin-system` en `src/` | **0 resultados** (centinela retirado de `SocialInboxModeration.razor`) |
+| Búsqueda de migraciones nuevas (`git diff --name-only 51e16f3 HEAD -- src/Ludeka.Infrastructure/Migrations`) | **vacío**: sin cambios de esquema |
+| Arranque real 1 (`ASPNETCORE_ENVIRONMENT=Production`, SQLite temporal, `Database__SeedDemoData=false`, sin credenciales OAuth, `PORT=5187`, `dotnet bin\Release\net10.0\Ludeka.Web.dll`) | Arranca y sirve `/healthz` **200** y `/ready` **200**; 0 excepciones no controladas en el log |
+| Arranque real 2 (criterio 11, `Development` + datos demo, `PORT=5190`) | Chrome DevTools sin sesión sobre `/juegos/brass-birmingham`: clic en «En mi ludoteca» → **`/login?ReturnUrl=%2Fjuegos%2Fbrass-birmingham`**; clic en «Votar esta duda» → **mismo destino**; tras volver a la ficha, la colección sigue vacía y la duda mantiene **2 votos** (ninguna fila escrita) |
+
+### Matriz anónima de códigos de estado (prueba de humo real, `Production` + SQLite)
+
+| Ruta | Sin sesión | Nota |
+|---|---|---|
+| `/` | **200** | |
+| `/catalogo` | **200** | |
+| `/radar` | **200** | |
+| `/eventos` | **200** | |
+| `/novedades` | **200** | |
+| `/sorteos` | **200** | |
+| `/creadores` | **200** | |
+| `/editoriales` | **200** | |
+| `/transparencia` | **200** | |
+| `/login` | **200** | Sin proveedores configurados: muestra el aviso de configuración |
+| `/healthz` | **200** | Sonda anónima preservada |
+| `/ready` | **200** | Sonda anónima preservada |
+| `/mi-ludoteca` | **200** | Invitación al acceso en el HTML y **ningún** `href="/u/"` |
+| `/admin/auditoria` | **302** | → `/login?ReturnUrl=/admin/auditoria` |
+| `/admin/usuarios` | **302** | → `/login?ReturnUrl=/admin/usuarios` |
+| `/moderacion/reportes` | **302** | → `/login?ReturnUrl=/moderacion/reportes` |
+| `/admin/cola-catalogacion` | **302** | → `/login?ReturnUrl=/admin/cola-catalogacion` |
+| `/admin/ingesta-social` | **302** | → `/login?ReturnUrl=/admin/ingesta-social` |
+| `/admin/canales-monitorizados` | **302** | → `/login?ReturnUrl=/admin/canales-monitorizados` |
+| **Total de 500 en la matriz** | **0** | |
+
 
 ## Estado F3: COMPLETADO ✅
 
@@ -51,6 +159,8 @@
 | F0 (`inc/autenticacion-real`, → `3ec23d5`) | `ff6eaee` specs canónicas y Markdown LF · `c18f652` `CanManageUsers`/`CanViewAuditLog` · `ee582cb` `AuditAction.LinkedFounderIdentity` |
 | F1 (`inc/autenticacion-real-f1`, → `06e53cc`) | `b4ab43a` entidad `ExternalLogin` · `21eb78a` persistencia e índice único · `36cb30f` migración PostgreSQL `AddExternalLogins` · `959f222` docs de apply |
 | F2 (`inc/autenticacion-real-f2`, → `83063bd`) | `333e37a` cookie y esquemas sociales · `4078b13` vinculación y sesión · `0373876` nueve políticas de permiso · `28b6464` protección de rutas · `70ac33e` antiforgery 400 |
+| F3 (`inc/autenticacion-real-f3`, → `51e16f3`) | `e747551` contrato sin conmutadores · `be84f03` identidad de sesión · `3d57915` `Icon` con atributos adicionales · `856e3c4` invalidación de circuito |
+| F4 (`inc/autenticacion-real-f4`, este slice) | `3d23381` guardas de sesión en aplicación · `0ccf1b8` interfaz hacia el acceso · `3bc5b8b` render de las páginas protegidas · `0ce34f6` centinela retirado |
 
 ## TDD Cycle Evidence (F3)
 
@@ -151,13 +261,15 @@
 
 ## Guardas mínimas y arreglos de componente añadidos en F3 (handoff a F4/verify)
 
+> **Handoff cerrado en F4**: las tres páginas protegidas se verifican con `Web/ProtectedPagesIconRenderTests` (render real del componente `Icon` con los 77 conjuntos de atributos extraídos de su marcado) y `/radar` se revalidó en el humo anónimo con **200**; las cinco guardas de anonimia prometidas en el punto 5 se implementaron en F4.
+
 1. **`Icon.razor` — paso directo de atributos adicionales (`CaptureUnmatchedValues`)**: doce puntos de la interfaz pasaban `class`, `Class` o `aria-hidden` a `<Icon>`, que no los declara, y el render lanzaba `InvalidOperationException` (`Icon does not have a property matching the name 'class'`). Afectaba a rutas **públicas** (`/radar` con la pestaña de ofertas, la galería de la ficha y el hub multimedia de la ficha) y a tres páginas protegidas. El arreglo es aditivo y no cambia el contrato propio del icono (`Name`, `Size`, `StrokeWidth`, `Title`) ni su contrato de markup. **F4/verify deben comprobar las tres páginas protegidas** (`/admin/cola-catalogacion`, `/admin/ingesta-social`, `/admin/canales-monitorizados`), que quedaron con `class`/`Class` sobre `<Icon>` y ahora se renderizan con el nuevo paso directo.
 2. **`SqliteUserRepository` — `AsNoTracking()` en las lecturas de identidad** (`GetByIdAsync`, `GetByEmailAsync`, `GetAllAsync`): sin él, el `DbContext` de larga vida del circuito devolvería la entidad rastreada y la suspensión o revocación en caliente no surtiría efecto (riesgo R5 del `tasks.md`).
 3. **Alineación del marcado con el permiso de la política** (solo experiencia de uso, nunca control de acceso): `MainLayout` muestra el bloque de Gobernanza con `CanManageUsers` o `CanViewAuditLog`, y las páginas `UserManagement`, `AuditLogViewer`, `MediaModeration` y `GameReportsModeration` condicionan su bloque de aviso al permiso de su propia política (`CanManageUsers`, `CanViewAuditLog`, `CanApproveMedia`, `CanResolveReports`). Antes dependían de `IsFoundingTeam`, que con la identidad simulada siempre era verdadero.
 4. **`App.razor`**: el respaldo de tema en `localStorage` ya no cae al identificador simulado `usuario-fundador-ludeka`; sin identidad se usa el tema global. Es la última traza de la simulación fuera del ámbito estrictamente UI.
 5. **Guardas de anonimia en servicios: NO se añadieron en este slice** (es el objeto de F4). La navegación pública anónima no necesitó ninguna: todas las lecturas toleran `UserId` vacío y devuelven vacío, y las escrituras públicas siguen esperando a la revalidación de F4.
 
-## Desviaciones y hallazgos
+## Desviaciones y hallazgos (F3)
 
 1. **Mapeo de 2.10/2.11 fijado por el maintainer (no por `design.md`)**: `/admin/notificaciones` y `/admin/eventos` usan la política de rol `RolModerador` en lugar de `PermisoGestionarEditores`, y `/admin/ingesta-social` y `/admin/canales-monitorizados` usan `PermisoAprobarMedios`. **Punto a confirmar por el maintainer** (R3/§9.3).
 2. **Correo sin verificar**: no se persiste en `AppUser.Email`; queda solo en `ExternalLogin.ProviderEmail`; las cuentas sin correo del proveedor reciben un correo sintético no enrutable (`<clave>@<proveedor>.ludeka.invalid`).
@@ -173,7 +285,7 @@
 12. **Documentación viva pendiente de F5**: `.openspec/specs/editorial-role-management/spec.md`, `.openspec/specs/user-management-permissions-audit/spec.md` y `docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md` aún describen la simulación y los conmutadores; el delta del cambio ya los retira y `sdd-archive-compose` los sincroniza.
 13. **Histórico de F2 (sin cambios)**: `IExternalLoginRepository` y `ExternalLoginRepository` quedaron registrados como `Scoped` junto a `IExternalLoginService`, y F2 cerró con F3/F4/F5 sin tocar, la simulación intacta y sin cambios de esquema ni efectos de despliegue.
 
-## Presupuesto y frontera de PR
+## Presupuesto y frontera de PR (F3)
 
 - **Líneas cambiadas del slice F3**: `git diff --shortstat 83063bd` → **1180 inserciones y 378 supresiones en 42 archivos** de `src/` y `tests/`, con un único borrado (`DefaultCurrentUserService.cs`). Artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Dentro del presupuesto de 3000 líneas del slice.
 - **Modo**: chained/stacked PR slice (`stacked-to-main`). Los PR 5 y 6 del desglose se entregan como una unidad cohesionada (el contrato sin conmutadores es la precondición de compilación de la identidad real y de la invalidación).
@@ -181,8 +293,29 @@
 - **Reversión**: revertir los commits devuelve el árbol a `83063bd`.
 - **Slice F2 (histórico)**: `git diff --shortstat 06e53cc` → **1567 inserciones y 73 supresiones en 30 archivos**, de las que 1472/4 (28 archivos) eran código y pruebas; modo chained/stacked PR slice, frontera de `06e53cc` a la autorización efectiva por política con la identidad simulada todavía viva.
 
+## Desviaciones y hallazgos (F4)
+
+1. **`UserLocationService` y `UserLibraryStatsService` no necesitaron guarda**: son rutas de lectura y ya toleraban `UserId` vacío. Se auditaron uno a uno; el comentario de `GetEffectiveCountryAsync` documenta por qué la ausencia de sesión no debe denegarse allí (la navegación pública debe seguir funcionando). Ningún servicio de los 15 queda sin decisión explícita.
+2. **Servicios con dependencia opcional (`ICurrentUserService?`)**: conservan la convención del repositorio (nulo = sin contexto de identidad, usado por pruebas y ejecuciones sin web) y aplican la guarda cuando la dependencia existe. En producción la dependencia siempre está registrada (`Scoped`), así que la guarda es efectiva en todo el ciclo web.
+3. **La identidad del reporte la manda la sesión**: `GameIssueReportService.CreateReportAsync` ignora el `UserId` del comando cuando hay sesión y escribe el de la sesión, de modo que un visitante no puede atribuir un reporte a otra persona ni escribir una identidad vacía.
+4. **`AuditService` valida la identidad del comando, no la compara con la sesión**: `RecordChangeAsync` exige identidad y nombre no vacíos. No se añadió la comparación estricta con la sesión porque los servicios que auditan fuera del ciclo web (importaciones y procesos de datos) pasan identidades funcionales propias y hay cobertura existente que lo fija; la comparación estricta queda como endurecimiento futuro si el maintainer lo pide.
+5. **Preferencias con denegación explícita**: `SqliteUserPreferenceService` ya no ignora silenciosamente una identidad vacía; ahora lanza la denegación controlada. La interfaz (`MainLayout`, `MyLibrary`, `LocationSelectorModal`) la traduce en redirección al acceso; un tema elegido sin sesión se aplica localmente por JS antes de la redirección y sigue vigente al volver.
+6. **`SocialInboxModeration`: se retiró el revisor centinela `admin-system`**. Era código muerto (el operador `?.` sobre un `string` no nulo nunca lo alcanzaba) pero contradecía la invariante «sin usuario centinela» y podía propagar una identidad vacía.
+7. **`InstagramModeration` no se tocó**: sus superficies están protegidas por la política `PermisoPublicarInstagram` y el servicio editor recibe la identidad como parámetro desde una página `[Authorize]`; no existe camino anónimo. Queda anotado para F5/futuro si se quiere homogeneizar la firma con `SessionIdentity`.
+8. **`UserManagementSeeder` conserva la fila `usuario-fundador-ludeka`**: es dato demostrativo (`Database:SeedDemoData`, solo en `Development`) y ninguna ruta de escritura la usa como identidad. No es un centinela funcional.
+9. **Handoff de F3 cerrado con render real**: las tres páginas protegidas no se pueden abrir sin sesión (302), así que su render se verifica con 77 combinaciones reales de atributos sobre el componente `Icon` extraídas de su propio marcado; `/radar` (pública, mismo defecto) se revalidó en el humo con **200**.
+10. **Sin migraciones ni cambios de esquema**: la frontera de reversión es exacta (`51e16f3`).
+11. **PostgreSQL no disponible en este entorno**: no hay servidor ni Docker, así que el humo de F4 se ejecutó sobre SQLite. F4 no toca persistencia (solo guardas en servicios), por lo que el arranque con PostgreSQL permanece idéntico al verificado en F3; el cambio de proveedor sigue cubierto por `DatabaseProviderTests` en la suite.
+
+## Presupuesto y frontera de PR (F4)
+
+- **Líneas cambiadas del slice F4**: `git diff --shortstat 51e16f3 HEAD` → **1944 inserciones y 104 supresiones en 37 archivos** de `src/` y `tests/`; artefactos SDD (`tasks.md` y este `apply-progress.md`) aparte. Dentro del presupuesto de 3000 líneas del slice.
+- **Modo**: chained/stacked PR slice (`stacked-to-main`). Los PR 5 y 6 del desglose ya se entregaron juntos en F3; este slice cubre el PR 7 completo.
+- **Frontera**: de `51e16f3` a la anonimia efectiva en escritura, con redirección al acceso en la interfaz; sin `sdd-archive` (F5) y sin migraciones.
+- **Reversión**: revertir los 4 commits devuelve el árbol a `51e16f3`.
+
 ## Estado acumulado
 
-- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F3: 8/8** (este slice).
-- Suite completa: **1142/1142** en Release, 0 con error, 0 omitidas (línea base `83063bd`: 1120).
-- Listo para la verificación independiente de `sdd-verify` sobre el slice F3. F4 y F5 quedan sin tocar.
+- **F0: 6/6** (mergeada en `3ec23d5`). **F1: 8/8** (mergeada en `06e53cc`). **F2: 13/13** (mergeada en `83063bd`). **F3: 8/8** (mergeada en `51e16f3`). **F4: 6/6** (este slice).
+- Suite completa: **1231/1231** en Release, 0 con error, 0 omitidas (línea base de F4 `51e16f3`: 1142).
+- Listo para la verificación independiente de `sdd-verify` sobre el slice F4. F5 queda sin tocar.
