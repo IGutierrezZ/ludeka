@@ -1,7 +1,7 @@
 ﻿import fs from "fs";
 import path from "path";
 
-const specsRoot = path.resolve(".openspec/changes/change-01-core-catalog/specs");
+const specsRoot = path.resolve("openspec/changes/archive/2026-09-06-change-01-core-catalog/specs");
 
 const translations = {
   "core-catalog/spec.md": `# Especificación: core-catalog
