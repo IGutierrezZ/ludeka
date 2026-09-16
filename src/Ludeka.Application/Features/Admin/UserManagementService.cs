@@ -224,6 +224,11 @@ public class UserManagementService : IUserManagementService
         if (permissions.HasFlag(ModeratorPermission.CanApproveMedia)) list.Add("Moderar Vídeos");
         if (permissions.HasFlag(ModeratorPermission.CanResolveReports)) list.Add("Resolver Reportes");
         if (permissions.HasFlag(ModeratorPermission.CanManageStoreLinks)) list.Add("Gestionar Tiendas");
+        if (permissions.HasFlag(ModeratorPermission.CanPublishInstagram)) list.Add("Publicar en Instagram");
+        if (permissions.HasFlag(ModeratorPermission.CanManageUsers)) list.Add("Gestionar Usuarios");
+        if (permissions.HasFlag(ModeratorPermission.CanViewAuditLog)) list.Add("Ver Auditoría");
+        if (permissions.HasFlag(ModeratorPermission.CanManageEvents)) list.Add("Gestionar Eventos");
+        if (permissions.HasFlag(ModeratorPermission.CanManageNotifications)) list.Add("Gestionar Notificaciones");
 
         return list;
     }
