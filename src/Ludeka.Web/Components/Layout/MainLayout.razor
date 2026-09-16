@@ -298,6 +298,9 @@
     OnClose="() => _showLocationModal = false"
     OnCountryChanged="HandleCountryChanged" />
 
+@* Recarga el circuito cuando la cuenta de la sesión se suspende o cambian sus permisos. *@
+<SessionGuard />
+
 <div id="blazor-error-ui" class="hidden">
     Ha ocurrido un error inesperado.
     <a href="." class="reload">Recargar</a>

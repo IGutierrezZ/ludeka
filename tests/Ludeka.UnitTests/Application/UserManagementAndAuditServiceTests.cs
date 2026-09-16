@@ -220,6 +220,87 @@ public class UserManagementAndAuditServiceTests
         Assert.Contains(auditRepo.Entries[0].Changes, c => c.FieldName == "Status" && c.OldValue == "Active" && c.NewValue == "Suspended");
     }
 
+    private class RecordingSessionInvalidator : IUserSessionInvalidator
+    {
+        public List<string> InvalidatedUserIds { get; } = [];
+
+        public event EventHandler<UserSessionInvalidatedEventArgs>? Invalidated;
+
+        public long GetVersion(string userId) => 0;
+
+        public void Invalidate(string userId)
+        {
+            InvalidatedUserIds.Add(userId);
+            Invalidated?.Invoke(this, new UserSessionInvalidatedEventArgs(userId, InvalidatedUserIds.Count));
+        }
+    }
+
+    [Fact]
+    public async Task UserManagementService_UpdateStatus_ShouldInvalidateTheTargetSession()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+        var invalidator = new RecordingSessionInvalidator();
+
+        userRepo.Users.Add(new AppUser("ana", "Ana", "ana@test.es", UserRole.Moderator, ModeratorPermission.CanEditGames));
+
+        var userService = new UserManagementService(
+            userRepo,
+            new AuditService(auditRepo, currentUser),
+            currentUser,
+            invalidator);
+
+        await userService.UpdateUserStatusAsync(new UpdateUserStatusCommand("ana", UserStatus.Suspended));
+
+        Assert.Equal(["ana"], invalidator.InvalidatedUserIds);
+    }
+
+    [Fact]
+    public async Task UserManagementService_UpdateRoleAndPermissions_ShouldInvalidateTheTargetSession()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+        var invalidator = new RecordingSessionInvalidator();
+
+        userRepo.Users.Add(new AppUser("juan", "Juan", "juan@test.es", UserRole.CommunityUser));
+
+        var userService = new UserManagementService(
+            userRepo,
+            new AuditService(auditRepo, currentUser),
+            currentUser,
+            invalidator);
+
+        await userService.UpdateUserRoleAndPermissionsAsync(new UpdateUserRoleAndPermissionsCommand(
+            UserId: "juan",
+            Role: UserRole.Moderator,
+            Permissions: ModeratorPermission.CanApproveMedia));
+
+        Assert.Equal(["juan"], invalidator.InvalidatedUserIds);
+    }
+
+    [Fact]
+    public async Task UserManagementService_UpdateStatus_WhenNothingChanges_ShouldNotInvalidate()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+        var invalidator = new RecordingSessionInvalidator();
+
+        userRepo.Users.Add(new AppUser("ana", "Ana", "ana@test.es", UserRole.Moderator, ModeratorPermission.CanEditGames));
+
+        var userService = new UserManagementService(
+            userRepo,
+            new AuditService(auditRepo, currentUser),
+            currentUser,
+            invalidator);
+
+        await userService.UpdateUserStatusAsync(new UpdateUserStatusCommand("ana", UserStatus.Active));
+
+        Assert.Empty(invalidator.InvalidatedUserIds);
+    }
+
     [Fact]
     public async Task AuditService_GetAuditLogs_PaginationAndFiltering()
     {

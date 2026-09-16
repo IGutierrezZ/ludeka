@@ -96,6 +96,22 @@ public class AuthorizationPipelineContractTests
         Assert.Contains("ExternalAuthenticationSchemes.LoginPath", redirect, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SessionGuard_ShouldForceAFullReloadWhenTheSessionIsInvalidated()
+    {
+        // INC-46 F3: el guardián del circuito escucha la invalidación y recarga la página completa
+        // para que el pipeline y el circuito reevalúen la identidad sin esperar al cierre de sesión.
+        var guard = ReadSource("src/Ludeka.Web/Components/Shared/SessionGuard.razor");
+        Assert.Contains("IUserSessionInvalidator", guard, StringComparison.Ordinal);
+        Assert.Contains("Invalidated +=", guard, StringComparison.Ordinal);
+        Assert.Contains("forceLoad: true", guard, StringComparison.Ordinal);
+        Assert.Contains("RendererInfo.IsInteractive", guard, StringComparison.Ordinal);
+        Assert.Contains("Dispose", guard, StringComparison.Ordinal);
+
+        var layout = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
+        Assert.Contains("<SessionGuard />", layout, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

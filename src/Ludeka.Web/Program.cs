@@ -248,6 +248,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserIdentitySnapshot>();
 builder.Services.AddScoped<ICurrentUserService, AuthenticatedCurrentUserService>();
 builder.Services.AddScoped<CircuitHandler, UserCircuitHandler>();
+builder.Services.AddSingleton<IUserSessionInvalidator, InMemoryUserSessionInvalidator>();
 builder.Services.AddScoped<IUserLibraryService, UserLibraryService>();
 builder.Services.AddScoped<IUserLibraryStatsService, UserLibraryStatsService>();
 builder.Services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
