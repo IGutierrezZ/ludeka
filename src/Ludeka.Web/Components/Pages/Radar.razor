@@ -578,7 +578,17 @@
         if (target == null) return;
 
         bool newPromoted = !target.IsPromoted;
-        await GiveawayService.SetPromotedAsync(giveawayId, newPromoted);
+        try
+        {
+            await GiveawayService.SetPromotedAsync(giveawayId, newPromoted);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // La página es pública: la denegación por falta de sesión o de permiso lleva al acceso.
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+
         await LoadGiveawaysDataAsync();
     }
 
@@ -618,7 +628,16 @@
             IsPromoted: IsModerator && _formIsPromoted,
             Country: _formCountry);
 
-        await GiveawayService.CreateOrMergeGiveawayAsync(request);
+        try
+        {
+            await GiveawayService.CreateOrMergeGiveawayAsync(request);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // La página es pública: la denegación por falta de sesión o de permiso lleva al acceso.
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         _isCreateModalOpen = false;
         _formTitle = string.Empty;

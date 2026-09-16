@@ -60,7 +60,8 @@ public class SocialCollectorHostedService : BackgroundService
                     using var scope = _scopeFactory.CreateScope();
                     var collectorService = scope.ServiceProvider.GetRequiredService<ISocialCollectorService>();
 
-                    var result = await collectorService.CollectAllAccountsAsync(options.MaxItemsPerAccount, stoppingToken);
+                    // Ruta de sistema sin sesión: el ciclo desatendido no pasa por la guarda de la interfaz.
+                    var result = await collectorService.RunScheduledCollectionAsync(options.MaxItemsPerAccount, stoppingToken);
 
                     _logger.LogInformation(
                         "Lote desatendido de recolección completado: {Imported} publicaciones importadas a moderación ({Skipped} duplicados omitidos).",

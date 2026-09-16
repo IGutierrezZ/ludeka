@@ -18,27 +18,50 @@ namespace Ludeka.Application.Features.Bgg;
 /// </summary>
 public class BggDiscoveryService : IBggDiscoveryService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanEditGames' para descubrir y encolar tendencias de BGG.";
+
     private readonly IBggClient _bggClient;
     private readonly IGameRepository _gameRepo;
     private readonly IPendingBggImportRepository _pendingRepo;
     private readonly IBggCatalogStagingRepository? _stagingRepo;
     private readonly ILogger<BggDiscoveryService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public BggDiscoveryService(
         IBggClient bggClient,
         IGameRepository gameRepo,
         IPendingBggImportRepository pendingRepo,
         ILogger<BggDiscoveryService> logger,
-        IBggCatalogStagingRepository? stagingRepo = null)
+        IBggCatalogStagingRepository? stagingRepo = null,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
         _gameRepo = gameRepo ?? throw new ArgumentNullException(nameof(gameRepo));
         _pendingRepo = pendingRepo ?? throw new ArgumentNullException(nameof(pendingRepo));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stagingRepo = stagingRepo;
+        _permissionGuard = permissionGuard;
     }
 
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): el escaneo encola
+    /// descubrimientos desde el panel; el ciclo nocturno usa la ruta de sistema.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
+
     public async Task<BggDiscoveryResultDto> DiscoverAndEnqueueBggTrendsAsync(int maxItems = 50, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await RunBggTrendsDiscoveryAsync(maxItems, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<BggDiscoveryResultDto> RunBggTrendsDiscoveryAsync(int maxItems = 50, CancellationToken ct = default)
     {
         if (maxItems <= 0) maxItems = 50;
 
@@ -60,6 +83,8 @@ public class BggDiscoveryService : IBggDiscoveryService
 
     public async Task<BggDiscoveryResultDto> DiscoverAndEnqueueNewReleasesAsync(int? targetYear = null, int maxItems = 50, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         if (maxItems <= 0) maxItems = 50;
         int year = targetYear ?? DateTime.UtcNow.Year;
 

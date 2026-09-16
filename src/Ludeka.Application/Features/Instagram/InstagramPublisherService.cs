@@ -12,6 +12,9 @@ namespace Ludeka.Application.Features.Instagram;
 
 public class InstagramPublisherService : IInstagramPublisherService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderaciÃ³n 'CanPublishInstagram' para gestionar las publicaciones de Instagram.";
+
     private readonly IInstagramPostDraftRepository _draftRepository;
     private readonly IGiveawayRepository _giveawayRepository;
     private readonly IWeeklyReleaseRepository _releaseRepository;
@@ -19,6 +22,7 @@ public class InstagramPublisherService : IInstagramPublisherService
     private readonly IInstagramComposerService _composerService;
     private readonly IInstagramApiClient _apiClient;
     private readonly IAuditService _auditService;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public InstagramPublisherService(
         IInstagramPostDraftRepository draftRepository,
@@ -27,7 +31,8 @@ public class InstagramPublisherService : IInstagramPublisherService
         IGameRepository gameRepository,
         IInstagramComposerService composerService,
         IInstagramApiClient apiClient,
-        IAuditService auditService)
+        IAuditService auditService,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _draftRepository = draftRepository ?? throw new ArgumentNullException(nameof(draftRepository));
         _giveawayRepository = giveawayRepository ?? throw new ArgumentNullException(nameof(giveawayRepository));
@@ -36,7 +41,17 @@ public class InstagramPublisherService : IInstagramPublisherService
         _composerService = composerService ?? throw new ArgumentNullException(nameof(composerService));
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesiÃ³n y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): el panel de Instagram
+    /// crea, edita, publica y descarta borradores, asÃ­ que todas sus escrituras pasan por aquÃ­.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanPublishInstagram, DenialMessage, ct);
 
     public async Task<InstagramPostDraftDto> CreateDraftFromGiveawayAsync(
         Guid giveawayId,
@@ -45,13 +60,15 @@ public class InstagramPublisherService : IInstagramPublisherService
         string theme = "Dark",
         CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var existing = await _draftRepository.GetBySourceAsync(InstagramPostSourceType.Giveaway, giveawayId.ToString(), ct);
         if (existing != null)
             return InstagramPostDraftDto.FromEntity(existing);
 
         var giveaway = await _giveawayRepository.GetByIdAsync(giveawayId, ct);
         if (giveaway == null)
-            throw new KeyNotFoundException($"No se encontró el sorteo con identificador '{giveawayId}'.");
+            throw new KeyNotFoundException($"No se encontrÃ³ el sorteo con identificador '{giveawayId}'.");
 
         var svg = _composerService.ComposeSvg(InstagramPostSourceType.Giveaway, giveaway, theme);
         var caption = _composerService.GenerateCaption(InstagramPostSourceType.Giveaway, giveaway);
@@ -79,13 +96,15 @@ public class InstagramPublisherService : IInstagramPublisherService
         string theme = "Dark",
         CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var existing = await _draftRepository.GetBySourceAsync(InstagramPostSourceType.WeeklyRelease, releaseId.ToString(), ct);
         if (existing != null)
             return InstagramPostDraftDto.FromEntity(existing);
 
         var release = await _releaseRepository.GetByIdAsync(releaseId, ct);
         if (release == null)
-            throw new KeyNotFoundException($"No se encontró la novedad editorial con identificador '{releaseId}'.");
+            throw new KeyNotFoundException($"No se encontrÃ³ la novedad editorial con identificador '{releaseId}'.");
 
         var svg = _composerService.ComposeSvg(InstagramPostSourceType.WeeklyRelease, release, theme);
         var caption = _composerService.GenerateCaption(InstagramPostSourceType.WeeklyRelease, release);
@@ -113,13 +132,15 @@ public class InstagramPublisherService : IInstagramPublisherService
         string theme = "Dark",
         CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var existing = await _draftRepository.GetBySourceAsync(InstagramPostSourceType.Game, gameId.ToString(), ct);
         if (existing != null)
             return InstagramPostDraftDto.FromEntity(existing);
 
         var game = await _gameRepository.GetByIdAsync(gameId, ct);
         if (game == null)
-            throw new KeyNotFoundException($"No se encontró el juego con identificador '{gameId}'.");
+            throw new KeyNotFoundException($"No se encontrÃ³ el juego con identificador '{gameId}'.");
 
         var svg = _composerService.ComposeSvg(InstagramPostSourceType.Game, game, theme);
         var caption = _composerService.GenerateCaption(InstagramPostSourceType.Game, game);
@@ -159,13 +180,15 @@ public class InstagramPublisherService : IInstagramPublisherService
         UpdateInstagramDraftCommand command,
         CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         ArgumentNullException.ThrowIfNull(command);
 
         var draft = await _draftRepository.GetByIdAsync(draftId, ct);
         if (draft == null)
-            throw new KeyNotFoundException($"No se encontró el borrador con identificador '{draftId}'.");
+            throw new KeyNotFoundException($"No se encontrÃ³ el borrador con identificador '{draftId}'.");
 
-        // Si cambió el tema y no se pasó svgContent manual, regenerar el SVG
+        // Si cambiÃ³ el tema y no se pasÃ³ svgContent manual, regenerar el SVG
         string? newSvg = command.SvgContent;
         if (string.IsNullOrWhiteSpace(newSvg) && !string.Equals(draft.Theme, command.Theme, StringComparison.OrdinalIgnoreCase))
         {
@@ -184,9 +207,11 @@ public class InstagramPublisherService : IInstagramPublisherService
         string userName,
         CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var draft = await _draftRepository.GetByIdAsync(draftId, ct);
         if (draft == null)
-            throw new KeyNotFoundException($"No se encontró el borrador con identificador '{draftId}'.");
+            throw new KeyNotFoundException($"No se encontrÃ³ el borrador con identificador '{draftId}'.");
 
         if (draft.Status == InstagramPostDraftStatus.Published)
         {
@@ -203,18 +228,18 @@ public class InstagramPublisherService : IInstagramPublisherService
             draft.MarkPublishing();
             await _draftRepository.UpdateAsync(draft, ct);
 
-            // Determinar la URL pública de la imagen a enviar a Meta
+            // Determinar la URL pÃºblica de la imagen a enviar a Meta
             var imageUrl = !string.IsNullOrWhiteSpace(draft.ImageUrl)
                 ? draft.ImageUrl
                 : $"https://ludeka.es/api/instagram/card/{draft.Id}.svg";
 
-            // Fase 1: Creación del contenedor de medio
+            // Fase 1: CreaciÃ³n del contenedor de medio
             var creationId = await _apiClient.CreateMediaContainerAsync(imageUrl, draft.Caption, ct);
 
-            // Fase 2: Publicación del contenedor
+            // Fase 2: PublicaciÃ³n del contenedor
             var mediaId = await _apiClient.PublishMediaAsync(creationId, ct);
 
-            // Obtención del enlace permanente
+            // ObtenciÃ³n del enlace permanente
             var permalink = await _apiClient.GetPermalinkAsync(mediaId, ct)
                 ?? $"https://www.instagram.com/p/{mediaId}/";
 
@@ -224,7 +249,7 @@ public class InstagramPublisherService : IInstagramPublisherService
             // Marcar en la entidad origen
             await MarkSourceAsPublishedAsync(draft.SourceType, draft.SourceId, mediaId, permalink, ct);
 
-            // Registrar en auditoría
+            // Registrar en auditorÃ­a
             await _auditService.RecordChangeAsync(new RecordAuditCommand(
                 UserId: userId,
                 UserName: userName,
@@ -264,6 +289,8 @@ public class InstagramPublisherService : IInstagramPublisherService
 
     public async Task<bool> DeleteDraftAsync(Guid draftId, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var draft = await _draftRepository.GetByIdAsync(draftId, ct);
         if (draft == null)
             return false;

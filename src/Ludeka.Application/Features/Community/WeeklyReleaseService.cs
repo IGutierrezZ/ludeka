@@ -6,17 +6,34 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 
 namespace Ludeka.Application.Features.Community;
 
 public class WeeklyReleaseService : IWeeklyReleaseService
 {
-    private readonly IWeeklyReleaseRepository _repository;
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para registrar novedades editoriales.";
 
-    public WeeklyReleaseService(IWeeklyReleaseRepository repository)
+    private readonly IWeeklyReleaseRepository _repository;
+    private readonly ISessionPermissionGuard? _permissionGuard;
+
+    public WeeklyReleaseService(
+        IWeeklyReleaseRepository repository,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1). Las novedades se
+    /// crean desde una página pública, así que la única puerta es esta comprobación de servicio.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
 
     public async Task<IReadOnlyList<WeeklyReleaseDto>> GetReleasesAsync(DateOnly? fromDate = null, CancellationToken ct = default)
     {
@@ -26,6 +43,7 @@ public class WeeklyReleaseService : IWeeklyReleaseService
 
     public async Task<WeeklyReleaseDto> CreateReleaseAsync(CreateWeeklyReleaseRequest request, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(request);
 
         var release = new WeeklyRelease(

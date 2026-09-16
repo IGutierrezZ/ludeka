@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IWeeklyReleaseService ReleaseService
 @inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
 
 <PageTitle>Novedades y Estrenos Editoriales — Ludeka</PageTitle>
 
@@ -360,7 +361,16 @@
             IsReprint: _formIsReprint,
             Notes: string.IsNullOrWhiteSpace(_formNotes) ? null : _formNotes.Trim());
 
-        await ReleaseService.CreateReleaseAsync(request);
+        try
+        {
+            await ReleaseService.CreateReleaseAsync(request);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // La página es pública: la denegación por falta de sesión o de permiso lleva al acceso.
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
 
         _isCreateModalOpen = false;
         _formTitle = string.Empty;

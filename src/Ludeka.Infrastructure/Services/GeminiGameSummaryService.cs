@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,10 +21,14 @@ namespace Ludeka.Infrastructure.Services;
 /// </summary>
 public class GeminiGameSummaryService : IAiGameSummaryService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanEditGames' para ejecutar la carga nocturna de síntesis con IA.";
+
     private readonly HttpClient _httpClient;
     private readonly GeminiOptions _options;
     private readonly IGameRepository _gameRepository;
     private readonly ILogger<GeminiGameSummaryService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -34,13 +39,24 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         HttpClient httpClient,
         IOptions<GeminiOptions> options,
         IGameRepository gameRepository,
-        ILogger<GeminiGameSummaryService> logger)
+        ILogger<GeminiGameSummaryService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new GeminiOptions();
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1) para la carga por
+    /// lotes del panel; la síntesis individual la invocan servicios ya guardados o el ciclo nocturno.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
 
     public async Task<AiGameSummaryDto> GenerateSummaryAsync(Game game, CancellationToken ct = default)
     {
@@ -115,6 +131,8 @@ public class GeminiGameSummaryService : IAiGameSummaryService
 
     public async Task<AiBatchProcessingResultDto> ProcessPendingSummariesBatchAsync(int batchSize = 20, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         if (batchSize < 1) batchSize = 20;
 
         var gamesWithoutSummary = await _gameRepository.GetGamesWithoutAiSummaryAsync(batchSize, ct);

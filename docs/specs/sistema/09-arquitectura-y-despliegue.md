@@ -27,11 +27,13 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
   - Ubicación: [`src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs)
   - Inspecciona `PRAGMA table_info` al arrancar la aplicación en SQLite y añade dinámicamente columnas faltantes sin borrar ni reiniciar bases de datos de desarrollo. Se desactiva automáticamente cuando el proveedor es PostgreSQL.
 - **Esquema Real y Fuente de Verdad del Esquema:**
-  - El modelo consta de **31 tablas** reales. La única fuente de verdad son las migraciones de Entity Framework Core en `src/Ludeka.Infrastructure/Migrations/`, aplicadas automáticamente con `MigrateAsync()` al arrancar contra PostgreSQL.
-  - El script [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) está **desactualizado** respecto al modelo (le faltan `BggCatalogStaging`, `SocialInboxItems`, `MonitoredSocialAccounts` y `GamePriceSnapshots`, y contiene columnas obsoletas) y no debe ejecutarse contra Supabase. Su regeneración o retirada está planificada en el INC-48.
+  - El modelo consta de **32 tablas** reales. La única fuente de verdad son las migraciones de Entity Framework Core en `src/Ludeka.Infrastructure/Migrations/`, aplicadas automáticamente con `MigrateAsync()` al arrancar contra PostgreSQL.
+  - El script [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) está **desactualizado** respecto al modelo (le faltan `BggCatalogStaging`, `SocialInboxItems`, `MonitoredSocialAccounts`, `GamePriceSnapshots` y `ExternalLogins`, y contiene columnas obsoletas) y no debe ejecutarse contra Supabase. Su regeneración o retirada está planificada en el INC-48.
 - **Usuario Administrador Fundador Garantizado (`AdminUserSeeder`):**
   - Ubicación: [`src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs)
-  - En entornos limpios de producción o desarrollo, garantiza de forma idempotente la existencia de un usuario con rol `FoundingTeam` y permisos totales (`ModeratorPermission.All`), parametrizable mediante `AdminUserOptions`.
+  - En entornos limpios de producción o desarrollo, garantiza de forma idempotente la existencia de un usuario con rol `FoundingTeam` y permisos totales (`ModeratorPermission.All`), parametrizable mediante `AdminUserOptions`. Desde INC-46 la fila **no concede identidad ni sesión implícita** a ningún visitante.
+- **Sesión autenticada (INC-46):**
+  - Cookie propia `ludeka.session` (`HttpOnly`, `Secure`, `SameSite=Lax`, caducidad deslizante) con esquemas sociales Google/Discord/Facebook dirigidos por configuración (`Authentication__Providers__*`); `/healthz` y `/ready` quedan anónimos para no romper los probes de Cloud Run. El detalle vive en el [módulo 32](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md).
 - **Cero Datos Ficticios en Producción (`Database:SeedDemoData`):**
   - Los sembradores demostrativos (`CatalogSeeder`, `DirectorySeeder`, etc.) únicamente se ejecutan si `SeedDemoData = true` en entorno de desarrollo. En producción, la base de datos arranca limpia sin catálogo mock.
 - **Copias de Seguridad Automatizadas (`scripts/supabase-backup.ps1`):**
@@ -56,7 +58,7 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
   - [`docker-compose.prod.yml`](file:///c:/repos/Ludeka/docker-compose.prod.yml): Entorno de producción con mapeo de variables de entorno y soporte `.env`.
 - **Pipeline de Integración y Entrega Continua (GitHub Actions):**
   - Archivo: [`.github/workflows/ci-cd.yml`](file:///c:/repos/Ludeka/.github/workflows/ci-cd.yml).
-  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 1005 pruebas.
+  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 1.345 pruebas.
   - *CD:* Despliegue desatendido a Google Cloud Run al hacer merge a `main` si los secretos están configurados.
 
 ---

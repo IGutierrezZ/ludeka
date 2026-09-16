@@ -6,17 +6,34 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 
 namespace Ludeka.Application.Features.Events;
 
 public class BoardGameEventService : IBoardGameEventService
 {
-    private readonly IBoardGameEventRepository _repository;
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanManageEvents' para gestionar eventos lúdicos.";
 
-    public BoardGameEventService(IBoardGameEventRepository repository)
+    private readonly IBoardGameEventRepository _repository;
+    private readonly ISessionPermissionGuard? _permissionGuard;
+
+    public BoardGameEventService(
+        IBoardGameEventRepository repository,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1); sin contexto web
+    /// (pruebas y ejecuciones sin consola de sesión) la dependencia es nula y no hay nada que exigir.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanManageEvents, DenialMessage, ct);
 
     public async Task<IReadOnlyList<BoardGameEventDto>> GetUpcomingEventsAsync(int limit = 50, string? country = null, CancellationToken ct = default)
     {
@@ -71,6 +88,7 @@ public class BoardGameEventService : IBoardGameEventService
 
     public async Task<BoardGameEventDto> CreateEventAsync(CreateBoardGameEventRequest request, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(request);
 
         var evt = new BoardGameEvent(
@@ -93,6 +111,7 @@ public class BoardGameEventService : IBoardGameEventService
 
     public async Task<BoardGameEventDto> UpdateEventAsync(Guid id, UpdateBoardGameEventRequest request, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(request);
 
         var evt = await _repository.GetByIdAsync(id, ct)
@@ -118,6 +137,8 @@ public class BoardGameEventService : IBoardGameEventService
 
     public async Task DeleteEventAsync(Guid id, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         await _repository.DeleteAsync(id, ct);
     }
 

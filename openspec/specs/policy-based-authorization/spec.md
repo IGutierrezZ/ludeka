@@ -33,7 +33,7 @@ Convertir el modelo de permisos de INC-20 en autorización efectiva sobre una se
 
 ### Requirement: Una política por permiso evaluada sobre el AppUser de sesión
 
-DEBE existir una política por permiso —`PermisoEditarFichas`, `PermisoAprobarMedios`, `PermisoResolverReportes`, `PermisoGestionarEditores`, `PermisoGestionarCreadores`, `PermisoGestionarTiendas`, `PermisoPublicarInstagram`, `PermisoVerAuditoria`, `PermisoGestionarUsuarios`— que evalúe `ModeratorPermission` sobre el `AppUser` de la sesión mediante `HasPermission`, respetando la invariante de suspensión.
+DEBE existir una política por permiso —`PermisoEditarFichas`, `PermisoAprobarMedios`, `PermisoResolverReportes`, `PermisoGestionarEditores`, `PermisoGestionarCreadores`, `PermisoGestionarTiendas`, `PermisoPublicarInstagram`, `PermisoVerAuditoria`, `PermisoGestionarUsuarios`, `PermisoGestionarEventos` y `PermisoGestionarNotificaciones`— que evalúe `ModeratorPermission` sobre el `AppUser` de la sesión mediante `HasPermission`, respetando la invariante de suspensión.
 
 #### Scenario: Denegación de anónimos y cuentas sin privilegio
 
@@ -62,7 +62,7 @@ DEBE existir una política por permiso —`PermisoEditarFichas`, `PermisoAprobar
 
 ### Requirement: Protección de las rutas administrativas y de moderación
 
-Las 11 páginas protegidas —`/admin/usuarios`, `/admin/ingesta-social`, `/admin/notificaciones`, `/admin/canales-monitorizados`, `/admin/cola-catalogacion`, `/admin/auditoria`, `/admin/instagram`, `/admin/eventos`, `/admin/multimedia` (con sus alias `/moderacion-media`, `/moderacion/multimedia` y `/admin/moderacion-medios`), y `/moderacion/reportes` (alias `/admin/reportes`)— DEBEN declarar `[Authorize(Policy = ...)]` con una política de permiso. Las comprobaciones de marcado quedan solo como mejora de experiencia (ocultar acciones), nunca como control de acceso.
+Las 10 páginas protegidas (14 rutas contando alias) —`/admin/usuarios`, `/admin/ingesta-social`, `/admin/notificaciones`, `/admin/canales-monitorizados`, `/admin/cola-catalogacion`, `/admin/auditoria`, `/admin/instagram`, `/admin/eventos`, `/admin/multimedia` (con sus alias `/moderacion-media`, `/moderacion/multimedia` y `/admin/moderacion-medios`), y `/moderacion/reportes` (alias `/admin/reportes`)— DEBEN declarar `[Authorize(Policy = ...)]` con una política de permiso. Las comprobaciones de marcado quedan solo como mejora de experiencia (ocultar acciones), nunca como control de acceso.
 
 #### Scenario: Matriz anónima de las rutas protegidas
 

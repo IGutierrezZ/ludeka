@@ -21,6 +21,9 @@ namespace Ludeka.Application.Features.Bgg;
 /// </summary>
 public class NightlyCatalogingService : INightlyCatalogingService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanEditGames' para ejecutar el ciclo nocturno de catalogación.";
+
     private readonly IPendingBggImportRepository _pendingRepo;
     private readonly IBggClient _bggClient;
     private readonly IGameRepository _gameRepo;
@@ -33,6 +36,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
     private readonly IBggDiscoveryService? _discoveryService;
     private readonly NightlyCatalogingOptions _options;
     private readonly ILogger<NightlyCatalogingService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public NightlyCatalogingService(
         IPendingBggImportRepository pendingRepo,
@@ -46,7 +50,8 @@ public class NightlyCatalogingService : INightlyCatalogingService
         ILogger<NightlyCatalogingService> logger,
         IAiGameSummaryService? aiSummaryService = null,
         IBggMassIngestionService? massIngestionService = null,
-        IBggDiscoveryService? discoveryService = null)
+        IBggDiscoveryService? discoveryService = null,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _pendingRepo = pendingRepo ?? throw new ArgumentNullException(nameof(pendingRepo));
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
@@ -60,9 +65,27 @@ public class NightlyCatalogingService : INightlyCatalogingService
         _aiSummaryService = aiSummaryService;
         _massIngestionService = massIngestionService;
         _discoveryService = discoveryService;
+        _permissionGuard = permissionGuard;
     }
 
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1) antes de escribir la
+    /// bitácora: el ciclo se lanza a mano desde el panel; el servicio hospedado usa la ruta de sistema.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
+
     public async Task<NightlyCatalogingResultDto> ExecuteNightlyCatalogingAsync(int? customLimit = null, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await RunScheduledCatalogingAsync(customLimit, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<NightlyCatalogingResultDto> RunScheduledCatalogingAsync(int? customLimit = null, CancellationToken ct = default)
     {
         int limit = customLimit.HasValue && customLimit.Value > 0 ? customLimit.Value : _options.DailyCatalogingLimit;
         var startedAt = DateTimeOffset.UtcNow;
@@ -96,7 +119,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
             {
                 try
                 {
-                    var discoveryResult = await _discoveryService.DiscoverAndEnqueueBggTrendsAsync(maxItems: 50, ct);
+                    var discoveryResult = await _discoveryService.RunBggTrendsDiscoveryAsync(maxItems: 50, ct);
                     bggDiscoveryCount = discoveryResult.EnqueuedCount;
                     _logger.LogInformation("Fase 1.5 completada: {Count} tendencias/lanzamientos BGG descubiertos y encolados.", bggDiscoveryCount);
                 }
@@ -174,7 +197,7 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 try
                 {
                     _logger.LogInformation("Fase 3: Ejecutando ciclo de drenaje de staging masivo (detalles, fotos GeekDo/R2, IA por lotes y promoción).");
-                    var drainResult = await _massIngestionService.RunDrainCycleAsync(ct);
+                    var drainResult = await _massIngestionService.RunScheduledDrainCycleAsync(ct);
                     topBackfillCount += drainResult.PromotedToCatalogCount;
                     _logger.LogInformation("Fase 3 (Staging): {Result}", drainResult.Message);
                 }

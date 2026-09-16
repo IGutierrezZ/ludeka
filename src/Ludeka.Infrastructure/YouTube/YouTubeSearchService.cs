@@ -19,12 +19,16 @@ namespace Ludeka.Infrastructure.YouTube;
 
 public class YouTubeSearchService : IYouTubeSearchService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para vincular vídeos al catálogo multimedia.";
+
     private readonly HttpClient _httpClient;
     private readonly YouTubeOptions _options;
     private readonly IChannelFocusProvider _channelFocus;
     private readonly IGameRepository _gameRepository;
     private readonly IMediaRepository _mediaRepository;
     private readonly ILogger<YouTubeSearchService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public YouTubeSearchService(
         HttpClient httpClient,
@@ -32,7 +36,8 @@ public class YouTubeSearchService : IYouTubeSearchService
         IChannelFocusProvider channelFocus,
         IGameRepository gameRepository,
         IMediaRepository mediaRepository,
-        ILogger<YouTubeSearchService> logger)
+        ILogger<YouTubeSearchService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new YouTubeOptions();
@@ -40,12 +45,22 @@ public class YouTubeSearchService : IYouTubeSearchService
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
 
         if (_httpClient.BaseAddress == null && Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out var baseUri))
         {
             _httpClient.BaseAddress = baseUri;
         }
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): la vinculación de
+    /// vídeos escribe piezas multimedia y vive en el panel de moderación.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
 
     public async Task<IReadOnlyList<YouTubeSearchResultDto>> SearchVideosForGameAsync(Guid gameId, CancellationToken ct = default)
     {
@@ -138,6 +153,7 @@ public class YouTubeSearchService : IYouTubeSearchService
 
     public async Task<MediaItemDto> IngestVideoAsync(YouTubeIngestRequestDto request, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(request);
 
         var game = await _gameRepository.GetByIdAsync(request.GameId, ct);
@@ -187,6 +203,8 @@ public class YouTubeSearchService : IYouTubeSearchService
 
     public async Task<IReadOnlyList<MediaItemDto>> AutoSuggestAndIngestForGameAsync(Guid gameId, bool autoApprove = false, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var game = await _gameRepository.GetByIdAsync(gameId, ct);
         if (game == null) return Array.Empty<MediaItemDto>();
 

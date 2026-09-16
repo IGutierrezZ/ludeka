@@ -63,7 +63,8 @@ public class NightlyCatalogingHostedService : BackgroundService
                         using var scope = _scopeFactory.CreateScope();
                         var service = scope.ServiceProvider.GetRequiredService<INightlyCatalogingService>();
 
-                        await service.ExecuteNightlyCatalogingAsync(options.DailyCatalogingLimit, stoppingToken);
+                        // Ruta de sistema sin sesión: el ciclo programado no pasa por la guarda de la interfaz.
+                        await service.RunScheduledCatalogingAsync(options.DailyCatalogingLimit, stoppingToken);
                         _lastExecutionDate = nowUtc;
                     }
                     catch (Exception ex) when (!stoppingToken.IsCancellationRequested)

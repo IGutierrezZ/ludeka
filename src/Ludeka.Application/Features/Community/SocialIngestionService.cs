@@ -14,6 +14,9 @@ namespace Ludeka.Application.Features.Community;
 
 public class SocialIngestionService : ISocialIngestionService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para gestionar la bandeja de moderación social.";
+
     private readonly ISocialInboxRepository _inboxRepository;
     private readonly ISocialMetadataExtractor _metadataExtractor;
     private readonly ISocialAiAnalysisService _aiAnalysisService;
@@ -25,6 +28,7 @@ public class SocialIngestionService : ISocialIngestionService
     private readonly IMediaRepository _mediaRepository;
     private readonly HttpClient _httpClient;
     private readonly ILogger<SocialIngestionService> _logger;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public SocialIngestionService(
         ISocialInboxRepository inboxRepository,
@@ -37,7 +41,8 @@ public class SocialIngestionService : ISocialIngestionService
         IBoardGameEventRepository eventRepository,
         IMediaRepository mediaRepository,
         HttpClient httpClient,
-        ILogger<SocialIngestionService> logger)
+        ILogger<SocialIngestionService> logger,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
         _metadataExtractor = metadataExtractor ?? throw new ArgumentNullException(nameof(metadataExtractor));
@@ -50,9 +55,27 @@ public class SocialIngestionService : ISocialIngestionService
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _permissionGuard = permissionGuard;
     }
 
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1). La bandeja se alimenta
+    /// desde páginas públicas y administrativas: la moderación exige la bandera de medios.
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
+
     public async Task<SocialInboxItemDto> IngestFromUrlAsync(string url, string? manualCaption = null, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await IngestFromCollectorAsync(url, manualCaption, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<SocialInboxItemDto> IngestFromCollectorAsync(string url, string? manualCaption = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("La URL no puede estar vacía.", nameof(url));
@@ -133,6 +156,7 @@ public class SocialIngestionService : ISocialIngestionService
 
     public async Task<SocialInboxItemDto> IngestManualAdvancedAsync(SocialInboxManualInputDto input, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(input);
 
         if (string.IsNullOrWhiteSpace(input.SourceUrl))
@@ -203,6 +227,7 @@ public class SocialIngestionService : ISocialIngestionService
 
     public async Task<SocialInboxItemDto> UpdateItemAsync(SocialInboxUpdateDto dto, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
         ArgumentNullException.ThrowIfNull(dto);
 
         var item = await _inboxRepository.GetByIdAsync(dto.Id, ct)
@@ -239,6 +264,8 @@ public class SocialIngestionService : ISocialIngestionService
 
     public async Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var item = await _inboxRepository.GetByIdAsync(inboxItemId, ct)
             ?? throw new KeyNotFoundException($"No se encontró ningún ítem en la bandeja con ID '{inboxItemId}'.");
 
@@ -350,6 +377,8 @@ public class SocialIngestionService : ISocialIngestionService
 
     public async Task RejectItemAsync(Guid inboxItemId, string reason, string reviewerUserId, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var item = await _inboxRepository.GetByIdAsync(inboxItemId, ct)
             ?? throw new KeyNotFoundException($"No se encontró ningún ítem en la bandeja con ID '{inboxItemId}'.");
 

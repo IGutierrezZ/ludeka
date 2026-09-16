@@ -13,25 +13,40 @@ namespace Ludeka.Application.Features.Bgg;
 
 public class BggCatalogQueueService : IBggCatalogQueueService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanEditGames' para procesar la cola de catalogación.";
+
     private readonly IPendingBggImportRepository _pendingRepo;
     private readonly IBggClient _bggClient;
     private readonly IGameRepository _gameRepo;
     private readonly IUserCollectionRepository _collectionRepo;
     private readonly IAiGameSummaryService? _aiSummaryService;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public BggCatalogQueueService(
         IPendingBggImportRepository pendingRepo,
         IBggClient bggClient,
         IGameRepository gameRepo,
         IUserCollectionRepository collectionRepo,
-        IAiGameSummaryService? aiSummaryService = null)
+        IAiGameSummaryService? aiSummaryService = null,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _pendingRepo = pendingRepo;
         _bggClient = bggClient;
         _gameRepo = gameRepo;
         _collectionRepo = collectionRepo;
         _aiSummaryService = aiSummaryService;
+        _permissionGuard = permissionGuard;
     }
+
+    /// <summary>
+    /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1): la cola se procesa
+    /// desde el panel administrativo y desde la pestaña pública «Cola comunitaria».
+    /// </summary>
+    private Task RequirePermissionAsync(CancellationToken ct)
+        => _permissionGuard is null
+            ? Task.CompletedTask
+            : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
 
     public async Task<IReadOnlyList<CatalogQueueItemDto>> GetTopPendingQueueAsync(int limit = 50, CancellationToken ct = default)
     {
@@ -59,6 +74,8 @@ public class BggCatalogQueueService : IBggCatalogQueueService
 
     public async Task<ProcessQueueResultDto> ProcessPendingQueueBatchAsync(int batchSize = 20, CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         var topPending = await _pendingRepo.GetTopPendingAsync(batchSize, ct);
         if (topPending.Count == 0)
         {
@@ -162,6 +179,8 @@ public class BggCatalogQueueService : IBggCatalogQueueService
 
     public async Task ResetFailedItemsAsync(CancellationToken ct = default)
     {
+        await RequirePermissionAsync(ct);
+
         await _pendingRepo.ResetFailedToPendingAsync(ct);
     }
 }

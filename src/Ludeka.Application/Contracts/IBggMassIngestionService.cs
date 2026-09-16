@@ -42,8 +42,14 @@ public interface IBggMassIngestionService
 
     /// <summary>
     /// Ejecuta un ciclo de drenaje progresivo que avanza cada fase según las capacidades configuradas.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
     /// </summary>
     Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Ciclo de sistema del proceso nocturno (INC-46, W1): misma lógica sin la guarda de la interfaz.
+    /// </summary>
+    Task<BggMassIngestionCycleResultDto> RunScheduledDrainCycleAsync(CancellationToken ct = default);
 }
 
 /// <summary>
