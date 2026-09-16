@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
@@ -64,7 +65,8 @@ public static class ExternalAuthenticationSchemes
             RegisterProvider(builder, registration);
         }
 
-        services.AddAuthorization();
+        services.AddAuthorization(AuthorizationPolicies.Configure);
+        services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddCascadingAuthenticationState();
 
         return builder;
