@@ -3,7 +3,7 @@
 > **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-propose` · **Fecha:** 2026-09-17
 > **Rama / worktree:** `inc/vinculacion-cuentas` — `C:\repos\ludeka-wt\vinculacion-cuentas`
 > **Dependencia:** INC-46 (Autenticación Real, archivado) · **Exploración:** [`exploration.md`](exploration.md)
-> **Decisiones del maintainer:** las tres de INC-49 §3 están **cerradas** (sección 3 de este documento).
+> **Decisiones del maintainer:** las tres de INC-49 §3 están **cerradas**, más una cuarta acordada al aprobar la propuesta (sección 3 de este documento).
 
 **En una frase:** este incremento entrega la pantalla `/cuenta/conexiones` y la vinculación desde sesión activa, que son el único mecanismo de recuperación posible para una cuenta sin correo verificado, y convierte la regla «solo se fusiona con correo verificado» en un comportamiento explícito y auditado en lugar de un efecto colateral de la cascada de acceso.
 
@@ -46,7 +46,7 @@ INC-46 aplazó esta pantalla a propósito. Su diseño la dejó anotada como «la
 | Capa | Entrega | Rutas concretas |
 |---|---|---|
 | **Core** | Columna `ProviderEmailVerifiedAt` (`DateTimeOffset?`) en `ExternalLogin`; dos valores nuevos de `AuditAction` (`LinkedProvider`, `UnlinkedProvider`) | `src/Ludeka.Core/Entities/ExternalLogin.cs` · `src/Ludeka.Core/Enums/AuditAction.cs` |
-| **Application** | `LinkAsync` / `UnlinkAsync` en `IExternalLoginService`; guarda del último método de acceso **en servidor**; ampliación de `IExternalLoginRepository` con listar por usuario y borrar; lectura «¿tiene correo verificado?» en `ICurrentUserService`; rama de auditoría en `AuditService.GetActionDisplayName` | `Features/Identity/ExternalLoginService.cs` · `Contracts/IExternalLoginRepository.cs` · `Contracts/ICurrentUserService.cs` · `Features/Admin/AuditService.cs` |
+| **Application** | `LinkAsync` / `UnlinkAsync` en `IExternalLoginService`; guarda del último método de acceso **en servidor**; ampliación de `IExternalLoginRepository` con listar por usuario y borrar; lectura «¿tiene correo verificado?» en `ICurrentUserService`; **reemplazo del correo sintético por el verificado** (decisión 4); rama de auditoría en `AuditService.GetActionDisplayName` | `Features/Identity/ExternalLoginService.cs` · `Contracts/IExternalLoginRepository.cs` · `Contracts/ICurrentUserService.cs` · `Features/Admin/AuditService.cs` |
 | **Infrastructure** | Implementación EF de los dos métodos de repositorio nuevos; migración EF Core **aditiva**; reconciliación SQLite de la columna | `Data/ExternalLoginRepository.cs` · `Data/LudekaDbContext.cs` · `Migrations/` · `Data/SqliteSchemaMigrator.cs` |
 | **Web** | Página `/cuenta/conexiones`; endpoints de desafío y de desvinculación; bifurcación de intención en `ExternalLoginEvents`; aviso de correo no verificado en conexiones y en la cabecera | `Components/Pages/` (página nueva) · `Program.cs` · `Authentication/ExternalLoginEvents.cs` · `Components/Layout/MainLayout.razor` · `Services/AuthenticatedCurrentUserService.cs` |
 | **Tests** | Cobertura TDD de las cinco conductas de INC-49 §2.8, más regresión explícita de la cascada de INC-46 | `tests/Ludeka.UnitTests/` (Domain, Application, Infrastructure, Web) |
@@ -59,6 +59,7 @@ Desglose funcional:
 - **Guarda del último método de acceso.** No se puede desvincular el único proveedor que queda. La comprobación es **en servidor**, no solo deshabilitando el botón.
 - **Flujo de colisión: avisar, nunca fusionar en silencio.** Se conserva intacta la excepción segura ya implementada (rama 2 de `ResolveAsync`, `:54-64`: correo verificado que coincide con una cuenta que aún no tiene proveedores vinculados).
 - **Aviso de cuenta sin correo verificado** en `/cuenta/conexiones` y en la cabecera (decisión 3).
+- **Reemplazo del correo sintético** (decisión 4): cuando una cuenta nacida con `<clave>@<proveedor>.ludeka.invalid` recibe un correo verificado, `AppUser.Email` pasa a ser ese correo real, previa comprobación del índice único de `AppUsers.Email`.
 - **Auditoría de vincular y desvincular** siguiendo el patrón existente `IAuditService.RecordChangeAsync` (`IAuditService.cs:11-15` → `AuditService.cs:27-55`), que ya exige `SessionIdentity.Require(command.UserId)` (`:33`).
 - **Configuración:** reutiliza `Authentication__Providers__*` de INC-46. Cero credenciales nuevas.
 
@@ -72,13 +73,12 @@ Desglose funcional:
 | **Credenciales o proveedores nuevos** | Se reutiliza la configuración de INC-46 sin tocarla. |
 | **Cualquier migración destructiva** | INC-49 §5 lo prohíbe; la migración de la decisión 2 es estrictamente aditiva y anulable. |
 | **Cuentas locales con correo y contraseña, e infraestructura de correo** | Fuera del modelo de identidad de Ludeka desde INC-46. |
-| **Reemplazo del correo sintético en `AppUser.Email`** | Decisión de producto todavía abierta; ver sección 12. Con la decisión 2, responder «¿tiene correo verificado?» ya no depende de ese reemplazo. |
 
 ---
 
 ## 3. Decisiones cerradas del maintainer
 
-Las tres decisiones de INC-49 §3 están resueltas. Se recogen aquí como hechos, no como opciones.
+Las tres decisiones de INC-49 §3 están resueltas, más una cuarta que surgió al revisar esta propuesta. Se recogen aquí como hechos, no como opciones.
 
 ### 3.1 Decisión 1 — La fusión de cuentas ya duplicadas queda fuera de alcance
 
@@ -108,6 +108,16 @@ El aviso *«Tu cuenta no tiene un correo verificado. Vincula otro proveedor de a
 **Coste explícito:** `ICurrentUserService` (`:11-34`) **no** expone hoy «¿tiene correo verificado?». Ampliar el contrato impacta en todas sus implementaciones: `AuthenticatedCurrentUserService` (`:20-165`, incluida la proyección de claims de la cookie en `:73-101`) y `StubCurrentUserService` de las pruebas, más los tests de contrato que fijan la forma de la interfaz. No es gratis porque los ficheros ya existan.
 
 **Descartado el perfil público:** `PublicProfile.razor` lo ve cualquiera.
+
+### 3.4 Decisión 4 — El correo sintético **se reemplaza** por el verificado
+
+Cuando una cuenta nacida con `<clave>@<proveedor>.ludeka.invalid` recibe después un correo verificado —al vincular un proveedor que sí lo entrega—, `AppUser.Email` **se reemplaza** por ese correo real. No se conserva el sintético como histórico.
+
+Es la segunda mitad de INC-49 §3.2, que la decisión 2 no resolvía: aquella fija **cómo se representa** la verificación (`ProviderEmailVerifiedAt`), esta fija **qué pasa con el correo de la cuenta**. Al haber columna, responder «¿tiene correo verificado?» ya no depende de este reemplazo, así que no era bloqueante; el maintainer decide incluirlo igualmente en el alcance.
+
+Motivo: la cuenta queda archivada bajo el correo real de la persona, que es más limpio y deja abierta la vía de contacto. El coste aceptado es perder el rastro de que la cuenta nació sin correo; ese rastro no se pierde del todo, porque `ExternalLogin.ProviderEmail` y `ProviderEmailVerifiedAt` conservan el origen de cada vínculo.
+
+**Restricción obligatoria:** antes de reemplazar hay que comprobar que ningún otro `AppUser` tenga ya ese correo, o la actualización viola el índice único de `AppUsers.Email` (`LudekaDbContext.cs:363`). Es el mismo criterio que ya aplica `GetByEmailAsync` en la cascada y coincide con el chequeo que el flujo de colisión (§4.2) exige de todos modos. `AppUser.UpdateProfile` (`AppUser.cs:101-112`) e `IUserRepository.UpdateAsync` (`IUserRepository.cs:18`) ya existen: no hace falta mutador nuevo.
 
 ---
 
@@ -180,7 +190,7 @@ La migración aditiva exige **dos** tratamientos en `SqliteSchemaMigrator.cs`: e
 | `src/Ludeka.Core/Entities/ExternalLogin.cs` | Modificado | Propiedad `ProviderEmailVerifiedAt` y constructor validante |
 | `src/Ludeka.Core/Enums/AuditAction.cs` | Modificado | `LinkedProvider`, `UnlinkedProvider` |
 | `src/Ludeka.Application/Contracts/IExternalLoginRepository.cs` | Modificado | Listar por usuario y borrar (hoy solo `GetByProviderKeyAsync` y `AddAsync`) |
-| `src/Ludeka.Application/Features/Identity/ExternalLoginService.cs` + `IExternalLoginService.cs` | Modificado | `LinkAsync`, `UnlinkAsync`, guarda del último método, escritura de `ProviderEmailVerifiedAt` en la cascada |
+| `src/Ludeka.Application/Features/Identity/ExternalLoginService.cs` + `IExternalLoginService.cs` | Modificado | `LinkAsync`, `UnlinkAsync`, guarda del último método, escritura de `ProviderEmailVerifiedAt` en la cascada, y reemplazo del correo sintético vía `AppUser.UpdateProfile` + `IUserRepository.UpdateAsync` (ambos ya existentes) |
 | `src/Ludeka.Application/Contracts/ICurrentUserService.cs` | Modificado | Lectura «¿tiene correo verificado?» |
 | `src/Ludeka.Application/Features/Admin/AuditService.cs` | Modificado | Rama en `GetActionDisplayName` (`:114-124`) |
 | `src/Ludeka.Infrastructure/Data/ExternalLoginRepository.cs` | Modificado | Implementación EF de los dos métodos nuevos |
@@ -208,6 +218,7 @@ La migración aditiva exige **dos** tratamientos en `SqliteSchemaMigrator.cs`: e
 | Ampliar `ICurrentUserService` rompe implementaciones y dobles de prueba en cascada | Media | Bajo | Superficie conocida y acotada: `AuthenticatedCurrentUserService`, `StubCurrentUserService` y los tests de contrato; lo garantiza la compilación |
 | La vinculación desde sesión abre una vía de apropiación si la intención se puede falsificar | Baja | Muy alto | El `UserId` se captura en servidor y viaja en `AuthenticationProperties.Items`, no en el formulario; se reconfirma contra la sesión al volver del proveedor; toda vinculación se audita |
 | El aviso de cuenta sin correo se percibe como alarma innecesaria | Baja | Bajo | Redacción clara y accionable, sin lenguaje técnico; descartable en la cabecera; nunca en el perfil público |
+| El reemplazo del correo sintético (decisión 4) viola el índice único de `AppUsers.Email` si ese correo ya pertenece a otra cuenta | Media | Alto | Comprobación previa obligatoria con el mismo criterio de `GetByEmailAsync`; si hay conflicto, **no se reemplaza** y la cuenta conserva el sintético; prueba dedicada del caso en conflicto, no solo del camino feliz |
 
 ---
 
@@ -240,6 +251,7 @@ Alineados con INC-49 §4 y ajustados a las decisiones cerradas.
 - [ ] Un correo **verificado** que coincide con una cuenta **sin proveedores vinculados** sigue vinculando automáticamente (rama 2 intacta).
 - [ ] Una cuenta sin correo verificado ve el aviso en `/cuenta/conexiones` **y** en la cabecera; **nunca** en el perfil público.
 - [ ] `ExternalLogins.ProviderEmailVerifiedAt` existe en PostgreSQL vía migración aditiva y en SQLite vía reconciliador, tanto al crear la tabla como al reconciliar una base preexistente. Ninguna migración destructiva.
+- [ ] Una cuenta con correo sintético que vincula un proveedor con correo **verificado** ve su `AppUser.Email` reemplazado por el correo real; si ese correo ya pertenece a otro `AppUser`, el reemplazo **no se hace** y no se viola el índice único.
 - [ ] Vincular y desvincular quedan registrados en la bitácora con `LinkedProvider` / `UnlinkedProvider` y su nombre visible.
 - [ ] `dotnet test Ludeka.sln` en verde, sin regresión sobre las 1345 pruebas de INC-46.
 - [ ] Smoke test con navegador real del ciclo vincular → desvincular → intento de desvincular el último.
@@ -248,14 +260,14 @@ Alineados con INC-49 §4 y ajustados a las decisiones cerradas.
 
 ## 12. Preguntas abiertas para el diseño
 
-Ninguna reabre las tres decisiones cerradas. Son cuestiones distintas que la fase de diseño debe resolver, y una de ellas es una **decisión de producto que corresponde al maintainer**.
+Ninguna reabre las cuatro decisiones cerradas. Son cuestiones distintas que la fase de diseño debe resolver. **P1 ya no figura aquí: el maintainer lo resolvió al aprobar esta propuesta y es ahora la decisión 4 (§3.4).**
 
 | # | Cuestión | Quién decide | Si no se resuelve |
 |---|---|---|---|
-| **P1** | **Reemplazo del correo sintético.** Cuando una cuenta nacida con `<clave>@<proveedor>.ludeka.invalid` vincula después un proveedor que sí entrega correo verificado, ¿se reemplaza `AppUser.Email` o se conserva el sintético como histórico? La decisión 2 resuelve **cómo se representa** la verificación, no qué pasa con el correo de la cuenta. Con la columna, responder «¿tiene correo verificado?» ya **no depende** de ese reemplazo, así que la pregunta deja de ser bloqueante, pero sigue abierta. `AppUser.UpdateProfile` (`:101-112`) e `IUserRepository.UpdateAsync` (`:18`) ya existen; el único cuidado es el índice único de `AppUsers.Email` (`LudekaDbContext.cs:363`) | **Maintainer** (producto) | Queda fuera de alcance: la cuenta conserva su correo sintético y la señal de verificación vive solo en `ExternalLogins` |
 | **P2** | **Cabo suelto del alcance recortado: vincular un proveedor que ya pertenece a otra cuenta.** El índice único `(Provider, ProviderKey)` lo hace imposible por esquema, y sin herramienta de fusión no hay salida. El mensaje de colisión de §2.4 («inicia sesión con el método que ya usas y vincula desde Conexiones») **no sirve aquí**: el proveedor ya está repartido. El diseño debe especificar un rechazo claro que no prometa una resolución inexistente, y que **jamás** mueva la fila de una cuenta a otra | `sdd-design` | Riesgo real de un mensaje que promete algo que el sistema no puede hacer |
 | **P3** | **Mecanismo de descarte del aviso de cabecera.** «Descartable» implica estado, y no existe hoy ningún campo ni componente de avisos reutilizable. El diseño debe elegir el mecanismo más barato que no exija esquema nuevo (por ejemplo, ámbito de sesión o de circuito), coherente con `SessionGuard` (`MainLayout.razor:302`) | `sdd-design` | Se implementaría como aviso no descartable, contra la decisión 3 |
 | **P4** | **Momento exacto en que se escribe `ProviderEmailVerifiedAt`.** Afecta a las tres ramas de `ResolveAsync` y a `LinkAsync`. Debe quedar fijado por prueba, porque es el invariante del que cuelga todo el aviso | `sdd-design` | Lectura de «correo verificado» incorrecta desde el primer commit |
+| **P5** | **Alcance del reemplazo del correo sintético (decisión 4).** ¿Se dispara solo en `LinkAsync` —vinculación explícita desde `/cuenta/conexiones`— o también al volver a entrar por la rama 1 de `ResolveAsync` cuando el proveedor ya vinculado entrega ahora un correo verificado que antes no daba? La primera opción es acotada y predecible; la segunda cubre más casos reales pero convierte cada inicio de sesión en una posible escritura. El diseño debe elegir y fijarlo por prueba, junto con la comprobación previa del índice único | `sdd-design` | Comportamiento inconsistente entre vincular e iniciar sesión, o escrituras inesperadas en cada acceso |
 
 ---
 
@@ -265,7 +277,7 @@ Ninguna reabre las tres decisiones cerradas. Son cuestiones distintas que la fas
 
 ### 13.1 Volumen recalculado
 
-La exploración estimó **870-1460 líneas** con las opciones más baratas de cada par (sin migración, con guía manual). Las decisiones cerradas cambian ese cálculo en dos direcciones y **hacia arriba** en neto: la decisión 1 no reduce el cálculo —la herramienta de fusión nunca estuvo en la estimación, y la guía manual era documentación— mientras que la decisión 2 añade entidad, mapeo, migración y reconciliador SQLite, y la decisión 3 lleva el aviso a su banda alta por la ampliación de `ICurrentUserService` y sus implementaciones.
+La exploración estimó **870-1460 líneas** con las opciones más baratas de cada par (sin migración, con guía manual). Las decisiones cerradas cambian ese cálculo en dos direcciones y **hacia arriba** en neto: la decisión 1 no reduce el cálculo —la herramienta de fusión nunca estuvo en la estimación, y la guía manual era documentación— mientras que la decisión 2 añade entidad, mapeo, migración y reconciliador SQLite, la decisión 3 lleva el aviso a su banda alta por la ampliación de `ICurrentUserService` y sus implementaciones, y la decisión 4 añade la unidad **I** completa.
 
 Recálculo por unidad de trabajo, **con sus pruebas TDD incluidas en cada fila** (la exploración las contabilizaba aparte, lo que duplicaba parte del conteo):
 
@@ -279,11 +291,12 @@ Recálculo por unidad de trabajo, **con sus pruebas TDD incluidas en cada fila**
 | **F.** Flujo de colisión + regresión de la cascada | 60-110 | 80-140 | **140-250** |
 | **G.** Aviso de correo no verificado: contrato, 2 implementaciones, conexiones y cabecera | 80-130 | 50-80 | **130-210** |
 | **H.** Auditoría de vincular y desvincular | 20-35 | 15-30 | **35-65** |
-| **Total** | **585-945** | **405-710** | **990-1655** |
+| **I.** Reemplazo del correo sintético por el verificado (decisión 4), con comprobación previa del índice único | 40-70 | 40-70 | **80-140** |
+| **Total** | **625-1015** | **445-780** | **1070-1795** |
 
 **Nota de conteo:** los ficheros `.Designer.cs` y `LudekaDbContextModelSnapshot.cs` que genera `dotnet ef migrations add` son artefactos generados, no contenido autorado, y quedan fuera del presupuesto de 400 líneas aunque aparezcan en el diff. El PR que los incluya debe decirlo en su descripción para que el revisor no cargue con ellos.
 
-### 13.2 Partición propuesta: 6 PRs encadenados
+### 13.2 Partición propuesta: 7 PRs encadenados
 
 | PR | Contenido | Líneas autoradas | Por qué aquí |
 |---|---|---|---|
@@ -292,9 +305,10 @@ Recálculo por unidad de trabajo, **con sus pruebas TDD incluidas en cada fila**
 | **#3 — Transporte OAuth** | D | **130-210** | Aislado a propósito: es la única pieza que toca `ExternalLoginEvents`, compartido con el camino de login. Si aparece una regresión de acceso, el PR culpable es evidente |
 | **#4 — Pantalla `/cuenta/conexiones`** | E | **190-330** | Necesita un destino `POST` que funcione (#3) y la lógica ya probada (#2). Establece el patrón de página con `[Authorize]` simple |
 | **#5 — Flujo de colisión** | F | **140-250** | Separado porque modifica `ResolveAsync`, cubierto por las 1345 pruebas de INC-46. Un PR propio mantiene el radio de impacto identificable |
-| **#6 — Aviso de correo no verificado** | G | **130-210** | Último porque depende de la columna de #1 y es el cambio de mayor superficie y menor riesgo: contrato `ICurrentUserService` y sus implementaciones |
+| **#6 — Aviso de correo no verificado** | G | **130-210** | Depende de la columna de #1; es el cambio de mayor superficie y menor riesgo: contrato `ICurrentUserService` y sus implementaciones |
+| **#7 — Reemplazo del correo sintético** | I | **80-140** | Lógica de Application que solo necesita la columna de #1 y `LinkAsync` de #2. Va al final a propósito: es independiente de #3 en adelante y no tiene superficie de interfaz, así que puede aterrizar en cualquier punto posterior a #2 sin bloquear la cadena, y aislarla deja identificable el único PR que escribe en `AppUser.Email` |
 
-Todos los PR quedan bajo el presupuesto de 400 líneas **incluso en la banda alta**. Si al medir el trabajo real las unidades caen en la banda baja, `sdd-tasks` puede evaluar fusionar **#5 y #6** (270-460 conjunto): solo procede si la medición real lo deja bajo 400, nunca por estimación.
+Todos los PR quedan bajo el presupuesto de 400 líneas **incluso en la banda alta**. Si al medir el trabajo real las unidades caen en la banda baja, `sdd-tasks` puede evaluar fusionar **#6 y #7** (210-350 conjunto, ambos posteriores a #2 e independientes entre sí) o **#5 y #7** (220-390): solo procede si la medición real lo deja bajo 400, nunca por estimación. Fusionar **#5 y #6** (270-460) queda descartado por rebasar el presupuesto en banda alta.
 
 ### 13.3 Encadenado
 
