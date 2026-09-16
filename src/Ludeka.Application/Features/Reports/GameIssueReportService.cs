@@ -48,6 +48,13 @@ public class GameIssueReportService : IGameIssueReportService
 
         var reporter = string.IsNullOrWhiteSpace(command.ReporterNameOrAlias) ? "Comunidad anónima" : command.ReporterNameOrAlias.Trim();
 
+        // Invariante de anonimia: el reporte exige sesión y su identidad es siempre la de la sesión.
+        string? reportedByUserId = command.UserId;
+        if (_currentUserService != null)
+        {
+            reportedByUserId = SessionIdentity.Require(_currentUserService);
+        }
+
         var report = new GameIssueReport(
             gameId: command.GameId,
             gameSlug: command.GameSlug.Trim(),
@@ -55,7 +62,7 @@ public class GameIssueReportService : IGameIssueReportService
             issueType: command.IssueType,
             details: details,
             reporterNameOrAlias: reporter,
-            reportedByUserId: command.UserId
+            reportedByUserId: reportedByUserId
         );
 
         await _repository.AddAsync(report, ct);

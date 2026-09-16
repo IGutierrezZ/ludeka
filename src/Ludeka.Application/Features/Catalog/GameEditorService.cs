@@ -44,6 +44,9 @@ public class GameEditorService : IGameEditorService
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        // Invariante de anonimia: editar el catálogo exige sesión real, aunque las banderas digan otra cosa.
+        string editorUserId = SessionIdentity.Require(_currentUserService);
+
         // 1. Control de acceso granular
         if (!_currentUserService.IsFoundingTeam)
         {
@@ -155,7 +158,7 @@ public class GameEditorService : IGameEditorService
         // 7. Registrar auditoría editorial específica de juego (INC-18)
         var log = new GameEditLog(
             game.Id,
-            _currentUserService.UserId,
+            editorUserId,
             _currentUserService.UserName,
             summary,
             command.AssociatedReportId
@@ -166,7 +169,7 @@ public class GameEditorService : IGameEditorService
         if (_auditService != null)
         {
             await _auditService.RecordChangeAsync(new RecordAuditCommand(
-                UserId: _currentUserService.UserId,
+                UserId: editorUserId,
                 UserName: _currentUserService.UserName,
                 Action: AuditAction.Updated,
                 EntityType: AuditEntityType.Game,
@@ -186,7 +189,7 @@ public class GameEditorService : IGameEditorService
 
             await _issueReportService.ChangeStatusAsync(
                 command.AssociatedReportId.Value,
-                new UpdateGameReportStatusCommand(GameReportStatus.Resolved, _currentUserService.UserId, note),
+                new UpdateGameReportStatusCommand(GameReportStatus.Resolved, editorUserId, note),
                 ct
             );
         }

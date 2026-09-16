@@ -206,6 +206,10 @@
             await OnGameAdded.InvokeAsync();
             await OnClose.InvokeAsync();
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
         catch (Exception ex)
         {
             _errorMessage = $"No se pudo añadir el juego: {ex.Message}";

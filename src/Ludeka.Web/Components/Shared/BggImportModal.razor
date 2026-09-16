@@ -2,6 +2,7 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @inject IBggImportService BggImportService
+@inject NavigationManager Navigation
 
 @if (IsVisible)
 {
@@ -251,6 +252,10 @@
         {
             var request = new BggImportRequest(_username.Trim(), _importOwned, _importWishlist);
             _result = await BggImportService.ImportUserCollectionAsync(request, progressReporter);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         catch (Exception ex)
         {

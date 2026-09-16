@@ -30,7 +30,8 @@ public class GamePlayLogService : IGamePlayLogService
 
     public async Task<GamePlayLogDto> RecordPlayAsync(RecordPlayRequest request, CancellationToken cancellationToken = default)
     {
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: registrar una partida exige sesión y escribe con la identidad real.
+        string userId = SessionIdentity.Require(_currentUserService);
         var game = await _gameRepo.GetByIdAsync(request.GameId, cancellationToken);
         if (game == null)
         {
@@ -147,7 +148,7 @@ public class GamePlayLogService : IGamePlayLogService
 
     public async Task DeletePlayAsync(Guid playId, CancellationToken cancellationToken = default)
     {
-        string userId = _currentUserService.UserId;
+        string userId = SessionIdentity.Require(_currentUserService);
         var play = await _playRepo.GetByIdAsync(playId, cancellationToken);
         if (play == null || !string.Equals(play.UserId, userId, StringComparison.OrdinalIgnoreCase))
         {

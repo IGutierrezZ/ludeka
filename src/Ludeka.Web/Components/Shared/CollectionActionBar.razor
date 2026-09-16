@@ -35,7 +35,6 @@
                 <Icon Name="plus" Size="12" />
                 <span>Registrar partida</span>
             </button>
-
             @* Botón de Préstamos (solo si está en propiedad física) *@
             @if (CurrentItem?.Status == CollectionStatus.InCollection)
             {
@@ -60,6 +59,19 @@
             }
         </div>
     </div>
+
+    @* Aviso de sesión: las acciones con identidad exigen acceso y redirigen al inicio de sesión *@
+    @if (!IsSessionActive)
+    {
+        <p class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-1.5"
+           role="status">
+            <Icon Name="user" Size="12" />
+            <span>Estas acciones guardan tu identidad: para llevarlas a cabo</span>
+            <a href="@ExternalAuthenticationSchemes.LoginPath" class="font-bold text-[var(--brand-primary)] underline">
+                Inicia sesión
+            </a>
+        </p>
+    }
 
     @* Barra de 3 acciones ergonómicas *@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" role="group" aria-label="Estados de colección">
@@ -114,6 +126,13 @@
 
     [Parameter]
     public int PlayCount { get; set; } = 0;
+
+    /// <summary>
+    /// Indica si hay sesión iniciada. Sin sesión se muestra el aviso de acceso y cada acción con
+    /// identidad lleva al inicio de sesión en lugar de escribir.
+    /// </summary>
+    [Parameter]
+    public bool IsSessionActive { get; set; } = true;
 
     [Parameter]
     public EventCallback<CollectionStatus> OnStatusSelected { get; set; }

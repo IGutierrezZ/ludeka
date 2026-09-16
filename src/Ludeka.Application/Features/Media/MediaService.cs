@@ -318,6 +318,9 @@ public class MediaService : IMediaService
     {
         if (_currentUserService == null) return;
 
+        // Invariante de anonimia: sin sesión no hay permiso que valga ni moderación posible.
+        SessionIdentity.Require(_currentUserService);
+
         if (!_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
         {
             throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanApproveMedia' para moderar contenido multimedia.");

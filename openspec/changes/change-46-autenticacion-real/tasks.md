@@ -101,12 +101,19 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 
 ## Fase 4 — Revalidación en escritura, anonimia y smoke (PR 7)
 
-- [ ] 4.1 RED: crear `tests/Ludeka.UnitTests/Application/AnonymityPolicyTests.cs` (sin sesión, los servicios lanzan `UnauthorizedAccessException` sin persistir ni auditar; las 9 entidades rechazan `UserId` vacío).
-- [ ] 4.2 GREEN: revalidar permiso e identidad en los 15 servicios que consumen `ICurrentUserService` (`src/Ludeka.Application/Features/*` y `src/Ludeka.Infrastructure/Services/UserLocationService.cs`).
-- [ ] 4.3 GREEN: guardar las acciones con identidad (partidas, colección, préstamos, reseñas, preguntas, reportes y preferencias) tras comprobar sesión; redirigir a login sin escritura y corregir `/u/` vacío en `src/Ludeka.Web/Components/Pages/MyLibrary.razor`.
-- [ ] 4.4 GREEN: verificar que `AuditService` y `UserManagementService` solo auditan identidades reales de sesión, sin `AuditLogEntry` de identidad simulada.
-- [ ] 4.5 `dotnet test Ludeka.sln` verde.
-- [ ] 4.6 Smoke de navegador (criterio 11): `/admin/auditoria` sin sesión redirige a login; arranque verificado con PostgreSQL y con SQLite.
+> Ejecutada como slice F4 (`inc/autenticacion-real-f4`, base `51e16f3`). Las guardas se concentran en
+> `SessionIdentity` (`src/Ludeka.Application/Contracts/SessionIdentity.cs`), la denegación es
+> `UnauthorizedAccessException` y la interfaz la traduce en `/login` con `LoginRedirect`
+> (`src/Ludeka.Web/Services/LoginRedirect.cs`). Sin migraciones ni cambios de esquema: F5 queda sin tocar
+> y el arranque con PostgreSQL permanece idéntico al verificado en F3 (este entorno no dispone de
+> servidor PostgreSQL ni de Docker, así que el humo de F4 se ejecutó sobre SQLite).
+
+- [x] 4.1 RED: crear `tests/Ludeka.UnitTests/Application/AnonymityPolicyTests.cs` (sin sesión, los servicios lanzan `UnauthorizedAccessException` sin persistir ni auditar; las 9 entidades rechazan `UserId` vacío).
+- [x] 4.2 GREEN: revalidar permiso e identidad en los 15 servicios que consumen `ICurrentUserService` (`src/Ludeka.Application/Features/*` y `src/Ludeka.Infrastructure/Services/UserLocationService.cs`).
+- [x] 4.3 GREEN: guardar las acciones con identidad (partidas, colección, préstamos, reseñas, preguntas, reportes y preferencias) tras comprobar sesión; redirigir a login sin escritura y corregir `/u/` vacío en `src/Ludeka.Web/Components/Pages/MyLibrary.razor`.
+- [x] 4.4 GREEN: verificar que `AuditService` y `UserManagementService` solo auditan identidades reales de sesión, sin `AuditLogEntry` de identidad simulada.
+- [x] 4.5 `dotnet test Ludeka.sln` verde.
+- [x] 4.6 Smoke de navegador (criterio 11): `/admin/auditoria` sin sesión redirige a login; SQLite verificado con la matriz anónima de rutas y la demostración real en navegador del clic «En mi ludoteca» → `/login`. El arranque con PostgreSQL no se pudo reejecutar aquí (sin servidor ni Docker); F4 no toca persistencia.
 
 ## Fase 5 — Verificación, documentación y archive (PR 8)
 

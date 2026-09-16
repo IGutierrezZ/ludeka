@@ -37,12 +37,8 @@ public class SqliteUserPreferenceService : IUserPreferenceService
 
     public async Task SetUserThemeAsync(string userId, string theme, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            return;
-        }
-
-        string cleanUserId = userId.Trim();
+        // Invariante de anonimia: la preferencia exige sesión; nunca se escribe con identidad vacía.
+        string cleanUserId = SessionIdentity.Require(userId);
         var existing = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
 
         if (existing == null)
@@ -88,10 +84,8 @@ public class SqliteUserPreferenceService : IUserPreferenceService
 
     public async Task SetUserCountryAsync(string userId, string? country, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-            return;
-
-        string cleanUserId = userId.Trim();
+        // Invariante de anonimia: la preferencia exige sesión; nunca se escribe con identidad vacía.
+        string cleanUserId = SessionIdentity.Require(userId);
         var existing = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
 
         if (existing == null)

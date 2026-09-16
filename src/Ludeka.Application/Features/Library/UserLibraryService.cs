@@ -43,7 +43,8 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<UserCollectionItemDto?> SetCollectionStateAsync(Guid gameId, CollectionStatus? status, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: escribir en la colección exige sesión.
+        string userId = SessionIdentity.Require(_currentUserService);
         var existing = await _collectionRepo.GetByUserAndGameAsync(userId, gameId, ct);
 
         // Si el estado es Played, se redirige al flujo de jugado independiente
@@ -103,7 +104,7 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<UserCollectionItemDto?> TogglePlayedStateAsync(Guid gameId, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        string userId = SessionIdentity.Require(_currentUserService);
         var existing = await _collectionRepo.GetByUserAndGameAsync(userId, gameId, ct);
 
         if (existing == null)
@@ -133,7 +134,7 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<UserCollectionItemDto?> SetPlayedStateAsync(Guid gameId, bool isPlayed, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        string userId = SessionIdentity.Require(_currentUserService);
         var existing = await _collectionRepo.GetByUserAndGameAsync(userId, gameId, ct);
 
         if (existing == null)
@@ -191,7 +192,8 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<GameLoanDto> CreateLoanAsync(CreateLoanRequest request, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: registrar un préstamo exige sesión.
+        string userId = SessionIdentity.Require(_currentUserService);
 
         // Invariante de negocio: solo se pueden prestar juegos que estén en la ludoteca propia (InCollection)
         var collectionItem = await _collectionRepo.GetByUserAndGameAsync(userId, request.GameId, ct);
@@ -227,7 +229,7 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<GameLoanDto> ReturnLoanAsync(Guid loanId, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        string userId = SessionIdentity.Require(_currentUserService);
         var loan = await _loanRepo.GetByIdAsync(loanId, ct);
         if (loan == null || !string.Equals(loan.UserId, userId, StringComparison.OrdinalIgnoreCase))
         {
@@ -264,7 +266,8 @@ public class UserLibraryService : IUserLibraryService
 
     public async Task<UserReviewDto> SubmitReviewAsync(SubmitReviewRequest request, CancellationToken ct = default)
     {
-        string userId = _currentUserService.UserId;
+        // Invariante de anonimia: valorar exige sesión.
+        string userId = SessionIdentity.Require(_currentUserService);
 
         // Regla de negocio de integridad: Solo se puede valorar si se ha jugado o se tiene en ludoteca propia
         var collectionItem = await _collectionRepo.GetByUserAndGameAsync(userId, request.GameId, ct);
