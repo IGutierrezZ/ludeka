@@ -44,3 +44,7 @@ assets-usuario/
 .atl/skill-registry.md
 .atl/.skill-registry.cache.json
 .axiom/cache/autoskills/index.json
+
+# Worktrees nativos de Claude Code: no se usan en este repo (ver AGENTS.md 1-bis.9),
+# pero un worktree nunca debe versionarse
+.claude/worktrees/

@@ -48,6 +48,7 @@ Todo incremento se desarrolla en un **worktree propio** sobre una **rama nueva**
 6. **Orquestador SDD:** al lanzar `sdd-apply` y `sdd-verify` (y cualquier subagente que escriba código), el workdir DEBE ser el worktree del incremento; `sdd-archive` termina con el paso 4 y 5 (PR + cleanup).
 7. **Prohibido:** pushear directamente a `main` (además bloqueado por el ruleset de GitHub del repositorio) o mergear sin PR. Si el PR excede las 400 líneas, dividir en ramas apiladas desde el mismo worktree (PRs encadenados).
 8. **Paralelismo:** pueden coexistir N incrementos activos, cada uno en su worktree / rama / PR (ver `docs/increments/ROADMAP.md`, sección "Incrementos en Curso"). Los conflictos entre PRs se resuelven al mergear en orden.
+9. **Mecanismo único, sin excepciones por plataforma:** los pasos 1, 4 y 5 se ejecutan SIEMPRE con `scripts/sdd-worktree.ps1`, igual en OpenCode, Gemini CLI, Antigravity y Claude Code. En Claude Code queda **prohibido** sustituirlo por sus herramientas nativas `EnterWorktree` / `ExitWorktree`: crean el worktree en `.claude/worktrees/` (dentro del repositorio) con una rama que el script no reconoce, dejan el paso 4 sin ejecutor, no actualizan `main` tras el merge y solo pueden eliminar worktrees creados en la misma sesión. El requisito del proyecto es un flujo que sobreviva **entre sesiones y entre aplicaciones**, y eso solo lo cumple el script. En Windows se invoca con `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sdd-worktree.ps1 <verbo> <slug>`, porque `pwsh` no está instalado.
 
 ---
 
