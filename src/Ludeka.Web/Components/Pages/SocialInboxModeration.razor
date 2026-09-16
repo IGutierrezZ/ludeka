@@ -562,11 +562,16 @@
 
         try
         {
-            var reviewerId = CurrentUserService.UserId?.ToString() ?? "admin-system";
+            // Identidad real de la sesión: nunca un revisor centinela (INC-46, spec anonymity-policy).
+            string reviewerId = SessionIdentity.Require(CurrentUserService);
             var createdEntityId = await IngestionService.ApproveAndPublishAsync(item.Id, reviewerId);
 
             _actionSuccessMessage = $"¡Publicación aprobada con éxito! (ID Creado: {createdEntityId})";
             await LoadItemsAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         catch (Exception ex)
         {
@@ -584,11 +589,15 @@
 
         try
         {
-            var reviewerId = CurrentUserService.UserId?.ToString() ?? "admin-system";
+            string reviewerId = SessionIdentity.Require(CurrentUserService);
             await IngestionService.RejectItemAsync(_itemToReject.Id, _rejectReason, reviewerId);
             _actionSuccessMessage = "Publicación descartada correctamente.";
             _itemToReject = null;
             await LoadItemsAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         catch (Exception ex)
         {
