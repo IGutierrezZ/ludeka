@@ -38,6 +38,10 @@ public class SessionDenialUiContractTests
     [InlineData("src/Ludeka.Web/Components/Shared/BggSearchModal.razor")]
     [InlineData("src/Ludeka.Web/Components/Shared/LocationSelectorModal.razor")]
     [InlineData("src/Ludeka.Web/Components/Layout/MainLayout.razor")]
+    [InlineData("src/Ludeka.Web/Components/Pages/News.razor")]
+    [InlineData("src/Ludeka.Web/Components/Pages/Radar.razor")]
+    [InlineData("src/Ludeka.Web/Components/Pages/EventsManagement.razor")]
+    [InlineData("src/Ludeka.Web/Components/Shared/CatalogQueuePanel.razor")]
     public void EveryIdentityWriter_TranslatesTheSessionDenialIntoALoginRedirect(string relativePath)
     {
         var source = ReadComponent(relativePath);

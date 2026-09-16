@@ -464,7 +464,17 @@
 
     private async Task ConfirmDelete(Guid id, string title)
     {
-        await EventService.DeleteEventAsync(id);
+        try
+        {
+            await EventService.DeleteEventAsync(id);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // Revocación en caliente del permiso: la denegación lleva al acceso sin romper el circuito.
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+
         await LoadDataAsync();
     }
 }

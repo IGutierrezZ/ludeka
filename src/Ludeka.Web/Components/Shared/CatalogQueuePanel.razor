@@ -4,6 +4,7 @@
 @inject IBggCatalogQueueService QueueService
 @inject IAiGameSummaryService AiSummaryService
 @inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
 
 <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
@@ -246,6 +247,11 @@
             await LoadQueueAsync();
             await OnQueueProcessed.InvokeAsync();
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            // El panel vive en una página pública: la denegación por permiso lleva al acceso.
+            Navigation.TryRedirectToLogin(ex);
+        }
         finally
         {
             _isProcessing = false;
@@ -259,6 +265,10 @@
         {
             await QueueService.ResetFailedItemsAsync();
             await LoadQueueAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         finally
         {
@@ -278,6 +288,10 @@
         {
             _lastAiResult = await AiSummaryService.ProcessPendingSummariesBatchAsync(10);
             await OnQueueProcessed.InvokeAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
         }
         finally
         {
