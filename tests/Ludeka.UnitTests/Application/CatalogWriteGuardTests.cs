@@ -312,6 +312,19 @@ public class BggMassIngestionWriteGuardTests : AdministrativeWriteGuardTestBase
         Assert.NotNull(result);
         Assert.Equal(1, _bggClient.FetchCalls);
     }
+
+    [Fact]
+    public async Task RunDrainCycleAsync_WithThePermission_DrainsTheStaging()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanEditGames));
+        await SeedStagingItemAsync();
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var result = await service.RunDrainCycleAsync();
+
+        Assert.NotNull(result);
+        Assert.Equal(1, _bggClient.FetchCalls);
+    }
 }
 
 /// <summary>Ciclo nocturno de catalogación: botón del panel y servicio hospedado programado.</summary>
@@ -361,6 +374,18 @@ public class NightlyCatalogingWriteGuardTests : AdministrativeWriteGuardTestBase
         var service = CreateService();
 
         var result = await service.RunScheduledCatalogingAsync();
+
+        Assert.NotNull(result);
+        Assert.Single(await Context.NightlyCatalogingExecutionLogs.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WithThePermission_WritesTheExecutionLog()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanEditGames));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var result = await service.ExecuteNightlyCatalogingAsync();
 
         Assert.NotNull(result);
         Assert.Single(await Context.NightlyCatalogingExecutionLogs.AsNoTracking().ToListAsync());

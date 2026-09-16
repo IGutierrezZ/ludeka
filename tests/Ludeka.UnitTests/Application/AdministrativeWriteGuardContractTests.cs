@@ -6,6 +6,7 @@ using Ludeka.Application.Features.Bgg;
 using Ludeka.Application.Features.Community;
 using Ludeka.Application.Features.Events;
 using Ludeka.Application.Features.Instagram;
+using Ludeka.Application.Features.Media;
 using Ludeka.Infrastructure.Services;
 using Ludeka.Infrastructure.YouTube;
 using Xunit;
@@ -37,6 +38,7 @@ public class AdministrativeWriteGuardContractTests
         typeof(NightlyCatalogingService),
         typeof(GeminiGameSummaryService),
         typeof(InstagramPublisherService),
+        typeof(MediaService),
     };
 
     [Theory]

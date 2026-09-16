@@ -102,12 +102,14 @@ public class MediaBrokenLinksWriteGuardTests : AdministrativeWriteGuardTestBase
         return item;
     }
 
-    private MediaService CreateService(ICurrentUserService currentUser)
+    private MediaService CreateService(ICurrentUserService currentUser, ISessionPermissionGuard? guard = null)
         => new(
             new SqliteMediaRepository(Context),
             new SqliteGameRepository(Context),
             new BrokenLinkCheckerService(new SqliteMediaRepository(Context)),
-            currentUser);
+            currentUser,
+            auditService: null,
+            guard);
 
     [Fact]
     public async Task CheckBrokenLinksAsync_WithoutSession_DeniesAndLeavesLinksUntouched()
@@ -139,6 +141,34 @@ public class MediaBrokenLinksWriteGuardTests : AdministrativeWriteGuardTestBase
     {
         var item = SeedMediaItem("https://example.test/recurso-broken");
         var service = CreateService(SessionWithPermission(ModeratorPermission.CanApproveMedia));
+
+        var report = await service.CheckBrokenLinksAsync();
+
+        Assert.Equal(1, report.BrokenCount);
+        var stored = await Context.MediaItems.AsNoTracking().SingleAsync(m => m.Id == item.Id);
+        Assert.True(stored.IsBroken);
+    }
+
+    [Fact]
+    public async Task CheckBrokenLinksAsync_WithSuspendedAccount_DeniesEvenWithLiveCookie()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        await SuspendAsync(ModeratorId);
+        var item = SeedMediaItem("https://example.test/recurso-broken");
+        var service = CreateService(LiveCookie(), CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.CheckBrokenLinksAsync());
+
+        var stored = await Context.MediaItems.AsNoTracking().SingleAsync(m => m.Id == item.Id);
+        Assert.False(stored.IsBroken);
+    }
+
+    [Fact]
+    public async Task CheckBrokenLinksAsync_WithThePermissionThroughTheGuard_MarksTheBrokenLink()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var item = SeedMediaItem("https://example.test/recurso-broken");
+        var service = CreateService(LiveCookie(), CreateGuard(LiveCookie()));
 
         var report = await service.CheckBrokenLinksAsync();
 

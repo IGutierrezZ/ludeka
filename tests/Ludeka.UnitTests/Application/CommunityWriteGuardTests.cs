@@ -54,7 +54,7 @@ internal sealed class NoopImageStorageService : IImageStorageService
         => Task.FromResult($"https://cdn.ludeka.test/{objectKey}");
 
     public Task<ImageVariantUrls> UploadGameImageVariantsAsync(Stream rawImageStream, int bggId, string imageType, CancellationToken ct = default)
-        => Task.FromResult(new ImageVariantUrls($"https://cdn.ludeka.test/games/{bggId}/{imageType}.webp", null));
+        => Task.FromResult(new ImageVariantUrls($"https://cdn.ludeka.test/games/{bggId}/{imageType}.webp", string.Empty));
 
     public Task<bool> DeleteImageAsync(string objectKey, CancellationToken ct = default) => Task.FromResult(true);
 

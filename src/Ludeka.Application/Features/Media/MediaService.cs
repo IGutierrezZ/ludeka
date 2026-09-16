@@ -12,24 +12,30 @@ namespace Ludeka.Application.Features.Media;
 
 public class MediaService : IMediaService
 {
+    private const string DenialMessage =
+        "Se requiere el permiso de moderación 'CanApproveMedia' para moderar contenido multimedia.";
+
     private readonly IMediaRepository _mediaRepository;
     private readonly IGameRepository _gameRepository;
     private readonly IBrokenLinkCheckerService _brokenLinkChecker;
     private readonly ICurrentUserService? _currentUserService;
     private readonly IAuditService? _auditService;
+    private readonly ISessionPermissionGuard? _permissionGuard;
 
     public MediaService(
         IMediaRepository mediaRepository,
         IGameRepository gameRepository,
         IBrokenLinkCheckerService brokenLinkChecker,
         ICurrentUserService? currentUserService = null,
-        IAuditService? auditService = null)
+        IAuditService? auditService = null,
+        ISessionPermissionGuard? permissionGuard = null)
     {
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _brokenLinkChecker = brokenLinkChecker ?? throw new ArgumentNullException(nameof(brokenLinkChecker));
         _currentUserService = currentUserService;
         _auditService = auditService;
+        _permissionGuard = permissionGuard;
     }
 
     public async Task<GameMediaHubDto> GetGameMediaAsync(Guid gameId, CancellationToken ct = default)
@@ -181,7 +187,16 @@ public class MediaService : IMediaService
     public async Task<BrokenLinkReportDto> CheckBrokenLinksAsync(CancellationToken ct = default)
     {
         // La verificación marca recursos rotos: es una escritura administrativa y revalida permiso.
-        EnsurePermission();
+        // Con contexto web se usa la relectura sin rastreo del AppUser (W1); sin ella, la guarda de
+        // sesión del propio servicio conserva el comportamiento de las pruebas y ejecuciones sin web.
+        if (_permissionGuard is not null)
+        {
+            await _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
+        }
+        else
+        {
+            EnsurePermission();
+        }
 
         return await _brokenLinkChecker.CheckLinksAsync(ct);
     }
@@ -326,7 +341,7 @@ public class MediaService : IMediaService
 
         if (!_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
         {
-            throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanApproveMedia' para moderar contenido multimedia.");
+            throw new UnauthorizedAccessException(DenialMessage);
         }
     }
 
