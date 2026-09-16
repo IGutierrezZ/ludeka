@@ -1,4 +1,5 @@
 @page "/admin/cola-catalogacion"
+@attribute [Authorize(Policy = AuthorizationPolicies.PermisoEditarFichas)]
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs

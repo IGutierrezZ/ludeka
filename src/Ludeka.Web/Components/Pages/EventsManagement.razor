@@ -1,4 +1,5 @@
 @page "/admin/eventos"
+@attribute [Authorize(Policy = AuthorizationPolicies.RolModerador)]
 @rendermode InteractiveServer
 @using Ludeka.Core.ValueObjects
 @inject IBoardGameEventService EventService

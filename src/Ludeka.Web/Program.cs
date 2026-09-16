@@ -382,11 +382,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Incremento 46: la autenticación y la autorización preceden al antiforgery, según el diseño.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 app.UseOutputCache();
 
 // Incremento 10: Endpoints de Diagnóstico y Salud
-// Liveness probe (/healthz): confirma que el host está activo sin penalizar dependencias
+// Liveness probe (/healthz): confirma que el host está activo sin penalizar dependencias.
+// Ambas sondas quedan explícitamente anónimas y fuera de cualquier política de fallback
+// para no romper los probes de Cloud Run.
 app.MapHealthChecks("/healthz", new HealthCheckOptions
 {
     Predicate = _ => false,
@@ -401,7 +408,7 @@ app.MapHealthChecks("/healthz", new HealthCheckOptions
         };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
     }
-});
+}).AllowAnonymous();
 
 // Readiness probe (/ready): evalúa dependencias críticas (base de datos, almacenamiento y cola)
 app.MapHealthChecks("/ready", new HealthCheckOptions
@@ -427,7 +434,7 @@ app.MapHealthChecks("/ready", new HealthCheckOptions
         };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
     }
-});
+}).AllowAnonymous();
 
 // Incremento 46: acceso social y cierre de sesión. El POST solo desafía al proveedor habilitado;
 // el esquema externo resuelve la identidad y firma la cookie de sesión propia de Ludeka.

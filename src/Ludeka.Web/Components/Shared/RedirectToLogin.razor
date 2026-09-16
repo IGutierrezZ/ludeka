@@ -1,0 +1,18 @@
+@inject NavigationManager Navigation
+
+@*
+    Redirección al inicio de sesión de la vista NotAuthorized.
+    En render estático (SSR) las facilidades de navegación de Blazor no operan y la protección
+    real la ejerce el middleware de autorización, que responde con un desafío a LoginPath; por eso
+    la navegación forzada solo se dispara cuando el renderer es interactivo.
+*@
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (RendererInfo.IsInteractive)
+        {
+            Navigation.NavigateTo(ExternalAuthenticationSchemes.LoginPath, forceLoad: true);
+        }
+    }
+}

@@ -183,6 +183,6 @@ public class PolicyAuthorizationTests : IAsyncLifetime
     {
         Assert.Equal(PermissionPolicies.Length, AuthorizationPolicies.PermissionPolicies.Count);
         Assert.All(PermissionPolicies, name => Assert.True(AuthorizationPolicies.PermissionPolicies.ContainsKey(name)));
-        Assert.NotEqual(string.Empty, AuthorizationPolicies.RolModerador);
+        Assert.False(string.IsNullOrWhiteSpace(AuthorizationPolicies.RolModerador));
     }
 }

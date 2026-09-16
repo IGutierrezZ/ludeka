@@ -114,8 +114,8 @@ public class WebAuthenticationRegistrationTests
         Assert.Equal(SameSiteMode.Lax, cookie.Cookie.SameSite);
         Assert.True(cookie.SlidingExpiration);
         Assert.Equal(TimeSpan.FromMinutes(90), cookie.ExpireTimeSpan);
-        Assert.Equal(ExternalAuthenticationSchemes.LoginPath, cookie.LoginPath.Value);
-        Assert.Equal(ExternalAuthenticationSchemes.LogoutPath, cookie.LogoutPath.Value);
+        Assert.Equal("/login", cookie.LoginPath.Value);
+        Assert.Equal("/logout", cookie.LogoutPath.Value);
     }
 
     [Fact]
