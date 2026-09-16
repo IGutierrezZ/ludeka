@@ -62,6 +62,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-46** | Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada | ✅ Archivado | [inc-46-autenticacion-real.md](archive/inc-46-autenticacion-real.md) |
 | **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ⏳ Planificado | [inc-47-workers-cloud-run.md](inc-47-workers-cloud-run.md) |
 | **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ⏳ En progreso (migración entregada) | [inc-48-persistencia-produccion-postgres.md](inc-48-persistencia-produccion-postgres.md) |
+| **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ⏳ En progreso | [inc-49-vinculacion-cuentas.md](inc-49-vinculacion-cuentas.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -76,7 +77,7 @@ Los incrementos **INC-47** e **INC-48** son **prerrequisitos de la salida a prod
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- *Sin incrementos en worktree activo: el worktree de INC-46 (`autenticacion-real`) se cierra con su archivo el 2026-09-16.*
+- **INC-49 Vinculación de Cuentas** — worktree `C:\repos\ludeka-wt\vinculacion-cuentas`, rama `inc/vinculacion-cuentas`. Nace de una consecuencia de INC-46: un proveedor que no entrega correo verificado obliga a crear la cuenta con un correo sintético, y esa cuenta no podrá fusionarse después. El incremento añade la pantalla de conexiones, la guarda del último método de acceso y el flujo de colisión que avisa en lugar de fusionar.
 
 
 
