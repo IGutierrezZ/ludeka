@@ -100,6 +100,21 @@ Decisión de planificación: sí se añade `.gitattributes` (`*.md text eol=lf`)
 - [x] 2b.5 `dotnet test Ludeka.sln --configuration Release` verde: 1247 correctas, 0 con error, 0 omitidas (base 1231).
 - [x] 2b.6 Humo real (`Production` + SQLite, sin credenciales OAuth): `/admin/eventos` y `/admin/notificaciones` **302** a `/login`; públicas **200**; 0 excepciones no controladas.
 
+## Fase 2-ter — Corrección de la regresión de pérdida de permisos en el modal (misma rama `inc/autenticacion-real-permisos`)
+
+> Slice acotado sobre `723c668`, en la misma rama del slice F2-bis. Cierra el hallazgo 4 de F2-bis: el
+> modal de permisos solo ofrecía 8 casillas y reconstruía la máscara desde esa lista parcial, así que
+> guardar los permisos de un moderador borraba en silencio `CanManageUsers`, `CanViewAuditLog`,
+> `CanManageEvents` y `CanManageNotifications`, sin ninguna vía de la interfaz para concederlos. Sin
+> migraciones ni cambios de esquema; sin tocar F5.
+
+- [x] 2t.1 RED de `tests/Ludeka.UnitTests/Web/UserPermissionsModalTests.cs` (render real con `HtmlRenderer` y guardado invocado en el ciclo del componente) y de `tests/Ludeka.UnitTests/Web/UserPermissionsModalContractTests.cs` (las 12 banderas referenciadas y el bloque de guardado reconstruyéndolas todas).
+- [x] 2t.2 GREEN de `src/Ludeka.Web/Components/Shared/UserPermissionsModal.razor`: las 4 casillas que faltaban con el mismo patrón, estilo y textos en español (cuentas, auditoría, eventos y notificaciones) y guardado que conserva los bits fuera de `ModeratorPermission.All`.
+- [x] 2t.3 RED de `tests/Ludeka.UnitTests/Application/PermissionNamesTests.cs` (teoría de reflexión: cada bandera declarada debe tener nombre visible).
+- [x] 2t.4 GREEN de `UserManagementService.GetPermissionNames`: las 12 banderas en el orden del enum.
+- [x] 2t.5 `dotnet test Ludeka.sln --configuration Release` verde: **1258 correctas, 0 con error, 0 omitidas** (base 1247).
+- [x] 2t.6 Humo real (`Production` + SQLite, sin credenciales OAuth): `/` **200**, `/healthz` **200**, `/admin/usuarios` **302** a `/login`; 0 excepciones no controladas. Demostrado además que la prueba de regresión vuelve a rojo si se retira una casilla o su línea de guardado.
+
 ## Fase 3 — Retirada de la identidad simulada (Paso 2; PRs 5–6)
 
 > Ejecutada como slice F3 (`inc/autenticacion-real-f3`, base `83063bd`). Los PR 5 y 6 del desglose
