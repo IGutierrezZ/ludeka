@@ -6,33 +6,33 @@ Definir la gestión de roles de usuario en la capa de aplicación, habilitando l
 ## Requerimientos
 
 ### Requirement: Abstracción de Roles en `ICurrentUserService`
-El contrato `ICurrentUserService` DEBE exponer información de roles del usuario autenticado:
-- Lista de roles asignados (`Roles`).
-- Helper booleano `IsFoundingTeam`.
-- Método de consulta `IsInRole(string role)`.
 
-#### Scenario: Usuario con rol FoundingTeam
-- DADO un usuario configurado con el rol `"FoundingTeam"`
-- CUANDO se consulta `IsInRole("FoundingTeam")` o `IsFoundingTeam`
-- ENTONCES el resultado DEBE ser `true`.
+El contrato `ICurrentUserService` DEBE resolver la identidad del usuario autenticado desde la sesión y exponer la información de roles (`UserId`, `UserName`, `Roles`, `IsFoundingTeam`, `IsInRole(string role)`) junto con `HasPermission(ModeratorPermission)`. NO DEBE declarar `SwitchRole` ni `SwitchUser`. Sin sesión, `IsFoundingTeam`, `IsInRole` y `HasPermission` DEBEN devolver `false` y ninguna escritura con identidad puede ejecutarse.
+(Previously: la identidad era un singleton mutable con conmutadores de rol y usuario, y cualquier visitante era `FoundingTeam` con todos los permisos.)
 
-#### Scenario: Usuario estándar
-- DADO un usuario configurado como usuario regular (`"User"`)
-- CUANDO se consulta `IsInRole("FoundingTeam")` o `IsInRole("Moderator")`
-- ENTONCES el resultado DEBE ser `false`.
+#### Scenario: Usuario con rol FoundingTeam desde la sesión
 
----
+- GIVEN una sesión autenticada cuyo `AppUser` tiene rol `FoundingTeam`
+- WHEN se consulta `IsInRole("FoundingTeam")` o `IsFoundingTeam`
+- THEN el resultado DEBE ser `true`.
 
-### Requirement: Conmutador de Roles en Tiempo de Ejecución
-Para posibilitar la verificación manual y demostración fluida en el MVP sin requerir un servidor OAuth externo, el servicio DEBE permitir alternar el rol activo del usuario en caliente (`SwitchRole`).
+#### Scenario: Usuario estándar desde la sesión
 
-#### Scenario: Cambio dinámico de rol en la barra de navegación
-- DADO un usuario navegando por la aplicación en modo `"User"`
-- CUANDO pulsa el conmutador de la cabecera seleccionando `"🛡️ Modo Mesa Fundadora"`
-- ENTONCES el rol activo del servicio DEBE pasar a `"FoundingTeam"`
-- Y los componentes reactivos DEBEN actualizar su visualización inmediatamente.
+- GIVEN una sesión autenticada con rol `CommunityUser`
+- WHEN se consulta `IsInRole("FoundingTeam")` o `IsInRole("Moderator")`
+- THEN el resultado DEBE ser `false`.
 
----
+#### Scenario: Contrato sin conmutadores
+
+- GIVEN el contrato `ICurrentUserService`
+- WHEN se compila la solución
+- THEN no existen referencias a `SwitchRole` ni `SwitchUser` (lo garantiza la compilación).
+
+#### Scenario: Visitante anónimo sin identidad
+
+- GIVEN una petición sin sesión
+- WHEN se evalúan `IsFoundingTeam`, `IsInRole` o `HasPermission`
+- THEN el resultado DEBE ser `false` en todos los casos.
 
 ### Requirement: Acceso Rápido de Moderación en Navegación
 La cabecera de la aplicación (`MainLayout.razor`) DEBE mostrar un botón o enlace `[ 🎬 Moderar Medios ]` cuando el usuario activo posea el rol `FoundingTeam` o `Moderator`.
