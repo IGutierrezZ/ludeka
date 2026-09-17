@@ -148,6 +148,78 @@ public class ExternalLoginPersistenceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Repository_ShouldPersistAndRetrieveProviderEmailVerifiedAt_ViaTheNewFluentMapping()
+    {
+        // Arrange
+        await SeedUserAsync("user-verified");
+        IExternalLoginRepository repository = new ExternalLoginRepository(_context);
+        var linkedAt = new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero);
+        var login = new ExternalLogin(
+            "user-verified", "Google", "google-sub-verified", "verificado@ludeka.es", linkedAt, providerEmailVerified: true);
+
+        // Act
+        await repository.AddAsync(login);
+        var retrieved = await repository.GetByProviderKeyAsync("Google", "google-sub-verified");
+
+        // Assert: el modelo Fluent nuevo persiste y recupera la marca de verificación
+        Assert.NotNull(retrieved);
+        Assert.Equal(linkedAt, retrieved!.ProviderEmailVerifiedAt);
+    }
+
+    [Fact]
+    public async Task ListByUserIdAsync_ShouldReturnOnlyTheRowsOfTheGivenUser()
+    {
+        // Arrange
+        await SeedUserAsync("user-multi-a");
+        await SeedUserAsync("user-multi-b");
+        IExternalLoginRepository repository = new ExternalLoginRepository(_context);
+        await repository.AddAsync(new ExternalLogin("user-multi-a", "Google", "google-a"));
+        await repository.AddAsync(new ExternalLogin("user-multi-a", "Discord", "discord-a"));
+        await repository.AddAsync(new ExternalLogin("user-multi-b", "Facebook", "facebook-b"));
+
+        // Act
+        var links = await repository.ListByUserIdAsync("user-multi-a");
+
+        // Assert
+        Assert.Equal(2, links.Count);
+        Assert.All(links, l => Assert.Equal("user-multi-a", l.UserId));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_ShouldDeleteTheRow()
+    {
+        // Arrange
+        await SeedUserAsync("user-remove");
+        IExternalLoginRepository repository = new ExternalLoginRepository(_context);
+        var login = new ExternalLogin("user-remove", "Discord", "discord-remove");
+        await repository.AddAsync(login);
+
+        // Act
+        await repository.RemoveAsync(login);
+
+        // Assert
+        var retrieved = await repository.GetByProviderKeyAsync("Discord", "discord-remove");
+        Assert.Null(retrieved);
+    }
+
+    [Fact]
+    public async Task UniqueIndex_ShouldStillRejectRepeatedProviderPair_AfterRemoveThenAdd()
+    {
+        // Arrange: el índice único sigue protegiendo el par tras un ciclo de borrado y recreación
+        await SeedUserAsync("user-cycle-a");
+        await SeedUserAsync("user-cycle-b");
+        IExternalLoginRepository repository = new ExternalLoginRepository(_context);
+        var original = new ExternalLogin("user-cycle-a", "Google", "clave-reciclada");
+        await repository.AddAsync(original);
+        await repository.RemoveAsync(original);
+        await repository.AddAsync(new ExternalLogin("user-cycle-a", "Google", "clave-reciclada"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => repository.AddAsync(new ExternalLogin("user-cycle-b", "Google", "clave-reciclada")));
+    }
+
+    [Fact]
     public async Task SqliteSchemaMigrator_ShouldCreateExternalLoginsTable_OnLegacyDatabase()
     {
         // Arrange: base de datos antigua (con Games, sin ExternalLogins)

@@ -487,6 +487,7 @@ public class LudekaDbContext : DbContext
         externalLogin.Property(l => l.Provider).IsRequired().HasMaxLength(50);
         externalLogin.Property(l => l.ProviderKey).IsRequired().HasMaxLength(255);
         externalLogin.Property(l => l.ProviderEmail).HasMaxLength(200);
+        externalLogin.Property(l => l.ProviderEmailVerifiedAt);   // DateTimeOffset? anulable (INC-49)
 
         externalLogin.HasOne<AppUser>()
             .WithMany()
