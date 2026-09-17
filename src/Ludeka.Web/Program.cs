@@ -36,6 +36,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Security.Claims;
 using Ludeka.Web.Health;
 using Ludeka.Infrastructure.Options;
 using Microsoft.Extensions.Options;
@@ -71,6 +72,7 @@ builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSecti
 builder.Services.AddLudekaAuthentication(authenticationOptions);
 builder.Services.AddScoped<IExternalLoginRepository, ExternalLoginRepository>();
 builder.Services.AddScoped<IExternalLoginService, ExternalLoginService>();
+builder.Services.AddScoped<IAccountConnectionsService, AccountConnectionsService>();
 
 // Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
 var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
@@ -486,6 +488,46 @@ app.MapGet("/logout", async (HttpContext httpContext) =>
     await httpContext.SignOutAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
     return Results.Redirect("/");
 }).AllowAnonymous();
+
+// Incremento 49: desafío de VINCULACIÓN. A diferencia de /login/external, exige sesión y marca la
+// intención y el UserId del servidor en AuthenticationProperties.Items, que viajan dentro del
+// parámetro state protegido por Data Protection. El formulario del navegador no puede alterarlos.
+app.MapPost("/cuenta/conexiones/vincular", async (
+    HttpContext httpContext,
+    [FromServices] IAntiforgery antiforgery,
+    [FromServices] IOptions<AuthenticationOptions> options) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(httpContext);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.BadRequest(new { error = "Token antiforgery ausente o inválido." });
+    }
+
+    // El UserId se lee EXCLUSIVAMENTE de la sesión autenticada en servidor, nunca de un campo del
+    // formulario: es la frontera de seguridad del incremento (diseño §4.3 y §D1).
+    var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (string.IsNullOrWhiteSpace(userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var form = await httpContext.Request.ReadFormAsync();
+    var registration = ExternalAuthenticationSchemes
+        .GetEnabledProviders(options.Value)
+        .FirstOrDefault(candidate => string.Equals(candidate.Name, form["provider"].ToString(), StringComparison.OrdinalIgnoreCase));
+
+    if (registration is null)
+    {
+        return Results.BadRequest(new { error = "El proveedor de acceso indicado no está habilitado." });
+    }
+
+    var properties = new AuthenticationProperties { RedirectUri = AccountConnectionRoutes.Page };
+    ExternalLoginIntent.MarkLink(properties, userId);
+    return Results.Challenge(properties, [registration.Scheme]);
+}).RequireAuthorization();
 
 // Endpoint de entrega de tarjeta vectorial para Instagram (Incremento 28)
 app.MapGet("/api/instagram/card/{draftId:guid}.svg", async (Guid draftId, IInstagramPublisherService publisherService) =>

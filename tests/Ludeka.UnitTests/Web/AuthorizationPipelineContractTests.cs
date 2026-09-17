@@ -83,6 +83,21 @@ public class AuthorizationPipelineContractTests
     }
 
     [Fact]
+    public void LinkAccountEndpoint_ShouldDeclareRequireAuthorization()
+    {
+        // INC-49: a diferencia de /login/external (AllowAnonymous), el desafío de vinculación exige
+        // sesión iniciada. Mismo idioma de lectura de fuente que PublicEndpoint_ShouldDeclareAllowAnonymous.
+        var source = ReadSource("src/Ludeka.Web/Program.cs");
+
+        var index = source.IndexOf("\"/cuenta/conexiones/vincular\"", StringComparison.Ordinal);
+        Assert.True(index > 0, "No se encontró el endpoint /cuenta/conexiones/vincular en Program.cs.");
+
+        var nextEndpoint = source.IndexOf("app.Map", index + "/cuenta/conexiones/vincular".Length, StringComparison.Ordinal);
+        var block = nextEndpoint > index ? source[index..nextEndpoint] : source[index..];
+        Assert.Contains(".RequireAuthorization()", block, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Routes_ShouldUseAuthorizeRouteViewWithRedirectToLogin()
     {
         var routes = ReadSource("src/Ludeka.Web/Components/Routes.razor");
