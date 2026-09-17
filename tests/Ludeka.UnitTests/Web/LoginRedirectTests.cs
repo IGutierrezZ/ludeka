@@ -1,5 +1,6 @@
 using System;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Web.Authentication;
 using Ludeka.Web.Services;
 using Microsoft.AspNetCore.Components;
@@ -89,5 +90,25 @@ public class LoginRedirectTests
     {
         Assert.True(LoginRedirect.IsSessionDenied(new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage)));
         Assert.False(LoginRedirect.IsSessionDenied(new ArgumentException("identidad vacía")));
+    }
+
+    [Fact]
+    public void ResolveAccountCollisionNotice_WithTheClosedCode_ReturnsTheCollisionMessage()
+    {
+        // El código cerrado de "?aviso=" (INC-49, diseño §3.1) es lo único que Login.razor lee de
+        // la cadena de consulta: nunca texto libre, para no abrir una redirección/inyección abierta.
+        var notice = LoginRedirect.ResolveAccountCollisionNotice("cuenta-existente");
+
+        Assert.Equal(AccountConnectionMessages.LoginCollisionNotice, notice);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("vinculacion-sin-sesion")]
+    [InlineData("codigo-desconocido")]
+    public void ResolveAccountCollisionNotice_WithAnAbsentOrUnknownCode_ReturnsNull(string? aviso)
+    {
+        Assert.Null(LoginRedirect.ResolveAccountCollisionNotice(aviso));
     }
 }

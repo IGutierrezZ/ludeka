@@ -533,3 +533,129 @@ Ninguno. No hubo bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` e
 ## Estado
 
 **4/5 tareas completas (4.1-4.4); 4.5 sin marcar por ser verificación manual no ejecutable en este entorno.** `dotnet test Ludeka.sln`: **1387/1387 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **323**, por encima de la estimación de 160-255 pero 77 líneas por debajo del presupuesto de 400 — sin necesidad de partición ni `size:exception`. Commits de este lote sin pushear, sin PR abierto: eso lo gestiona el orquestador.
+
+---
+
+# Progreso de aplicación — INC-49, PR #5 (Flujo de colisión: partición 2a/2b de `ResolveAsync`)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** únicamente las 6 tareas del PR #5 (Unidad F), sección «PR #5 — Flujo de colisión: partición 2a/2b de `ResolveAsync`» de `tasks.md`.
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** quinto lote — progreso previo de PR #1/#2/#3 (observación 370) y PR #4 (sección local de este mismo fichero) leído íntegramente y fusionado arriba, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-05-colision` (parte de `inc/vinculacion-cuentas-04-pantalla` en `1a98be2`).
+
+---
+
+## Criterio de aceptación innegociable — verificado
+
+Las **6 pruebas existentes** de `tests/Ludeka.UnitTests/Application/ExternalLoginServiceTests.cs:51-146` **no se han tocado ni una sola línea** y siguen en verde (confirmado por ejecución, no por inspección). `git diff 1a98be2..HEAD --name-only` no incluye ese fichero (ver sección de líneas autoradas). No hizo falta reconsiderar el enfoque en ningún momento: el trazado manual de `sdd-design` (sección 7) se confirmó exactamente por ejecución.
+
+---
+
+## Tareas completadas (6/6)
+
+- [x] 5.1 **[RED]** `ExternalLoginCascadeRegressionTests.cs` (nuevo) — las 6 pruebas de regresión obligatorias, con los nombres exactos y en el orden de `tasks.md`. RED real confirmado por ejecución: **1/6, 5/6 y 6/6 ya pasaban** (fijaciones de conducta existente); **2/6, 3/6 y 4/6 fallaban** — exactamente la nota de TDD de la propia tarea, no un error de la prueba.
+- [x] 5.2 **[GREEN]** `ExternalLoginService.cs` — rama 2 de `ResolveAsync` partida en 2a (`ListByUserIdAsync(match.Id)` vacío ⇒ vincula automáticamente, conducta idéntica a INC-46) y 2b (`Count > 0` ⇒ `throw new ExternalLoginCollisionException(...)`, cero escrituras). `providerEmailVerified: emailVerified` añadido a la creación de la fila en las ramas 2a **y** 3 (esta última no lo tenía y tampoco estaba pedido explícitamente por ningún test de INC-46, pero sí por el texto literal de la tarea). Hace pasar 5.1: **12/12** (6 regresión + 6 protegidas).
+- [x] 5.3 **[RED]** `AccountConnectionMessagesTests.cs` — 2 `[Fact]` nuevos para el aviso de colisión de login. RED por `CS0117` (`AccountConnectionMessages.LoginCollisionNotice` no existía).
+- [x] 5.4 **[GREEN]** `AccountConnectionMessages.cs` — constante `LoginCollisionNotice` con el texto exacto de la propuesta §4.2. Hace pasar 5.3: **4/4**.
+- [x] 5.5 **[RED]** `LoginRedirectTests.cs` — 2 pruebas nuevas (`[Fact]` + `[Theory]` con 4 casos) para `LoginRedirect.ResolveAccountCollisionNotice`. RED por `CS0117` (el método no existía).
+- [x] 5.6 **[GREEN]** `LoginRedirect.cs` (método nuevo `ResolveAccountCollisionNotice`), `AccountConnectionRoutes.cs` (constante `LoginWithAccountCollision`), `ExternalLoginEvents.cs` (el camino **normal** de `HandleTicketReceivedAsync` envuelve `ResolveAsync` en `try/catch (ExternalLoginCollisionException)`, redirige con `HandleResponse()`), `Login.razor` (`[SupplyParameterFromQuery] string? Aviso` + bloque de renderizado). Hace pasar 5.5: **27/27** (comando enfocado completo del work unit F).
+
+**No regresión confirmada:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron y siguen en verde; suite completa **1400/1400** sin fallos.
+
+---
+
+## Decisiones tomadas por esta fase (no fijadas literalmente por `design.md`/`tasks.md`)
+
+1. **Mensaje de la excepción desacoplado de `AccountConnectionMessages.LoginCollisionNotice`.** La tarea 5.2 antecede a la 5.4 en el orden RED→GREEN, así que `ExternalLoginCollisionException` no podía referenciar todavía una constante que no existiría hasta dos tareas después. Se usó un texto diagnóstico interno propio (interpolando el proveedor) en vez de forzar una referencia adelantada. Es coherente con el propio flujo de datos: nadie lee `.Message` de esta excepción en el camino de usuario — `ExternalLoginEvents.cs` la traduce exclusivamente a través del código cerrado `?aviso=cuenta-existente`, nunca del texto de la excepción (mismo principio que el diseño fija en §3.1 para el rechazo de vinculación).
+2. **`ResolveAccountCollisionNotice` vive en `LoginRedirect.cs` (`Ludeka.Web.Services`), no inline en `Login.razor`.** La tarea 5.5 nombra explícitamente `LoginRedirectTests.cs` como fichero a ampliar; sin `bUnit` en el repositorio (confirmado en PR #3), la única forma de que ese fichero contenga una prueba de comportamiento real (no de contrato de fuente) es extraer la función de decisión a una clase estática pura. Amplía ligeramente el propósito original de `LoginRedirect` (de "navegar hacia el login" a "también resolver qué aviso se pinta en él"), pero evita duplicar lógica entre `Login.razor` y un fichero de pruebas que ya existía con ese nombre desde INC-46.
+3. **Código cerrado elegido: `cuenta-existente`.** Ni la propuesta ni el diseño fijan el literal exacto de `?aviso=` para esta colisión (sí fijan `vinculacion-sin-sesion` para el caso de vinculación sin sesión, PR #3). Se eligió siguiendo el mismo idioma kebab-case en español ya usado por `sesion-cambiada`/`ya-vinculado`/`en-uso`.
+4. **Literal duplicado, no compartido, entre `AccountConnectionRoutes.LoginWithAccountCollision` y `LoginRedirect.ResolveAccountCollisionNotice`.** Sigue el precedente ya establecido en el repositorio (`AccountConnectionRoutes.PageWithResult` y `AccountConnections.razor.BuildResultBanner` ya duplican literalmente "vinculado"/"en-uso"/etc. en vez de compartir una constante); no se introduce una constante compartida nueva para no romper ese estilo ya asentado.
+5. **Sin prueba dedicada para el `try/catch` de `ExternalLoginEvents.cs` en el camino normal.** `ExternalLoginEventsLinkBranchTests.cs` construye siempre un contexto **con** intención de vinculación (`ExternalLoginIntent.MarkLink`); no existe ningún arnés previo para el camino normal (`ResolveAsync`) a este nivel, y el propio `tasks.md` declara el arnés de runtime de la Unidad F como **N/A, no exigido por la propuesta §11** (exigiría dos proveedores OAuth reales entregando el mismo correo verificado). Se decidió no inventar un fichero de prueba nuevo fuera de las 6 tareas asignadas — mismo criterio que ya aplicó PR #4 para su tarea 4.4 (aviso sin prueba dedicada por falta de `bUnit`). La cobertura de esta pieza es: compilación + suite completa en verde + inspección directa del diff. **Riesgo residual explícito:** si `ExternalLoginEvents.cs` alguna vez deja de traducir la excepción al código cerrado, ningún test automático lo detectaría hoy; queda anotado para que el maintainer decida si lo amplía.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 5.1/5.2 | `Application/ExternalLoginCascadeRegressionTests.cs` (nuevo) | Unidad (SQLite `:memory:`) | ➖ N/A (fichero nuevo); las 6 de `ExternalLoginServiceTests.cs` no se tocan | ✅ Escrito, RED real en ejecución: 3/6 con error (pruebas 2, 3, 4) y 3/6 ya en verde (1, 5, 6) — exactamente la nota de TDD de la tarea 5.1 | ✅ Pasa 12/12 (6 regresión + 6 protegidas) tras partir la rama 2 en 2a/2b y escribir `providerEmailVerified` en 2a y 3 | ✅ 6 casos (rama 1, 2a, 2b, no reasignación bajo colisión repetida, rama 3 no verificado, rama 3 sin correo) | ➖ No hizo falta |
+| 5.3/5.4 | `Application/AccountConnectionMessagesTests.cs` | Unidad (función pura) | ✅ 2/2 (baseline del fichero, PR #2) | ✅ Escrito (`CS0117`: `LoginCollisionNotice` no existía) | ✅ Pasa (4/4) | ✅ 2 casos (palabras prohibidas, dirección a Ajustes → Conexiones) | ➖ No hizo falta |
+| 5.5/5.6 | `Web/LoginRedirectTests.cs` | Unidad (función pura) | ✅ 6/6 (baseline del fichero, INC-46) | ✅ Escrito (`CS0117`: `ResolveAccountCollisionNotice` no existía) | ✅ Pasa (27/27 del comando enfocado completo de la Unidad F) | ✅ 5 casos (código cerrado; `null`; cadena vacía; código de otra funcionalidad, `vinculacion-sin-sesion`; código desconocido) | ➖ No hizo falta |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 13 (6 de regresión + 2 de mensajes + 1 `[Fact]` + 4 casos de `[Theory]` en `LoginRedirectTests.cs`).
+- **Pruebas totales pasando:** 1400/1400 (baseline 1387 + 13 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Unidad (13: 6 con SQLite `:memory:`, 7 funciones puras), Integración (0), E2E (0) — el arnés de runtime de esta unidad es N/A por declaración explícita de `tasks.md`.
+- **Pruebas de aprobación (refactor):** Ninguna — sin refactorización de conducta existente en este PR.
+- **Funciones puras creadas:** 1 (`LoginRedirect.ResolveAccountCollisionNotice`, determinista y sin efectos secundarios).
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto | `dotnet test Ludeka.sln --filter "FullyQualifiedName~ExternalLoginCascadeRegressionTests\|FullyQualifiedName~ExternalLoginServiceTests\|FullyQualifiedName~AccountConnectionMessagesTests\|FullyQualifiedName~LoginRedirectTests"` → **Con error: 0, Superado: 27, Omitido: 0, Total: 27** |
+| Arnés de runtime / escenario y resultado exacto | **N/A** — el propio work unit de `tasks.md` lo declara así: exigiría dos proveedores OAuth reales entregando el mismo correo verificado; no exigido por la propuesta §11 |
+| Frontera de reversión | Revertir la partición 2a/2b de `ResolveAsync` (vuelve a la rama 2 única de INC-46), el mensaje de colisión de login, `LoginRedirect.ResolveAccountCollisionNotice`, la constante de ruta, el `try/catch` de `ExternalLoginEvents.cs` y el bloque nuevo de `Login.razor`; independiente de PR #2/#3/#4, tal como preveía `tasks.md` |
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `tests/Ludeka.UnitTests/Application/ExternalLoginCascadeRegressionTests.cs` | Creado | 6 pruebas de regresión de las 3 ramas de `ResolveAsync` |
+| `src/Ludeka.Application/Features/Identity/ExternalLoginService.cs` | Modificado | Partición 2a/2b de la rama 2; `providerEmailVerified` en 2a y 3 |
+| `tests/Ludeka.UnitTests/Application/AccountConnectionMessagesTests.cs` | Modificado | +2 pruebas de honestidad del aviso de colisión de login |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionMessages.cs` | Modificado | Constante `LoginCollisionNotice` |
+| `tests/Ludeka.UnitTests/Web/LoginRedirectTests.cs` | Modificado | +2 pruebas (`[Fact]` + `[Theory]` ×4) de `LoginRedirect.ResolveAccountCollisionNotice` |
+| `src/Ludeka.Web/Services/LoginRedirect.cs` | Modificado | Método nuevo `ResolveAccountCollisionNotice` |
+| `src/Ludeka.Web/Authentication/AccountConnectionRoutes.cs` | Modificado | Constante `LoginWithAccountCollision` |
+| `src/Ludeka.Web/Authentication/ExternalLoginEvents.cs` | Modificado | `try/catch (ExternalLoginCollisionException)` en el camino normal de `HandleTicketReceivedAsync` |
+| `src/Ludeka.Web/Components/Pages/Login.razor` | Modificado | `[SupplyParameterFromQuery] string? Aviso` + bloque de renderizado del aviso |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 6 casillas marcadas `[x]` (5.1-5.6) |
+
+---
+
+## Recuento de líneas autoradas (`git diff 1a98be2..HEAD --stat` / `--numstat`)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (6 ficheros: `ExternalLoginService.cs`, `AccountConnectionMessages.cs`, `LoginRedirect.cs`, `AccountConnectionRoutes.cs`, `ExternalLoginEvents.cs`, `Login.razor`) | 93 | 15 | **108** |
+| Pruebas (3 ficheros: 1 nuevo + 2 ampliados) | 199 | 0 | **199** |
+| Producción + pruebas (sin `tasks.md`) | 292 | 15 | **307** |
+| + `tasks.md` (bookkeeping de tareas) | 298 | 21 | **319** |
+
+Sin artefactos generados en este PR (no hay migración EF Core).
+
+**Contraste con la estimación de `tasks.md` (≈250-380):** el real (307, o 319 con `tasks.md`) cae **dentro** de la banda estimada — producción (108) dentro de 93-155; pruebas (199) dentro de 160-228. Es, junto con PR #1 y PR #4, el tercer PR de la cadena que no necesita partición ni `size:exception`: muy por debajo del presupuesto de 400.
+
+---
+
+## Commits creados (3 de implementación, ninguno pusheado; más el commit de documentación que cierra este lote)
+
+1. `6534300` `feat(application): partir la rama 2 de resolveasync en 2a/2b para no fusionar en silencio`
+2. `3895acb` `feat(application): anadir el aviso de colision de login sin prometer fusion automatica`
+3. `dfdb631` `feat(web): redirigir el login a un aviso cuando el correo verificado colisiona`
+4. (este mismo commit de documentación) `docs(sdd): completar las tareas 5.1-5.6 del PR #5 de INC-49`
+
+Ninguno lleva atribución de IA (regla explícita de `AGENTS.md` §4). Worktree sobre `inc/vinculacion-cuentas-05-colision`, sin push ni PR: eso lo decide el orquestador.
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+Ninguna de las 6 tareas se reinventó: se implementaron tal como están escritas, en el orden RED→GREEN especificado, sin reabrir ninguna decisión cerrada de `proposal.md` §3 ni las resoluciones P2-P5 de `design.md`. Las 5 decisiones de implementación no fijadas literalmente por el diseño/tareas (elección de literal, ubicación de la función pura, desacople del mensaje de la excepción, ausencia de prueba dedicada del `try/catch`) están documentadas en la sección dedicada arriba, con su razonamiento.
+
+## Tropiezos operativos
+
+Ninguno. No hubo bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` en ejecución antes de compilar ni ejecutar pruebas).
+
+---
+
+## Estado
+
+**6/6 tareas completas (5.1-5.6).** `dotnet test Ludeka.sln`: **1400/1400 en verde, 0 fallos, 0 omitidas.** Las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron. Líneas autoradas reales: **307** (319 con `tasks.md`), dentro de la estimación de 250-380 y muy por debajo del presupuesto de 400 — sin necesidad de partición ni `size:exception`. Worktree sobre `inc/vinculacion-cuentas-05-colision`, 3 commits de implementación sin pushear, sin PR abierto: eso lo gestiona el orquestador. Próximo paso sugerido: `sdd-archive` sobre PR #5 (verificación es opcional), o continuar con `sdd-apply` para PR #6 (`inc/vinculacion-cuentas-06-aviso-cabecera`, depende de PR #3 y PR #4, ambos ya completos) o PR #7 (depende de PR #1 y PR #2, también completos).

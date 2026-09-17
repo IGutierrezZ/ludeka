@@ -16,6 +16,14 @@
             </p>
         </header>
 
+        @if (_collisionNotice is not null)
+        {
+            <div class="p-4 rounded-xl bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)] text-[var(--state-warning)] flex items-start gap-3 text-xs shadow-sm" role="status">
+                <span class="shrink-0 mt-0.5"><Icon Name="triangle-alert" Size="16" /></span>
+                <span>@_collisionNotice</span>
+            </div>
+        }
+
         @if (_providers.Count == 0)
         {
             <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)]"
@@ -54,10 +62,18 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "aviso")]
+    public string? Aviso { get; set; }
+
     private IReadOnlyList<ExternalProviderRegistration> _providers = [];
+    private string? _collisionNotice;
 
     protected override void OnInitialized()
     {
         _providers = ExternalAuthenticationSchemes.GetEnabledProviders(AuthenticationOptionsAccessor.Value);
+
+        // Código cerrado de "?aviso=" (INC-49, diseño §3.1): nunca se transporta texto libre, solo
+        // un código de un conjunto cerrado que se traduce en servidor.
+        _collisionNotice = LoginRedirect.ResolveAccountCollisionNotice(Aviso);
     }
 }
