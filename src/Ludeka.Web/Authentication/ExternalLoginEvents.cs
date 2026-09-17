@@ -34,7 +34,7 @@ public static class ExternalLoginEvents
         options.Events.OnTicketReceived = context => HandleTicketReceivedAsync(providerName, context);
     }
 
-    private static async Task HandleTicketReceivedAsync(string providerName, TicketReceivedContext context)
+    public static async Task HandleTicketReceivedAsync(string providerName, TicketReceivedContext context)
     {
         var externalPrincipal = context.Principal;
         if (externalPrincipal is null)
@@ -57,6 +57,43 @@ public static class ExternalLoginEvents
         var emailVerified = IsEmailVerified(externalPrincipal);
 
         var loginService = context.HttpContext.RequestServices.GetRequiredService<IExternalLoginService>();
+
+        // Incremento 49: bifurcación de vinculación. Si el desafío marcó la intención en Items, esta
+        // rama sustituye por completo al camino de acceso: nunca aprovisiona un AppUser nuevo (diseño §D1).
+        if (ExternalLoginIntent.TryReadLink(context.Properties, out var intendedUserId))
+        {
+            var sessionUserId = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Reconfirmación (diseño §D1): la sesión que vuelve del proveedor debe ser exactamente
+            // la misma que emitió la intención. Sin esto, la comprobación del paso 2 (userId capturado
+            // en servidor al emitir el desafío) quedaría sin efecto en el retorno.
+            if (!string.Equals(intendedUserId, sessionUserId, StringComparison.OrdinalIgnoreCase))
+            {
+                context.HandleResponse();
+                context.Response.Redirect(string.IsNullOrWhiteSpace(sessionUserId)
+                    ? AccountConnectionRoutes.LoginWithLinkWithoutSession
+                    : AccountConnectionRoutes.PageWithSessionChanged);
+                return;
+            }
+
+            var linkResult = await loginService.LinkAsync(
+                intendedUserId, providerName, providerKey, email, emailVerified, context.HttpContext.RequestAborted);
+
+            if (linkResult.Outcome != ExternalLoginLinkOutcome.Linked)
+            {
+                context.HandleResponse();
+                context.Response.Redirect(AccountConnectionRoutes.PageWithResult(linkResult.Outcome));
+                return;
+            }
+
+            context.Principal = BuildSessionPrincipal(linkResult.User);
+            context.Properties ??= new AuthenticationProperties();
+            context.Properties.IsPersistent = true;
+            context.Properties.AllowRefresh = true;
+            context.ReturnUri = AccountConnectionRoutes.PageWithResult(linkResult.Outcome);
+            return;
+        }
+
         var user = await loginService.ResolveAsync(
             providerName,
             providerKey,
