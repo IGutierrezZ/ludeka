@@ -800,3 +800,130 @@ Ninguno lleva atribución de IA (regla explícita de `AGENTS.md` §4). Worktree 
 ## Estado
 
 **3/3 tareas completas (6.1-6.3), más el arreglo de caché encargado por el orquestador, también completo y probado.** `dotnet test Ludeka.sln`: **1408/1408 en verde, 0 fallos, 0 omitidas.** Las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron; `ICurrentUserService`/`CurrentUserContractTests` no se tocaron. Líneas autoradas reales: **267**, muy por debajo del presupuesto de 400 (la estimación original de `tasks.md`, 60-100, no incluía el arreglo de caché añadido en esta fase) — sin necesidad de partición ni `size:exception`. Worktree sobre `inc/vinculacion-cuentas-06-aviso-cabecera`, 5 commits sin pushear (2 `fix` — caché y tamaño de objetivo WCAG —, 1 `feat`, 2 `docs`), sin PR abierto: eso lo gestiona el orquestador. Próximo paso sugerido: `sdd-archive` sobre PR #6 (verificación es opcional), o continuar con `sdd-apply` para PR #7 (`inc/vinculacion-cuentas-07-reemplazo-correo`, depende de PR #1 y PR #2, ambos ya completos) — **recordatorio explícito del encargo: el PR #7 queda fuera del alcance de este lote y no se ha tocado.**
+
+---
+
+# Progreso de aplicación — INC-49, PR #7 (Reemplazo del correo sintético por el verificado)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** únicamente las 5 tareas del PR #7 (Unidad I), sección «PR #7 — Reemplazo del correo sintético por el verificado» de `tasks.md`, más la corrección arquitectónica obligatoria de la tarea 7.4 encargada explícitamente por el orquestador.
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** séptimo y último lote de la cadena — progreso previo de PR #1-#6 (observación 370 de Engram, ya cerca de su límite de tamaño) leído íntegramente desde este mismo fichero y fusionado, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-07-reemplazo-correo` (parte de `inc/vinculacion-cuentas-06-aviso-cabecera` en `1365f3c`).
+
+---
+
+## Corrección arquitectónica obligatoria de la tarea 7.4 (léase antes que las tareas)
+
+La tarea 7.4, tal como está redactada en `tasks.md`, pide literalmente un `catch (DbUpdateException)` dentro de `TryReplacePlaceholderEmailAsync`, en `Ludeka.Application`. Implementarla al pie de la letra habría reintroducido exactamente la violación de Clean Architecture que el commit `695898c` (anterior a este PR, en la misma rama) ya corrigió para el caso análogo de `ExternalLoginRepository.AddAsync`/`LinkAsync` (PR #2): `Ludeka.Application` no puede referenciar ningún ORM.
+
+**Patrón implementado en su lugar (idéntico al ya establecido por `695898c`):**
+
+1. `DuplicateUserEmailException` — excepción de dominio nueva en `AccountConnectionExceptions.cs`, mismo estilo de documentación XML en español que las tres ya existentes (`LastAccessMethodException`, `ExternalLoginCollisionException`, `DuplicateExternalLoginException`).
+2. `SqliteUserRepository.UpdateAsync` (Infrastructure) captura `DbUpdateException` del índice único de `AppUsers.Email` (`LudekaDbContext.cs:363`) y la traduce a `DuplicateUserEmailException`.
+3. `TryReplacePlaceholderEmailAsync` (Application) captura la excepción **traducida**, nunca la de EF Core.
+
+**Verificación explícita pedida por el encargo** — `grep -rn "EntityFrameworkCore" src/Ludeka.Application --include="*.cs" --include="*.csproj"` → **salida vacía**. La capa queda limpia.
+
+**Hallazgo adicional durante la implementación (no pedido por ninguna tarea, descubierto por un RED genuino):** al escribir las pruebas de `LinkAsync` que ejercitan el reemplazo real, `SqliteUserRepository.UpdateAsync` lanzaba `InvalidOperationException` del `ChangeTracker` ("cannot be tracked because another instance with the same key value... is already being tracked"). Causa: `RequireActiveUserAsync` lee el `AppUser` con `GetByIdAsync` (`AsNoTracking`, instancia nueva y desconectada por diseño — no se toca, es el mismo invariante que ya protege `UnlinkAsync`), mientras que la propia utilidad `SeedUserAsync` de la prueba mantiene bajo seguimiento la instancia original en el mismo `DbContext`. Es la misma clase de conflicto que el PR #2 ya corrigió en `ExternalLoginRepository.RemoveAsync` (fila creada con `AddAsync` y luego recuperada con `AsNoTracking` para borrarla). **Corrección con el mismo patrón:** `UpdateAsync` busca ahora una entrada ya rastreada con el mismo `Id` en el `ChangeTracker` y, si existe y es una instancia distinta, vuelca los valores nuevos sobre ella con `CurrentValues.SetValues(user)` en vez de intentar adjuntar una segunda instancia. Sin cambio de contrato ni de firma.
+
+---
+
+## Tareas completadas (5/5)
+
+- [x] 7.1 **[RED]** `ExternalLoginLinkingTests.cs` — `[Theory]` con 4 casos de `IsPlaceholderEmail` (formato real `{clave}@{proveedor}.ludeka.invalid`, forma corta `@ludeka.invalid`, correo real, cadena vacía). RED por `CS0117` (el método no existía).
+- [x] 7.2 **[GREEN]** `ExternalLoginService.cs` — `IsPlaceholderEmail(string? email)` público y estático, algoritmo exacto de `design.md` §3.4 (host tras el último `@`, `OrdinalIgnoreCase`). Hace pasar 7.1.
+- [x] 7.3 **[RED]** `ExternalLoginLinkingTests.cs` — 3 casos de `LinkAsync`: (a) reemplazo exitoso con rastro conservado en `ExternalLogin`; (b) colisión de correo → sin reemplazo, vinculación sigue siendo éxito; (c) cuenta con correo real no se ve afectada. RED por `CS0246` (`DuplicateUserEmailException`, referenciada indirectamente por el prerrequisito de 7.4) — ver nota de honestidad TDD abajo.
+- [x] 7.4 **[GREEN, corregido]** `TryReplacePlaceholderEmailAsync` en `ExternalLoginService.cs` + traducción de excepción en `SqliteUserRepository.cs` (ver corrección arquitectónica arriba) + `AccountEmailReplaced` propagado en `ExternalLoginLinkResult`. Hace pasar 7.3.
+- [x] 7.5 **[GREEN]** `RecordAuditAsync` extendido con un parámetro opcional `emailChange`; `LinkAsync` añade la tupla `("Email", correoAnterior, correoVerificado)` a `Changes` solo cuando el reemplazo ocurrió de verdad. Prueba dedicada nueva (`LinkAsync_WhenAccountEmailIsReplaced_ShouldRecordTheEmailChangeInTheAuditEntry`), RED antes de este cambio (el `Changes` solo traía la tupla `Provider`).
+
+**No regresión confirmada:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146`, las 6 de `ExternalLoginCascadeRegressionTests.cs` (PR #5) y las pruebas preexistentes de `ExternalLoginLinkingTests.cs` (PR #2) no se tocaron y siguen en verde.
+
+### Nota de honestidad TDD (precedente ya sentado por la tarea 5.1 de PR #5)
+
+Al escribir las tres pruebas de 7.3 a la vez, solo (a) («reemplazo exitoso») falló genuinamente por aserción tras compilar (`AccountEmailReplaced` seguía en `false`, valor por defecto, porque `LinkAsync` no invocaba nada nuevo). (b) y (c) compilaron y **pasaron de inmediato**, porque antes de implementar 7.4 `LinkAsync` no tocaba `AppUser.Email` en ningún caso, así que "el correo no cambia" era trivialmente cierto. Esto es exactamente el mismo patrón que `tasks.md` ya normalizó explícitamente para las pruebas 1/5/6 de `ExternalLoginCascadeRegressionTests.cs` en PR #5 ("no es un error si pasan en el primer `dotnet test`"). Se reporta con la misma transparencia: no se ha inventado un RED artificial para (b)/(c). El test de infraestructura (`SqliteUserRepository_UpdateAsync_ShouldTranslateDuplicateEmailIntoDomainException`, ver corrección arquitectónica arriba) sí fue RED genuino por ejecución antes del fix de Infrastructure.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 7.1/7.2 | `Application/ExternalLoginLinkingTests.cs` | Unidad (función pura) | ✅ (baseline del fichero antes de este PR) | ✅ Escrito (CS0117) | ✅ Pasa (4/4 casos) | ✅ 4 casos (2 formas reservadas, correo real, cadena vacía) | ➖ No hizo falta — invariante de una función pura |
+| infra (prerrequisito de 7.4) | `Infrastructure/ExternalLoginPersistenceTests.cs` | Unidad (SQLite `:memory:`) | ✅ (baseline del fichero) | ✅ Escrito, fallo real en ejecución (`DbUpdateException` sin traducir) | ✅ Pasa (1/1) | ➖ Escenario único, espejo de `UniqueIndex_ShouldRejectRepeatedProviderPair` | ➖ No hizo falta |
+| 7.3 (a) | `Application/ExternalLoginLinkingTests.cs` | Unidad (SQLite `:memory:`) | ✅ | ✅ Escrito, fallo real en ejecución (`AccountEmailReplaced` en `false`) | ✅ Pasa, tras el fix del `ChangeTracker` (ver hallazgo arriba) | — | — |
+| 7.3 (b)/(c) | idem | idem | ✅ | ➖ Pasan de inmediato (ver nota de honestidad TDD) | ✅ Pasa | ✅ 2 casos (colisión, correo real) | ➖ No hizo falta |
+| 7.4 (ChangeTracker) | idem | idem | ✅ | ✅ Fallo real en ejecución (`InvalidOperationException` del `ChangeTracker`, ver hallazgo) | ✅ Pasa tras `CurrentValues.SetValues` | ➖ No aplica (fix de infraestructura) | ➖ No hizo falta |
+| 7.5 | `Application/ExternalLoginLinkingTests.cs` | Unidad (SQLite `:memory:`, `FakeAuditService`) | ✅ | ✅ Escrito, fallo real en ejecución (`Changes` sin la tupla `Email`) | ✅ Pasa | ➖ Caso único exigido por la tarea | ➖ No hizo falta |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 9 (4 `IsPlaceholderEmail` + 3 `LinkAsync`-reemplazo + 1 auditoría + 1 infraestructura).
+- **Pruebas totales pasando:** 1417/1417 (baseline 1408 + 9 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Unidad (9: 4 puras, 5 con SQLite `:memory:`), Integración (0), E2E (0).
+- **Pruebas de aprobación (refactor):** Ninguna — sin refactorización de conducta existente en este PR.
+- **Funciones puras creadas:** 1 (`IsPlaceholderEmail`).
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto | `dotnet test Ludeka.sln --filter "FullyQualifiedName~ExternalLoginLinkingTests\|FullyQualifiedName~ExternalLoginPersistenceTests\|FullyQualifiedName~ExternalLoginServiceTests\|FullyQualifiedName~ExternalLoginCascadeRegressionTests"` → **Con error: 0, Superado: 43, Omitido: 0, Total: 43** |
+| Arnés de runtime / escenario y resultado exacto | **N/A** — el propio work unit de `tasks.md` lo declara así: exigiría un proveedor OAuth real que pase de no-verificado a verificado entre dos accesos, no reproducible en este repositorio |
+| Frontera de reversión | Revertir el método privado `TryReplacePlaceholderEmailAsync` y su llamada desde `LinkAsync`, el método público `IsPlaceholderEmail`, la extensión de `RecordAuditAsync`, `DuplicateUserEmailException` y el fix de `SqliteUserRepository.UpdateAsync`; `LinkAsync` sigue funcionando exactamente igual sin el reemplazo (es de mejor esfuerzo, nunca en el camino crítico de creación de la fila `ExternalLogin`) |
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `src/Ludeka.Application/Features/Identity/AccountConnectionExceptions.cs` | Modificado | `DuplicateUserEmailException` (dominio, corrección de 7.4) |
+| `src/Ludeka.Application/Features/Identity/ExternalLoginService.cs` | Modificado | `IsPlaceholderEmail`, `TryReplacePlaceholderEmailAsync`, `LinkAsync` (invocación + `AccountEmailReplaced`), `RecordAuditAsync` (parámetro `emailChange`) |
+| `src/Ludeka.Infrastructure/Data/SqliteUserRepository.cs` | Modificado | `UpdateAsync`: traduce `DbUpdateException` → `DuplicateUserEmailException`; fix del `ChangeTracker` (`CurrentValues.SetValues`) |
+| `tests/Ludeka.UnitTests/Application/ExternalLoginLinkingTests.cs` | Modificado | +8 pruebas (`IsPlaceholderEmail` ×4, reemplazo/colisión/correo-real ×3, auditoría ×1) |
+| `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginPersistenceTests.cs` | Modificado | +1 prueba (traducción de excepción en `SqliteUserRepository.UpdateAsync`) |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 5 casillas marcadas `[x]`, con la corrección de 7.4 documentada inline |
+
+---
+
+## Recuento de líneas autoradas (`git diff 1365f3c --numstat`, HEAD == `1365f3c` antes de estos commits)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (3 ficheros) | 127 | 6 | **133** |
+| Pruebas (2 ficheros) | 102 | 0 | **102** |
+| Producción + pruebas (sin `tasks.md`) | 229 | 6 | **235** |
+
+**Contraste con la estimación de `tasks.md` (≈105-175):** el real (235) supera el extremo alto en 60 líneas. Motivo explícito, no compresión evitada ni prueba omitida: la estimación asumía literalmente `catch (DbUpdateException)` en una sola capa (Application); la corrección arquitectónica obligatoria añade un tipo de excepción de dominio completo, su traducción en Infrastructure y el fix del `ChangeTracker` descubierto por el propio RED — trabajo real no contemplado por la estimación original de tres capas más simple (y arquitectónicamente incorrecta). **235 líneas quedan muy por debajo del presupuesto de revisión de 400**: no hace falta partición ni `size:exception`.
+
+---
+
+## Commits creados
+
+1. `feat(identity): sustituir el correo sintetico por el correo verificado al vincular un proveedor` — `AccountConnectionExceptions.cs`, `ExternalLoginService.cs`, `SqliteUserRepository.cs` (producción) + `ExternalLoginLinkingTests.cs`, `ExternalLoginPersistenceTests.cs` (pruebas). Un único commit porque las tres capas (dominio de excepción, traducción en Infrastructure, comportamiento en Application) son la misma unidad de trabajo indivisible: ninguna es revertible ni tiene sentido de forma independiente sin las otras dos.
+2. `docs(sdd): completar las tareas 7.1-7.5 del PR #7 de INC-49` — `tasks.md` + esta sección de `apply-progress.md`.
+
+Ninguno lleva atribución de IA (regla explícita de `AGENTS.md` §4).
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+1. **Tarea 7.4 implementada con el patrón corregido, no al pie de la letra** — documentado en detalle en la sección dedicada arriba, por encargo explícito del orquestador y para no violar Clean Architecture.
+2. **Fix del `ChangeTracker` en `SqliteUserRepository.UpdateAsync`**, no pedido por ninguna tarea numerada: defecto real descubierto por un RED genuino al escribir las pruebas de reemplazo, de la misma clase que el ya corregido en PR #2 para `ExternalLoginRepository.RemoveAsync`. Sin cambio de contrato.
+3. Ninguna decisión cerrada de `proposal.md` §3 ni resolución P2-P5 de `design.md` se reabrió.
+
+## Tropiezos operativos
+
+Ninguno más allá de los dos hallazgos ya documentados (la corrección arquitectónica de 7.4 y el fix del `ChangeTracker`), ambos resueltos y verificados por ejecución. No hubo bloqueo por `MSB3027` (ningún proceso `Ludeka.Web` en ejecución, comprobado explícitamente antes de empezar).
+
+---
+
+## Estado
+
+**5/5 tareas completas (7.1-7.5), incluida la corrección arquitectónica obligatoria de 7.4.** `dotnet test Ludeka.sln`: **1417/1417 en verde, 0 fallos, 0 omitidas.** `grep -rn "EntityFrameworkCore" src/Ludeka.Application --include="*.cs" --include="*.csproj"` → salida vacía (capa limpia). Líneas autoradas reales: **235**, por encima de la estimación de `tasks.md` (105-175) por el motivo explicado, pero muy por debajo del presupuesto de revisión de 400 — sin necesidad de partición ni `size:exception`. Worktree sobre `inc/vinculacion-cuentas-07-reemplazo-correo`, 2 commits sin pushear, sin PR abierto: eso lo gestiona el orquestador.
+
+**Estado global de `tasks.md` tras este PR:** de las 5 secciones de PR (#1-#7), la **única** casilla sin marcar en todo el documento es la **4.5** («Verificación manual... smoke test de navegador real»), explícitamente fuera de alcance de automatización desde que se escribió `tasks.md` (exige credenciales OAuth reales que no existen en este repositorio) y ajena al alcance de este lote (PR #4, ya completado). Con PR #7 cerrado, la cadena completa de 7 PRs queda con sus 39 tareas automatizables completas; solo esa verificación manual permanece pendiente, tal y como el propio diseño la definió desde el principio.

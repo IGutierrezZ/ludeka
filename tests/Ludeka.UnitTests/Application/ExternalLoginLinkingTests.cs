@@ -131,6 +131,74 @@ public class ExternalLoginLinkingTests : IAsyncLifetime
         Assert.Equal(owner.Id, link.UserId);
     }
 
+    [Theory]
+    [InlineData("clave-1@google.ludeka.invalid", true)]  // formato real de BuildPlaceholderEmail
+    [InlineData("alguien@ludeka.invalid", true)]          // forma corta histórica
+    [InlineData("ana@gmail.com", false)]                  // correo real: nunca es sintético
+    [InlineData("", false)]                               // cadena vacía: no hay dominio que mirar
+    public void IsPlaceholderEmail_ShouldRecognizeBothReservedFormsAndRejectRealAddresses(string email, bool expected)
+    {
+        // Cubre INC-49 (tarea 7.1): las dos formas del dominio reservado ludeka.invalid, y el
+        // rechazo explícito de un correo real y de una cadena vacía.
+        Assert.Equal(expected, ExternalLoginService.IsPlaceholderEmail(email));
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenAccountHasPlaceholderEmailAndProviderEmailIsVerified_ShouldReplaceAccountEmail()
+    {
+        // Arrange: cuenta con correo sintético (alta comunitaria sin correo real, patrón de INC-46).
+        var user = await SeedUserAsync(new AppUser("user-placeholder-1", "Jugador Sintético", "clave-1@google.ludeka.invalid"));
+
+        // Act: vincula un proveedor que SÍ entrega correo verificado.
+        var result = await _service.LinkAsync(user.Id, "Discord", "discord-verified-1", "verificado@gmail.com", true);
+
+        // Assert: el correo de la cuenta pasa a ser el verificado y el resultado lo refleja.
+        Assert.Equal(ExternalLoginLinkOutcome.Linked, result.Outcome);
+        Assert.True(result.AccountEmailReplaced);
+        Assert.Equal("verificado@gmail.com", result.User.Email);
+        var persisted = await _context.AppUsers.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("verificado@gmail.com", persisted.Email);
+
+        // Assert: la fila ExternalLogin conserva el rastro del origen del vínculo.
+        var link = await _context.ExternalLogins.AsNoTracking().SingleAsync();
+        Assert.Equal("verificado@gmail.com", link.ProviderEmail);
+        Assert.NotNull(link.ProviderEmailVerifiedAt);
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenVerifiedEmailAlreadyOwnedByAnotherAccount_ShouldKeepPlaceholderEmailButStillLink()
+    {
+        // Arrange: otra cuenta ya tiene el correo que el proveedor entregaría verificado.
+        await SeedUserAsync(new AppUser("user-other-owner", "Otra Titular", "compartido@gmail.com"));
+        var user = await SeedUserAsync(new AppUser("user-placeholder-2", "Jugador Sintético Dos", "clave-2@google.ludeka.invalid"));
+
+        // Act
+        var result = await _service.LinkAsync(user.Id, "Discord", "discord-collision-2", "compartido@gmail.com", true);
+
+        // Assert: la vinculación sigue siendo un éxito (la fila se crea) pero el correo NO se reemplaza.
+        Assert.Equal(ExternalLoginLinkOutcome.Linked, result.Outcome);
+        Assert.False(result.AccountEmailReplaced);
+        var persisted = await _context.AppUsers.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("clave-2@google.ludeka.invalid", persisted.Email);
+        Assert.Equal(1, await _context.ExternalLogins.CountAsync(l => l.UserId == user.Id));
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenAccountAlreadyHasARealEmail_ShouldNotReplaceItEvenWithAVerifiedProviderEmail()
+    {
+        // Arrange: cuenta con correo real, no sintético.
+        var user = await SeedUserAsync(new AppUser("user-real-email-1", "Jugadora Real", "real@ludeka.es"));
+
+        // Act
+        var result = await _service.LinkAsync(user.Id, "Discord", "discord-real-3", "otro-verificado@gmail.com", true);
+
+        // Assert: el correo de la cuenta no cambia.
+        Assert.Equal(ExternalLoginLinkOutcome.Linked, result.Outcome);
+        Assert.False(result.AccountEmailReplaced);
+        var persisted = await _context.AppUsers.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("real@ludeka.es", persisted.Email);
+    }
+
     [Fact]
     public async Task UnlinkAsync_WhenAccountHasTwoOrMoreLinks_ShouldRemoveOnlyTheIndicatedOne()
     {
@@ -272,6 +340,22 @@ public class ExternalLoginLinkingTests : IAsyncLifetime
 
         // Assert: ninguna entrada de auditoría de éxito.
         Assert.Empty(audit.LoggedCommands);
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenAccountEmailIsReplaced_ShouldRecordTheEmailChangeInTheAuditEntry()
+    {
+        // Arrange: cuenta con correo sintético, para forzar el reemplazo dentro del mismo camino auditado.
+        var user = await SeedUserAsync(new AppUser("user-audit-email-replace", "Jugador Auditado Correo", "clave-audit@google.ludeka.invalid"));
+        var audit = new FakeAuditService();
+        var auditingService = new ExternalLoginService(_externalLoginRepository, new SqliteUserRepository(_context), audit);
+
+        // Act
+        await auditingService.LinkAsync(user.Id, "Discord", "discord-audit-email", "verificado-audit@gmail.com", true);
+
+        // Assert: la auditoría de la vinculación incluye también el cambio de correo (tarea 7.5).
+        var command = Assert.Single(audit.LoggedCommands);
+        Assert.Contains(command.Changes!, c => c.FieldName == "Email" && c.NewValue == "verificado-audit@gmail.com");
     }
 
     /// <summary>

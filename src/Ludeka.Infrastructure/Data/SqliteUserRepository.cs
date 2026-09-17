@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -75,8 +76,36 @@ public class SqliteUserRepository : IUserRepository
     public async Task UpdateAsync(AppUser user, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(user);
-        _db.AppUsers.Update(user);
-        await _db.SaveChangesAsync(ct);
+
+        // Corrección INC-49 (PR #7): si esta cuenta ya está bajo seguimiento por otra instancia en
+        // el mismo DbContext (por ejemplo, tras un alta o una lectura con tracking anteriores en el
+        // mismo ámbito), se vuelcan los valores nuevos sobre esa instancia rastreada en vez de
+        // adjuntar una segunda con la misma clave. Mismo patrón que
+        // ExternalLoginRepository.RemoveAsync (PR #2), que corrigió el mismo conflicto del
+        // ChangeTracker para ExternalLogin.
+        var trackedEntry = _db.ChangeTracker.Entries<AppUser>()
+            .FirstOrDefault(e => e.Entity.Id == user.Id);
+
+        if (trackedEntry is not null && !ReferenceEquals(trackedEntry.Entity, user))
+        {
+            trackedEntry.CurrentValues.SetValues(user);
+        }
+        else
+        {
+            _db.AppUsers.Update(user);
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Reemplazo del correo sintético (INC-49, diseño §3.4): traduce la excepción del ORM a
+            // lenguaje de dominio aquí, en Infrastructure, para que Ludeka.Application no necesite
+            // conocer EF Core. Mismo patrón que ExternalLoginRepository.AddAsync.
+            throw new DuplicateUserEmailException($"El correo '{user.Email}' ya pertenece a otra cuenta.", ex);
+        }
     }
 
     public async Task DeleteAsync(string id, CancellationToken ct = default)

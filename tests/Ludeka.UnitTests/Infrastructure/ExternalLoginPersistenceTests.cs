@@ -128,6 +128,24 @@ public class ExternalLoginPersistenceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SqliteUserRepository_UpdateAsync_ShouldTranslateDuplicateEmailIntoDomainException()
+    {
+        // Arrange: dos cuentas con correos distintos; "user-email-b" adopta el correo de "user-email-a".
+        var userA = await SeedUserAsync("user-email-a");
+        var userB = await SeedUserAsync("user-email-b");
+        IUserRepository repository = new SqliteUserRepository(_context);
+        userB.UpdateProfile(userB.UserName, userA.Email);
+
+        // Act & Assert: el índice único de AppUsers.Email llega traducido a lenguaje de dominio,
+        // porque Infrastructure es la única capa que debe conocer EF Core (INC-49, corrección de la
+        // tarea 7.4: el algoritmo de design.md §3.4 pide un catch(DbUpdateException) directamente en
+        // Application, lo que rompería la Clean Architecture ya corregida una vez en este mismo
+        // incremento — commit 695898c — para el caso análogo de ExternalLoginRepository.AddAsync).
+        await Assert.ThrowsAsync<DuplicateUserEmailException>(
+            () => repository.UpdateAsync(userB));
+    }
+
+    [Fact]
     public async Task DeleteCascade_ShouldRemoveLogins_WhenTheUserIsDeleted()
     {
         // Arrange

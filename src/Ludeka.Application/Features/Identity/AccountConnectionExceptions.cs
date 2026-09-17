@@ -44,3 +44,20 @@ public sealed class DuplicateExternalLoginException : InvalidOperationException
     {
     }
 }
+
+/// <summary>
+/// Se lanza cuando el índice único de <c>AppUsers.Email</c> rechaza la escritura porque, en el
+/// instante de persistir, ese correo ya pertenece a otra cuenta (INC-49, diseño §3.4: red de
+/// seguridad del reemplazo del correo sintético frente a una carrera real entre dos operaciones
+/// casi simultáneas). La traduce <c>Ludeka.Infrastructure</c> desde la excepción nativa del
+/// proveedor de persistencia para que esta capa de casos de uso no necesite conocer el ORM (Clean
+/// Architecture: la dirección de dependencias no se invierte), mismo patrón que
+/// <see cref="DuplicateExternalLoginException"/>.
+/// </summary>
+public sealed class DuplicateUserEmailException : InvalidOperationException
+{
+    public DuplicateUserEmailException(string message, Exception? innerException = null)
+        : base(message, innerException)
+    {
+    }
+}
