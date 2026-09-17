@@ -1,0 +1,86 @@
+@*
+    Aviso descartable de correo no verificado (INC-49, diseño §3.2). Hermano funcional del aviso
+    equivalente en AccountConnections.razor: mismos tokens (--state-warning-*), mismo role="status"
+    y mismo texto centralizado en AccountConnectionMessages. Se monta una sola vez en la cabecera y
+    vive todo el circuito interactivo (App.razor monta InteractiveServer global), así que se
+    suscribe a la invalidación de IAccountConnectionsService (corrección del orquestador, PR #6)
+    para reflejar una desvinculación reciente sin depender de una recarga completa de página.
+*@
+@implements IDisposable
+@using Ludeka.Application.Features.Identity
+@inject ICurrentUserService CurrentUserService
+@inject IAccountConnectionsService Connections
+
+@if (_needsNotice && !_dismissed)
+{
+    <div class="container-ludeka pt-3">
+        <div role="status" class="p-4 rounded-2xl bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)] text-[var(--state-warning)] flex items-start gap-3 text-xs shadow-sm">
+            <span class="shrink-0 mt-0.5"><Icon Name="triangle-alert" Size="16" /></span>
+            <span class="flex-1">
+                @AccountConnectionMessages.UnverifiedProviderEmailNotice
+                <a href="/cuenta/conexiones" class="font-bold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 rounded">Ir a conexiones</a>
+            </span>
+            <button type="button"
+                    @onclick="Dismiss"
+                    aria-label="Descartar el aviso de correo no verificado"
+                    class="shrink-0 -m-1 p-1 rounded-lg hover:bg-[var(--state-warning-border)]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 transition-colors">
+                <Icon Name="x" Size="14" />
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _needsNotice;
+    private bool _dismissed;
+    private bool _isSubscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            return; // anónimo: nada que avisar (diseño §3.2/§D6)
+        }
+
+        await RefreshAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Mismo guard que SessionGuard.razor: suscribirse durante el prerenderizado se haría sobre
+        // una instancia que se descarta al arrancar el circuito, sin que nadie llame a Dispose.
+        if (!firstRender || _isSubscribed || !RendererInfo.IsInteractive || string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            return;
+        }
+
+        Connections.Invalidated += HandleConnectionsInvalidated;
+        _isSubscribed = true;
+    }
+
+    private void HandleConnectionsInvalidated(object? sender, EventArgs e)
+    {
+        // La invalidación (p. ej. tras desvincular en /cuenta/conexiones) llega desde el propio
+        // circuito: se refresca y repinta sin recarga completa de página.
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task RefreshAsync()
+    {
+        _needsNotice = !await Connections.HasVerifiedProviderEmailAsync();
+    }
+
+    private void Dismiss() => _dismissed = true;
+
+    public void Dispose()
+    {
+        if (_isSubscribed)
+        {
+            Connections.Invalidated -= HandleConnectionsInvalidated;
+        }
+    }
+}
