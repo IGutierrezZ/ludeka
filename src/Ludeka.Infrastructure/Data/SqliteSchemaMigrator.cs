@@ -851,6 +851,7 @@ public static class SqliteSchemaMigrator
                         "Provider" TEXT NOT NULL,
                         "ProviderKey" TEXT NOT NULL,
                         "ProviderEmail" TEXT NULL,
+                        "ProviderEmailVerifiedAt" TEXT NULL,
                         "LinkedAt" TEXT NOT NULL,
                         CONSTRAINT "FK_ExternalLogins_AppUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AppUsers" ("Id") ON DELETE CASCADE
                     );
@@ -859,6 +860,19 @@ public static class SqliteSchemaMigrator
                     """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("ExternalLogins");
+            }
+
+            // 23. Reconciliar columna ProviderEmailVerifiedAt en ExternalLogins (Incremento 49: Vinculación de cuentas)
+            if (existingTables.Contains("ExternalLogins"))
+            {
+                var externalLoginColumns = await GetTableColumnsAsync(connection, "ExternalLogins", ct);
+                if (!externalLoginColumns.Contains("ProviderEmailVerifiedAt"))
+                {
+                    using var alterCmd = connection.CreateCommand();
+                    alterCmd.CommandText =
+                        "ALTER TABLE \"ExternalLogins\" ADD COLUMN \"ProviderEmailVerifiedAt\" TEXT NULL;";
+                    await alterCmd.ExecuteNonQueryAsync(ct);
+                }
             }
         }
         finally

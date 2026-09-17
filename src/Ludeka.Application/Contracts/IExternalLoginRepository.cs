@@ -25,4 +25,19 @@ public interface IExternalLoginRepository
     /// <param name="externalLogin">Vínculo a persistir.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     Task AddAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recupera todos los vínculos de identidad externa de la cuenta indicada.
+    /// </summary>
+    /// <param name="userId">Identificador de la cuenta cuyos vínculos se consultan.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    Task<IReadOnlyList<ExternalLogin>> ListByUserIdAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Elimina un vínculo de identidad externa existente. No existe ningún método de actualización:
+    /// reasignar una fila entre cuentas es estructuralmente imposible por diseño (INC-49, sección 3.1).
+    /// </summary>
+    /// <param name="externalLogin">Vínculo a eliminar.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default);
 }

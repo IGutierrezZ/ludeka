@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Ludeka.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Ludeka.Infrastructure.Migrations
 {
     [DbContext(typeof(LudekaDbContext))]
-    partial class LudekaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917112154_AddProviderEmailVerifiedAtToExternalLogins")]
+    partial class AddProviderEmailVerifiedAtToExternalLogins
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

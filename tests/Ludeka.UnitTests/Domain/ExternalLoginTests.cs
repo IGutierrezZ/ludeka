@@ -105,4 +105,39 @@ public class ExternalLoginTests
         // Assert
         Assert.NotEqual(first.Id, second.Id);
     }
+
+    [Fact]
+    public void Constructor_ShouldSetProviderEmailVerifiedAtToLinkedAt_WhenProviderEmailVerifiedAndEmailPresent()
+    {
+        // Arrange
+        var linkedAt = new DateTimeOffset(2026, 9, 17, 9, 0, 0, TimeSpan.Zero);
+
+        // Act: el proveedor entrega un correo y lo declara verificado
+        var login = new ExternalLogin(
+            ValidUserId, ValidProvider, ValidProviderKey, "alguien@ejemplo.com", linkedAt, providerEmailVerified: true);
+
+        // Assert: el invariante de dominio fija la marca al mismo instante de vinculación
+        Assert.Equal(linkedAt, login.ProviderEmailVerifiedAt);
+    }
+
+    [Fact]
+    public void Constructor_ShouldLeaveProviderEmailVerifiedAtNull_WhenProviderEmailVerifiedButEmailMissing()
+    {
+        // Act: el proveedor declara verificación pero no entrega ningún correo utilizable
+        var login = new ExternalLogin(
+            ValidUserId, ValidProvider, ValidProviderKey, linkedAt: DateTimeOffset.UtcNow, providerEmailVerified: true);
+
+        // Assert: sin correo no hay nada que verificar, así que la marca permanece nula
+        Assert.Null(login.ProviderEmailVerifiedAt);
+    }
+
+    [Fact]
+    public void Constructor_ShouldLeaveProviderEmailVerifiedAtNull_WhenProviderEmailNotVerified()
+    {
+        // Act: el correo llega, pero el proveedor no lo declaró verificado (valor por defecto)
+        var login = new ExternalLogin(ValidUserId, ValidProvider, ValidProviderKey, "alguien@ejemplo.com");
+
+        // Assert
+        Assert.Null(login.ProviderEmailVerifiedAt);
+    }
 }

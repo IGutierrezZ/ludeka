@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
@@ -28,6 +30,22 @@ public class ExternalLoginRepository : IExternalLoginRepository
     public async Task AddAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
     {
         await _context.ExternalLogins.AddAsync(externalLogin, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ExternalLogin>> ListByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ExternalLogins
+            .AsNoTracking()
+            .Where(l => l.UserId == userId)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
+    {
+        _context.ExternalLogins.Remove(externalLogin);
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

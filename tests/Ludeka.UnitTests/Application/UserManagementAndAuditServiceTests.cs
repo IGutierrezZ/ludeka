@@ -331,4 +331,23 @@ public class UserManagementAndAuditServiceTests
         var filteredByUser = await auditService.GetAuditLogsAsync(new AuditLogFilterDto(UserId: "mod_a"));
         Assert.Equal(7, filteredByUser.TotalCount);
     }
+
+    [Fact]
+    public void AuditService_GetActionDisplayName_ForLinkedProvider_ReturnsSpecificSpanishName()
+    {
+        var displayName = AuditService.GetActionDisplayName(AuditAction.LinkedProvider);
+
+        Assert.Equal("Vinculación de Proveedor", displayName);
+        Assert.NotEqual("Operación", displayName);
+    }
+
+    [Fact]
+    public void AuditService_GetActionDisplayName_ForUnlinkedProvider_ReturnsSpecificSpanishName()
+    {
+        var displayName = AuditService.GetActionDisplayName(AuditAction.UnlinkedProvider);
+
+        Assert.Equal("Desvinculación de Proveedor", displayName);
+        Assert.NotEqual("Operación", displayName);
+        Assert.NotEqual(AuditService.GetActionDisplayName(AuditAction.LinkedProvider), displayName);
+    }
 }

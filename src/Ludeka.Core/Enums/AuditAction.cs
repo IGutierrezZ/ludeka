@@ -43,5 +43,15 @@ public enum AuditAction
     /// <summary>
     /// Vinculación explícita de una identidad externa con la cuenta del equipo fundador.
     /// </summary>
-    LinkedFounderIdentity
+    LinkedFounderIdentity,
+
+    /// <summary>
+    /// Vinculación manual de un proveedor de identidad externo desde la sesión activa (INC-49).
+    /// </summary>
+    LinkedProvider,
+
+    /// <summary>
+    /// Desvinculación manual de un proveedor de identidad externo desde la sesión activa (INC-49).
+    /// </summary>
+    UnlinkedProvider
 }
