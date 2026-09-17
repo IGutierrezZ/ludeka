@@ -146,15 +146,83 @@ public sealed class ExternalLoginService : IExternalLoginService
             return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
         }
 
+        // Reemplazo del correo sintético (INC-49, diseño §3.4): de mejor esfuerzo y nunca fatal,
+        // después de crear la fila y solo en el camino de éxito.
+        var previousEmail = user.Email;
+        var emailReplaced = await TryReplacePlaceholderEmailAsync(user, normalizedEmail, emailVerified, cancellationToken);
+
         // La auditoría solo se registra en el ÚNICO camino de éxito: nunca antes de una excepción
         // ni en un resultado distinto de Linked (INC-49, diseño §D7).
         await RecordAuditAsync(
             user, AuditAction.LinkedProvider,
             $"Vinculación del proveedor de acceso {providerName}",
             oldProviderValue: null, newProviderValue: providerName,
-            cancellationToken);
+            cancellationToken,
+            emailChange: emailReplaced ? new FieldChangeDto("Email", previousEmail, user.Email) : null);
 
-        return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user);
+        return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user, emailReplaced);
+    }
+
+    /// <summary>
+    /// Reemplaza el correo sintético de la cuenta por el correo verificado del proveedor recién
+    /// vinculado (INC-49, diseño §3.4). Es de MEJOR ESFUERZO: si el correo ya pertenece a otra
+    /// cuenta, no se reemplaza nada y la vinculación que lo invoca sigue siendo un éxito.
+    /// </summary>
+    private async Task<bool> TryReplacePlaceholderEmailAsync(
+        AppUser user, string? normalizedEmail, bool emailVerified, CancellationToken cancellationToken)
+    {
+        if (!emailVerified || normalizedEmail is null)
+        {
+            return false;
+        }
+
+        if (!IsPlaceholderEmail(user.Email))
+        {
+            return false; // (a) la cuenta ya tiene un correo real: no se toca.
+        }
+
+        var owner = await _users.GetByEmailAsync(normalizedEmail, cancellationToken);
+        if (owner is not null)
+        {
+            return false; // (b) colisión: el correo ya pertenece a otra cuenta. No se reemplaza.
+        }
+
+        user.UpdateProfile(user.UserName, normalizedEmail);
+        try
+        {
+            await _users.UpdateAsync(user, cancellationToken);
+            return true;
+        }
+        catch (DuplicateUserEmailException)
+        {
+            // (c) carrera contra el índice único de AppUsers.Email: el vínculo ya está creado y es
+            // válido, así que no se revierte. La cuenta conserva su correo sintético.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Indica si <paramref name="email"/> pertenece al dominio reservado y no enrutable de los
+    /// correos sintéticos (INC-49, diseño §3.4), en cualquiera de sus dos formas:
+    /// <c>{clave}@{proveedor}.ludeka.invalid</c> (la que genera <see cref="BuildPlaceholderEmail"/>)
+    /// o la forma corta histórica <c>@ludeka.invalid</c>.
+    /// </summary>
+    public static bool IsPlaceholderEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+
+        var at = email.LastIndexOf('@');
+        if (at < 0)
+        {
+            return false;
+        }
+
+        var host = email[(at + 1)..];
+        return host.Equals(PlaceholderEmailDomain, StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith("." + PlaceholderEmailDomain, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
@@ -218,12 +286,19 @@ public sealed class ExternalLoginService : IExternalLoginService
         string summary,
         string? oldProviderValue,
         string? newProviderValue,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        FieldChangeDto? emailChange = null)
     {
         if (_audit is null)
         {
             return;
         }
+
+        // El cambio de correo (INC-49, tarea 7.5) solo se añade cuando LinkAsync reemplazó el
+        // correo sintético; UnlinkAsync nunca lo pasa, así que su auditoría queda igual que antes.
+        FieldChangeDto[] changes = emailChange is null
+            ? [new FieldChangeDto("Provider", oldProviderValue, newProviderValue)]
+            : [new FieldChangeDto("Provider", oldProviderValue, newProviderValue), emailChange];
 
         await _audit.RecordChangeAsync(
             new RecordAuditCommand(
@@ -234,7 +309,7 @@ public sealed class ExternalLoginService : IExternalLoginService
                 EntityId: user.Id,
                 EntityName: user.UserName,
                 Summary: summary,
-                Changes: [new FieldChangeDto("Provider", oldProviderValue, newProviderValue)]),
+                Changes: changes),
             cancellationToken);
     }
 
