@@ -1,0 +1,221 @@
+@page "/cuenta/conexiones"
+@attribute [Authorize]
+@using Ludeka.Application.Features.Identity
+@using Microsoft.Extensions.Options
+@inject IAccountConnectionsService Connections
+@inject IExternalLoginService ExternalLoginService
+@inject ICurrentUserService CurrentUserService
+@inject IOptions<AuthenticationOptions> AuthenticationOptionsAccessor
+@inject NavigationManager Navigation
+
+<PageTitle>Conexiones de Acceso | Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 max-w-2xl mx-auto space-y-6">
+    <header class="space-y-2 border-b border-[var(--border-subtle)] pb-6">
+        <div class="badge-pill mb-2 px-3 py-1 text-xs font-bold">
+            <Icon Name="shield" Size="14" />
+            <span>Ajustes de Cuenta</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-2">
+            <Icon Name="link" Size="24" />
+            <span>Conexiones de Acceso</span>
+        </h1>
+        <p class="text-sm text-[var(--text-secondary)]">
+            Vincula un proveedor adicional para no perder el acceso a tu cuenta, o desvincula los que ya no uses.
+        </p>
+    </header>
+
+    @if (_resultBanner is not null)
+    {
+        <div class="p-4 rounded-2xl @_resultBanner.CssClasses flex items-start gap-3 text-xs shadow-sm" role="status">
+            <span class="shrink-0 mt-0.5"><Icon Name="@_resultBanner.IconName" Size="16" /></span>
+            <span>@_resultBanner.Text</span>
+        </div>
+    }
+
+    @if (!_hasVerifiedProviderEmail)
+    {
+        <div class="p-4 rounded-2xl bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)] text-[var(--state-warning)] flex items-start gap-3 text-xs shadow-sm" role="status">
+            <span class="shrink-0 mt-0.5"><Icon Name="triangle-alert" Size="16" /></span>
+            <span>@AccountConnectionMessages.UnverifiedProviderEmailNotice</span>
+        </div>
+    }
+
+    @if (_unlinkError is not null)
+    {
+        @* Guarda del último método de acceso (diseño §D5): role="alert" es una región asertiva —
+           un lector de pantalla la anuncia en cuanto se inserta, sin depender de mover el foco. *@
+        <div class="p-4 rounded-2xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] flex items-start gap-3 text-xs shadow-sm" role="alert">
+            <span class="shrink-0 mt-0.5"><Icon Name="ban" Size="16" /></span>
+            <span>@_unlinkError</span>
+        </div>
+    }
+
+    <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 px-1">
+            Tus métodos de acceso
+        </h2>
+        <ul class="divide-y divide-[var(--border-subtle)] rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
+            @foreach (var provider in _providers)
+            {
+                var connection = FindConnection(provider.Name);
+                var isLinked = connection is { IsLinked: true };
+                <li class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="shrink-0 w-10 h-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center">
+                            <Icon Name="shield" Size="18" />
+                        </span>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-[var(--text-primary)]">
+                                @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)
+                            </p>
+                            <div class="badge-pill @(isLinked ? "active-pill" : "") mt-1">
+                                @if (isLinked)
+                                {
+                                    <Icon Name="circle-check" Size="12" />
+                                    <span>Vinculado@(connection!.ProviderEmailVerified ? " · correo verificado" : "")</span>
+                                }
+                                else
+                                {
+                                    <span>Sin vincular</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="shrink-0 self-start sm:self-auto">
+                        @if (isLinked)
+                        {
+                            <button type="button"
+                                    @onclick="() => UnlinkAsync(provider.Name)"
+                                    disabled="@(_unlinkingProvider == provider.Name)"
+                                    aria-busy="@(_unlinkingProvider == provider.Name ? "true" : "false")"
+                                    aria-label="Desvincular @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)"
+                                    class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--state-error-bg)] hover:text-[var(--state-error)] hover:border-[var(--state-error-border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                <Icon Name="circle-x" Size="12" />
+                                <span>@(_unlinkingProvider == provider.Name ? "Desvinculando…" : "Desvincular")</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <form method="post" action="/cuenta/conexiones/vincular" data-enhance="false">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="provider" value="@provider.Name" />
+                                <button type="submit"
+                                        aria-label="Vincular @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)"
+                                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <Icon Name="link" Size="12" />
+                                    <span>Vincular</span>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "resultado")]
+    public string? Resultado { get; set; }
+
+    private IReadOnlyList<ExternalProviderRegistration> _providers = [];
+    private AccountConnectionsView? _view;
+    private bool _hasVerifiedProviderEmail = true;
+    private string? _unlinkingProvider;
+    private string? _unlinkError;
+    private ResultBanner? _resultBanner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _providers = ExternalAuthenticationSchemes.GetEnabledProviders(AuthenticationOptionsAccessor.Value);
+        _resultBanner = BuildResultBanner(Resultado);
+
+        _view = await Connections.GetConnectionsAsync();
+        _hasVerifiedProviderEmail = await Connections.HasVerifiedProviderEmailAsync();
+    }
+
+    private AccountConnectionDto? FindConnection(string providerName)
+        => _view?.Connections.FirstOrDefault(c => string.Equals(c.Provider, providerName, StringComparison.OrdinalIgnoreCase));
+
+    private async Task UnlinkAsync(string providerName)
+    {
+        _unlinkingProvider = providerName;
+        _unlinkError = null;
+        try
+        {
+            await ExternalLoginService.UnlinkAsync(CurrentUserService.UserId, providerName);
+            _resultBanner = null;
+
+            // IAccountConnectionsService cachea la vista por ámbito de circuito (diseño §D6): pedirla
+            // otra vez aquí devolvería la misma instancia ya cacheada, sin la fila que se acaba de
+            // borrar. Se actualiza la copia local en memoria en vez de volver a pedirla, para que el
+            // listado refleje la desvinculación de inmediato, tal como exige la tarea 4.3.
+            ApplyLocalUnlink(providerName);
+        }
+        catch (LastAccessMethodException ex)
+        {
+            _unlinkError = ex.Message;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // Mismo idioma que el resto de escrituras con identidad del proyecto (INC-46 F4): si la
+            // sesión ya no es válida, se traduce en una redirección al acceso.
+            Navigation.TryRedirectToLogin(ex);
+        }
+        finally
+        {
+            _unlinkingProvider = null;
+        }
+    }
+
+    /// <summary>
+    /// Aplica en memoria el efecto de una desvinculación ya confirmada por el servidor, sin volver a
+    /// pedir la vista cacheada de <see cref="Connections"/> (ver comentario en <see cref="UnlinkAsync"/>).
+    /// </summary>
+    private void ApplyLocalUnlink(string providerName)
+    {
+        if (_view is null)
+        {
+            return;
+        }
+
+        var remaining = _view.Connections
+            .Select(c => string.Equals(c.Provider, providerName, StringComparison.OrdinalIgnoreCase)
+                ? new AccountConnectionDto(c.Provider, IsLinked: false, LinkedAt: null, ProviderEmailVerified: false)
+                : c)
+            .ToList();
+
+        _hasVerifiedProviderEmail = remaining.Any(c => c.IsLinked && c.ProviderEmailVerified);
+        _view = new AccountConnectionsView(remaining, _hasVerifiedProviderEmail, CanUnlink: remaining.Count(c => c.IsLinked) > 1);
+    }
+
+    /// <summary>
+    /// Traduce el código cerrado de <c>?resultado=</c> (diseño §D4) a un mensaje fijo. El código no
+    /// transporta el nombre del proveedor (<c>AccountConnectionRoutes.PageWithResult</c>, PR #3):
+    /// por eso los textos de <see cref="AccountConnectionMessages"/> son genéricos.
+    /// </summary>
+    private static ResultBanner? BuildResultBanner(string? resultado) => resultado switch
+    {
+        "vinculado" => new ResultBanner(
+            "bg-[var(--color-mustplay-bg)] border border-[var(--color-mustplay-border)] text-[var(--color-mustplay)]",
+            "circle-check",
+            AccountConnectionMessages.LinkedSuccessfully),
+        "ya-vinculado" => new ResultBanner(
+            "bg-[var(--state-info-bg)] border border-[var(--state-info-border)] text-[var(--state-info)]",
+            "info",
+            AccountConnectionMessages.AlreadyLinkedToThisAccountNotice),
+        "en-uso" => new ResultBanner(
+            "bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)]",
+            "circle-x",
+            AccountConnectionMessages.RejectedOwnedByAnotherAccountGenericNotice),
+        "sesion-cambiada" => new ResultBanner(
+            "bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)] text-[var(--state-warning)]",
+            "triangle-alert",
+            AccountConnectionMessages.SessionChangedDuringLink),
+        _ => null
+    };
+
+    private sealed record ResultBanner(string CssClasses, string IconName, string Text);
+}
