@@ -120,6 +120,8 @@ public class AuditService : IAuditService
         AuditAction.RoleChanged => "Cambio de Rol",
         AuditAction.PermissionsChanged => "Permisos Modificados",
         AuditAction.Published => "Publicación",
+        AuditAction.LinkedProvider => "Vinculación de Proveedor",
+        AuditAction.UnlinkedProvider => "Desvinculación de Proveedor",
         _ => "Operación"
     };
 
