@@ -1,8 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 
 namespace Ludeka.Application.Features.Identity;
 
@@ -17,11 +20,17 @@ public sealed class ExternalLoginService : IExternalLoginService
 
     private readonly IExternalLoginRepository _externalLogins;
     private readonly IUserRepository _users;
+    private readonly IAuditService? _audit;
 
-    public ExternalLoginService(IExternalLoginRepository externalLogins, IUserRepository users)
+    /// <param name="audit">
+    /// Dependencia OPCIONAL (INC-49): así <c>ExternalLoginServiceTests.cs:35</c> —construida con solo
+    /// dos argumentos— sigue compilando sin tocarla. En producción, <c>Program.cs</c> la inyecta siempre.
+    /// </param>
+    public ExternalLoginService(IExternalLoginRepository externalLogins, IUserRepository users, IAuditService? audit = null)
     {
         _externalLogins = externalLogins ?? throw new ArgumentNullException(nameof(externalLogins));
         _users = users ?? throw new ArgumentNullException(nameof(users));
+        _audit = audit;
     }
 
     /// <inheritdoc />
@@ -77,6 +86,139 @@ public sealed class ExternalLoginService : IExternalLoginService
             new ExternalLogin(newUser.Id, providerName, key, normalizedEmail), cancellationToken);
 
         return newUser;
+    }
+
+    /// <inheritdoc />
+    public async Task<ExternalLoginLinkResult> LinkAsync(
+        string userId,
+        string provider,
+        string providerKey,
+        string? email,
+        bool emailVerified,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerKey);
+
+        var providerName = provider.Trim();
+        var key = providerKey.Trim();
+        var normalizedEmail = NormalizeEmail(email);
+
+        var user = await RequireActiveUserAsync(userId, cancellationToken);
+
+        // Doble barrera (INC-49, sección 3.1): esta comprobación previa existe para poder redactar
+        // un mensaje honesto; el índice único (Provider, ProviderKey) es la garantía real.
+        var existing = await _externalLogins.GetByProviderKeyAsync(providerName, key, cancellationToken);
+        if (existing is not null)
+        {
+            return string.Equals(existing.UserId, user.Id, StringComparison.OrdinalIgnoreCase)
+                ? new ExternalLoginLinkResult(ExternalLoginLinkOutcome.AlreadyLinkedToThisAccount, providerName, user)
+                : new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
+        }
+
+        try
+        {
+            await _externalLogins.AddAsync(
+                new ExternalLogin(user.Id, providerName, key, normalizedEmail, providerEmailVerified: emailVerified),
+                cancellationToken);
+        }
+        catch (DuplicateExternalLoginException)
+        {
+            // Misma barrera que arriba, pero disparada por el índice único ante una carrera real
+            // entre dos intentos casi simultáneos: mismo mensaje, dispare quien dispare.
+            return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
+        }
+
+        // La auditoría solo se registra en el ÚNICO camino de éxito: nunca antes de una excepción
+        // ni en un resultado distinto de Linked (INC-49, diseño §D7).
+        await RecordAuditAsync(
+            user, AuditAction.LinkedProvider,
+            $"Vinculación del proveedor de acceso {providerName}",
+            oldProviderValue: null, newProviderValue: providerName,
+            cancellationToken);
+
+        return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user);
+    }
+
+    /// <inheritdoc />
+    public async Task UnlinkAsync(
+        string userId,
+        string provider,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+
+        var user = await RequireActiveUserAsync(userId, cancellationToken);
+
+        // Solo entre las filas PROPIAS: reasignar o borrar la de otro es estructuralmente imposible.
+        var links = await _externalLogins.ListByUserIdAsync(user.Id, cancellationToken);
+        var target = links.FirstOrDefault(l => string.Equals(l.Provider, provider.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (target is null)
+        {
+            return; // idempotente: ya no estaba vinculado
+        }
+
+        // LA GUARDA: sin esto, la cuenta se quedaría sin ninguna forma de volver a entrar.
+        if (links.Count <= 1)
+        {
+            throw new LastAccessMethodException(AccountConnectionMessages.LastAccessMethodDenied);
+        }
+
+        await _externalLogins.RemoveAsync(target, cancellationToken);
+
+        await RecordAuditAsync(
+            user, AuditAction.UnlinkedProvider,
+            $"Desvinculación del proveedor de acceso {target.Provider}",
+            oldProviderValue: target.Provider, newProviderValue: null,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Invariante compartido de <see cref="LinkAsync"/> y <see cref="UnlinkAsync"/> (INC-49, diseño
+    /// §D5): exige sesión y relee la cuenta sin rastreo, igual que <c>SessionPermissionGuard.cs:37</c>,
+    /// de modo que la suspensión surte efecto en la operación siguiente sin depender de la cookie.
+    /// </summary>
+    /// <exception cref="UnauthorizedAccessException">No hay sesión, o la cuenta no existe o está suspendida.</exception>
+    private async Task<AppUser> RequireActiveUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var id = SessionIdentity.Require(userId);
+        var user = await _users.GetByIdAsync(id, cancellationToken);
+        if (user is null || user.Status == UserStatus.Suspended)
+        {
+            throw new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage);
+        }
+
+        return user;
+    }
+
+    /// <summary>
+    /// Registra la entrada de auditoría de una vinculación o desvinculación completada con éxito.
+    /// Sin operación si no se suministró <see cref="IAuditService"/> (dependencia opcional, INC-49).
+    /// </summary>
+    private async Task RecordAuditAsync(
+        AppUser user,
+        AuditAction action,
+        string summary,
+        string? oldProviderValue,
+        string? newProviderValue,
+        CancellationToken cancellationToken)
+    {
+        if (_audit is null)
+        {
+            return;
+        }
+
+        await _audit.RecordChangeAsync(
+            new RecordAuditCommand(
+                UserId: user.Id,
+                UserName: user.UserName,
+                Action: action,
+                EntityType: AuditEntityType.User,
+                EntityId: user.Id,
+                EntityName: user.UserName,
+                Summary: summary,
+                Changes: [new FieldChangeDto("Provider", oldProviderValue, newProviderValue)]),
+            cancellationToken);
     }
 
     internal static string BuildUserId(string provider, string providerKey)

@@ -124,3 +124,159 @@ Ninguno más allá del hallazgo transitorio ya documentado arriba (esperado por 
 ## Estado
 
 **13/13 tareas completas.** `dotnet test Ludeka.sln`: **1356/1356 en verde, 0 fallos, 0 omitidas.** Listo para que el orquestador cierre PR #1 (`scripts/sdd-worktree.ps1 pr vinculacion-cuentas`) y decida si continúa con PR #2 (`sdd-apply` sobre la Unidad C, en una rama nueva `inc/vinculacion-cuentas-02-application` partiendo de esta).
+
+---
+
+# Progreso de aplicación — INC-49, PR #2 (Vinculación y desvinculación en Application)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** únicamente las 14 tareas del PR #2 (Unidad C + resultados/excepciones/mensajes), sección «PR #2 — Vinculación y desvinculación en Application» de `tasks.md`.
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** segundo lote — progreso previo del PR #1 (observación 370) leído y fusionado arriba, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-02-application` (parte de `inc/vinculacion-cuentas` en `f54c35a`).
+
+---
+
+## Tareas completadas (14/14)
+
+- [x] 2.1 **[RED]** `ExternalLoginLinkingTests.cs` (nuevo) — caso `LinkAsync` sin vínculo previo. RED por `CS1061`/`CS0103` (`LinkAsync`/`ExternalLoginLinkOutcome` no existían).
+- [x] 2.2 **[GREEN]** `AccountConnectionDtos.cs` (nuevo) + `LinkAsync` en `IExternalLoginService.cs`/`ExternalLoginService.cs`, camino feliz mínimo.
+- [x] 2.3 **[RED]** Casos `AlreadyLinkedToThisAccount` y `RejectedOwnedByAnotherAccount`. RED en tiempo de ejecución: `DbUpdateException` sin capturar al insertar el par repetido (todavía sin comprobación previa).
+- [x] 2.4 **[GREEN]** Comprobación previa (`GetByProviderKeyAsync`) antes de cualquier escritura.
+- [x] 2.5 **[RED]** Simulación de carrera con un doble de prueba (`RaceSimulatingRepository`) que fuerza que la comprobación previa no vea la fila competidora. RED en tiempo de ejecución: `DbUpdateException` sin capturar.
+- [x] 2.6 **[GREEN]** `catch (DbUpdateException)` alrededor del `AddAsync`, mismo resultado de rechazo.
+- [x] 2.7 **[RED]** `AccountConnectionMessagesTests.cs` (nuevo) — auditoría de honestidad del mensaje de rechazo. RED por `CS0103` (`AccountConnectionMessages` no existía).
+- [x] 2.8 **[GREEN]** `AccountConnectionMessages.cs` (nuevo) con el texto exacto de `design.md` §3.1 y la guarda del último método.
+- [x] 2.9 **[RED]** `UnlinkAsync` elimina la fila indicada cuando quedan 2+ vínculos (+ caso idempotente añadido en el mismo lote RED, exigido por el propio texto de 2.10). RED por `CS1061` (`UnlinkAsync` no existía).
+- [x] 2.10 **[GREEN]** `UnlinkAsync(userId, provider, ct)` en `IExternalLoginService.cs`/`ExternalLoginService.cs`, sin la guarda todavía.
+- [x] 2.11 **[RED]** Desvincular el único vínculo se deniega llamando **directamente** a `UnlinkAsync` desde la prueba. RED por `CS0246` (`LastAccessMethodException` no existía).
+- [x] 2.12 **[GREEN]** `AccountConnectionExceptions.cs` (nuevo) con `LastAccessMethodException` y `ExternalLoginCollisionException` (sin consumidor hasta PR #5). Guarda `if (links.Count <= 1) throw ...` en `UnlinkAsync`.
+- [x] 2.13 **[RED]** 4 casos de auditoría (`LinkAsync`/`UnlinkAsync` con éxito auditan; rechazado/denegado no auditan), con un `FakeAuditService` local (mismo idioma que `InstagramPublisherServiceTests.cs:151`). RED por `CS1729` (el constructor no aceptaba un 3.er argumento).
+- [x] 2.14 **[GREEN]** `IAuditService? audit = null` opcional en el constructor; `RecordAuditAsync` privado invocado solo en el único camino de éxito de `LinkAsync`/`UnlinkAsync`. Verificado: `IAuditService` ya estaba registrado en `Program.cs:283` — no hizo falta registro nuevo.
+
+**No regresión de este PR:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron y siguen en verde (confirmado en cada ejecución de la suite completa).
+
+---
+
+## Hallazgo y corrección fuera de las 14 tareas (bug de PR #1, no una tarea nueva)
+
+**`ExternalLoginRepository.RemoveAsync` (creado en la tarea 1.5 del PR #1) fallaba con `InvalidOperationException` del `ChangeTracker`** cuando la fila a borrar ya estaba bajo seguimiento por otra instancia en el mismo `DbContext` — exactamente el caso real de `UnlinkAsync` (`ListByUserIdAsync` con `AsNoTracking` + `RemoveAsync` sobre el resultado), tras que alguna fila de esa cuenta hubiera sido creada antes con `AddAsync` en el mismo ámbito. La única prueba de PR #1 para `RemoveAsync` (`RemoveAsync_ShouldDeleteTheRow`, `ExternalLoginPersistenceTests.cs:189`) pasaba la **misma instancia** de vuelta, por lo que el conflicto quedó latente y sin detectar hasta este PR.
+
+**Corrección:** `RemoveAsync` ahora busca si ya hay una entrada rastreada con el mismo `Id` en el `ChangeTracker` y elimina esa instancia en vez de adjuntar una segunda; si no hay ninguna, se comporta exactamente como antes. No cambia la firma ni el contrato del método (sigue siendo `Task RemoveAsync(ExternalLogin, CancellationToken)`), y las 2 pruebas existentes de PR #1 que lo ejercitan (`RemoveAsync_ShouldDeleteTheRow`, `UniqueIndex_ShouldStillRejectRepeatedProviderPair_AfterRemoveThenAdd`) siguen en verde sin tocarlas. Se reporta aquí con transparencia porque toca un fichero que PR #1 ya había cerrado — no es una desviación de las 14 tareas del PR #2, es un defecto preexistente que esas mismas 14 tareas dejaron de poder ignorar.
+
+**También se añadió** la referencia al paquete `Microsoft.EntityFrameworkCore` (solo el núcleo, sin proveedor) en `Ludeka.Application.csproj`: la tarea 2.6 exige capturar `DbUpdateException` directamente en `ExternalLoginService` (`Ludeka.Application`), y ese tipo vive en el paquete núcleo de EF Core, que el proyecto no referenciaba (correctamente, por Clean Architecture). Es un prerrequisito técnico no declarado por `design.md`/`tasks.md`, análogo al prerrequisito operativo de migración que el propio PR #1 ya documentó. No se añade ningún proveedor concreto (SQLite/Npgsql): solo las abstracciones y excepciones agnósticas de proveedor que la propia sección 3.1 del diseño exige capturar.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 2.1/2.2 | `Application/ExternalLoginLinkingTests.cs` | Unidad (SQLite `:memory:`) | ✅ 6/6 (`ExternalLoginServiceTests`, baseline) | ✅ Escrito (CS1061/CS0103) | ✅ Pasa (1/1) | ➖ Caso único de creación; triangula con 2.3 | ➖ No aplica todavía |
+| 2.3/2.4 | idem | idem | ✅ 1/1 (test anterior) | ✅ Escrito, fallo real en ejecución (`DbUpdateException` sin capturar) | ✅ Pasa (3/3) | ✅ 2 casos (`AlreadyLinked`, `Rejected`) | ➖ No hizo falta |
+| 2.5/2.6 | idem | idem (doble de prueba `RaceSimulatingRepository`) | ✅ 3/3 | ✅ Escrito, fallo real en ejecución (`DbUpdateException` propagada) | ✅ Pasa (4/4) | ➖ Escenario único de carrera exigido por la tarea | ➖ No hizo falta |
+| 2.7/2.8 | `Application/AccountConnectionMessagesTests.cs` (nuevo) | Unidad (función pura) | ➖ N/A (fichero nuevo) | ✅ Escrito (CS0103) | ✅ Pasa (2/2) | ✅ 2 casos (palabras prohibidas, dirección a desvincular) | ➖ No hizo falta |
+| 2.9/2.10 | `Application/ExternalLoginLinkingTests.cs` | idem | ✅ 4/4 | ✅ Escrito (CS1061) | ✅ Pasa (7/7) tras corregir `RemoveAsync` | ✅ 2 casos (2+ vínculos, idempotente sin vínculo) | ➖ No hizo falta |
+| 2.11/2.12 | idem | idem | ✅ 7/7 | ✅ Escrito (CS0246) | ✅ Pasa (7/7) | ➖ Caso único; triangula con 2.9/2.10 (guarda vs. permitido) | ➖ No hizo falta |
+| 2.13/2.14 | idem (+ `FakeAuditService` local) | idem | ✅ 7/7 | ✅ Escrito (CS1729 ×4) | ✅ Pasa (11/11) | ✅ 4 casos (link éxito, unlink éxito, link rechazado, unlink denegado) | ✅ Extraído `RequireActiveUserAsync` compartido por `LinkAsync`/`UnlinkAsync`; `user.Id` (canónico) en vez del `userId` solo recortado, para alinear con el precedente de `ResolveAsync` |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 13 (11 en `ExternalLoginLinkingTests.cs` + 2 en `AccountConnectionMessagesTests.cs`).
+- **Pruebas totales pasando:** 1369/1369 (baseline 1356 + 13 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Unidad (13; Application con SQLite `:memory:` + una función pura), Integración (0), E2E (0) — todo el PR #2 es lógica de Application, sin transporte todavía (eso es PR #3).
+- **Pruebas de aprobación (refactor):** Ninguna dedicada — el refactor de `RequireActiveUserAsync` se protegió reejecutando toda la suite de esta clase tras extraerlo, no con un test de aprobación distinto.
+- **Funciones puras creadas:** 0 en producción nueva de este PR (los mensajes de `AccountConnectionMessages` son funciones puras, pero envuelven interpolación de texto, no lógica de negocio).
+
+---
+
+## Correspondencia con la especificación (los 13 escenarios que este PR cierra)
+
+| Escenario de `account-provider-connections` | Prueba(s) |
+|---|---|
+| Vincular un proveedor no vinculado previamente | `LinkAsync_WhenNoExistingLink_ShouldCreateRowWithoutProvisioningNewUser` |
+| Rechazo cuando el proveedor ya pertenece a otra cuenta | `LinkAsync_WhenPairOwnedByAnotherAccount_ShouldRejectWithoutMovingTheExistingRow` |
+| El mensaje de rechazo no promete una resolución inexistente | `RejectedOwnedByAnotherAccountMessage_ShouldNotPromiseAnAutomaticResolution`, `...ShouldDirectToUnlinkFromTheOtherAccount` |
+| La fila en conflicto nunca cambia de propietario | `LinkAsync_WhenAddAsyncRacesAgainstAConcurrentInsert_ShouldRejectAndKeepOriginalOwner` |
+| Intento de desvincular el único proveedor es denegado / Una petición que evita la interfaz también se deniega | `UnlinkAsync_WhenAccountHasOnlyOneLink_ShouldDenyEvenWhenCalledDirectlyBypassingTheInterface` (cierra ambos escenarios a la vez, por construcción) |
+| Desvincular procede cuando queda al menos otro método | `UnlinkAsync_WhenAccountHasTwoOrMoreLinks_ShouldRemoveOnlyTheIndicatedOne` |
+| Vincular registra una entrada de auditoría | `LinkAsync_WhenSuccessful_ShouldRecordAuditEntryForTheSessionUser` |
+| Desvincular registra una entrada de auditoría | `UnlinkAsync_WhenSuccessful_ShouldRecordAuditEntryForTheSessionUser` |
+| Un intento denegado o rechazado no registra una auditoría de éxito | `LinkAsync_WhenRejected_ShouldNotRecordAnyAuditEntry`, `UnlinkAsync_WhenDenied_ShouldNotRecordAnyAuditEntry` |
+
+*(El escenario "La identidad vinculada es siempre la de la sesión, no la del cliente" pertenece a `ExternalLoginIntentTests`/`ExternalLoginEventsLinkBranchTests` del PR #3 — no hay transporte HTTP en este PR; la parte de Application ya la cierra `LinkAsync` recibiendo `userId` como parámetro explícito de la sesión del servidor, nunca del cliente.)*
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto | `dotnet test Ludeka.sln --filter "FullyQualifiedName~ExternalLoginLinkingTests\|FullyQualifiedName~AccountConnectionMessagesTests"` → **Con error: 0, Superado: 15, Omitido: 0, Total: 15** |
+| Arnés de runtime / escenario y resultado exacto | **N/A** — el propio work unit de `tasks.md` lo declara así: lógica de Application, sin transporte todavía (el endpoint es PR #3) |
+| Frontera de reversión | Revertir `ExternalLoginService.cs`/`IExternalLoginService.cs` a su estado de PR #1, borrar los 3 ficheros nuevos de `Features/Identity/` y los 2 ficheros de prueba nuevos, y revertir el paquete EF Core de `Ludeka.Application.csproj`; nada los consume aún (el endpoint es PR #3), así que la reversión es limpia. La corrección de `RemoveAsync` es la única pieza que sí toca PR #1: revertirla dejaría el bug latente, no rompería nada nuevo |
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `src/Ludeka.Application/Features/Identity/AccountConnectionDtos.cs` | Creado | `ExternalLoginLinkOutcome`, `ExternalLoginLinkResult`, `AccountConnectionDto`, `AccountConnectionsView` |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionMessages.cs` | Creado | Mensaje de rechazo (titular + detalle) y guarda del último método |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionExceptions.cs` | Creado | `LastAccessMethodException`, `ExternalLoginCollisionException` (sin consumidor hasta PR #5) |
+| `src/Ludeka.Application/Features/Identity/IExternalLoginService.cs` | Modificado | `LinkAsync`, `UnlinkAsync` |
+| `src/Ludeka.Application/Features/Identity/ExternalLoginService.cs` | Modificado | `LinkAsync`, `UnlinkAsync`, `RequireActiveUserAsync`, `RecordAuditAsync`, `IAuditService?` opcional |
+| `src/Ludeka.Application/Ludeka.Application.csproj` | Modificado | Referencia al núcleo de `Microsoft.EntityFrameworkCore` (prerrequisito de 2.6, ver hallazgo arriba) |
+| `src/Ludeka.Infrastructure/Data/ExternalLoginRepository.cs` | Modificado | Corrección de `RemoveAsync` (bug de PR #1, ver hallazgo arriba) |
+| `tests/Ludeka.UnitTests/Application/ExternalLoginLinkingTests.cs` | Creado | 11 pruebas (`LinkAsync` ×4, `UnlinkAsync` ×3, auditoría ×4) |
+| `tests/Ludeka.UnitTests/Application/AccountConnectionMessagesTests.cs` | Creado | 2 pruebas de honestidad del mensaje de rechazo |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 14 casillas marcadas `[x]` |
+
+---
+
+## Recuento de líneas autoradas (`git diff f54c35a..HEAD --stat`)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (7 ficheros, sin pruebas ni `tasks.md`) | 291 | 2 | **293** |
+| Pruebas (2 ficheros nuevos) | 337 | 0 | **337** |
+| Producción + pruebas (sin `tasks.md`) | 628 | 2 | **630** |
+| + `tasks.md` (bookkeeping de tareas) | 642 | 16 | **658** |
+
+**Contraste con la estimación de `tasks.md` (≈305-465, "banda alta con riesgo"):** el real (630, o 658 con `tasks.md`) **supera el extremo alto de la estimación en 165 líneas** (193 con `tasks.md`) y **supera el presupuesto de 400 líneas en 230 líneas** (258 con `tasks.md`). El propio `tasks.md` ya advertía de este riesgo antes de empezar («PR #2 y PR #3 llevan el riesgo real») y esta fase lo confirma con medición real, no estimación.
+
+**Por qué se disparó por encima de la estimación:** `ExternalLoginLinkingTests.cs` solo (294 líneas) ya iguala casi el extremo alto completo de pruebas estimado para todo el PR (162-238). El armazón `IAsyncLifetime`/SQLite se repite igual que en `ExternalLoginServiceTests.cs`, pero el PR #2 necesita además dos dobles de prueba locales (`RaceSimulatingRepository`, `FakeAuditService`) que la estimación de `tasks.md` no desglosaba línea a línea.
+
+**Decisión NO tomada por esta fase (correcto, según instrucción explícita):** no se ha troceado el PR, no se ha omitido ninguna prueba y no se ha comprimido código para encajar en 400. Las 14 tareas están completas y correctas; la cifra real queda reportada para que el orquestador y el maintainer decidan entre partir en dos PRs o registrar `size:exception`.
+
+---
+
+## Commits creados (5, ninguno pusheado)
+
+1. `f348d95` `feat(application): vincular un proveedor de identidad desde sesion activa`
+2. `2bc6d1e` `feat(application): redactar el mensaje de rechazo sin prometer fusion automatica`
+3. `fdda6e7` `feat(application): desvincular un proveedor con la guarda del ultimo metodo` (incluye `fix(infrastructure): permitir eliminar una fila ya rastreada por otra instancia`, mismo commit por ser la misma unidad de trabajo indivisible sin staging interactivo)
+4. `5eb732c` `feat(application): auditar cada vinculacion y desvinculacion completada con exito`
+5. `a5ebd72` `docs(sdd): completar las tareas 2.1-2.14 del PR #2 de INC-49`
+
+Ninguno lleva atribución de IA (regla explícita de `AGENTS.md` §4). El worktree queda limpio (`git status` sin cambios pendientes) sobre `inc/vinculacion-cuentas-02-application`, sin push ni PR: eso lo decide el orquestador.
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+1. **Ninguna de las 14 tareas se reinventó.** Se implementaron tal como están escritas, en el orden RED→GREEN especificado.
+2. **Corrección de un bug de PR #1** (`ExternalLoginRepository.RemoveAsync`) — documentada en detalle arriba, necesaria para que 2.9/2.10 funcionen según el propio patrón que el diseño exige (`ListByUserIdAsync` + `RemoveAsync`).
+3. **Añadida la referencia al paquete núcleo de EF Core en `Ludeka.Application.csproj`** — documentada arriba, prerrequisito técnico no declarado por el diseño para poder cumplir literalmente la tarea 2.6.
+4. **Refactor (limpieza, sin cambio de comportamiento):** se extrajo `RequireActiveUserAsync` como método privado compartido entre `LinkAsync` y `UnlinkAsync`, y se cambió el uso de la variable `id` (recortada pero no canonicalizada) por `user.Id` (canónico, en minúsculas) al construir filas `ExternalLogin` y comparar propietarios — alineado con el precedente ya establecido en `ResolveAsync`. Verificado con la suite completa tras el cambio.
+
+## Tropiezos operativos
+
+Ninguno más allá de los dos hallazgos ya documentados (el bug de `RemoveAsync` y la referencia a EF Core faltante), ambos resueltos y verificados por ejecución. No hubo bloqueo por `MSB3027`.
+
+---
+
+## Estado
+
+**14/14 tareas completas.** `dotnet test Ludeka.sln`: **1369/1369 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **630 (658 con `tasks.md`)**, por encima del presupuesto de 400 y del extremo alto de la estimación (465) — **decisión de partición/excepción pendiente del orquestador y el maintainer**, no tomada por esta fase. Worktree limpio, 5 commits sin pushear, sin PR abierto: eso lo gestiona el orquestador.
