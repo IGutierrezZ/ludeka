@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
 using Ludeka.Application.Features.Identity;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -15,8 +17,8 @@ namespace Ludeka.UnitTests.Application;
 /// <summary>
 /// Vinculación y desvinculación de proveedores de identidad desde sesión activa (INC-49, PR #2):
 /// <see cref="IExternalLoginService.LinkAsync"/>, <see cref="IExternalLoginService.UnlinkAsync"/>,
-/// la guarda del último método y la petición que evita la interfaz. Sigue el armazón de
-/// <see cref="ExternalLoginServiceTests"/> (SQLite en memoria).
+/// la guarda del último método, la petición que evita la interfaz y la auditoría de ambas
+/// operaciones. Sigue el armazón de <see cref="ExternalLoginServiceTests"/> (SQLite en memoria).
 /// </summary>
 public class ExternalLoginLinkingTests : IAsyncLifetime
 {
@@ -200,5 +202,93 @@ public class ExternalLoginLinkingTests : IAsyncLifetime
 
         public Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
             => _inner.RemoveAsync(externalLogin, cancellationToken);
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenSuccessful_ShouldRecordAuditEntryForTheSessionUser()
+    {
+        // Arrange
+        var user = await SeedUserAsync(new AppUser("user-audit-link", "Jugadora Auditada", "auditlink@ludeka.es"));
+        var audit = new FakeAuditService();
+        var auditingService = new ExternalLoginService(_externalLoginRepository, new SqliteUserRepository(_context), audit);
+
+        // Act
+        await auditingService.LinkAsync(user.Id, "Google", "google-audit", null, false);
+
+        // Assert: una entrada de vinculación asociada al UserId de la sesión que la ejecutó.
+        var command = Assert.Single(audit.LoggedCommands);
+        Assert.Equal(AuditAction.LinkedProvider, command.Action);
+        Assert.Equal(user.Id, command.UserId);
+    }
+
+    [Fact]
+    public async Task UnlinkAsync_WhenSuccessful_ShouldRecordAuditEntryForTheSessionUser()
+    {
+        // Arrange: dos vínculos para que la guarda no impida la desvinculación.
+        var user = await SeedUserAsync(new AppUser("user-audit-unlink", "Jugador Auditado", "auditunlink@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Google", "google-audit-u"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Discord", "discord-audit-u"));
+        var audit = new FakeAuditService();
+        var auditingService = new ExternalLoginService(_externalLoginRepository, new SqliteUserRepository(_context), audit);
+
+        // Act
+        await auditingService.UnlinkAsync(user.Id, "Google");
+
+        // Assert: una entrada de desvinculación asociada al UserId de la sesión que la ejecutó.
+        var command = Assert.Single(audit.LoggedCommands);
+        Assert.Equal(AuditAction.UnlinkedProvider, command.Action);
+        Assert.Equal(user.Id, command.UserId);
+    }
+
+    [Fact]
+    public async Task LinkAsync_WhenRejected_ShouldNotRecordAnyAuditEntry()
+    {
+        // Arrange: el par ya pertenece a otra cuenta, así que el intento se rechaza.
+        var owner = await SeedUserAsync(new AppUser("user-audit-owner", "Propietaria Auditada", "auditowner@ludeka.es"));
+        var requester = await SeedUserAsync(new AppUser("user-audit-req", "Solicitante Auditada", "auditreq@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(owner.Id, "Facebook", "fb-audit"));
+        var audit = new FakeAuditService();
+        var auditingService = new ExternalLoginService(_externalLoginRepository, new SqliteUserRepository(_context), audit);
+
+        // Act
+        var result = await auditingService.LinkAsync(requester.Id, "Facebook", "fb-audit", null, false);
+
+        // Assert: rechazado, y ninguna entrada de auditoría de éxito.
+        Assert.Equal(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, result.Outcome);
+        Assert.Empty(audit.LoggedCommands);
+    }
+
+    [Fact]
+    public async Task UnlinkAsync_WhenDenied_ShouldNotRecordAnyAuditEntry()
+    {
+        // Arrange: la cuenta tiene un único vínculo, así que la guarda deniega la desvinculación.
+        var user = await SeedUserAsync(new AppUser("user-audit-denied", "Jugador Denegado", "auditdenied@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Google", "google-audit-denied"));
+        var audit = new FakeAuditService();
+        var auditingService = new ExternalLoginService(_externalLoginRepository, new SqliteUserRepository(_context), audit);
+
+        // Act
+        await Assert.ThrowsAsync<LastAccessMethodException>(() => auditingService.UnlinkAsync(user.Id, "Google"));
+
+        // Assert: ninguna entrada de auditoría de éxito.
+        Assert.Empty(audit.LoggedCommands);
+    }
+
+    /// <summary>
+    /// Doble de prueba que registra los comandos de auditoría sin persistir nada, mismo idioma que
+    /// <c>FakeAuditService</c> en <c>InstagramPublisherServiceTests.cs</c>.
+    /// </summary>
+    private sealed class FakeAuditService : IAuditService
+    {
+        public List<RecordAuditCommand> LoggedCommands { get; } = new();
+
+        public Task RecordChangeAsync(RecordAuditCommand command, CancellationToken ct = default)
+        {
+            LoggedCommands.Add(command);
+            return Task.CompletedTask;
+        }
+
+        public Task<AuditLogPageDto> GetAuditLogsAsync(AuditLogFilterDto filter, CancellationToken ct = default)
+            => Task.FromResult(new AuditLogPageDto([], 0, 1, 20, 0));
     }
 }

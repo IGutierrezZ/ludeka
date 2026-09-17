@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -20,11 +21,17 @@ public sealed class ExternalLoginService : IExternalLoginService
 
     private readonly IExternalLoginRepository _externalLogins;
     private readonly IUserRepository _users;
+    private readonly IAuditService? _audit;
 
-    public ExternalLoginService(IExternalLoginRepository externalLogins, IUserRepository users)
+    /// <param name="audit">
+    /// Dependencia OPCIONAL (INC-49): así <c>ExternalLoginServiceTests.cs:35</c> —construida con solo
+    /// dos argumentos— sigue compilando sin tocarla. En producción, <c>Program.cs</c> la inyecta siempre.
+    /// </param>
+    public ExternalLoginService(IExternalLoginRepository externalLogins, IUserRepository users, IAuditService? audit = null)
     {
         _externalLogins = externalLogins ?? throw new ArgumentNullException(nameof(externalLogins));
         _users = users ?? throw new ArgumentNullException(nameof(users));
+        _audit = audit;
     }
 
     /// <inheritdoc />
@@ -123,6 +130,14 @@ public sealed class ExternalLoginService : IExternalLoginService
             return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
         }
 
+        // La auditoría solo se registra en el ÚNICO camino de éxito: nunca antes de una excepción
+        // ni en un resultado distinto de Linked (INC-49, diseño §D7).
+        await RecordAuditAsync(
+            user, AuditAction.LinkedProvider,
+            $"Vinculación del proveedor de acceso {providerName}",
+            oldProviderValue: null, newProviderValue: providerName,
+            cancellationToken);
+
         return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user);
     }
 
@@ -151,6 +166,12 @@ public sealed class ExternalLoginService : IExternalLoginService
         }
 
         await _externalLogins.RemoveAsync(target, cancellationToken);
+
+        await RecordAuditAsync(
+            user, AuditAction.UnlinkedProvider,
+            $"Desvinculación del proveedor de acceso {target.Provider}",
+            oldProviderValue: target.Provider, newProviderValue: null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -169,6 +190,36 @@ public sealed class ExternalLoginService : IExternalLoginService
         }
 
         return user;
+    }
+
+    /// <summary>
+    /// Registra la entrada de auditoría de una vinculación o desvinculación completada con éxito.
+    /// Sin operación si no se suministró <see cref="IAuditService"/> (dependencia opcional, INC-49).
+    /// </summary>
+    private async Task RecordAuditAsync(
+        AppUser user,
+        AuditAction action,
+        string summary,
+        string? oldProviderValue,
+        string? newProviderValue,
+        CancellationToken cancellationToken)
+    {
+        if (_audit is null)
+        {
+            return;
+        }
+
+        await _audit.RecordChangeAsync(
+            new RecordAuditCommand(
+                UserId: user.Id,
+                UserName: user.UserName,
+                Action: action,
+                EntityType: AuditEntityType.User,
+                EntityId: user.Id,
+                EntityName: user.UserName,
+                Summary: summary,
+                Changes: [new FieldChangeDto("Provider", oldProviderValue, newProviderValue)]),
+            cancellationToken);
     }
 
     internal static string BuildUserId(string provider, string providerKey)
