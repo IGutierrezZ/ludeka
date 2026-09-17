@@ -2,7 +2,7 @@
 
 > **Estado:** Implementado y Verificado (1.345 pruebas unitarias en verde, 0 errores, 0 omitidas)
 > **Incremento:** INC-46 (`change-46-autenticacion-real`)
-> **Módulos relacionados:** [09. Arquitectura y Despliegue](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md)
+> **Módulos relacionados:** [09. Arquitectura y Despliegue](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md) · [33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md)
 
 ## 1. Visión General y Propósito
 
@@ -54,14 +54,14 @@ El endpoint `POST /login/external` valida antiforgery antes de leer el formulari
 
 ## 3. Identidad Externa y Vinculación
 
-- Entidad `ExternalLogin`: `Id`, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail?`, `LinkedAt`; índice único `(Provider, ProviderKey)` y FK `Cascade` a `AppUsers`. Tabla `ExternalLogins` (migración `AddExternalLogins` en PostgreSQL; reconciliador `SqliteSchemaMigrator` en SQLite).
+- Entidad `ExternalLogin`: `Id`, `UserId`, `Provider`, `ProviderKey`, `ProviderEmail?`, `ProviderEmailVerifiedAt?` (INC-49), `LinkedAt`; índice único `(Provider, ProviderKey)` y FK `Cascade` a `AppUsers`. Tabla `ExternalLogins` (migración `AddExternalLogins` en PostgreSQL; reconciliador `SqliteSchemaMigrator` en SQLite).
 - **Cascada de vinculación** en `ExternalLoginService.ResolveAsync`, en este orden:
   1. Por `(Provider, ProviderKey)` → misma cuenta, sin filas ni usuarios nuevos.
-  2. Por correo **verificado** del proveedor contra `AppUser.Email` → se crea la fila `ExternalLogin` y la cuenta conserva sus roles y permisos.
+  2. Por correo **verificado** del proveedor contra `AppUser.Email`, distinguiendo desde INC-49 dos casos: **(2a)** la cuenta encontrada no tiene ningún proveedor vinculado todavía → se crea la fila `ExternalLogin` y la cuenta conserva sus roles y permisos; **(2b)** la cuenta encontrada ya tiene al menos un proveedor vinculado → **no se fusiona**, se informa del conflicto sin crear ninguna fila. *(Antes de INC-49 no existía esta distinción: el caso 2 vinculaba siempre en silencio, sin comprobar si la cuenta destino ya tenía otros proveedores.)*
   3. Alta de un `AppUser` nuevo con `UserRole.CommunityUser` y `ModeratorPermission.None`.
-- **Nunca** se auto-concede `FoundingTeam` ni se fusionan cuentas por correo no verificado: un segundo proveedor con correo no coincidente crea una cuenta separada. Un correo sin verificar no se persiste en `AppUser.Email`; queda solo en `ExternalLogin.ProviderEmail` (un correo sintético no enrutable `<clave>@<proveedor>.ludeka.invalid` cubre las cuentas sin correo).
+- **Nunca** se auto-concede `FoundingTeam` ni se fusionan cuentas por correo no verificado: un segundo proveedor con correo no coincidente crea una cuenta separada. Un correo sin verificar no se persiste en `AppUser.Email`; queda solo en `ExternalLogin.ProviderEmail` (un correo sintético no enrutable `<clave>@<proveedor>.ludeka.invalid` cubre las cuentas sin correo). Desde INC-49, `ProviderEmailVerifiedAt` registra por fila si ese correo llegó verificado, y el correo sintético se reemplaza por el real en cuanto la cuenta vincula un proveedor que lo entrega verificado.
 - `AdminUserSeeder` conserva la fila del fundador, pero **sin conceder identidad ni sesión implícita**: el visitante anónimo no hereda nada.
-- Decisión de producto (INC-49, fuera de este incremento): la pantalla de vinculación manual de proveedores y la política de cuentas sin correo verificado se trasladan a un incremento aparte.
+- **Vinculación manual, recuperación de acceso y aviso de cuenta sin correo verificado:** entregados por INC-49 (archivado) — pantalla `/cuenta/conexiones`, guarda del último método de acceso y flujo de colisión que avisa en vez de fusionar. Ver [33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md).
 
 ---
 
@@ -149,4 +149,4 @@ En un despliegue multirréplica el aviso en memoria no cruza instancias; la auto
 
 - **Verificación independiente (INC-46):** `pass_with_warnings`; 17/17 requisitos y 42/42 escenarios conformes; **0 hallazgos CRITICAL**. El hallazgo W1 (revalidación ausente en servicios administrativos) se remedió después de la instantánea: 15 servicios con guarda, 1.345/1.345 pruebas en verde (base del incremento: 1.005; +340).
 - **Pendientes menores documentados** (sugerencias del informe de verificación, no bloqueantes): homogeneizar el marcado de `EventsManagement`/`AdminNotifications` (S1); endurecer la proyección SSR de la cookie para no mostrar controles privilegiados de una cuenta suspendida durante la ventana de revocación (S2); ampliar cobertura de logout extremo a extremo, cascada y panel multimedia (S3); fijar por prueba la ausencia de identidad centinela (S4); y reejecutar el arranque con PostgreSQL real (S5; el humo se hizo con SQLite porque el entorno no dispone de servidor).
-- **Traslados de producto:** la pantalla de vinculación manual de proveedores y la política de cuentas sin correo verificado quedan en el INC-49.
+- **Traslados de producto, resueltos:** la pantalla de vinculación manual de proveedores y la política de cuentas sin correo verificado, aplazadas por INC-46, fueron entregadas por INC-49 (archivado) — ver módulo 33.
