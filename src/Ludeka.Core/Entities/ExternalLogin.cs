@@ -13,6 +13,7 @@ public class ExternalLogin
     public string Provider { get; private set; } = string.Empty;
     public string ProviderKey { get; private set; } = string.Empty;
     public string? ProviderEmail { get; private set; }
+    public DateTimeOffset? ProviderEmailVerifiedAt { get; private set; }
     public DateTimeOffset LinkedAt { get; private set; }
 
     // Constructor privado para EF Core
@@ -23,7 +24,8 @@ public class ExternalLogin
         string provider,
         string providerKey,
         string? providerEmail = null,
-        DateTimeOffset? linkedAt = null)
+        DateTimeOffset? linkedAt = null,
+        bool providerEmailVerified = false)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("El identificador de usuario no puede estar vacío.", nameof(userId));
@@ -39,5 +41,9 @@ public class ExternalLogin
         ProviderKey = providerKey.Trim();
         ProviderEmail = string.IsNullOrWhiteSpace(providerEmail) ? null : providerEmail.Trim();
         LinkedAt = linkedAt ?? DateTimeOffset.UtcNow;
+
+        // Invariante de dominio (INC-49): solo consta verificación cuando el proveedor la declaró
+        // Y entregó un correo utilizable. Se fija aquí, una única vez, y nunca se modifica después.
+        ProviderEmailVerifiedAt = providerEmailVerified && ProviderEmail is not null ? LinkedAt : null;
     }
 }
