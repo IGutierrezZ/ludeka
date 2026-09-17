@@ -659,3 +659,142 @@ Ninguno. No hubo bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` e
 ## Estado
 
 **6/6 tareas completas (5.1-5.6).** `dotnet test Ludeka.sln`: **1400/1400 en verde, 0 fallos, 0 omitidas.** Las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron. Líneas autoradas reales: **307** (319 con `tasks.md`), dentro de la estimación de 250-380 y muy por debajo del presupuesto de 400 — sin necesidad de partición ni `size:exception`. Worktree sobre `inc/vinculacion-cuentas-05-colision`, 3 commits de implementación sin pushear, sin PR abierto: eso lo gestiona el orquestador. Próximo paso sugerido: `sdd-archive` sobre PR #5 (verificación es opcional), o continuar con `sdd-apply` para PR #6 (`inc/vinculacion-cuentas-06-aviso-cabecera`, depende de PR #3 y PR #4, ambos ya completos) o PR #7 (depende de PR #1 y PR #2, también completos).
+
+---
+
+# Progreso de aplicación — INC-49, PR #6 (Aviso de correo no verificado en cabecera + arreglo de caché obsoleta)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** las 3 tareas del PR #6 (Unidad G2), sección «PR #6 — Aviso de correo no verificado en cabecera» de `tasks.md`, **más un arreglo de caché obsoleta añadido explícitamente por el orquestador** (no estaba en `tasks.md` ni en `design.md` §3.2 tal como se cerró en su momento).
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** sexto lote — progreso previo de PR #1-#3 (observación 370) y PR #4/#5 (secciones locales de este mismo fichero) leído íntegramente y fusionado arriba, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-06-aviso-cabecera` (parte de `inc/vinculacion-cuentas-05-colision` en `59e5260`).
+
+---
+
+## Tareas completadas (3/3)
+
+- [x] 6.1 **[RED]** `AuthorizationPipelineContractTests.cs` — dos `[Fact]` del encargo original: (a) `MainLayout.razor` monta `<AccountEmailNotice />` (RED por ausencia del componente); (b) `PublicProfile.razor` no referencia `AccountEmailNotice`/`IAccountConnectionsService`/`HasVerifiedProviderEmailAsync` (confirmado en verde **ya antes** de tocar código — pin de regresión hacia adelante, exactamente como anticipaba el propio `tasks.md`, nota 5 del encargo). **Añadido por el arreglo de caché:** un tercer `[Fact]`, `AccountEmailNotice_ShouldSubscribeToConnectionsInvalidatedAndDisposeCleanly`, contrato de fuente hermano de `SessionGuard_ShouldForceAFullReload…` que exige `@implements IDisposable`, `Connections.Invalidated +=`/`-=` y `RendererInfo.IsInteractive`. RED confirmado por ejecución: 3 fallos (fichero `AccountEmailNotice.razor` inexistente para (a) y el tercer `[Fact]`; (b) ya en verde).
+- [x] 6.2 **[GREEN]** Creado `src/Ludeka.Web/Components/Shared/AccountEmailNotice.razor`: inyecta `ICurrentUserService`/`IAccountConnectionsService`; `OnInitializedAsync` sale de inmediato sin sesión; con sesión, `_needsNotice = !await Connections.HasVerifiedProviderEmailAsync()`; renderiza `AccountConnectionMessages.UnverifiedProviderEmailNotice` (mismo literal que 4.4, sin duplicar) con enlace a `/cuenta/conexiones` y botón de descarte `@onclick="Dismiss"` (campo privado `_dismissed`, sin persistencia — mecanismo de descarte del diseño §3.2, **sin tocar**). **Ampliado por el arreglo de caché:** `@implements IDisposable`; `OnAfterRender(firstRender)` se suscribe a `Connections.Invalidated` bajo el mismo guard que `SessionGuard.razor` (`RendererInfo.IsInteractive`, para no suscribir la instancia descartada del prerenderizado); el handler llama a `InvokeAsync` para refrescar `_needsNotice` y `StateHasChanged()`; `Dispose()` se da de baja. Hace pasar 6.1(a) parcialmente (el componente existe, pero `MainLayout` aún no lo monta) y por completo el tercer `[Fact]` añadido.
+- [x] 6.3 **[GREEN]** Modificado `src/Ludeka.Web/Components/Layout/MainLayout.razor`: montado `<AccountEmailNotice />`. Hace pasar 6.1(a) por completo.
+  **Desviación de ubicación, documentada y razonada:** se monta inmediatamente después de `</header>` y antes de `<main>`, **no** como hermano literal de `<SessionGuard />` al final del documento (`:302`, junto a `<LocationSelectorModal>` y `#blazor-error-ui`). Motivo verificado en el propio fichero: `SessionGuard` no renderiza ningún nodo (componente puro de suscripción), así que su posición en el árbol es indiferente; `AccountEmailNotice` sí renderiza un `<div role="status">` visible, y colocarlo junto a `SessionGuard` lo dejaría **después del `<footer>`**, fuera de la vista sin desplazarse hasta el final de la página — contradiciendo literalmente el escenario de especificación «Aviso visible y descartable en la cabecera» y el propio nombre de la tarea. La prueba 6.1(a) (`MainLayout_ShouldMountTheAccountEmailNotice`) solo exige `Assert.Contains("<AccountEmailNotice />", ...)`, sin comprobar la posición exacta — igual que su hermana `SessionGuard_ShouldForceAFullReload…` tampoco la comprueba —, así que esta reubicación no rompe ningún contrato ya cerrado ni reabre ninguna decisión de diseño sobre el *mecanismo* del aviso (solo su ubicación visual en el DOM).
+
+**No regresión de este PR:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron; `CurrentUserContractTests` no se tocó (`ICurrentUserService` sigue exactamente igual); las 25 pruebas de `AuthorizationPipelineContractTests` preexistentes (incluida `SessionGuard_ShouldForceAFullReloadWhenTheSessionIsInvalidated`, que solo afirma la presencia de `<SessionGuard />` y sigue en verde sin tocarse) y las 2 de `AccountConnectionsPageContractTests` preexistentes siguen en verde — confirmado por ejecución completa, no por inspección.
+
+---
+
+## Arreglo de caché obsoleta (encargo explícito del orquestador, fuera de las 3 tareas de `tasks.md`)
+
+**El problema, tal como lo verificó el orquestador antes de encargarlo:** `AccountConnectionsService.GetConnectionsAsync()` (creado en PR #3) cachea el resultado en el campo `_cachedView` durante la vida de la instancia. El servicio está registrado `AddScoped` (`Program.cs:75`) y, en Blazor Server con `App.razor:39` montando `<Routes @rendermode="InteractiveServer" />` (interactivo **global**, no por islas), un ámbito `Scoped` vive **todo el circuito**, no una petición HTTP. `design.md` §D6 ("Caché de ámbito y su rebaba conocida") había aceptado un "desfase de una sola navegación" como limitación menor — esa premisa era la equivocada: sin invalidación explícita, **ningún** lector posterior del mismo circuito (ni la propia página `/cuenta/conexiones` en una recarga interna del componente, ni menos aún un componente de cabecera que vive todo el circuito) vería el cambio hasta una **recarga completa de página**, no hasta "la siguiente navegación". PR #4 ya lo esquivaba con `ApplyLocalUnlink` (parche en memoria local a la página), pero el aviso de cabecera de este PR **no tenía ninguna copia local que parchear**, y la especificación exige que una cuenta sin correo verificado vea el aviso — incluida justo después de desvincular su único proveedor verificado.
+
+**Mecanismo elegido: invalidación explícita + evento de notificación, exactamente el patrón que pedía el encargo.**
+
+1. `IAccountConnectionsService.InvalidateCache()` (método nuevo) — pone `_cachedView = null` y dispara `Invalidated`.
+2. `IAccountConnectionsService.Invalidated` (evento nuevo, `EventHandler?`) — se dispara en cada invalidación, no solo la primera (verificado por prueba: `InvalidateCache_ShouldRaiseInvalidatedEachTimeItIsCalled`, dos invocaciones consecutivas incrementan el contador dos veces).
+3. `AccountConnections.razor.UnlinkAsync` invoca `Connections.InvalidateCache()` tras un `UnlinkAsync` exitoso, y vuelve a pedir la vista (`RefreshViewAsync()`, extraído en el paso REFACTOR para no duplicar las dos llamadas `await Connections.GetConnectionsAsync()`/`HasVerifiedProviderEmailAsync()` que ya existían en `OnInitializedAsync`). Al estar la caché invalidada, esa relectura golpea de verdad `IExternalLoginRepository.ListByUserIdAsync`, no la copia obsoleta.
+4. `AccountEmailNotice.razor` se suscribe a `Connections.Invalidated` en `OnAfterRender(firstRender)` (mismo guard `RendererInfo.IsInteractive` que `SessionGuard.razor`, para no suscribir la instancia que se descarta al terminar el prerenderizado) y se da de baja en `Dispose()`. Cuando la página de conexiones invalida la caché en el mismo circuito, el aviso de cabecera se refresca y repinta sin recarga completa — el requisito exacto del encargo.
+
+**Por qué esta forma y no otra.** El encargo proponía explícitamente "un método de invalidación en `IAccountConnectionsService` más una notificación a la que el componente de aviso se suscribe (implementando `IDisposable` para darse de baja)". Es el patrón de contenedor de estado habitual en Blazor Server para un servicio `Scoped` compartido por varios componentes del mismo circuito, y es la extensión más pequeña posible sobre el contrato ya cerrado en PR #3: no se toca ningún miembro existente de `IAccountConnectionsService`, no se añade DI nueva (el propio servicio ya es la pieza compartida), y no reabre el mecanismo de *descarte* del aviso (`_dismissed`, diseño §3.2, sección "Alternativas descartadas" — esa decisión sigue intacta: aquí no se descarta nada, se **refresca el dato subyacente** que decide si el aviso debe existir).
+
+**Por qué se retira `ApplyLocalUnlink` (y no se deja en paralelo).** Con la caché ya invalidada, una relectura real de `IExternalLoginRepository` produce el mismo resultado visible que el parche local calculaba a mano — con una diferencia a favor de la relectura real: `ApplyLocalUnlink` calculaba `CanUnlink` contando solo las filas de `_view.Connections` (proveedores actualmente habilitados en configuración), mientras que `BuildViewAsync` (la fuente canónica, usada tanto en la carga inicial como ahora tras invalidar) cuenta `links.Count` sobre **todas** las filas de la cuenta. Ambos cálculos coinciden en today's el caso normal — todo proveedor vinculado sigue habilitado — pero divergirían si un proveedor se deshabilitara en configuración mientras una sesión sigue abierta; ningún escenario de la especificación ejercita ese borde, así que no cambia el comportamiento observable en ningún caso probado, y de paso elimina un cálculo paralelo que podía divergir del canónico. Verificado con la suite completa tras el cambio: comportamiento idéntico de cara al usuario en los 5 escenarios de PR #4 (listado, vincular, desvincular con 2+, guarda del último método, traducción de `?resultado=`).
+
+**Cómo se probó (prueba antes que código, también para esta parte):**
+
+| Prueba | Fichero | Qué prueba | RED confirmado | GREEN confirmado |
+|---|---|---|---|---|
+| `GetConnectionsAsync_AfterInvalidateCache_ShouldReturnFreshDataFromTheRepository` | `AccountConnectionsServiceTests.cs` | Tras borrar una fila por fuera del servicio e invalidar, la siguiente lectura ya no es la misma instancia cacheada y refleja la fila borrada (`Assert.NotSame` + aserción de contenido real) | Error de compilación (`InvalidateCache` no existía) | Verde tras implementar `InvalidateCache`/campo `_cachedView = null` |
+| `InvalidateCache_ShouldRaiseInvalidatedEachTimeItIsCalled` | `AccountConnectionsServiceTests.cs` | El evento se dispara en cada llamada (contador 1, luego 2), no solo la primera | Error de compilación (`Invalidated` no existía) | Verde tras implementar el evento |
+| `UnlinkAsync_ShouldInvalidateTheSharedConnectionsCacheInsteadOfPatchingLocalState` | `AccountConnectionsPageContractTests.cs` | Contrato de fuente: `AccountConnections.razor` llama a `Connections.InvalidateCache()` y ya no contiene `ApplyLocalUnlink` | Sub-cadena `Connections.InvalidateCache()` ausente; `ApplyLocalUnlink` presente | Verde tras la edición de la página |
+| `AccountEmailNotice_ShouldSubscribeToConnectionsInvalidatedAndDisposeCleanly` | `AuthorizationPipelineContractTests.cs` | Contrato de fuente: el componente implementa `IDisposable`, se suscribe y se da de baja, y respeta el guard de interactividad | Fichero inexistente | Verde tras crear el componente |
+
+No hay `bUnit` en el repositorio (verificado en PR #3): la suscripción/baja del componente se prueba por contrato de fuente, como el resto de componentes de este incremento; la lógica real de invalidación (la parte con comportamiento no trivial) se prueba con pruebas de comportamiento reales sobre `AccountConnectionsService`, tal como autorizaba el encargo.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea / pieza | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 6.1(a)/6.1(b) | `Web/AuthorizationPipelineContractTests.cs` | Contrato de fuente | ✅ 22/22 (baseline del fichero) | ✅ Escrito; (a) fallo real (`Assert.Contains` sin coincidencia); (b) verde ya antes de tocar código | ✅ Pasa (25/25 tras 6.2+6.3) | ➖ Casos únicos (presencia; ausencia) | ➖ No hizo falta |
+| Arreglo de caché — servicio | `Application/AccountConnectionsServiceTests.cs` | Unidad (SQLite `:memory:` + evento síncrono) | ✅ 5/5 (baseline del fichero) | ✅ Escrito, error de compilación (`CS1061` ×4) | ✅ Pasa (7/7) | ✅ 2 casos por prueba (cacheado vs. invalidado; disparo único vs. repetido) | ➖ No hizo falta — métodos ya mínimos |
+| 6.1 (tercer `[Fact]`) / 6.2 | `Web/AuthorizationPipelineContractTests.cs` (contrato) | Contrato de fuente | (mismo fichero, ver arriba) | ✅ Escrito, fichero inexistente | ✅ Pasa tras crear `AccountEmailNotice.razor` | ➖ Caso único (contrato de suscripción/baja) | ➖ No hizo falta |
+| Arreglo de caché — página | `Web/AccountConnectionsPageContractTests.cs` | Contrato de fuente | ✅ 2/2 (baseline del fichero) | ✅ Escrito, fallo real (sub-cadena ausente/presente invertidas) | ✅ Pasa (3/3) | ➖ Caso único (invalidar presente, parche local ausente) | ✅ Extraído `RefreshViewAsync()` para no duplicar la relectura entre `OnInitializedAsync` y `UnlinkAsync`; suite completa re-ejecutada tras el cambio, sigue en verde |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 6 (2 de `AccountConnectionsServiceTests` + 1 de `AccountConnectionsPageContractTests` + 3 de `AuthorizationPipelineContractTests`).
+- **Pruebas totales pasando:** 1408/1408 (baseline 1402 + 6 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Unidad (2, SQLite `:memory:` + evento), Contrato de fuente (4), Integración (0), E2E (0) — ni la funcionalidad del aviso ni el arreglo de caché tienen superficie HTTP propia nueva.
+- **Pruebas de aprobación (refactor):** Ninguna dedicada — el refactor de `RefreshViewAsync()` se protegió reejecutando la suite completa tras extraerlo, no con un test de aprobación distinto.
+- **Funciones puras creadas:** 0 — `InvalidateCache()`/`Invalidated` mutan estado de instancia por diseño (son, precisamente, el mecanismo de invalidación de una caché con estado); `AccountEmailNotice`/`AccountConnections` son componentes con estado por naturaleza.
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto (declarado por `tasks.md`) | `dotnet test Ludeka.sln --filter "FullyQualifiedName~AuthorizationPipelineContractTests"` → **Con error: 0, Superado: 25, Omitido: 0, Total: 25** |
+| Comando de prueba enfocado ampliado (cubre también el arreglo de caché añadido por el orquestador) | `dotnet test Ludeka.sln --filter "FullyQualifiedName~AuthorizationPipelineContractTests\|FullyQualifiedName~AccountConnectionsServiceTests\|FullyQualifiedName~AccountConnectionsPageContractTests"` → **Con error: 0, Superado: 35, Omitido: 0, Total: 35** |
+| Arnés de runtime / escenario y resultado exacto | **N/A para 6.1-6.3, tal como declara el propio work unit de `tasks.md`:** solo visual, sin comportamiento de servidor nuevo. **Para el arreglo de caché, N/A también automatizado:** el escenario real (dos pestañas del mismo circuito, o navegación interna sin recarga, viendo aparecer el aviso tras una desvinculación) exige un navegador real con SignalR activo; no hay `bUnit` ni un cliente de circuito en memoria en este repositorio. Cubierto en su lugar por la prueba de comportamiento real sobre el servicio (que prueba la pieza no trivial: la propia invalidación) y por los contratos de fuente (que prueban el cableado: quién invoca, quién se suscribe) |
+| Frontera de reversión | Revertir `AccountEmailNotice.razor` (fichero nuevo, autónomo) y su montaje en `MainLayout.razor`: el resto de la aplicación queda exactamente igual. Revertir el arreglo de caché por separado (commit `fix` independiente): `IAccountConnectionsService.InvalidateCache()`/`Invalidated`, la llamada en `AccountConnections.razor` y `RefreshViewAsync()` — si se revierte solo esto, `AccountEmailNotice.razor` dejaría de compilar (depende de `Connections.Invalidated`), así que ambos commits son reversibles pero **no independientes entre sí**: revertir el `fix` exige revertir también el `feat` que lo consume |
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `src/Ludeka.Application/Features/Identity/IAccountConnectionsService.cs` | Modificado | `InvalidateCache()` + evento `Invalidated` (arreglo de caché) |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionsService.cs` | Modificado | Implementación de `InvalidateCache()`/`Invalidated` (arreglo de caché) |
+| `src/Ludeka.Web/Components/Pages/AccountConnections.razor` | Modificado | `UnlinkAsync` invoca `InvalidateCache()` + `RefreshViewAsync()` (extraído); retirado `ApplyLocalUnlink` (arreglo de caché) |
+| `src/Ludeka.Web/Components/Shared/AccountEmailNotice.razor` | Creado | Aviso descartable de cabecera (tarea 6.2) + suscripción a `Invalidated`/`IDisposable` (arreglo de caché) |
+| `src/Ludeka.Web/Components/Layout/MainLayout.razor` | Modificado | Montaje de `<AccountEmailNotice />` tras `</header>` (tarea 6.3) |
+| `tests/Ludeka.UnitTests/Web/AuthorizationPipelineContractTests.cs` | Modificado | +3 pruebas (mount, pin de perfil público, contrato de suscripción/baja) |
+| `tests/Ludeka.UnitTests/Application/AccountConnectionsServiceTests.cs` | Modificado | +2 pruebas (invalidación refleja datos frescos; evento se dispara cada vez) |
+| `tests/Ludeka.UnitTests/Web/AccountConnectionsPageContractTests.cs` | Modificado | +1 prueba (contrato de invalidación en la página) |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 3 casillas marcadas `[x]` (6.1-6.3) + anotaciones del arreglo de caché y de la desviación de ubicación |
+
+---
+
+## Recuento de líneas autoradas (`git diff 59e5260 --stat` / `--numstat`, worktree vs. base de esta rama)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (5 ficheros: `IAccountConnectionsService.cs`, `AccountConnectionsService.cs`, `AccountConnections.razor`, `AccountEmailNotice.razor`, `MainLayout.razor`) | 141 | 28 | **169** |
+| Pruebas (3 ficheros: `AuthorizationPipelineContractTests.cs`, `AccountConnectionsServiceTests.cs`, `AccountConnectionsPageContractTests.cs`) | 98 | 0 | **98** |
+| Producción + pruebas (sin `tasks.md`) | 239 | 28 | **267** |
+
+Sin artefactos generados en este PR (no hay migración EF Core). `tasks.md` no se ha vuelto a contar por separado en esta tabla (su edición es bookkeeping de tareas, igual criterio que los PR anteriores).
+
+**Contraste con la estimación de `tasks.md` (≈60-100, solo para las tareas 6.1-6.3):** el real (267) la supera con holgura, pero **por un motivo explícito y autorizado**: la estimación de `tasks.md` no incluía el arreglo de caché, que es un encargo añadido por el orquestador después de que se escribiera `tasks.md`. Descontando las 3 tareas originales (aproximadamente el componente + su montaje + las 2 pruebas de 6.1(a)/6.1(b): `AccountEmailNotice.razor` 86 líneas + `MainLayout.razor` 6 líneas + ~20 líneas de las 2 pruebas originales de `AuthorizationPipelineContractTests.cs` ≈ 112 líneas), el aviso de cabecera por sí solo queda razonablemente cerca de la banda estimada; el resto (≈155 líneas: la interfaz, el servicio, la página, el tercer `[Fact]` y las pruebas de `AccountConnectionsServiceTests`/`AccountConnectionsPageContractTests`) es íntegramente el arreglo de caché. **267 líneas totales quedan cómodamente por debajo del presupuesto de revisión de 400**, así que no hace falta partición ni `size:exception`. No se ha comprimido código ni omitido ninguna prueba para encajar en ningún número.
+
+---
+
+## Commits creados (2 de implementación, ninguno pusheado; más el commit de documentación que cierra este lote)
+
+1. `0a1422a` `fix(application): invalidar la cache de conexiones tras desvincular en el mismo circuito` (el arreglo de caché: interfaz, servicio, página, y las 3 pruebas correspondientes — el primer intento de este commit quedó con el cuerpo del mensaje mal formado por un problema de escape de shell al invocarlo; se corrigió con un único `amend` **antes de que nada más dependiera de él**, sin tocar el árbol/diff, solo el texto del mensaje — no hubo ningún fallo de pre-commit hook de por medio)
+2. `98aec7d` `feat(web): mostrar el aviso descartable de correo no verificado en la cabecera` (el componente, su montaje, y las 3 pruebas de `AuthorizationPipelineContractTests.cs`)
+3. (este mismo commit de documentación) `docs(sdd): completar las tareas 6.1-6.3 del PR #6 de INC-49`
+
+Ninguno lleva atribución de IA (regla explícita de `AGENTS.md` §4). Worktree sobre `inc/vinculacion-cuentas-06-aviso-cabecera`, sin push ni PR: eso lo decide el orquestador. Los dos commits de implementación son reversibles pero no independientes entre sí (ver "Frontera de reversión" arriba): el `fix` debe revertirse junto con el `feat` que lo consume, no antes.
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+1. **Las 3 tareas 6.1-6.3 no se reinventaron.** Se implementaron tal como están escritas, con la única adición explícitamente autorizada por el orquestador (el arreglo de caché) documentada en su propia sección arriba, no mezclada en silencio con el resto.
+2. **Ubicación de `<AccountEmailNotice />` en `MainLayout.razor`** (documentada en detalle en la tarea 6.3 arriba): hermano funcional de `<SessionGuard />`, pero no vecino literal en el DOM, por ser el único de los dos que renderiza contenido visible.
+3. **`design.md` §D6 queda corregido por los hechos, no reabierto por decisión.** La sección "Caché de ámbito y su rebaba conocida" asumía que el peor caso era "un desfase de una sola navegación... en la dirección conservadora". El orquestador verificó que la premisa sobre la vida del ámbito era incorrecta (es todo el circuito, no una petición) y encargó explícitamente el arreglo; esta fase lo ejecuta como una corrección de una limitación mal caracterizada, no como una reapertura de ninguna decisión P2-P5 cerrada en la sección 3 del diseño.
+4. **`ApplyLocalUnlink` retirado de `AccountConnections.razor`**, con la nota de paridad de comportamiento (incluida la pequeña divergencia de borde en `CanUnlink` que la relectura real corrige) documentada en la sección dedicada al arreglo de caché arriba.
+
+## Tropiezos operativos
+
+1. **Mensaje del primer commit (`fix`) mal formado por un problema de escape de shell** al pasar saltos de línea a través de `powershell.exe -Command` desde una invocación intermedia: el cuerpo del mensaje perdió sus saltos de línea. Corregido con un único `git commit --amend` (mismo árbol, solo el texto del mensaje) antes de crear el siguiente commit — no hubo pérdida de trabajo ni fallo de hook. A partir de ahí, los mensajes de commit se pasaron por heredoc directamente en Git Bash, como exige el protocolo de commits.
+2. Ningún bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` en ejecución antes de compilar ni ejecutar pruebas, verificado explícitamente antes de empezar).
+
+---
+
+## Estado
+
+**3/3 tareas completas (6.1-6.3), más el arreglo de caché encargado por el orquestador, también completo y probado.** `dotnet test Ludeka.sln`: **1408/1408 en verde, 0 fallos, 0 omitidas.** Las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron; `ICurrentUserService`/`CurrentUserContractTests` no se tocaron. Líneas autoradas reales: **267**, muy por debajo del presupuesto de 400 (la estimación original de `tasks.md`, 60-100, no incluía el arreglo de caché añadido en esta fase) — sin necesidad de partición ni `size:exception`. Worktree sobre `inc/vinculacion-cuentas-06-aviso-cabecera`, 2 commits de implementación sin pushear, sin PR abierto: eso lo gestiona el orquestador. Próximo paso sugerido: `sdd-archive` sobre PR #6 (verificación es opcional), o continuar con `sdd-apply` para PR #7 (`inc/vinculacion-cuentas-07-reemplazo-correo`, depende de PR #1 y PR #2, ambos ya completos) — **recordatorio explícito del encargo: el PR #7 queda fuera del alcance de este lote y no se ha tocado.**
