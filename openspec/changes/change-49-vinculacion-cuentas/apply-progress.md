@@ -414,3 +414,122 @@ Ninguno lleva atribución de IA. Worktree limpio (`git status` sin cambios pendi
 ## Estado
 
 **11/11 tareas completas.** `dotnet test Ludeka.sln`: **1385/1385 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **693 (715 con `tasks.md`)**, muy por encima del presupuesto de 400 y del extremo alto de la propia estimación de riesgo de `tasks.md` (570) — **decisión de partición/excepción pendiente del orquestador y el maintainer**, no tomada por esta fase. Worktree limpio, 5 commits sin pushear, sin PR abierto: eso lo gestiona el orquestador.
+
+---
+
+# Progreso de aplicación — INC-49, PR #4 (Pantalla `/cuenta/conexiones`)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** únicamente las tareas 4.1-4.5 (Unidad E), sección «PR #4 — Pantalla `/cuenta/conexiones`» de `tasks.md`. 4.5 queda **sin marcar** (verificación manual, no ejecutable en este entorno).
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** cuarto lote — progreso previo de PR #1/#2/#3 (observación 370) leído íntegramente y fusionado arriba, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-04-pantalla` (parte de `inc/vinculacion-cuentas-03-transporte` en `22678ad`).
+
+---
+
+## Tareas completadas (4/5 — 4.5 queda sin marcar)
+
+- [x] 4.1 **[RED]** `AccountConnectionsPageContractTests.cs` (nuevo) — 2 `[Fact]`: (a) la página declara `@page "/cuenta/conexiones"` y `@attribute [Authorize]`, y no declara `[Authorize(Policy`; (b) el formulario de vinculación declara `method="post"`, `action="/cuenta/conexiones/vincular"`, `data-enhance="false"` y `<AntiforgeryToken />`. RED confirmado por ejecución: `No se encontró el archivo fuente: src/Ludeka.Web/Components/Pages/AccountConnections.razor` (2 fallos, 0 superados) — el fichero no existía todavía.
+- [x] 4.2 **[GREEN]** Creado `src/Ludeka.Web/Components/Pages/AccountConnections.razor`: `@page "/cuenta/conexiones"`, `@attribute [Authorize]` (sin `Policy=`), listado de proveedores habilitados vía `ExternalAuthenticationSchemes.GetEnabledProviders`/`DisplayNameFor`, estado de vinculación obtenido de `IAccountConnectionsService.GetConnectionsAsync()`.
+- [x] 4.3 **[GREEN]** Formulario de vinculación por proveedor no vinculado (`<form method="post" action="/cuenta/conexiones/vincular" data-enhance="false">` + `<AntiforgeryToken />` + `<input type="hidden" name="provider">`, patrón de `Login.razor:35`) y botón `@onclick` de desvinculación por proveedor vinculado, capturando `LastAccessMethodException` para el mensaje de guarda.
+- [x] 4.4 **[GREEN]** `[SupplyParameterFromQuery(Name = "resultado")]` traducido a un mensaje fijo según la tabla cerrada de D4 (`vinculado`, `ya-vinculado`, `en-uso`, `sesion-cambiada` → constantes nuevas de `AccountConnectionMessages`; ausente/desconocido → sin mensaje) y bloque de aviso de correo no verificado (`if (!await Connections.HasVerifiedProviderEmailAsync())`, reutilizando `AccountConnectionMessages.UnverifiedProviderEmailNotice`).
+- [ ] 4.5 **Verificación manual** — sin marcar. No es automatizable sin credenciales OAuth reales en el repositorio; ver la sección "Pasos del smoke test manual" más abajo.
+
+**No regresión de este PR:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron y siguen en verde; `AuthorizationPipelineContractTests` (11 hechos, incluidos `PublicEndpoint_ShouldDeclareAllowAnonymous` y la `TheoryData ProtectedPages`) y `CurrentUserContractTests` siguen en verde sin tocarse — confirmado con filtro dedicado. La página nueva no entra en `ProtectedPages` (exige `Policy=`); se cubre con los `[Fact]` propios de 4.1. `ICurrentUserService` no se tocó.
+
+---
+
+## Hallazgo de esta fase: caché de ámbito de `IAccountConnectionsService` y desvinculación en el mismo circuito (no es un bug de un PR anterior — es una interacción a resolver en éste)
+
+`AccountConnectionsService.GetConnectionsAsync()` (creado en PR #3) cachea el resultado en `_cachedView` durante la vida de la instancia `Scoped` (diseño §D6, "Caché de ámbito y su rebaba conocida"). En Blazor Server esa instancia vive todo el circuito, no solo una petición. La tarea 4.3 exige "refresco del listado en el circuito" tras desvincular (mismo circuito, sin recarga), pero volver a llamar a `Connections.GetConnectionsAsync()` después de `UnlinkAsync` devolvería la **misma** vista cacheada, sin la fila recién borrada.
+
+**No se ha modificado `AccountConnectionsService.cs` ni su contrato** (ningún fichero de PR #3 se ha tocado): en vez de invalidar la caché del servicio, `AccountConnections.razor` mantiene su propia copia en memoria (`_view`) y, tras una desvinculación confirmada por el servidor (sin excepción), la actualiza localmente (`ApplyLocalUnlink`) reconstruyendo el `AccountConnectionDto`/`AccountConnectionsView` inmutables con la fila desvinculada. Es una solución contenida enteramente en el fichero nuevo de este PR, no una corrección retroactiva de PR #3. Se documenta aquí con transparencia porque es una interacción no evidente entre una decisión ya cerrada (la caché de §D6) y un requisito de esta fase; el diseño anticipa la conducta deseada ("la página `/cuenta/conexiones` lo muestra de inmediato porque recarga su propio listado") pero no detalla el mecanismo, y este PR lo resuelve sin reabrir PR #3.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 4.1/4.2/4.3 | `Web/AccountConnectionsPageContractTests.cs` (nuevo) | Contrato de fuente | ➖ N/A (fichero nuevo) | ✅ Escrito, fallo real en ejecución (`No se encontró el archivo fuente`, 2/2 fallos) | ✅ Pasa (2/2) tras crear la página completa (4.2+4.3 en el mismo `Write`, sin RED intermedio propio: `tasks.md` no define uno para 4.2/4.3) | ➖ 2 casos (ruta+autorización sin política; formulario clásico con antiforgery) | ➖ No hizo falta |
+| 4.4 | — (sin RED propio en `tasks.md`; el escenario de especificación "Aviso visible en la pantalla de conexiones" no es verificable sin `bUnit`, ver desviación 2 abajo) | — | — | ➖ No aplica | ✅ Verificado por compilación + suite completa en verde | ➖ No aplica | ➖ No hizo falta |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 2 (`AccountConnectionsPageContractTests`).
+- **Pruebas totales pasando:** 1387/1387 (baseline 1385 + 2 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Contrato de fuente (2), Integración (0), E2E (0) — el smoke test manual (tarea 4.5) es el único nivel que ejercita PR #2+#3+#4 juntos con un navegador real.
+- **Pruebas de aprobación (refactor):** Ninguna — sin refactorización de conducta existente en este PR.
+- **Funciones puras creadas:** 0 en producción nueva propia de este PR más allá de los literales de `AccountConnectionMessages` (funciones de interpolación ya existentes en ese patrón).
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto | `dotnet test Ludeka.sln --filter "FullyQualifiedName~AccountConnectionsPageContractTests"` → **Con error: 0, Superado: 2, Omitido: 0, Total: 2** |
+| Arnés de runtime / escenario y resultado exacto | **N/A — manual**, tal como el propio work unit de `tasks.md` lo declara: smoke test de navegador real (vincular → desvincular → intentar desvincular el último). Es el único punto donde PR #2 (guarda), PR #3 (transporte) y PR #4 (interfaz) se comprueban juntos, y exige credenciales OAuth reales que no están en este entorno. Pasos exactos en la sección siguiente |
+| Frontera de reversión | Revertir `AccountConnections.razor` (fichero nuevo, autónomo) y las 4 constantes nuevas añadidas a `AccountConnectionMessages.cs`; el endpoint (`Program.cs`) y `IExternalLoginService`/`IAccountConnectionsService` (PR #2/#3) siguen operativos sin interfaz, exactamente como ya preveía `tasks.md` |
+
+---
+
+## Pasos del smoke test manual (tarea 4.5 — para que el maintainer los ejecute a mano)
+
+No se ejecuta en esta fase: exige credenciales OAuth reales de al menos un proveedor social, que no están disponibles en este entorno de aplicación. Pasos exactos:
+
+1. Configurar credenciales reales de al menos dos proveedores habilitados (p. ej. Google y Discord) en `appsettings.Development.json` o variables de entorno (`Authentication__Providers__Google__ClientId`/`ClientSecret`, ídem Discord), y arrancar la aplicación (`dotnet run --project src/Ludeka.Web`).
+2. Iniciar sesión en `/login` con una cuenta de prueba usando el proveedor A. Confirmar que la sesión queda activa.
+3. Navegar a `/cuenta/conexiones`. Comprobar: el proveedor A aparece con la píldora "Vinculado" (verde/activa); el resto de proveedores habilitados aparecen "Sin vincular"; si la cuenta no tiene ningún correo verificado, aparece el aviso ámbar de correo no verificado.
+4. Pulsar "Vincular" sobre un segundo proveedor habilitado (B). Debe dispararse el desafío OAuth de B (redirección al proveedor, no un error ni un `@onclick` fallido).
+5. Completar el consentimiento con una cuenta de B que entregue correo verificado. Al volver, comprobar la URL `?resultado=vinculado`, el aviso verde de éxito, que B pasa a "Vinculado · correo verificado", y que el aviso ámbar desaparece si antes era el único correo verificado.
+6. Pulsar "Desvincular" sobre B. Comprobar que la fila pasa a "Sin vincular" **sin recargar la página** (verificar en las herramientas de red del navegador que no hay una navegación HTTP nueva) y que no aparece ningún aviso de error.
+7. Pulsar "Desvincular" sobre A (ahora el único método restante). Comprobar que aparece el aviso rojo de denegación con el texto de `AccountConnectionMessages.LastAccessMethodDenied` ("No puedes desvincular tu único método de acceso…") y que A sigue "Vinculado".
+8. **Accesibilidad:** repetir los pasos 6 y 7 navegando solo con teclado (Tab/Enter), confirmando que el anillo de foco es visible en cada botón y enlace; y con un lector de pantalla activo (NVDA o VoiceOver), confirmar que el aviso de denegación del paso 7 se anuncia automáticamente en cuanto aparece, sin necesitar mover el foco manualmente.
+9. **Caso de colisión (opcional, requiere una segunda cuenta de prueba):** vincular el mismo proveedor B desde una cuenta distinta a la usada en el paso 5 mientras B sigue vinculado a la primera cuenta; comprobar la redirección a `?resultado=en-uso` con el aviso rojo genérico y que ninguna fila cambia de propietario.
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `tests/Ludeka.UnitTests/Web/AccountConnectionsPageContractTests.cs` | Creado | 2 pruebas de contrato de fuente (ruta+autorización, formulario clásico) |
+| `src/Ludeka.Web/Components/Pages/AccountConnections.razor` | Creado | Página `/cuenta/conexiones`: listado, vincular (formulario clásico), desvincular (`@onclick` + guarda), aviso de correo no verificado, traducción de `?resultado=` |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionMessages.cs` | Modificado | 4 constantes nuevas (`LinkedSuccessfully`, `AlreadyLinkedToThisAccountNotice`, `RejectedOwnedByAnotherAccountGenericNotice`, `SessionChangedDuringLink`) + `UnverifiedProviderEmailNotice`, sin tocar los miembros existentes de PR #2 |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 4 casillas marcadas `[x]` (4.1-4.4); 4.5 queda sin marcar |
+
+---
+
+## Recuento de líneas autoradas (`git diff 22678ad..HEAD --stat`)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (`AccountConnections.razor` + `AccountConnectionMessages.cs`) | 262 | 0 | **262** |
+| Pruebas (`AccountConnectionsPageContractTests.cs`) | 61 | 0 | **61** |
+| Producción + pruebas | 323 | 0 | **323** |
+
+Sin artefactos generados en este PR (no hay migración EF Core).
+
+**Contraste con la estimación de `tasks.md` (≈160-255, la más holgada de la cadena):** el real (323) **supera el extremo alto de la estimación en 68 líneas**, pero queda **77 líneas por debajo del presupuesto de 400** — el único PR de la cadena, junto con #1, #5, #6 y #7, que no necesita partición ni `size:exception`. El exceso sobre la estimación se concentra en la página (221 líneas): el diseño reutiliza patrones ya existentes (`badge-pill`, tokens `--state-*`, `Login.razor:35`) pero la pantalla cubre listado + 2 mecanismos de acción (formulario clásico y `@onclick`) + 4 tipos de aviso + comentarios de intención en español, más que un "listado mínimo". Las pruebas (61 líneas) están dentro de la banda estimada (~40-65).
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+1. **Ninguna de las tareas 4.1-4.4 se reinventó.** 4.1 se implementó tal como está escrita, con RED observado por ejecución. 4.2/4.3/4.4 no tienen un `[RED]` propio en `tasks.md` (solo 4.1 lo tiene): se implementaron como `[GREEN]` directo, verificadas por compilación, por los 2 `[Fact]` de 4.1 y por la suite completa en verde — tal como el propio documento las clasifica.
+2. **El escenario de especificación "Aviso visible en la pantalla de conexiones" (4.4) no tiene una prueba automática dedicada.** Sin `bUnit` en el repositorio (verificado en PR #3), no hay manera de simular el renderizado condicional de un `@if` sobre un valor async sin convertirlo en otra prueba de contrato de fuente que solo comprobaría la presencia del texto en el fichero, no que se muestre condicionalmente. Se cubre por: (a) el nivel de servicio ya probado en PR #3 (`AccountConnectionsServiceTests`), y (b) el smoke test manual de la tarea 4.5.
+3. **Interacción entre la caché de ámbito de PR #3 y el refresco en el circuito de PR #4** (documentada en detalle arriba): resuelta dentro de `AccountConnections.razor` sin tocar `AccountConnectionsService.cs`.
+4. **Añadidas 4 constantes nuevas a `AccountConnectionMessages.cs`** (más `UnverifiedProviderEmailNotice`) para los mensajes fijos de `?resultado=` y el aviso de correo no verificado — instrucción explícita del encargo: "si necesitas un texto nuevo que no está ahí, añádelo a esa clase en vez de embeberlo en el Razor". Los mensajes son genéricos (no interpolan `{Proveedor}` como sugiere la tabla ilustrativa de `design.md` §D4) porque `AccountConnectionRoutes.PageWithResult` (PR #3, no modificado) solo transporta el código de resultado, no el nombre del proveedor.
+5. **Añadida una captura defensiva de `UnauthorizedAccessException` → `Navigation.TryRedirectToLogin(ex)`** en `UnlinkAsync`, más allá de la única excepción que la tarea 4.3 menciona explícitamente (`LastAccessMethodException`). Sigue el mismo idioma que **todos** los demás escritores con identidad del proyecto (`SessionDenialUiContractTests.EveryIdentityWriter_TranslatesTheSessionDenialIntoALoginRedirect`, 12 ficheros). **No se ha añadido `AccountConnections.razor` a esa `[Theory]`** (fichero fuera del alcance de las tareas 4.1-4.5): queda anotado para que el maintainer decida si lo incorpora.
+6. **No se ha usado el componente compartido `PageHeaderEditorial.razor`** para la cabecera de la página. Su propio comentario de intención lo reserva a "las 4 páginas de listado" (Catálogo, Eventos, Sorteos, Novedades); `/cuenta/conexiones` es una página de ajustes de cuenta, la misma categoría que `MyLibrary.razor`/`UserManagement.razor`, que tampoco lo usan. Se reutilizó en su lugar la clase `.badge-pill` directamente (la misma que usa `PageHeaderEditorial` por debajo) para la píldora de identidad, y la estructura de cabecera manual de `MyLibrary.razor`/`UserManagement.razor`.
+
+## Tropiezos operativos
+
+Ninguno. No hubo bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` en ejecución antes de compilar ni ejecutar pruebas).
+
+---
+
+## Estado
+
+**4/5 tareas completas (4.1-4.4); 4.5 sin marcar por ser verificación manual no ejecutable en este entorno.** `dotnet test Ludeka.sln`: **1387/1387 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **323**, por encima de la estimación de 160-255 pero 77 líneas por debajo del presupuesto de 400 — sin necesidad de partición ni `size:exception`. Commits de este lote sin pushear, sin PR abierto: eso lo gestiona el orquestador.
