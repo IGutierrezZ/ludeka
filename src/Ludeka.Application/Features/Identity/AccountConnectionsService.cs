@@ -18,6 +18,9 @@ public sealed class AccountConnectionsService : IAccountConnectionsService
     // que en este servicio Scoped equivale a una vez por petición SSR o por circuito.
     private Task<AccountConnectionsView>? _cachedView;
 
+    /// <inheritdoc />
+    public event EventHandler? Invalidated;
+
     public AccountConnectionsService(
         IExternalLoginRepository externalLogins,
         ICurrentUserService currentUser,
@@ -37,6 +40,13 @@ public sealed class AccountConnectionsService : IAccountConnectionsService
     {
         var view = await GetConnectionsAsync(cancellationToken);
         return view.HasVerifiedProviderEmail;
+    }
+
+    /// <inheritdoc />
+    public void InvalidateCache()
+    {
+        _cachedView = null;
+        Invalidated?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task<AccountConnectionsView> BuildViewAsync(CancellationToken cancellationToken)

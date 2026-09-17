@@ -40,6 +40,20 @@ public class AccountConnectionsPageContractTests
         Assert.Contains("<AntiforgeryToken />", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void UnlinkAsync_ShouldInvalidateTheSharedConnectionsCacheInsteadOfPatchingLocalState()
+    {
+        // Corrección del orquestador (INC-49 PR #6): antes, UnlinkAsync parcheaba _view en memoria
+        // (ApplyLocalUnlink) porque IAccountConnectionsService cachea por todo el circuito (diseño
+        // §D6). Ahora el propio servicio invalida su caché tras la desvinculación y notifica a
+        // cualquier suscriptor (p. ej. AccountEmailNotice, PR #6); esta página solo necesita
+        // invalidar y volver a pedir su vista, ya fresca.
+        var source = ReadSource(PagePath);
+
+        Assert.Contains("Connections.InvalidateCache()", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ApplyLocalUnlink", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
