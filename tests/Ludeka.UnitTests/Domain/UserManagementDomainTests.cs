@@ -179,4 +179,20 @@ public class UserManagementDomainTests
         Assert.Equal(6, (int)AuditAction.Published);
         Assert.Equal(0, (int)AuditAction.Created);
     }
+
+    [Fact]
+    public void AuditAction_LinkedProviderAndUnlinkedProvider_AreAppendedWithoutRenumbering()
+    {
+        // Los valores nuevos de INC-49 se añaden al final, sin reinterpretar filas de auditoría existentes.
+        Assert.Equal(8, (int)AuditAction.LinkedProvider);
+        Assert.Equal(9, (int)AuditAction.UnlinkedProvider);
+        Assert.NotEqual((int)AuditAction.LinkedProvider, (int)AuditAction.UnlinkedProvider);
+
+        // Y ninguno de los dos colisiona con ningún valor ya definido previamente.
+        var seenValues = new HashSet<int>();
+        foreach (AuditAction value in Enum.GetValues(typeof(AuditAction)))
+        {
+            Assert.True(seenValues.Add((int)value), $"El valor {(int)value} de {value} está duplicado.");
+        }
+    }
 }
