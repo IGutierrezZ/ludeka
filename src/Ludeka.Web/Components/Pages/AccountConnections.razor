@@ -132,12 +132,22 @@
         _providers = ExternalAuthenticationSchemes.GetEnabledProviders(AuthenticationOptionsAccessor.Value);
         _resultBanner = BuildResultBanner(Resultado);
 
-        _view = await Connections.GetConnectionsAsync();
-        _hasVerifiedProviderEmail = await Connections.HasVerifiedProviderEmailAsync();
+        await RefreshViewAsync();
     }
 
     private AccountConnectionDto? FindConnection(string providerName)
         => _view?.Connections.FirstOrDefault(c => string.Equals(c.Provider, providerName, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Recarga el listado y el estado del aviso de correo no verificado desde
+    /// <see cref="Connections"/>. Punto único usado tanto en la carga inicial como tras invalidar
+    /// la caché compartida en <see cref="UnlinkAsync"/>.
+    /// </summary>
+    private async Task RefreshViewAsync()
+    {
+        _view = await Connections.GetConnectionsAsync();
+        _hasVerifiedProviderEmail = await Connections.HasVerifiedProviderEmailAsync();
+    }
 
     private async Task UnlinkAsync(string providerName)
     {
@@ -148,11 +158,15 @@
             await ExternalLoginService.UnlinkAsync(CurrentUserService.UserId, providerName);
             _resultBanner = null;
 
-            // IAccountConnectionsService cachea la vista por ámbito de circuito (diseño §D6): pedirla
-            // otra vez aquí devolvería la misma instancia ya cacheada, sin la fila que se acaba de
-            // borrar. Se actualiza la copia local en memoria en vez de volver a pedirla, para que el
-            // listado refleje la desvinculación de inmediato, tal como exige la tarea 4.3.
-            ApplyLocalUnlink(providerName);
+            // Corrección del orquestador (INC-49 PR #6): IAccountConnectionsService cachea la vista
+            // por ámbito de circuito (diseño §D6), así que pedirla otra vez sin invalidar devolvería
+            // la misma instancia ya cacheada, sin la fila que se acaba de borrar. Se invalida la
+            // caché compartida del servicio -que también notifica a cualquier otro suscriptor del
+            // circuito, como el aviso de cabecera (AccountEmailNotice)- y se vuelve a pedir la
+            // vista, que ya llega fresca, para que el listado refleje la desvinculación de
+            // inmediato, tal como exige la tarea 4.3.
+            Connections.InvalidateCache();
+            await RefreshViewAsync();
         }
         catch (LastAccessMethodException ex)
         {
@@ -168,27 +182,6 @@
         {
             _unlinkingProvider = null;
         }
-    }
-
-    /// <summary>
-    /// Aplica en memoria el efecto de una desvinculación ya confirmada por el servidor, sin volver a
-    /// pedir la vista cacheada de <see cref="Connections"/> (ver comentario en <see cref="UnlinkAsync"/>).
-    /// </summary>
-    private void ApplyLocalUnlink(string providerName)
-    {
-        if (_view is null)
-        {
-            return;
-        }
-
-        var remaining = _view.Connections
-            .Select(c => string.Equals(c.Provider, providerName, StringComparison.OrdinalIgnoreCase)
-                ? new AccountConnectionDto(c.Provider, IsLinked: false, LinkedAt: null, ProviderEmailVerified: false)
-                : c)
-            .ToList();
-
-        _hasVerifiedProviderEmail = remaining.Any(c => c.IsLinked && c.ProviderEmailVerified);
-        _view = new AccountConnectionsView(remaining, _hasVerifiedProviderEmail, CanUnlink: remaining.Count(c => c.IsLinked) > 1);
     }
 
     /// <summary>

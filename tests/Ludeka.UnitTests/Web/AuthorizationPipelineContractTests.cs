@@ -127,6 +127,46 @@ public class AuthorizationPipelineContractTests
         Assert.Contains("<SessionGuard />", layout, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainLayout_ShouldMountTheAccountEmailNotice()
+    {
+        // INC-49 PR #6: el aviso de correo no verificado se monta en la cabecera de toda la
+        // aplicación. Mismo idioma de lectura de fuente que
+        // SessionGuard_ShouldForceAFullReloadWhenTheSessionIsInvalidated: solo se afirma la
+        // presencia del componente, no su posición exacta dentro del fichero.
+        var layout = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
+        Assert.Contains("<AccountEmailNotice />", layout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PublicProfile_ShouldNeverReferenceTheUnverifiedEmailNotice()
+    {
+        // INC-49: spec account-provider-connections, escenario "El aviso nunca aparece en el
+        // perfil público". Pin de regresión hacia adelante: hoy ya pasa trivialmente porque
+        // PublicProfile.razor no conoce ninguna de estas tres piezas.
+        var profile = ReadSource("src/Ludeka.Web/Components/Pages/PublicProfile.razor");
+        Assert.DoesNotContain("AccountEmailNotice", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("IAccountConnectionsService", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasVerifiedProviderEmailAsync", profile, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AccountEmailNotice_ShouldSubscribeToConnectionsInvalidatedAndDisposeCleanly()
+    {
+        // Corrección del orquestador (INC-49 PR #6): IAccountConnectionsService cachea por todo el
+        // circuito (diseño §D6), así que el aviso de cabecera debe refrescarse cuando esa caché se
+        // invalida tras una desvinculación, sin depender de una recarga completa de página. Mismo
+        // idioma de contrato de fuente que SessionGuard_ShouldForceAFullReloadWhenTheSessionIsInvalidated,
+        // que exige exactamente la misma disciplina de suscripción/baja para no filtrar memoria por circuito.
+        var notice = ReadSource("src/Ludeka.Web/Components/Shared/AccountEmailNotice.razor");
+
+        Assert.Contains("@implements IDisposable", notice, StringComparison.Ordinal);
+        Assert.Contains("Connections.Invalidated +=", notice, StringComparison.Ordinal);
+        Assert.Contains("Connections.Invalidated -=", notice, StringComparison.Ordinal);
+        Assert.Contains("RendererInfo.IsInteractive", notice, StringComparison.Ordinal);
+        Assert.Contains("HasVerifiedProviderEmailAsync", notice, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

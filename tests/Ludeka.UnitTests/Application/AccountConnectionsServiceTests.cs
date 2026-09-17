@@ -142,4 +142,48 @@ public class AccountConnectionsServiceTests : IAsyncLifetime
 
         Assert.True(await service.HasVerifiedProviderEmailAsync());
     }
+
+    [Fact]
+    public async Task GetConnectionsAsync_AfterInvalidateCache_ShouldReturnFreshDataFromTheRepository()
+    {
+        // Corrección del orquestador (INC-49 PR #6): AccountConnectionsService cachea por ámbito de
+        // instancia (diseño §D6), que en Blazor Server equivale a todo el circuito, no a una sola
+        // petición (App.razor:39 monta InteractiveServer global). Sin invalidación explícita, una
+        // desvinculación dentro del mismo circuito quedaría invisible para cualquier lector hasta
+        // una recarga completa. Arrange: una fila vinculada, primera lectura ya cacheada.
+        var user = await SeedUserAsync(new AppUser("user-conn-4", "Jugador Conexión Cuatro", "conexion4@ludeka.es"));
+        var link = new ExternalLogin(user.Id, "Google", "google-conn-4");
+        await _externalLoginRepository.AddAsync(link);
+
+        var service = BuildService(StubCurrentUserService.WithSession(user.Id));
+        var beforeUnlink = await service.GetConnectionsAsync();
+        Assert.True(Assert.Single(beforeUnlink.Connections, c => c.Provider == "Google").IsLinked);
+
+        // Act: se borra la fila por fuera del servicio (lo que ExternalLoginService.UnlinkAsync hace
+        // en producción) y se invalida la caché de ámbito.
+        await _externalLoginRepository.RemoveAsync(link);
+        service.InvalidateCache();
+
+        // Assert: la siguiente lectura ya no es la vista cacheada anterior y refleja la fila borrada.
+        var afterUnlink = await service.GetConnectionsAsync();
+        Assert.NotSame(beforeUnlink, afterUnlink);
+        Assert.False(Assert.Single(afterUnlink.Connections, c => c.Provider == "Google").IsLinked);
+    }
+
+    [Fact]
+    public void InvalidateCache_ShouldRaiseInvalidatedEachTimeItIsCalled()
+    {
+        // Corrección del orquestador (INC-49 PR #6): el aviso de cabecera (AccountEmailNotice, PR
+        // #6) se suscribe a este evento para refrescarse sin recarga completa. Debe dispararse en
+        // cada invalidación, no solo la primera vez.
+        var service = BuildService(StubCurrentUserService.Anonymous());
+        var raisedCount = 0;
+        service.Invalidated += (_, _) => raisedCount++;
+
+        service.InvalidateCache();
+        Assert.Equal(1, raisedCount);
+
+        service.InvalidateCache();
+        Assert.Equal(2, raisedCount);
+    }
 }

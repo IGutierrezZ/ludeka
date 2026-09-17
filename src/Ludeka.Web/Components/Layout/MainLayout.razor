@@ -223,6 +223,12 @@
         </div>
     </header>
 
+    @* Aviso descartable de correo no verificado (INC-49 PR #6). Se monta justo bajo la cabecera
+       -no como hermano invisible de <SessionGuard /> al final del documento- porque, a diferencia
+       de aquel, este componente SÍ renderiza contenido visible: debe aparecer en la parte alta de
+       cada página, tal como exige el escenario "Aviso visible y descartable en la cabecera". *@
+    <AccountEmailNotice />
+
     <main class="flex-1" id="main-content" tabindex="-1">
         @Body
     </main>
