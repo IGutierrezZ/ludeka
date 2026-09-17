@@ -60,14 +60,30 @@ public sealed class ExternalLoginService : IExternalLoginService
             }
         }
 
-        // (2) Vía secundaria: correo verificado que coincide con una cuenta existente.
+        // (2) Vía secundaria: correo verificado que coincide con una cuenta existente. INC-49 parte
+        // esta rama en 2a/2b (diseño §2.2): la excepción segura solo aplica cuando la cuenta destino
+        // no tiene todavía ningún proveedor vinculado.
         if (emailVerified && normalizedEmail is not null)
         {
             var match = await _users.GetByEmailAsync(normalizedEmail, cancellationToken);
             if (match is not null)
             {
+                var matchLinks = await _externalLogins.ListByUserIdAsync(match.Id, cancellationToken);
+                if (matchLinks.Count > 0)
+                {
+                    // (2b) Colisión: la cuenta ya tiene al menos un proveedor vinculado. Nunca se
+                    // fusiona en silencio (INC-49, diseño §2.2): cero escrituras. Este mensaje es
+                    // diagnóstico interno; el aviso que ve la persona lo traduce ExternalLoginEvents
+                    // a partir del código cerrado de "?aviso=", nunca de este texto (§3.1 del diseño).
+                    throw new ExternalLoginCollisionException(
+                        $"El correo verificado coincide con una cuenta que ya tiene otro proveedor vinculado ({providerName}).");
+                }
+
+                // (2a) Excepción segura: la cuenta no tiene ninguna identidad externa vinculada
+                // todavía. Conducta idéntica a la rama 2 original de INC-46.
                 await _externalLogins.AddAsync(
-                    new ExternalLogin(match.Id, providerName, key, normalizedEmail), cancellationToken);
+                    new ExternalLogin(match.Id, providerName, key, normalizedEmail, providerEmailVerified: emailVerified),
+                    cancellationToken);
                 return match;
             }
         }
@@ -83,7 +99,8 @@ public sealed class ExternalLoginService : IExternalLoginService
 
         await _users.AddAsync(newUser, cancellationToken);
         await _externalLogins.AddAsync(
-            new ExternalLogin(newUser.Id, providerName, key, normalizedEmail), cancellationToken);
+            new ExternalLogin(newUser.Id, providerName, key, normalizedEmail, providerEmailVerified: emailVerified),
+            cancellationToken);
 
         return newUser;
     }
