@@ -280,3 +280,137 @@ Ninguno más allá de los dos hallazgos ya documentados (el bug de `RemoveAsync`
 ## Estado
 
 **14/14 tareas completas.** `dotnet test Ludeka.sln`: **1369/1369 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **630 (658 con `tasks.md`)**, por encima del presupuesto de 400 y del extremo alto de la estimación (465) — **decisión de partición/excepción pendiente del orquestador y el maintainer**, no tomada por esta fase. Worktree limpio, 5 commits sin pushear, sin PR abierto: eso lo gestiona el orquestador.
+
+---
+
+# Progreso de aplicación — INC-49, PR #3 (Transporte OAuth y contrato de lectura)
+
+> **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-apply` · **Fecha:** 2026-09-17
+> **Alcance de este lote:** únicamente las 11 tareas del PR #3 (Unidad D + `ExternalLoginIntent` + G1 + `AccountConnectionRoutes`), sección «PR #3 — Transporte OAuth y contrato de lectura» de `tasks.md`.
+> **Modo:** Strict TDD activo. Runner contractual: `dotnet test Ludeka.sln`.
+> **Lote:** tercer lote — progreso previo de PR #1 y PR #2 (observación 370) leído íntegramente y fusionado arriba, sin pisarlo.
+> **Worktree / rama:** `C:\repos\ludeka-wt\vinculacion-cuentas` — `inc/vinculacion-cuentas-03-transporte` (parte de `inc/vinculacion-cuentas-02-application` en `f9aa11f`).
+
+---
+
+## Tareas completadas (11/11)
+
+- [x] 3.1 **[RED]** `ExternalLoginIntentTests.cs` (nuevo) — ida/vuelta de `MarkLink`/`TryReadLink` sobre `Items`, ausencia, valor distinto, `null`, no lectura de `Parameters` ni de ningún otro canal, y contrato de firma por reflexión. RED por `CS0103`/`CS0246` (`ExternalLoginIntent` no existía).
+- [x] 3.2 **[GREEN]** `ExternalLoginIntent.cs` (nuevo) — clase estática y pura con `IntentKey`, `LinkValue`, `UserIdKey`, `MarkLink`, `TryReadLink`. Hace pasar 3.1.
+- [x] 3.3 **[GREEN, mecánica]** `AccountConnectionRoutes.cs` (nuevo) — `Page`, `LoginWithLinkWithoutSession`, `PageWithSessionChanged`, `PageWithResult(outcome)`. Sin RED dedicado, según lo previsto por la propia tarea; se ejercita indirectamente por 3.4-3.7.
+- [x] 3.4 **[RED]** `ExternalLoginEventsLinkBranchTests.cs` (nuevo) — caso "sesión coincide con la intención", construyendo un `TicketReceivedContext` real (`AuthenticationScheme` con `CookieAuthenticationHandler`, `RemoteAuthenticationOptions`, `AuthenticationTicket`). RED por `CS0117` (`HandleTicketReceivedAsync` era `private`).
+- [x] 3.5 **[GREEN]** `ExternalLoginEvents.cs` — método pasado a `public static`; bifurcación `if (ExternalLoginIntent.TryReadLink(...))` antes de `ResolveAsync`, camino feliz (sin la reconfirmación de sesión todavía). Hace pasar 3.4.
+- [x] 3.6 **[RED]** Ampliado `ExternalLoginEventsLinkBranchTests.cs` — casos "sin sesión al volver" y "sesión de otro usuario". RED en ejecución real (`NullReferenceException`: sin la reconfirmación, el código llamaba a `LinkAsync` incondicionalmente y el doble de prueba no tenía `LinkResult` configurado para esos casos).
+- [x] 3.7 **[GREEN]** Completada la bifurcación con la reconfirmación `intendedUserId == sessionUserId`; las dos ramas de fallo llaman a `HandleResponse()` + `Response.Redirect(...)` **sin** invocar `LinkAsync`. Hace pasar 3.6.
+- [x] 3.8 **[RED]** `AccountConnectionsServiceTests.cs` (nuevo, fixture SQLite `:memory:`) — `GetConnectionsAsync` sin/con sesión, `HasVerifiedProviderEmailAsync` en sus tres variantes. RED por `CS0246` (`AccountConnectionsService` no existía).
+- [x] 3.9 **[GREEN]** `IAccountConnectionsService.cs` + `AccountConnectionsService.cs` (nuevos) sobre `IExternalLoginRepository` + `ICurrentUserService` + `IOptions<AuthenticationOptions>`, con caché de ámbito por instancia. `ICurrentUserService` no se tocó. Hace pasar 3.8.
+- [x] 3.10 **[RED]** `AuthorizationPipelineContractTests.cs` — `[Fact]` hermano de `PublicEndpoint_ShouldDeclareAllowAnonymous` para el bloque de `/cuenta/conexiones/vincular`. RED: el endpoint no existía.
+- [x] 3.11 **[GREEN]** `Program.cs` — `POST /cuenta/conexiones/vincular` mapeado tras el bloque `/logout`, con antiforgery manual, `userId` leído exclusivamente de `httpContext.User`, `ExternalLoginIntent.MarkLink` + `Results.Challenge`, `.RequireAuthorization()`; registro de `IAccountConnectionsService` en el contenedor. Hace pasar 3.10.
+
+**No regresión confirmada:** las 6 pruebas de `ExternalLoginServiceTests.cs:51-146` no se tocaron y siguen en verde; `PublicEndpoint_ShouldDeclareAllowAnonymous` (4 casos) sigue en verde sin tocarse — el endpoint nuevo se mapea después de `/logout`, dejando ese bloque delimitado igual. Sin `ludeka:intent` en `Items`, el camino de acceso queda textualmente idéntico salvo por la reubicación (sin cambio de comportamiento) de la línea que resuelve `IExternalLoginService`; no existía ni se pidió un arnés de prueba end-to-end del camino de acceso a través del evento antes de este PR, así que esta garantía se apoya en inspección directa del diff, no en una ejecución nueva de ese camino completo.
+
+## Tarea añadida fuera de la numeración 3.1-3.11 (necesaria para completar honestamente 3.5/3.7)
+
+Al completar 3.5 con el camino feliz literal ("si `Outcome == Linked`, reconstruir el principal..."), quedaba sin cubrir el caso `Outcome != Linked` con sesión coincidente (p. ej. `RejectedOwnedByAnotherAccount`), que el propio código de diseño §D1 exige manejar con `HandleResponse()` + redirección, sin firmar sesión. Se añadió un `[Fact]` adicional (`HandleTicketReceivedAsync_WhenLinkAsyncDoesNotLink_ShouldHandleResponseAndRedirectWithoutRebuildingThePrincipal`) verificado RED (con la rama retirada temporalmente) → GREEN (con la rama añadida), en vez de dejarlo sin probar. No es una tarea nueva del alcance, es la finalización honesta de 3.5/3.7 exigida por el propio snippet de diseño.
+
+## Hallazgo relevante: contrato real de `HandleResponse()` (tarea 3.6, ver informe del orquestador)
+
+Antes de escribir la prueba, se construyó un `TicketReceivedContext` real en un programa de consola de un solo uso (`net10.0`, `FrameworkReference` a `Microsoft.AspNetCore.App`, fuera del repositorio) para verificar por ejecución, no por documentación, el contrato de `HandleResponse()`. Resultado observado: `context.HandleResponse()` fija `context.Result` a un `HandleRequestResult` con `Handled = true` y `Skipped = false`; `context.Response.Redirect(url)` fija `StatusCode = 302` y la cabecera `Location`; nada firma `Set-Cookie`. Esto confirma el contrato documentado de la clase base (`HandleRequestContext<TOptions>.HandleResponse()`: "Discontinue all processing for this request and return to the client"). **Lo que esta prueba NO ejercita** es el bucle completo de `RemoteAuthenticationHandler<TOptions>` (código de framework, no de este repositorio) que consulta ese `Result.Handled` para decidir si omite su propio `SignInAsync` posterior — esa garantía de extremo a extremo la sigue reservando el smoke test manual de la propuesta §11 (tarea 4.5, fuera de este PR), tal y como el propio diseño lo declara.
+
+Se descubrió también, por reflexión sobre el ensamblado real: `TicketReceivedContext` se construye con `(HttpContext, AuthenticationScheme, RemoteAuthenticationOptions, AuthenticationTicket)` —no `(..., ClaimsPrincipal, AuthenticationProperties)` como el snippet de `design.md` podría sugerir a primera lectura—; `AuthenticationTicket` empaqueta ambos. `RemoteAuthenticationContext<TOptions>.Principal` y `.Properties` sí tienen setter público (`get=true set=true`), confirmando que el código de diseño (`context.Principal = ...`, `context.Properties.IsPersistent = true`) compila tal cual está escrito.
+
+---
+
+## Evidencia del ciclo TDD
+
+| Tarea | Fichero de prueba | Capa | Red de seguridad | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 3.1/3.2 | `Web/ExternalLoginIntentTests.cs` | Unidad (pura, sin HTTP) | ➖ N/A (fichero nuevo) | ✅ Escrito (CS0103/CS0246) | ✅ Pasa (6/6) | ✅ 5 casos (ida/vuelta, ausente, valor distinto, `null`, `Parameters`) + 1 de contrato de firma | ➖ No hizo falta |
+| 3.4/3.5 | `Web/ExternalLoginEventsLinkBranchTests.cs` | Unidad (`TicketReceivedContext` real) | ➖ N/A (fichero nuevo) | ✅ Escrito (CS0117, método `private`) | ✅ Pasa (1/1) | ➖ Caso único del camino feliz | ➖ No hizo falta |
+| 3.6/3.7 | idem | idem | ✅ 1/1 (test anterior) | ✅ Escrito, fallo real en ejecución (`NullReferenceException` por ausencia de reconfirmación) | ✅ Pasa (3/3) | ✅ 2 casos (sin sesión, sesión distinta) | ➖ No hizo falta |
+| *(añadida)* | idem | idem | ✅ 3/3 | ✅ Escrito, `Assert.NotNull` fallaba con la rama `Outcome != Linked` retirada | ✅ Pasa (4/4) | ➖ Caso único, finalización honesta de 3.5/3.7 | ➖ No hizo falta |
+| 3.8/3.9 | `Application/AccountConnectionsServiceTests.cs` | Unidad (SQLite `:memory:`) | ➖ N/A (fichero nuevo) | ✅ Escrito (CS0246) | ✅ Pasa (5/5) | ✅ 5 casos (vacía sin sesión, listado con 2 habilitados, 3 variantes de `HasVerifiedProviderEmailAsync`) | ➖ No hizo falta |
+| 3.10/3.11 | `Web/AuthorizationPipelineContractTests.cs` | Contrato de fuente | ✅ 10/10 (baseline del fichero) | ✅ Escrito, fallo real en ejecución (`"No se encontró el endpoint..."`) | ✅ Pasa (11/11) | ➖ Caso único, espejo de `PublicEndpoint_ShouldDeclareAllowAnonymous` | ➖ No hizo falta |
+
+### Resumen de pruebas
+
+- **Pruebas nuevas escritas:** 16 (6 + 4 + 5 + 1).
+- **Pruebas totales pasando:** 1385/1385 (baseline 1369 + 16 nuevas), 0 fallos, 0 omitidas.
+- **Capas usadas:** Unidad (16: 6 puras, 5 con `TicketReceivedContext` real, 5 con SQLite `:memory:`), Contrato de fuente (1, sobre el fichero ya existente), Integración (0), E2E (0) — el smoke test manual (tarea 4.5) queda para el PR #4.
+- **Pruebas de aprobación (refactor):** Ninguna — sin refactorización de conducta existente en este PR.
+- **Funciones puras creadas:** 2 (`ExternalLoginIntent.MarkLink`/`TryReadLink`, sin dependencias de HTTP; `AccountConnectionRoutes.PageWithResult`).
+
+---
+
+## Evidencia de unidad de trabajo
+
+| Evidencia | Valor |
+|---|---|
+| Comando de prueba enfocado y resultado exacto | `dotnet test Ludeka.sln --filter "FullyQualifiedName~ExternalLoginIntentTests\|FullyQualifiedName~ExternalLoginEventsLinkBranchTests\|FullyQualifiedName~AccountConnectionsServiceTests\|FullyQualifiedName~AuthorizationPipelineContractTests"` → **Con error: 0, Superado: 26, Omitido: 0, Total: 26** (6+4+5+11, incluyendo las 10 pruebas preexistentes de `AuthorizationPipelineContractTests`) |
+| Arnés de runtime / escenario y resultado exacto | **N/A parcial, según lo previsto por el propio work unit de `tasks.md`**: el endpoint es alcanzable por HTTP pero sin botón en interfaz (PR #4); las pruebas de `ExternalLoginEventsLinkBranchTests` ya ejercitan el contrato real de `TicketReceivedContext`, que es el arnés más cercano a runtime disponible sin levantar un `WebApplicationFactory` completo con proveedores OAuth reales |
+| Frontera de reversión | Revertir el endpoint (`Program.cs`), la bifurcación (`ExternalLoginEvents.cs`) y los 4 ficheros nuevos de `Ludeka.Web/Authentication` + `Ludeka.Application/Features/Identity`; sin `Items`, el camino de login queda igual; el `[Fact]` añadido a `AuthorizationPipelineContractTests.cs` se revierte con el endpoint |
+
+---
+
+## Ficheros modificados
+
+| Fichero | Acción | Qué cambia |
+|---|---|---|
+| `src/Ludeka.Web/Authentication/ExternalLoginIntent.cs` | Creado | Clase pura de intención de vinculación sobre `Items` |
+| `src/Ludeka.Web/Authentication/AccountConnectionRoutes.cs` | Creado | Rutas cerradas de resultado |
+| `src/Ludeka.Web/Authentication/ExternalLoginEvents.cs` | Modificado | `HandleTicketReceivedAsync` público + bifurcación de vinculación completa |
+| `src/Ludeka.Application/Features/Identity/IAccountConnectionsService.cs` | Creado | Contrato de lectura de conexiones |
+| `src/Ludeka.Application/Features/Identity/AccountConnectionsService.cs` | Creado | Implementación con caché de ámbito |
+| `src/Ludeka.Web/Program.cs` | Modificado | Endpoint `POST /cuenta/conexiones/vincular` + registro de DI |
+| `tests/Ludeka.UnitTests/Web/ExternalLoginIntentTests.cs` | Creado | 6 pruebas |
+| `tests/Ludeka.UnitTests/Web/ExternalLoginEventsLinkBranchTests.cs` | Creado | 4 pruebas |
+| `tests/Ludeka.UnitTests/Application/AccountConnectionsServiceTests.cs` | Creado | 5 pruebas |
+| `tests/Ludeka.UnitTests/Web/AuthorizationPipelineContractTests.cs` | Modificado | +1 prueba |
+| `openspec/changes/change-49-vinculacion-cuentas/tasks.md` | Modificado | 11 casillas marcadas `[x]` |
+
+---
+
+## Recuento de líneas autoradas (`git diff f9aa11f..HEAD --stat`)
+
+| Alcance | Inserciones | Eliminaciones | Total |
+|---|---|---|---|
+| Producción (6 ficheros) | 266 | 1 | **267** |
+| Pruebas (4 ficheros) | 427 | 0 | **427** |
+| Producción + pruebas (sin `tasks.md`) | 692 | 1 | **693** |
+| + `tasks.md` (bookkeeping de tareas) | 703 | 12 | **715** |
+
+Sin artefactos generados en este PR (no hay migración EF Core ni `.Designer.cs`).
+
+**Contraste con la estimación de `tasks.md` (≈365-570, "el de mayor riesgo de la cadena"):** el real (693, o 715 con `tasks.md`) **supera el extremo alto de la estimación en 123 líneas** (145 con `tasks.md`) y **supera el presupuesto de 400 líneas en 293 líneas** (315 con `tasks.md`). `tasks.md` ya anticipaba este riesgo antes de empezar («PR #3 escribe primero una prueba que construye un `TicketReceivedContext` real... la prueba más cara de todo el incremento») y esta fase lo confirma con medición real. No se ha troceado el PR, no se ha omitido ninguna prueba y no se ha comprimido código para encajar en 400: las 11 tareas están completas y correctas (más el `[Fact]` añadido para completar honestamente 3.5/3.7); la cifra real queda reportada para que el orquestador y el maintainer decidan entre partir o registrar `size:exception`, tal y como exige el propio aviso de entrega de `tasks.md`.
+
+---
+
+## Commits creados (5, ninguno pusheado)
+
+1. `21546ac` `feat(web): transportar la intencion de vinculacion en AuthenticationProperties.Items`
+2. `ef2a033` `feat(web): bifurcar HandleTicketReceivedAsync hacia la vinculacion de cuentas`
+3. `09c5ffa` `feat(application): exponer la lectura de conexiones de la propia cuenta` — **el cuerpo de este commit tiene un error tipográfico propio** ("ampliaICurrentUserService" sin espacio, debía decir "amplía `ICurrentUserService`"). No se corrigió con `--amend` por prohibición explícita de esta fase de recurrir a esa operación sin petición expresa del usuario; queda anotado aquí con transparencia.
+4. `1cf49f4` `feat(web): anadir el endpoint de vinculacion con autorizacion exigida`
+5. `c1cebd4` `docs(sdd): completar las tareas 3.1-3.11 del PR #3 de INC-49`
+
+Ninguno lleva atribución de IA. Worktree limpio (`git status` sin cambios pendientes) sobre `inc/vinculacion-cuentas-03-transporte`, sin push ni PR: eso lo decide el orquestador.
+
+---
+
+## Desviaciones respecto al diseño / tareas
+
+1. **Ninguna de las 11 tareas se reinventó.** Se implementaron tal como están escritas, en el orden RED→GREEN especificado.
+2. **`[Fact]` añadido fuera de la numeración 3.1-3.11** (documentado arriba): cubre `Outcome != Linked` con sesión coincidente, exigido por el propio código de `design.md` §D1 pero sin RED explícito en `tasks.md`. Verificado RED→GREEN igualmente antes de dejarlo en el código.
+3. **`AccountConnectionsService` usa `IOptions<AuthenticationOptions>` (Application) para resolver "proveedores habilitados"**, en vez de depender de `Ludeka.Web.ExternalAuthenticationSchemes.GetEnabledProviders` (que vive en Web y expondría `ClientId`/`ClientSecret` a Application). Es una repetición deliberada y mínima de la condición `Enabled && HasCredentials` ya expuesta por `ExternalProviderOptions.IsUsable`, no una violación de Clean Architecture: `AuthenticationOptions`/`ExternalProviderNames` ya viven en `Ludeka.Application.Features.Identity`, verificado antes de escribir código. No se añadió ningún paquete a `Ludeka.Application.csproj` (regla de obligado cumplimiento del encargo: verificado que `Microsoft.Extensions.Options` ya era dependencia transitiva de `Microsoft.Extensions.Caching.Memory` y ya se usaba en otros servicios de Application).
+4. **Error tipográfico en el mensaje del commit 3** (documentado en la sección de commits), no corregido por prohibición de `amend` sin petición expresa.
+
+## Tropiezos operativos
+
+1. **Reflexión sobre ensamblados de referencia (`ref/net10.0`) falla en tiempo de ejecución** (`ReflectionOnlyLoad`/`BadImageFormatException` en PowerShell 5.1, que es .NET Framework): se resolvió creando un proyecto de consola `net10.0` de un solo uso en el scratchpad, con `FrameworkReference` al `Microsoft.AspNetCore.App` compartido, para reflexionar y ejecutar en vivo contra el ensamblado real y así fijar el contrato de `TicketReceivedContext`/`HandleResponse()` con evidencia, no con memoria del entrenamiento. No se compiló ni ejecutó nada dentro del repositorio del incremento para esta comprobación.
+2. Ningún bloqueo por `MSB3027` (no había ningún proceso `Ludeka.Web` en ejecución).
+
+---
+
+## Estado
+
+**11/11 tareas completas.** `dotnet test Ludeka.sln`: **1385/1385 en verde, 0 fallos, 0 omitidas.** Líneas autoradas reales: **693 (715 con `tasks.md`)**, muy por encima del presupuesto de 400 y del extremo alto de la propia estimación de riesgo de `tasks.md` (570) — **decisión de partición/excepción pendiente del orquestador y el maintainer**, no tomada por esta fase. Worktree limpio, 5 commits sin pushear, sin PR abierto: eso lo gestiona el orquestador.
