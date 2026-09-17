@@ -1,4 +1,5 @@
 using System;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Web.Authentication;
 using Microsoft.AspNetCore.Components;
 
@@ -50,6 +51,19 @@ public static class LoginRedirect
         navigation.ToLogin();
         return true;
     }
+
+    /// <summary>
+    /// Traduce el código cerrado de <c>?aviso=</c> (INC-49, diseño §3.1) al texto fijo que
+    /// <c>Login.razor</c> renderiza. Mismo código cerrado que
+    /// <see cref="AccountConnectionRoutes.LoginWithAccountCollision"/>. Un código ausente o
+    /// distinto no produce ningún texto: todos los destinos de este aviso son códigos de un
+    /// conjunto cerrado, nunca texto libre transportado por la cadena de consulta.
+    /// </summary>
+    public static string? ResolveAccountCollisionNotice(string? aviso) => aviso switch
+    {
+        "cuenta-existente" => AccountConnectionMessages.LoginCollisionNotice,
+        _ => null
+    };
 
     /// <summary>Ruta de la petición actual, o <c>null</c> si ya es el propio acceso.</summary>
     private static string? ResolveReturnUrl(string? uri)

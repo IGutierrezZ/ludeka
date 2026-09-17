@@ -94,18 +94,31 @@ public static class ExternalLoginEvents
             return;
         }
 
-        var user = await loginService.ResolveAsync(
-            providerName,
-            providerKey,
-            email,
-            emailVerified,
-            displayName,
-            context.HttpContext.RequestAborted);
+        try
+        {
+            var user = await loginService.ResolveAsync(
+                providerName,
+                providerKey,
+                email,
+                emailVerified,
+                displayName,
+                context.HttpContext.RequestAborted);
 
-        context.Principal = BuildSessionPrincipal(user);
-        context.Properties ??= new AuthenticationProperties();
-        context.Properties.IsPersistent = true;
-        context.Properties.AllowRefresh = true;
+            context.Principal = BuildSessionPrincipal(user);
+            context.Properties ??= new AuthenticationProperties();
+            context.Properties.IsPersistent = true;
+            context.Properties.AllowRefresh = true;
+        }
+        catch (ExternalLoginCollisionException)
+        {
+            // INC-49, partición 2a/2b de ResolveAsync (diseño §2.2/§3.1): el correo verificado
+            // coincide con una cuenta que ya tiene otro proveedor vinculado. Nunca se fusiona en
+            // silencio: se informa del conflicto y se dirige a iniciar sesión con el método ya
+            // usado. Distinto del rechazo de vinculación (bifurcación de arriba): aquí SÍ existe
+            // la salida hacia Ajustes → Conexiones.
+            context.HandleResponse();
+            context.Response.Redirect(AccountConnectionRoutes.LoginWithAccountCollision);
+        }
     }
 
     /// <summary>Construye el principal de la cookie de sesión propia de Ludeka.</summary>

@@ -25,6 +25,14 @@ public static class AccountConnectionRoutes
     public const string PageWithSessionChanged = "/cuenta/conexiones?resultado=sesion-cambiada";
 
     /// <summary>
+    /// El correo verificado del acceso normal (no de vinculación) coincide con una cuenta que ya
+    /// tiene al menos un proveedor vinculado (rama 2b de <c>ResolveAsync</c>, INC-49). Nunca se
+    /// fusiona en silencio: se informa del conflicto y se dirige a iniciar sesión con el método ya
+    /// usado. Mismo código cerrado que interpreta <see cref="Ludeka.Web.Services.LoginRedirect.ResolveAccountCollisionNotice(string?)"/>.
+    /// </summary>
+    public const string LoginWithAccountCollision = "/login?aviso=cuenta-existente";
+
+    /// <summary>
     /// Traduce el resultado de <see cref="IExternalLoginService.LinkAsync"/> al código cerrado de
     /// <c>?resultado=</c> que <c>AccountConnections.razor</c> (PR #4) interpreta en servidor.
     /// </summary>
