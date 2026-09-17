@@ -1,11 +1,11 @@
 # INC-49: Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente
 
-> **Estado:** ⏳ Planificado (alcance aprobado el 2026-09-16)
+> **Estado:** ✅ Archivado (2026-09-18) — verificado con `pass_with_warnings`, 35/35 escenarios conformes, 0 hallazgos CRITICAL, 1 WARNING, 2 SUGGESTION; suite final 1.417/1.417 (línea base 1.345). Smoke test manual de navegador pendiente (tarea 4.5, exige credenciales OAuth reales no disponibles en este entorno).
 > **Fecha de Inicio:** 2026-09-16
-> **Rama de Trabajo:** `inc/vinculacion-cuentas`
+> **Rama de Trabajo:** `inc/vinculacion-cuentas` (cadena de 7 PRs encadenados, #23-#29, todos mergeados a `main`)
 > **Worktree:** `C:\repos\ludeka-wt\vinculacion-cuentas`
 > **Dependencias:** INC-46 (Autenticación Real, archivado)
-> **Especificación Viva del Sistema:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md)
+> **Especificación Viva del Sistema:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) · [33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md)
 
 ---
 
