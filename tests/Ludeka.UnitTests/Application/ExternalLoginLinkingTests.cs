@@ -14,9 +14,9 @@ namespace Ludeka.UnitTests.Application;
 
 /// <summary>
 /// Vinculación y desvinculación de proveedores de identidad desde sesión activa (INC-49, PR #2):
-/// <see cref="IExternalLoginService.LinkAsync"/>, la comprobación previa de par en uso y la
-/// carrera contra el índice único. Sigue el armazón de <see cref="ExternalLoginServiceTests"/>
-/// (SQLite en memoria).
+/// <see cref="IExternalLoginService.LinkAsync"/>, <see cref="IExternalLoginService.UnlinkAsync"/>,
+/// la guarda del último método y la petición que evita la interfaz. Sigue el armazón de
+/// <see cref="ExternalLoginServiceTests"/> (SQLite en memoria).
 /// </summary>
 public class ExternalLoginLinkingTests : IAsyncLifetime
 {
@@ -127,6 +127,54 @@ public class ExternalLoginLinkingTests : IAsyncLifetime
         var link = await _context.ExternalLogins.AsNoTracking()
             .SingleAsync(l => l.Provider == "Google" && l.ProviderKey == "race-key");
         Assert.Equal(owner.Id, link.UserId);
+    }
+
+    [Fact]
+    public async Task UnlinkAsync_WhenAccountHasTwoOrMoreLinks_ShouldRemoveOnlyTheIndicatedOne()
+    {
+        // Arrange: la cuenta tiene dos vínculos, así que desvincular uno deja el otro intacto.
+        var user = await SeedUserAsync(new AppUser("user-unlink-1", "Jugadora Unlink", "unlink1@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Google", "google-unlink"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Discord", "discord-unlink"));
+
+        // Act
+        await _service.UnlinkAsync(user.Id, "Google");
+
+        // Assert: la fila de Google se eliminó y la cuenta conserva la de Discord.
+        var remaining = await _externalLoginRepository.ListByUserIdAsync(user.Id);
+        Assert.Single(remaining);
+        Assert.Equal("Discord", remaining[0].Provider);
+    }
+
+    [Fact]
+    public async Task UnlinkAsync_WhenAccountHasOnlyOneLink_ShouldDenyEvenWhenCalledDirectlyBypassingTheInterface()
+    {
+        // Arrange: una cuenta con exactamente un único vínculo.
+        var user = await SeedUserAsync(new AppUser("user-guard-1", "Jugadora Guarda", "guarda1@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Google", "google-guarda"));
+
+        // Act + Assert: se llama DIRECTAMENTE a UnlinkAsync desde la prueba, sin pasar por ningún
+        // botón — es, por construcción, "la petición que evita la interfaz" del escenario.
+        await Assert.ThrowsAsync<LastAccessMethodException>(
+            () => _service.UnlinkAsync(user.Id, "Google"));
+
+        // Assert: la fila permanece vinculada.
+        var remaining = await _externalLoginRepository.ListByUserIdAsync(user.Id);
+        Assert.Single(remaining);
+    }
+
+    [Fact]
+    public async Task UnlinkAsync_WhenProviderNotLinked_ShouldBeIdempotentAndNotThrow()
+    {
+        // Arrange: la cuenta tiene un vínculo, pero no con el proveedor que se intenta desvincular.
+        var user = await SeedUserAsync(new AppUser("user-unlink-2", "Jugador Idempotente", "unlink2@ludeka.es"));
+        await _externalLoginRepository.AddAsync(new ExternalLogin(user.Id, "Discord", "discord-idempotente"));
+
+        // Act + Assert: no lanza, y la fila existente permanece intacta.
+        await _service.UnlinkAsync(user.Id, "Google");
+        var remaining = await _externalLoginRepository.ListByUserIdAsync(user.Id);
+        Assert.Single(remaining);
+        Assert.Equal("Discord", remaining[0].Provider);
     }
 
     /// <summary>

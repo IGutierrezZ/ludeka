@@ -49,4 +49,18 @@ public interface IExternalLoginService
         string? email,
         bool emailVerified,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Desvincula el proveedor indicado de la cuenta de la sesión. Es idempotente si no estaba
+    /// vinculado.
+    /// </summary>
+    /// <param name="userId">Identificador de la cuenta de la sesión activa.</param>
+    /// <param name="provider">Proveedor de identidad a desvincular.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <exception cref="LastAccessMethodException">Es el último método de acceso de la cuenta.</exception>
+    /// <exception cref="UnauthorizedAccessException">No hay sesión, o la cuenta no existe o está suspendida.</exception>
+    Task UnlinkAsync(
+        string userId,
+        string provider,
+        CancellationToken cancellationToken = default);
 }

@@ -45,7 +45,14 @@ public class ExternalLoginRepository : IExternalLoginRepository
     /// <inheritdoc />
     public async Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
     {
-        _context.ExternalLogins.Remove(externalLogin);
+        // Corrección INC-49 (PR #2): si esta misma fila ya está bajo seguimiento por otra instancia
+        // -por ejemplo, tras un AddAsync anterior en el mismo DbContext, el caso real de LinkAsync
+        // seguido de UnlinkAsync sobre el mismo ámbito- se elimina esa instancia rastreada. Adjuntar
+        // una segunda instancia con la misma clave lanzaría un conflicto de identidad en el ChangeTracker.
+        var tracked = _context.ChangeTracker.Entries<ExternalLogin>()
+            .FirstOrDefault(e => e.Entity.Id == externalLogin.Id)?.Entity;
+
+        _context.ExternalLogins.Remove(tracked ?? externalLogin);
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

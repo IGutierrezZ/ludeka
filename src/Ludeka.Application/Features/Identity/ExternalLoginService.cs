@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
@@ -93,17 +94,11 @@ public sealed class ExternalLoginService : IExternalLoginService
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(providerKey);
 
-        var id = SessionIdentity.Require(userId);
         var providerName = provider.Trim();
         var key = providerKey.Trim();
         var normalizedEmail = NormalizeEmail(email);
 
-        // Relectura sin rastreo: el estado actual de la cuenta manda (SessionPermissionGuard.cs:37).
-        var user = await _users.GetByIdAsync(id, cancellationToken);
-        if (user is null || user.Status == UserStatus.Suspended)
-        {
-            throw new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage);
-        }
+        var user = await RequireActiveUserAsync(userId, cancellationToken);
 
         // Doble barrera (INC-49, sección 3.1): esta comprobación previa existe para poder redactar
         // un mensaje honesto; el índice único (Provider, ProviderKey) es la garantía real.
@@ -129,6 +124,51 @@ public sealed class ExternalLoginService : IExternalLoginService
         }
 
         return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user);
+    }
+
+    /// <inheritdoc />
+    public async Task UnlinkAsync(
+        string userId,
+        string provider,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+
+        var user = await RequireActiveUserAsync(userId, cancellationToken);
+
+        // Solo entre las filas PROPIAS: reasignar o borrar la de otro es estructuralmente imposible.
+        var links = await _externalLogins.ListByUserIdAsync(user.Id, cancellationToken);
+        var target = links.FirstOrDefault(l => string.Equals(l.Provider, provider.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (target is null)
+        {
+            return; // idempotente: ya no estaba vinculado
+        }
+
+        // LA GUARDA: sin esto, la cuenta se quedaría sin ninguna forma de volver a entrar.
+        if (links.Count <= 1)
+        {
+            throw new LastAccessMethodException(AccountConnectionMessages.LastAccessMethodDenied);
+        }
+
+        await _externalLogins.RemoveAsync(target, cancellationToken);
+    }
+
+    /// <summary>
+    /// Invariante compartido de <see cref="LinkAsync"/> y <see cref="UnlinkAsync"/> (INC-49, diseño
+    /// §D5): exige sesión y relee la cuenta sin rastreo, igual que <c>SessionPermissionGuard.cs:37</c>,
+    /// de modo que la suspensión surte efecto en la operación siguiente sin depender de la cookie.
+    /// </summary>
+    /// <exception cref="UnauthorizedAccessException">No hay sesión, o la cuenta no existe o está suspendida.</exception>
+    private async Task<AppUser> RequireActiveUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var id = SessionIdentity.Require(userId);
+        var user = await _users.GetByIdAsync(id, cancellationToken);
+        if (user is null || user.Status == UserStatus.Suspended)
+        {
+            throw new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage);
+        }
+
+        return user;
     }
 
     internal static string BuildUserId(string provider, string providerKey)
