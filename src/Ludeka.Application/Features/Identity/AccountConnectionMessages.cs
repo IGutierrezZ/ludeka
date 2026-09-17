@@ -71,4 +71,14 @@ public static class AccountConnectionMessages
     /// </summary>
     public const string UnverifiedProviderEmailNotice =
         "Tu cuenta no tiene ningún correo verificado por un proveedor de acceso. Vincula otro método para no perderla si el actual deja de estar disponible.";
+
+    /// <summary>
+    /// Aviso de colisión EN EL LOGIN (INC-49, propuesta §4.2; diseño §3.1 "por qué no sirve el
+    /// mensaje de colisión de §4.2"). DISTINTO del rechazo de vinculación
+    /// (<see cref="RejectedOwnedByAnotherAccountHeadline"/>/<see cref="RejectedOwnedByAnotherAccountDetail"/>):
+    /// aquí el proveedor entrante NO está repartido, así que la salida hacia Ajustes → Conexiones
+    /// existe de verdad — nunca se muestra este texto cuando el proveedor ya pertenece a otra cuenta.
+    /// </summary>
+    public const string LoginCollisionNotice =
+        "Ya existe una cuenta con este correo. Inicia sesión con el método que ya usas y vincula este proveedor desde Ajustes → Conexiones.";
 }
