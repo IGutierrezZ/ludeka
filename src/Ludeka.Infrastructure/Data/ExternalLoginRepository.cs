@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +31,20 @@ public class ExternalLoginRepository : IExternalLoginRepository
     public async Task AddAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
     {
         await _context.ExternalLogins.AddAsync(externalLogin, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Segunda barrera de LinkAsync (INC-49, diseño §3.1): traduce la excepción del ORM a
+            // lenguaje de dominio aquí, en Infrastructure, para que Ludeka.Application no necesite
+            // conocer EF Core (Clean Architecture: el ORM se queda en esta capa).
+            throw new DuplicateExternalLoginException(
+                $"El par (Provider, ProviderKey) = ({externalLogin.Provider}, {externalLogin.ProviderKey}) ya está tomado.",
+                ex);
+        }
     }
 
     /// <inheritdoc />

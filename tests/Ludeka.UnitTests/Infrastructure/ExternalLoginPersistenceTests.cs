@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Identity;
 using Ludeka.Core.Entities;
 using Ludeka.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
@@ -119,8 +120,10 @@ public class ExternalLoginPersistenceTests : IAsyncLifetime
         IExternalLoginRepository repository = new ExternalLoginRepository(_context);
         await repository.AddAsync(new ExternalLogin("user-a", "Google", "clave-compartida"));
 
-        // Act & Assert: el par (Provider, ProviderKey) no puede repetirse aunque cambie el usuario
-        await Assert.ThrowsAsync<DbUpdateException>(
+        // Act & Assert: el par (Provider, ProviderKey) no puede repetirse aunque cambie el usuario.
+        // La excepción nativa del ORM (DbUpdateException) llega traducida a lenguaje de dominio,
+        // porque Infrastructure es la única capa que debe conocer EF Core (AGENTS.md §4).
+        await Assert.ThrowsAsync<DuplicateExternalLoginException>(
             () => repository.AddAsync(new ExternalLogin("user-b", "Google", "clave-compartida")));
     }
 
@@ -214,8 +217,8 @@ public class ExternalLoginPersistenceTests : IAsyncLifetime
         await repository.RemoveAsync(original);
         await repository.AddAsync(new ExternalLogin("user-cycle-a", "Google", "clave-reciclada"));
 
-        // Act & Assert
-        await Assert.ThrowsAsync<DbUpdateException>(
+        // Act & Assert: misma traducción de excepción que en el caso simple de arriba.
+        await Assert.ThrowsAsync<DuplicateExternalLoginException>(
             () => repository.AddAsync(new ExternalLogin("user-cycle-b", "Google", "clave-reciclada")));
     }
 

@@ -6,7 +6,6 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
-using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Application.Features.Identity;
 
@@ -123,7 +122,7 @@ public sealed class ExternalLoginService : IExternalLoginService
                 new ExternalLogin(user.Id, providerName, key, normalizedEmail, providerEmailVerified: emailVerified),
                 cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (DuplicateExternalLoginException)
         {
             // Misma barrera que arriba, pero disparada por el índice único ante una carrera real
             // entre dos intentos casi simultáneos: mismo mensaje, dispare quien dispare.

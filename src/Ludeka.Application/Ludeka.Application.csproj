@@ -6,9 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0-*" />
-    <!-- Solo el paquete núcleo (sin proveedor): expone DbUpdateException, provider-agnóstico, para
-         la doble barrera de LinkAsync (INC-49, diseño §3.1). No añade Sqlite ni Npgsql aquí. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-*" />
   </ItemGroup>
 
   <PropertyGroup>

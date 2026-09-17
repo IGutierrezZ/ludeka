@@ -28,3 +28,19 @@ public sealed class ExternalLoginCollisionException : InvalidOperationException
     {
     }
 }
+
+/// <summary>
+/// Se lanza cuando el índice único (Provider, ProviderKey) rechaza la escritura porque, en el
+/// instante de persistir, esa pareja ya pertenece a otra fila (INC-49, diseño §3.1: segunda
+/// barrera de <c>LinkAsync</c> frente a una carrera real entre dos intentos casi simultáneos).
+/// La traduce <c>Ludeka.Infrastructure</c> desde la excepción nativa del proveedor de persistencia
+/// para que esta capa de casos de uso no necesite conocer el ORM (Clean Architecture: la dirección
+/// de dependencias no se invierte).
+/// </summary>
+public sealed class DuplicateExternalLoginException : InvalidOperationException
+{
+    public DuplicateExternalLoginException(string message, Exception? innerException = null)
+        : base(message, innerException)
+    {
+    }
+}
