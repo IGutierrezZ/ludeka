@@ -2,6 +2,13 @@
 
 > Cambio `change-49-vinculacion-cuentas` (INC-49). Cierra el requisito abierto de vinculación manual por la rama incluida, añade la marca de verificación por fila y el reemplazo del correo sintético, y fija el comportamiento observable de la colisión en el inicio de sesión.
 
+## RENAMED Requirements
+
+### Requirement: Vinculación manual de proveedores (decisión pendiente de diseño) → Vinculación manual de proveedores desde sesión activa
+
+(Reason: INC-46 dejó el requisito abierto con dos ramas posibles, "rama incluida" y "rama aplazada". INC-49 lo cierra por la rama incluida, así que el nombre deja de describir una decisión pendiente y pasa a describir el comportamiento entregado.)
+(Migration: la rama aplazada deja de ser un comportamiento válido del sistema y se retira de esta especificación. El bloque `MODIFIED` de más abajo sustituye el requisito completo con su contenido definitivo.)
+
 ## ADDED Requirements
 
 ### Requirement: Marca de verificación del correo por identidad externa
@@ -104,7 +111,7 @@ El sistema DEBE persistir la identidad externa en `ExternalLogin` (`Id`, `UserId
 
 El sistema DEBE permitir que un usuario autenticado vincule un proveedor de identidad externo adicional desde su propia sesión activa. La vinculación manual asocia siempre la nueva identidad externa al `UserId` de la sesión activa y no aprovisiona nunca un `AppUser` nuevo. El mecanismo completo —pantalla, guarda del último método de acceso, desvinculación, rechazo de proveedores ya vinculados a otra cuenta y auditoría— se especifica en la capacidad `account-provider-connections`; este requisito fija la garantía observable desde la perspectiva de la cascada de identidad.
 
-(Previously: "Vinculación manual de proveedores (decisión pendiente de diseño)". INC-46 dejó la decisión abierta con dos ramas posibles: "rama incluida" y "rama aplazada". INC-49 la cierra por la rama incluida; la rama aplazada deja de ser un comportamiento válido del sistema y se retira de esta especificación.)
+(El renombrado del requisito se declara en la sección `## RENAMED Requirements` de la cabecera de este delta.)
 
 #### Scenario: Vincular un proveedor adicional desde sesión activa
 
