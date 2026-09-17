@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Application.Features.Identity;
 
@@ -77,6 +79,56 @@ public sealed class ExternalLoginService : IExternalLoginService
             new ExternalLogin(newUser.Id, providerName, key, normalizedEmail), cancellationToken);
 
         return newUser;
+    }
+
+    /// <inheritdoc />
+    public async Task<ExternalLoginLinkResult> LinkAsync(
+        string userId,
+        string provider,
+        string providerKey,
+        string? email,
+        bool emailVerified,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerKey);
+
+        var id = SessionIdentity.Require(userId);
+        var providerName = provider.Trim();
+        var key = providerKey.Trim();
+        var normalizedEmail = NormalizeEmail(email);
+
+        // Relectura sin rastreo: el estado actual de la cuenta manda (SessionPermissionGuard.cs:37).
+        var user = await _users.GetByIdAsync(id, cancellationToken);
+        if (user is null || user.Status == UserStatus.Suspended)
+        {
+            throw new UnauthorizedAccessException(SessionIdentity.SessionRequiredMessage);
+        }
+
+        // Doble barrera (INC-49, sección 3.1): esta comprobación previa existe para poder redactar
+        // un mensaje honesto; el índice único (Provider, ProviderKey) es la garantía real.
+        var existing = await _externalLogins.GetByProviderKeyAsync(providerName, key, cancellationToken);
+        if (existing is not null)
+        {
+            return string.Equals(existing.UserId, user.Id, StringComparison.OrdinalIgnoreCase)
+                ? new ExternalLoginLinkResult(ExternalLoginLinkOutcome.AlreadyLinkedToThisAccount, providerName, user)
+                : new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
+        }
+
+        try
+        {
+            await _externalLogins.AddAsync(
+                new ExternalLogin(user.Id, providerName, key, normalizedEmail, providerEmailVerified: emailVerified),
+                cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Misma barrera que arriba, pero disparada por el índice único ante una carrera real
+            // entre dos intentos casi simultáneos: mismo mensaje, dispare quien dispare.
+            return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.RejectedOwnedByAnotherAccount, providerName, user);
+        }
+
+        return new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, providerName, user);
     }
 
     internal static string BuildUserId(string provider, string providerKey)
