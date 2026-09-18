@@ -63,6 +63,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ⏳ Planificado | [inc-47-workers-cloud-run.md](inc-47-workers-cloud-run.md) |
 | **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ⏳ En progreso (migración entregada) | [inc-48-persistencia-produccion-postgres.md](inc-48-persistencia-produccion-postgres.md) |
 | **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ✅ Archivado | [inc-49-vinculacion-cuentas.md](archive/inc-49-vinculacion-cuentas.md) |
+| **INC-50** | Área de Cuenta: Puerta de Acceso en la Cabecera y Hub del Usuario | ⏳ Planificado | [inc-50-area-de-cuenta.md](inc-50-area-de-cuenta.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -78,6 +79,8 @@ Los incrementos **INC-47** e **INC-48** son **prerrequisitos de la salida a prod
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 *(INC-49 completó su cadena de 7 PRs, mergeó a `main` y quedó archivado el 2026-09-18; ya no figura aquí.)*
+
+- **INC-50 Área de Cuenta** — worktree `C:\repos\ludeka-wt\area-de-cuenta`, rama `inc/area-de-cuenta`. Nace de un agujero destapado en el smoke test de INC-49: se puede iniciar sesión, pero **no hay ninguna puerta a la cuenta**. El único enlace a `/cuenta/conexiones` vive dentro del aviso que solo se muestra a cuentas sin correo verificado, no existe ningún enlace a `/login` en toda la interfaz, y la cabecera no consulta la sesión. El incremento añade el botón de persona en la cabecera y agrupa la ludoteca y los ajustes de usuario en un área de cuenta. **Arrastra pendiente el smoke test de INC-49 (tarea 4.5), que quedó en el paso 2 de 7.**
 
 
 
