@@ -142,7 +142,11 @@ Ubicación: `docs/specs/sistema/28-hub-ingesta-social-moderacion.md`
 
 **Clasificación:** Esta es una **deuda técnica abierta**, no una omisión contable. Es cobertura faltante verificable con un `git grep` o examinando el árbol de pruebas en `tests/Ludeka.UnitTests/Infrastructure/`. Existe evidencia concreta de su ausencia: ningún archivo bajo esa ruta instancia `OpenGraphSocialMetadataExtractor` en un `[Fact]` o `[Theory]`.
 
-**Recomendación para cierre futuro:** Crear `tests/Ludeka.UnitTests/Infrastructure/SocialMetadataExtractorTests.cs` instanciando `OpenGraphSocialMetadataExtractor` con URLs de test (ej. OpenGraph válido, HTML sin metadatos, redirecciones, timeouts).
+**Recomendación para cierre futuro:** un fichero de pruebas que instancie `OpenGraphSocialMetadataExtractor` con HTML fijo (Open Graph válido, HTML sin metadatos, malformado, respuesta no HTML), sin red, con doble de `HttpMessageHandler`.
+
+**Registrado en el roadmap** como parte de [INC-51](file:///c:/repos/Ludeka/docs/increments/inc-51-huecos-cobertura-archivado.md) para que la deuda no se pierda en este informe archivado.
+
+> **Corrección de rutas (2026-09-18, posterior a este informe).** La redacción original situaba `CommunityWriteGuardTests.cs` y `SocialAiAnalysisServiceTests.cs` en `tests/Ludeka.UnitTests/Infrastructure/`. Ambos están en realidad en `tests/Ludeka.UnitTests/Application/`, comprobado con `find`. La convención de carpetas del proyecto de pruebas es inconsistente para los servicios de infraestructura, así que conviene no suponer la ubicación de un fichero de pruebas sin verificarla.
 
 ---
 
