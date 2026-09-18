@@ -48,3 +48,26 @@ assets-usuario/
 # Worktrees nativos de Claude Code: no se usan en este repo (ver AGENTS.md 1-bis.9),
 # pero un worktree nunca debe versionarse
 .claude/worktrees/
+
+# Configuracion local de la vista previa de Claude Code: fija el puerto y
+# ASPNETCORE_URLS de la maquina, pisando el applicationUrl del perfil de
+# launchSettings.json, y sirve HTTP plano donde el perfil espera TLS.
+.claude/launch.json
+
+# ---------------------------------------------------------------------------
+# NO IGNORAR: src/Ludeka.Web/wwwroot/app.css
+# ---------------------------------------------------------------------------
+# Es un artefacto generado por Tailwind, pero se versiona A PROPOSITO y dos
+# pruebas lo exigen: ProductionAssets_AppCss_DebeExistir_YContenerClasesEditoriales
+# DeTailwind y AppCss_FundacionInc36_Regenerada, en
+# tests/Ludeka.UnitTests/Web/PerformanceAndAccessibilityTests.cs, comprueban que
+# el fichero existe y que su contenido compilado incluye la fundacion de INC-36.
+#
+# El CI ejecuta `dotnet test Ludeka.sln` ANTES del `docker build`, y su paso de
+# Node 20 solo alimenta a Docker: nada genera el CSS para las pruebas. Ignorar
+# este fichero o sacarlo del indice rompe esas dos pruebas y con ellas main.
+#
+# Por tanto: tras cada cambio de src/Ludeka.Web/Styles/input.css o de clases
+# Tailwind en los .razor, hay que REGENERAR y COMMITEAR el CSS, no ignorarlo:
+#   npx -y tailwindcss@3.4.17 -i ./Styles/input.css -o ./wwwroot/app.css --minify
+# (desde src/Ludeka.Web/, la misma invocacion que usa el Dockerfile.)
