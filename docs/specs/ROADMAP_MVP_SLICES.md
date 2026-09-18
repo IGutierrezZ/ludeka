@@ -465,6 +465,21 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 47: Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente)
+- **Identificador SDD:** `change-47-workers-cloud-run`
+- **Objetivo Principal:** Corregir los cuatro trabajos en segundo plano, que hoy se ejecutan dentro del proceso web con estado en memoria y sin coordinación entre instancias, algo incorrecto por construcción con `--min-instances=0 --max-instances=5`:
+  1. **Modelo de ejecución elegido por el maintainer (Rama A):** externalizar los cuatro trabajos a *Cloud Run Jobs* disparados por *Cloud Scheduler*, retirando los cuatro `AddHostedService` del host web (`Program.cs:166,215,244,319`). Elimina la ejecución duplicada por construcción, no por bloqueo. Descartada la alternativa de conservarlos en proceso con `pg_advisory_lock`.
+  2. **Habilitador de pruebas de integración contra PostgreSQL real**, primero en el orden porque nada del outbox es probable sin él: los 40 ficheros de `tests/` usan `UseSqlite` y ninguno `UseNpgsql`, Testcontainers ni Respawn, y SQLite no implementa `FOR UPDATE SKIP LOCKED`. El paso `docker build` que ya convive con `dotnet test` en el mismo job de CI acredita demonio Docker disponible en el *runner*.
+  3. **Outbox persistente real:** hoy la fila de `CommunityNotificationLog` se crea *después* de leer el mensaje del `Channel` en memoria (`CommunityNotificationService.cs:108` y `:157`), así que no protege nada. Pasa a escribirse en `EnqueueAsync`, con reclamación por `SELECT ... FOR UPDATE SKIP LOCKED`, contador de intentos y reintento. `ICommunityNotificationQueue` conserva `EnqueueAsync`, de modo que los dos productores no se tocan.
+  4. **Idempotencia por ventana temporal**, construida entera: `NightlyCatalogingExecutionLog` solo tiene hoy un `HasIndex(l => l.StartedAt)` no único (`LudekaDbContext.cs:403`), sin restricción por ventana ni clave de periodo.
+  5. **Observabilidad y código de salida** distinto de cero ante fallo, con métricas por ejecución persistidas en la bitácora, más la corrección de `NotificationQueueHealthCheck`, que hoy devuelve `Healthy` reportando solo el nombre del tipo de la cola y no detectaría la pérdida que aparenta vigilar.
+  6. **Superficie de despliegue e IAM:** recurso(s) Cloud Run Job, cuatro Cloud Scheduler configurables (1×/día lote, 6 h radar, 120 min social, 5-15 min outbox), cuenta de servicio con `roles/run.invoker` y paso nuevo de pipeline, con `docs/deployment/` actualizado.
+- **Estado:** ⏳ **En progreso** — ciclo SDD arrancado el 2026-09-18 en el worktree `C:\repos\ludeka-wt\workers-cloud-run` (rama `inc/workers-cloud-run`). `sdd-explore` y `sdd-propose` completados. **Prerrequisito de la salida a producción.** Riesgo Alto abierto: hasta que exista el habilitador de pruebas contra PostgreSQL real, el criterio de aceptación de concurrencia del outbox no es verificable.
+- **Documento:** [`inc-47-workers-cloud-run.md`](file:///c:/repos/Ludeka/docs/increments/inc-47-workers-cloud-run.md).
+- **Módulos del Sistema:** [`09-arquitectura-y-despliegue.md`](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md), [`08-notificaciones-y-webhooks.md`](file:///c:/repos/Ludeka/docs/specs/sistema/08-notificaciones-y-webhooks.md) y [`18-deteccion-novedades-y-cola-nocturna.md`](file:///c:/repos/Ludeka/docs/specs/sistema/18-deteccion-novedades-y-cola-nocturna.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

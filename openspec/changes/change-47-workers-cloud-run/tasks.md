@@ -1,0 +1,408 @@
+# Tareas — INC-47: Trabajos en Segundo Plano Correctos en Google Cloud Run
+
+> **Cambio:** `change-47-workers-cloud-run` · **Fase:** `sdd-tasks` · **Fecha:** 2026-09-18
+> **Worktree:** `C:\repos\ludeka-wt\workers-cloud-run` (rama `inc/workers-cloud-run`) · **Commit base de medición: `57e85cc`** (no `56c02b9`, ver nota de corrección en `design.md`)
+> **Entradas:** [`design.md`](design.md) (aprobado por el maintainer el 2026-09-18, D1–D7 cerradas) · [`proposal.md`](proposal.md) (aprobada, §9 rebanadas R1–R7, §10 plan de reversión) · [`specs/`](specs/) (20 requisitos, 36 escenarios, 6 ficheros) · [`exploration.md`](exploration.md) · `docs/increments/inc-47-workers-cloud-run.md` §3
+> **Almacén de artefactos:** `hybrid` — este fichero más la observación Engram `sdd/change-47-workers-cloud-run/tasks`
+> **`strict_tdd`:** `true` · **Runner contractual:** `dotnet test Ludeka.sln` · **`delivery_strategy`:** `auto-chain` · **`chain_strategy`:** `stacked-to-main`
+
+---
+
+## 0. Método de medición (declaración obligatoria)
+
+Esta fase debía medir con `Bash` (`git diff --stat`, `wc -l`, `grep -c`, `git rev-parse`). **La herramienta `Bash` no estuvo disponible en esta sesión de ejecución** pese a que la instrucción de fase la da por existente — se declara como hueco de herramienta, no de rigor de medición. En su lugar:
+
+- Toda cifra marcada **«medido»** procede de leer el fichero real completo con numeración de línea (`Read`, formato `cat -n`) y de la aritmética de rangos exactos sobre esos números de línea — el mismo resultado que produciría `wc -l -n` sobre los mismos rangos, sin margen de error de transcripción.
+- Toda cifra marcada **«estimado»** procede de calibrar contra un fichero real y análogo de este mismo repositorio (se cita el fichero y el rango usados como vara de medir), porque el código nuevo todavía no existe y no hay diff real que contar.
+- Ficheros leídos íntegros para esta medición: `src/Ludeka.Web/Program.cs` (547 líneas), `src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs` (899 líneas), `src/Ludeka.Infrastructure/Data/LudekaDbContext.cs` (497 líneas), `src/Ludeka.Infrastructure/Migrations/20260917112154_AddProviderEmailVerifiedAtToExternalLogins.cs`, `src/Ludeka.Infrastructure/Migrations/20260915164921_AddExternalLogins.cs`, `src/Ludeka.Core/Entities/CommunityNotificationLog.cs` (75 líneas), `src/Ludeka.Application/Contracts/ICommunityNotificationQueue.cs` (12 líneas), `src/Ludeka.Application/Features/Community/CommunityNotificationService.cs` (402 líneas), `src/Ludeka.Infrastructure/Notifications/InMemoryCommunityNotificationQueue.cs` (35 líneas), `src/Ludeka.Infrastructure/Notifications/CommunityNotificationDispatcherHostedService.cs` (111 líneas), `src/Ludeka.Web/Health/NotificationQueueHealthCheck.cs` (37 líneas), `tests/Ludeka.UnitTests/Health/HealthChecksTests.cs` (líneas 95-149), `openspec/config.yaml`.
+- Las citas de línea de `NightlyCatalogingHostedService.cs`, `PriceRadarHostedService.cs`, `SocialCollectorHostedService.cs`, `Dockerfile`, `ci-cd.yml`, `appsettings.json`, `Ludeka.sln` que aparecen en las rebanadas R5–R7 **no se han releído en esta fase**: se heredan de las citas ya verificadas por `sdd-design` (que declara haberlas comprobado leyendo el fichero). El encargo de medición de esta fase estaba explícitamente acotado a R2, R3 y R4; R1/R5/R6/R7 conservan la clasificación de riesgo de la propuesta/diseño sin remedición independiente.
+- **Convención de presupuesto aplicada:** los ficheros `*.Designer.cs` de EF Core y `LudekaDbContextModelSnapshot.cs` son enteramente generados por `dotnet ef migrations add` — se excluyen del recuento de las 400 líneas (regla de "generated goldens" de `work-unit-commits`/`chained-pr`), aunque deben seguir apareciendo en el PR.
+
+---
+
+## 1. Review Workload Forecast
+
+| Field | Value |
+|-------|-------|
+| Estimated changed lines | Ver tabla de rebanadas más abajo — 3 de las 7 rebanadas originales superaban 400 antes de partirlas |
+| 400-line budget risk | **High** (antes de partir R2/R3/R4; cada sub-rebanada final queda en Low/Medium) |
+| Chained PRs recommended | **Yes** |
+| Suggested split | 11 PRs (ver §2) |
+| Delivery strategy | `auto-chain` |
+| Chain strategy | `stacked-to-main` |
+
+```text
+Decision needed before apply: No
+Chained PRs recommended: Yes
+Chain strategy: stacked-to-main
+400-line budget risk: High
+```
+
+`auto-chain` autoriza partir automáticamente donde la medición lo justifique, y **ninguna de las tres rebanadas en riesgo pide `size:exception`** — las tres se parten limpiamente por costuras que el propio diseño ofrece o que esta fase deriva de forma directa a partir de esas mismas costuras. Por eso `Decision needed before apply` es `No`: no hay ninguna aprobación de excepción pendiente que bloquee el arranque de `sdd-apply`. Ver §6 para los dos puntos que sí se marcan como nota de transparencia (no bloqueantes).
+
+### Medición real de las tres rebanadas en riesgo
+
+#### R2 — Extracción de la composición de DI (medido)
+
+Clasifiqué las 341 líneas de `Program.cs:49-389` bloque a bloque contra la tabla §4.1 del diseño, verificando cada rango contra el fichero real leído íntegro. Rangos que el diseño cita como destino `AddLudekaPersistence`/`AddLudekaDomainServices`/`AddLudekaExternalIntegrations` (excluidas las líneas marcadas «se retira en R7», que no se tocan en R2):
+
+| Destino | Líneas de código de los rangos citados | Comentarios de cabecera adyacentes atribuibles sin ambigüedad | Total |
+|---|---|---|---|
+| `AddLudekaPersistence` | 26 (`63-64`, `78-101`) | 2 (`:62`, `:77`) | **28** |
+| `AddLudekaDomainServices` | 95 (suma de 15 rangos puros + porción de dominio de 3 rangos mixtos) | 7 (`:105,168,196,211,217,233,272`) | **102** |
+| `AddLudekaExternalIntegrations` | 60 (suma de 6 rangos puros + porción externa de 3 rangos mixtos) | 6 (`:172,187,203,226,263,298`) | **66** |
+| **Total retirado de `Program.cs`** | | | **196** |
+
+Aritmética completa de los rangos puros de dominio: `71`(1) + `73-75`(3) + `103`(1) + `106-111`(6) + `143-158`(16) + `160-165`(6) + `169-170,193-194`(4) + `197-201`(5) + `212-214`(3) + `218-224`(7) + `234-235`(2) + `241`(1) + `242-243`(2) + `258-261`(4) + `273-296`(24) = 85, más la porción de dominio de los 3 rangos mixtos (`227-231`→3, `299-304`→4, `307-318`→3) = 85+10 = 95. Rangos puros de integraciones externas: `129-141`(13) + `173-186`(14) + `188-191`(4) + `204-209`(6) + `238-240`(3) + `264-270`(7) = 47, más la porción externa de los 3 rangos mixtos (`227-231`→2, `299-304`→2, `307-318`→9) = 47+13 = 60.
+
+**Hueco declarado:** la atribución interna de los 3 rangos mixtos (Instagram `227-231`, hub social `299-304`, recolector `307-318`) entre «dominio» y «externo» es una interpretación razonable de la prosa del diseño (que no da el desglose línea a línea dentro de esos rangos), no una cita textual — no cambia el total de 196 líneas retiradas, solo cómo se reparten entre las dos sub-rebanadas. Dos comentarios de cabecera (`:66-67` sobre autenticación, `:237` sobre notificaciones, `:306` sobre el recolector social) preceden bloques con destino mixto Web/R7-permanece y se excluyen deliberadamente del recuento por ambigüedad de propiedad — quedan sin asignar, así que el recuento real podría ser 2-4 líneas mayor.
+
+**Estimación de las adiciones** (calibrada contra el propio esqueleto de clase que el diseño imprime en su §4, líneas 126-152 = 27 líneas de firmas + documentación XML sin cuerpo):
+
+| Sub-rebanada | Retirado de `Program.cs` | Añadido (contenido movido + firmas/XML-doc/`using` parcial/llaves) | Ficheros nuevos | Total combinado |
+|---|---|---|---|---|
+| **R2a** (persistencia + dominio) | 130 | ~155 | `DenyAllSessionPermissionGuard.cs` ~18 | **~303** |
+| **R2b** (integraciones externas + agregador + prueba de humo) | 69 (66 + 3 de colapsar 2 llamadas en 1) | ~86 | `.csproj` +4, prueba de humo §4.6 ~70 | **~229** |
+
+Ambas sub-rebanadas quedan bajo 400. **Recomendación: partir**, no `size:exception` — el diseño construyó explícitamente la costura de 4 métodos "para que `sdd-tasks` la use si hace falta" (§4), y el corte persistencia+dominio / externo+agregador es exactamente esa costura.
+
+#### R3 — Esquema del outbox y `JobExecutionLeases` (medido/estimado)
+
+Calibrado contra patrones reales de `SqliteSchemaMigrator.cs` (bloque `GamePriceSnapshots`, `:819-841` = 23 líneas para 1 tabla de 8 columnas + 3 índices; bloque `ExternalLogins`, `:843-863` = 21 líneas para 1 tabla de 7 columnas + 2 índices) y contra las dos migraciones reales leídas (`AddProviderEmailVerifiedAtToExternalLogins.cs` = 30 líneas para 1 columna; `AddExternalLogins.cs` = 56 líneas para 1 tabla de 6 columnas + 1 FK + 2 índices).
+
+| Fichero | R3a — Esquema del outbox | R3b — `JobExecutionLeases` |
+|---|---|---|
+| `SqliteSchemaMigrator.cs` (bloque de reconciliación, solo adiciones) | +48 (tabla de 16 columnas ~30 + 3 columnas en `NotificationLogs` ~18) | +28 (tabla de 12 columnas + 2 índices) |
+| Entidad nueva (`NotificationOutboxMessage.cs` / `JobExecutionLease.cs`) | +100 (diseño imprime 36 líneas solo-propiedades; `CommunityNotificationLog.cs` real con 11 propiedades tiene 75 líneas con ctor+3 métodos — 16 propiedades escalan a ~100-115) | +85 (mismo criterio de escalado, 12 propiedades) |
+| `OutboxMessageStatus.cs` (enum nuevo) | +8 | — |
+| `CommunityNotificationLog.cs` (modificado: 3 columnas + 3 métodos) | +27 | — |
+| `LudekaDbContext.cs` (DbSet + config + índices) | +15 | +16 |
+| Migración Npgsql (`.cs` autorado; `.Designer.cs` excluido) | +66 | +30 |
+| Pruebas (integración Npgsql + unitaria SQLite) | +80 | +60 |
+| **Total combinado** | **~344** | **~219** |
+
+Ambas quedan bajo 400, con margen razonable. **Recomendación: partir** — el propio diseño lo autoriza explícitamente en su §16: *"Dos migraciones en lugar de una, que la propuesta §4 admite sin problema porque el historial es uno y secuencial."*
+
+#### R4 — Outbox real: escritura, reclamación, despachador, reintentos, *health check* (estimado)
+
+Calibrado contra `CommunityNotificationService.cs` real (402 líneas, 2 métodos casi duplicados de 48 líneas cada uno que el diseño pide fusionar parcialmente en `SendOnChannelAsync`), `CommunityNotificationDispatcherHostedService.cs` real (111 líneas, `ProcessQueueAsync` = 25 líneas a reescribir), `NotificationQueueHealthCheck.cs` real (37 líneas) y `HealthChecksTests.cs` real (líneas 97-141, 3 pruebas afectadas).
+
+Mi estimación ascendente (~830 líneas combinadas para las tres partes) **supera con claridad la propia estimación del diseño (~380-470)** — la diferencia se explica porque el diseño imprime esqueletos ilustrativos (solo firmas, con `/* … */` en el cuerpo) mientras que una implementación real necesita constructores, mapeo de campos, ramas por proveedor y 9 escenarios de prueba nuevos con su aparato Arrange/Act/Assert completo. Declaro esta discrepancia en vez de silenciarla: sea cual sea la cifra más próxima a la realidad, **las dos superan 400 con margen**, así que la clasificación de riesgo (Alto) no está en duda — lo que decide esta fase es en cuántas sub-rebanadas partir.
+
+| Sub-rebanada | Contenido | Ficheros nuevos (estimado) | Ficheros modificados (estimado) | Pruebas (estimado) | Total |
+|---|---|---|---|---|---|
+| **R4a** — Outbox de escritura + contrato de reclamación | `INotificationOutboxRepository.cs`(36) + `OutboxOptions.cs`(22) + `NotificationOutboxRepository.cs`(140) + `OutboxCommunityNotificationQueue.cs`(33) = 231 | `ICommunityNotificationQueue.cs`(2) + registro DI(8) = 10 | Persistencia inmediata + sobrevive sin despachador (50) + `FieldsJson`/`TargetChannel` sobreviven [C1] (25) + idempotencia `UNIQUE(MessageId,Channel)` (25) + integración reclamación exclusiva concurrente (45) = 145 | **~386** |
+| **R4b** — Despachador real + reintentos + fan-out por canal | `INotificationOutboxDispatcher.cs`(11) + `NotificationOutboxDispatcher.cs`(65) = 76 | `CommunityNotificationService.cs`(103, refactor §6.6) + `CommunityNotificationDispatcherHostedService.cs`(47, reescritura de `ProcessQueueAsync`) + registro DI(6) = 156 | fallo→intentos+reprograma (25) + agotados→`Failed` terminal (25) + éxito primer intento→`Sent` (20) + canal habilitado después del encolado [decisión 4] (30) + sobrevive a reinicio simulado extremo-a-extremo (35) + inyección SQL en `claimedBy` (25) = 160 | **~392** |
+| **R4c** — *Health check* del outbox | — | `NotificationQueueHealthCheck.cs`(70, reescritura completa) + `HealthChecksTests.cs`(35) = 105 | Escenario modificado del *health check* (35) | **~140** |
+
+R4a y R4b quedan bajo 400 pero **con margen ajustado (14 y 8 líneas)** dado que son estimaciones, no medidas. **Contingencia explícita si `sdd-apply` mide más al escribir el código real:** extraer la prueba de integración + la prueba de inyección SQL de R4a a una sub-rebanada `R4a-bis` (~70 líneas), o extraer `DeliverAsync`/`SendOnChannelAsync` de R4b a su propia sub-rebanada. No comprimir código, comentarios ni pruebas para encajar en el presupuesto (regla dura de `chained-pr`).
+
+**Recomendación: partir en tres**, no `size:exception`. El diseño solo nombra explícitamente una costura para R4 ("el *health check* es separable del mecanismo de reclamación y no lo bloquea", §16) — la segunda costura (escritura+reclamación frente a despachador+reintentos) es una derivación de esta fase a partir de la medición, no una costura que el diseño mencione literalmente. Se señala como nota de transparencia en §6, no como bloqueo: `delivery_strategy: auto-chain` ya autoriza partir donde la medición lo justifique, sin necesitar aprobación previa del maintainer para cada costura concreta.
+
+### Tabla de riesgo por rebanada final
+
+| # | Rebanada | Líneas combinadas | Riesgo | Método |
+|---|---|---|---|---|
+| 1 | R1 — Habilitador PostgreSQL | ~200-320 | Bajo | Heredado de diseño §16, no remedido (fuera del encargo de esta fase) |
+| 2 | R2a — DI: persistencia + dominio | ~303 | Bajo | **Medido** |
+| 3 | R2b — DI: integraciones externas + agregador | ~229 | Bajo | **Medido** |
+| 4 | R3a — Esquema outbox | ~344 | Medio | **Medido/estimado** |
+| 5 | R3b — Esquema `JobExecutionLeases` | ~219 | Bajo | **Medido/estimado** |
+| 6 | R4a — Outbox escritura + reclamación | ~386 | Medio (margen ajustado) | **Estimado** |
+| 7 | R4b — Despachador + reintentos | ~392 | Medio (margen ajustado) | **Estimado** |
+| 8 | R4c — *Health check* outbox | ~140 | Bajo | **Estimado** |
+| 9 | R5 — Idempotencia por ventana | ~250-350 | Medio | Heredado de propuesta/diseño, no remedido |
+| 10 | R6 — `Ludeka.Jobs` + pipeline | ~280-380 | Medio | Heredado de propuesta/diseño, no remedido |
+| 11 | R7 — Retirada de `AddHostedService` | ~150-250 | Bajo | Heredado de propuesta/diseño, no remedido |
+
+### Suggested Work Units
+
+| Unit | Goal | Likely PR | Focused test command | Runtime harness | Rollback boundary |
+|------|------|-----------|----------------------|-----------------|-------------------|
+| 1 | Habilitador de pruebas contra PostgreSQL real | PR 1 (`...-01-habilitador-postgres`) | `dotnet test tests/Ludeka.IntegrationTests/Ludeka.IntegrationTests.csproj` | N/A — no toca código de producción, sin comportamiento de runtime propio | `git revert` del PR; no altera comportamiento de producción |
+| 2 | Extracción de DI: persistencia + dominio | PR 2 (`...-02-extraccion-di-dominio`) | `dotnet test tests/Ludeka.UnitTests/Ludeka.UnitTests.csproj --filter FullyQualifiedName~LudekaPersistenceAndDomainServices` | N/A — traslado puro, sin cambio de comportamiento observable | `git revert`; `Program.cs` vuelve a las 2 llamadas inline |
+| 3 | Extracción de DI: integraciones externas + agregador + humo | PR 3 (`...-03-extraccion-di-integraciones`) | `dotnet test tests/Ludeka.UnitTests/Ludeka.UnitTests.csproj --filter FullyQualifiedName~LudekaServiceCollectionExtensions` | N/A — traslado puro | `git revert`; depende de PR 2 ya mergeado |
+| 4 | Esquema del outbox (tabla + 3 columnas + migración) | PR 4 (`...-04-esquema-outbox`) | `dotnet test tests/Ludeka.UnitTests/Ludeka.UnitTests.csproj --filter FullyQualifiedName~SqliteSchemaMigrator` | Integración: `dotnet test tests/Ludeka.IntegrationTests` (migración Npgsql) | `git revert`; columnas/tabla quedan sin usar en BD, inocuo (§10.2 diseño) |
+| 5 | Esquema de `JobExecutionLeases` | PR 5 (`...-05-esquema-concesiones-ventana`) | igual que PR 4, filtro `JobExecutionLease` | igual que PR 4 | igual que PR 4 |
+| 6 | Outbox de escritura + reclamación exclusiva | PR 6 (`...-06-outbox-escritura-reclamacion`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~Outbox` | Integración: reclamación concurrente contra PostgreSQL real | `git revert`; mensajes ya persistidos quedan sin ejecutor hasta redesplegar (§15.2 diseño) |
+| 7 | Despachador real + reintentos + *fan-out* | PR 7 (`...-07-despachador-reintentos`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~NotificationOutboxDispatcher` | N/A — cubierto por pruebas unitarias sobre almacén persistido | `git revert`; aislado de PR 6 (interfaces ya estables) |
+| 8 | *Health check* del outbox | PR 8 (`...-08-health-check-outbox`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~NotificationQueueHealthCheck` | Manual opcional: `curl /ready` local | `git revert`; `/ready` vuelve a reportar solo el nombre del tipo |
+| 9 | Idempotencia por ventana (4 trabajos) | PR 9 (`...-09-idempotencia-ventana`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~JobExecutionCoordinator` | Integración: 5 instancias concurrentes contra PostgreSQL real | `git revert`; aislado, host web no depende del host de trabajos |
+| 10 | `Ludeka.Jobs` + `Dockerfile` + pipeline | PR 10 (`...-10-ludeka-jobs-pipeline`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~JobRunner` | Manual: `docker run --rm --no-healthcheck --entrypoint dotnet ludeka:ci Ludeka.Jobs.dll nightly-cataloging` | `git revert` + retirar el paso de `ci-cd.yml`; host web no depende del host de trabajos |
+| 11 | Retirada de los 4 `AddHostedService` | PR 11 (`...-11-retirada-hosted-services`) | `dotnet test tests/Ludeka.UnitTests --filter FullyQualifiedName~NoBusinessHostedServices` | **Manual, gate de producción** — ver §3 | Pausar los 4 Cloud Scheduler (externo, sin código) **antes** de `git revert` (plan de reversión, propuesta §10, punto 1) |
+
+---
+
+## 2. Corte final de la cadena (11 PRs, `stacked-to-main`)
+
+```
+PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4 (R3a) → PR5 (R3b) → PR6 (R4a) → PR7 (R4b) → PR8 (R4c) → PR9 (R5) → PR10 (R6) → PR11 (R7)
+```
+
+| Orden | Rama sugerida | Rebanada | Depende de |
+|---|---|---|---|
+| 1 | `inc/workers-cloud-run-01-habilitador-postgres` | R1 | — (restricción dura: siempre primera) |
+| 2 | `inc/workers-cloud-run-02-extraccion-di-dominio` | R2a | PR1 mergeado (orden de cadena; sin dependencia técnica real) |
+| 3 | `inc/workers-cloud-run-03-extraccion-di-integraciones` | R2b | PR2 mergeado (mismo fichero `LudekaServiceCollectionExtensions.cs`) |
+| 4 | `inc/workers-cloud-run-04-esquema-outbox` | R3a | PR1 mergeado (prueba de integración de migración usa el fixture de R1) |
+| 5 | `inc/workers-cloud-run-05-esquema-concesiones-ventana` | R3b | PR4 mergeado (mismo historial de migraciones EF Core, secuencial) |
+| 6 | `inc/workers-cloud-run-06-outbox-escritura-reclamacion` | R4a | PR3 mergeado (registra en la extensión ya extraída) + PR4 mergeado (esquema) |
+| 7 | `inc/workers-cloud-run-07-despachador-reintentos` | R4b | PR6 mergeado (usa `INotificationOutboxRepository`) |
+| 8 | `inc/workers-cloud-run-08-health-check-outbox` | R4c | PR6 mergeado (usa `INotificationOutboxRepository`) |
+| 9 | `inc/workers-cloud-run-09-idempotencia-ventana` | R5 | PR5 mergeado (esquema `JobExecutionLeases`) + PR3 mergeado (DI) |
+| 10 | `inc/workers-cloud-run-10-ludeka-jobs-pipeline` | R6 | PR7, PR9 mergeados (los 4 *runners* invocan al despachador y al coordinador) |
+| 11 | `inc/workers-cloud-run-11-retirada-hosted-services` | R7 | PR10 mergeado — **y además el gate de producción del §3** |
+
+**Restricciones de secuenciación que esta fase NO reordena** (dadas por el orquestador, no negociables): R1 siempre primera; R7 siempre última. El resto del orden (R2 antes de R3/R4/R5 para que sus registros DI nuevos aterricen en `LudekaServiceCollectionExtensions.cs` en vez de en `Program.cs`; R3 antes de R4/R5 porque el esquema precede al código que lo usa) es una decisión de esta fase, justificada arriba, no una restricción impuesta por el diseño.
+
+---
+
+## 3. 🚨 Condición de seguridad en producción — R7
+
+**El PR de la rebanada 11 (R7) se ABRE pero NO SE MERGEA** hasta que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y la cuenta de servicio con `roles/run.invoker` están provisionados y **disparando de verdad** en Google Cloud.
+
+Motivo: R7 retira los 4 `AddHostedService` del host web (`Program.cs:166,215,244,319`). Mergearla dispara un despliegue que deja el host **sin ningún ejecutor de trabajos**, porque la provisión de GCP es manual y este ciclo no tiene acceso autorizado. R1 a R6 (PRs 1-10) son aditivas y conviven con los workers en proceso todavía registrados — mergean sin este riesgo. El peligro está concentrado enteramente en R7 (PR 11).
+
+Esta condición está repetida, de forma destacada, en la cabecera de la Fase 11 (§4) para que sobreviva a un cambio de sesión.
+
+---
+
+## 4. Desglose de tareas por fase
+
+Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED`), tal como exige `strict_tdd`. Cada escenario de la especificación aparece exactamente una vez, con su nivel de verificación declarado por la propia especificación (nunca convertido de manual a automático ni al revés). Las rutas de ficheros nuevos cuyo nombre exacto no fija el diseño se marcan explícitamente como decisión de `sdd-apply`.
+
+### Fase 1 — R1: Habilitador de pruebas contra PostgreSQL real
+
+*Rama: `inc/workers-cloud-run-01-habilitador-postgres` · No toca código de `src/` (declarado por la propuesta) · Escenarios: `postgres-integration-testing` completo (3) + el habilitador que R4/R5/R9 necesitan.*
+
+- [x] 1.1 Crear `tests/Ludeka.IntegrationTests/Ludeka.IntegrationTests.csproj` — `net10.0`, `xunit`, `Microsoft.NET.Test.Sdk`, `coverlet.collector`, `Testcontainers.PostgreSql`, `Npgsql.EntityFrameworkCore.PostgreSQL`, referencia de proyecto a `src/Ludeka.Infrastructure/Ludeka.Infrastructure.csproj`.
+- [x] 1.2 Modificar `Ludeka.sln` — alta de `Ludeka.IntegrationTests` en la carpeta de solución `tests` (patrón de `:30-41`/`:95-99` citado por el diseño §8.8; solo la mitad de esta tarea, la de `Ludeka.Jobs` es la tarea 10.13).
+- [x] 1.3 RED: `tests/Ludeka.IntegrationTests/ContainerCapabilityGuardTests.cs` — afirma que `ContainerCapabilityGuard.Evaluate` devuelve una excepción descriptiva (nunca `null`) ante un fallo de arranque ficticio, con mensaje distinto cuando `runningOnCi = true` (especificación `postgres-integration-testing`, escenario "Sin capacidad... falla explícitamente"). Debe fallar: la clase no existe.
+- [x] 1.4 GREEN: crear `tests/Ludeka.IntegrationTests/ContainerCapabilityGuard.cs` — función pura `Evaluate(Exception? startupFailure, bool runningOnCi)`, vive fuera de la colección PostgreSQL (diseño §9.4).
+- [x] 1.5 Crear `tests/Ludeka.IntegrationTests/PostgresFixture.cs` — `IAsyncLifetime` con `PostgreSqlContainer("postgres:17-alpine")`, captura `StartupFailure` en `InitializeAsync` (nunca la traga), `EnsureAvailable()` relanza vía `ContainerCapabilityGuard.Evaluate`; y `PostgresCollection : ICollectionFixture<PostgresFixture>` (diseño §9.2).
+- [x] 1.6 RED: `tests/Ludeka.IntegrationTests/PostgresSkipLockedSmokeTests.cs` (nombre de fichero decidido por esta fase; colección `postgres-real`) — crea una tabla desechable propia y ejecuta `SELECT ... FOR UPDATE SKIP LOCKED` con dos conexiones reales contra el contenedor, afirma reclamación disjunta (especificación `postgres-integration-testing`, "La suite levanta PostgreSQL real y ejercita..."). Debe fallar antes de completar 1.5.
+- [x] 1.7 GREEN: completar `PostgresFixture.cs` y la prueba de 1.6 hasta verde con Docker disponible.
+- [x] 1.8 Confirmar mediante `dotnet test Ludeka.sln` que las pruebas de integración se ejecutan y reportan en el entorno real (especificación, "Con la capacidad presente, las pruebas se ejecutan y reportan de verdad") — reportar el resultado observado tal cual, sin intentar corregir fallos ajenos a esta rebanada.
+- [x] 1.9 Cierre de PR: confirmar que ningún fichero de `src/` aparece en el diff de la rama.
+
+**Nota de ejecución (`sdd-apply`, 2026-09-18):** esta máquina de ejecución **no tiene Docker instalado** (verificado: sin `docker.exe` en el PATH ni en `Program Files`, es un puesto de desarrollo sin Docker Desktop). Consecuencia real observada, exactamente la prevista por el diseño para la rama "sin capacidad": `dotnet test Ludeka.sln` termina con código de salida **1** (rojo global, nunca verde); `Ludeka.IntegrationTests.dll` reporta `Con error: 1, Superado: 3, Omitido: 0, Total: 4` — las 3 pruebas puras de `ContainerCapabilityGuardTests` pasan (no dependen de Docker), y `PostgresSkipLockedSmokeTests` falla en rojo con el mensaje accionable de `ContainerCapabilityException` ("No se pudo arrancar un contenedor PostgreSQL real... Verifica que el demonio Docker esté instalado..."), con la `DockerUnavailableException` original de Testcontainers preservada como `InnerException`. **Cero omisión, cero verde falso.** `Ludeka.UnitTests.dll` no se ve afectado: `Con error: 0, Superado: 1417, Omitido: 0, Total: 1417`. La tarea 1.7 queda marcada `[x]` en el sentido de "implementación completa y comportamiento de guardián confirmado por ejecución real"; el estado verde de `PostgresSkipLockedSmokeTests` con un contenedor real arrancado con éxito **no se ha podido confirmar en esta máquina** y queda pendiente de una máquina de desarrollo con Docker o del runner de CI (`ubuntu-latest`, que ya evidencia demonio Docker operativo en el mismo trabajo que `dotnet test`, `ci-cd.yml:44,47`). Durante la implementación se detectó y corrigió un matiz no anticipado por el diseño: `PostgreSqlBuilder.Build()` valida la disponibilidad de Docker de forma *eager* (lanza antes de `StartAsync()`), así que la construcción del contenedor tuvo que moverse dentro del mismo `try/catch` de `InitializeAsync` junto al arranque — si `Build()` quedara fuera, el fallo escaparía sin pasar por `ContainerCapabilityGuard`. También se corrigió una advertencia de API obsoleta: `Testcontainers.PostgreSql` 4.15.0 sustituye `new PostgreSqlBuilder().WithImage(...)` por `new PostgreSqlBuilder("postgres:17-alpine")`.
+
+### Fase 2 — R2a: Extracción de DI — persistencia + dominio
+
+*Rama: `inc/workers-cloud-run-02-extraccion-di-dominio` · Sin cambio de comportamiento observable (declarado por la propuesta) · Sin escenario de especificación propio (fuera de alcance de `specs/`, §5 de `background-jobs-scheduling/spec.md`).*
+
+- [ ] 2.1 RED: `tests/Ludeka.UnitTests/Infrastructure/DependencyInjection/LudekaPersistenceAndDomainServicesTests.cs` — construye un `IServiceCollection`, aplica `AddLudekaPersistence` + `AddLudekaDomainServices`, `BuildServiceProvider(validateScopes: true, validateOnBuild: true)`, resuelve `LudekaDbContext`, `INightlyCatalogingService`, `IPriceRadarService`, `ICommunityNotificationService`, `IGiveawayService`, `IUserLibraryService`. Debe fallar: las extensiones no existen.
+- [ ] 2.2 GREEN: crear `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` con `AddLudekaPersistence` (mueve `Program.cs:63-64,78-101`) y `AddLudekaDomainServices` (mueve los 15 rangos de dominio + la porción de dominio de los 3 rangos mixtos, tabla §4.1 del diseño), incluida la línea `241` sin cambios (`AddSingleton<ICommunityNotificationQueue, InMemoryCommunityNotificationQueue>` — R4a la convierte a outbox más adelante).
+- [ ] 2.3 GREEN: crear `src/Ludeka.Application/Contracts/DenyAllSessionPermissionGuard.cs` (§4.2 del diseño) — implementación que deniega siempre; **no registrarla todavía** (se registra en `Ludeka.Jobs`, tarea 10.12).
+- [ ] 2.4 GREEN: modificar `src/Ludeka.Web/Program.cs` — sustituir los bloques movidos por `builder.Services.AddLudekaPersistence(builder.Configuration);` y `builder.Services.AddLudekaDomainServices(builder.Configuration);`. No tocar las líneas marcadas "se retira en R7" (`166,215,244,319`) ni ningún bloque "Web".
+- [ ] 2.5 RED→GREEN (mismo fichero de 2.1): afirmar que `IEnumerable<ISocialChannelCollector>` conserva el orden YouTube→Telegram→RSS→Instagram y que `IEnumerable<IStoreStockClient>` conserva Simulation→HtmlSchema (riesgo 2 de la propuesta, §4.3 del diseño) — cubre solo la parte de dominio; la parte externa se completa en 3.1.
+- [ ] 2.6 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto contra la medición de §1 (~303 líneas).
+
+### Fase 3 — R2b: Extracción de DI — integraciones externas + agregador + prueba de humo
+
+*Rama: `inc/workers-cloud-run-03-extraccion-di-integraciones` · Depende de PR 2 mergeado.*
+
+- [ ] 3.1 RED: `tests/Ludeka.UnitTests/Infrastructure/DependencyInjection/LudekaServiceCollectionExtensionsTests.cs` — prueba de humo **completa** del diseño §4.6 contra `AddLudekaApplicationCore`, con `validateScopes/validateOnBuild: true`, resolviendo los 7 servicios listados (`INightlyCatalogingService`, `IPriceRadarService`, `ISocialCollectorService`, `ICommunityNotificationService`, `ICommunityNotificationQueue`, `INotificationOutboxRepository`, `IJobExecutionCoordinator` — los dos últimos no existirán hasta R4a/R5, así que en esta fase la prueba solo puede afirmar sobre los 5 primeros más el conjunto vacío de `IHostedService`; anotar en el propio test que la aserción se completa en R4a/R9), más el orden completo de ambos `IEnumerable<T>`. Debe fallar: `AddLudekaExternalIntegrations` y `AddLudekaApplicationCore` no existen.
+- [ ] 3.2 GREEN: modificar `src/Ludeka.Infrastructure/Ludeka.Infrastructure.csproj` — añadir `Microsoft.Extensions.Http` y `Microsoft.Extensions.Options.ConfigurationExtensions` (resuelve **C3**: hoy 0 referencias a `Microsoft.Extensions.Http` en `src/`, verificado por el diseño, y `SocialIngestionService.cs:43` exige un `HttpClient` del contenedor).
+- [ ] 3.3 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — añadir `AddLudekaExternalIntegrations` (mueve los 6 rangos externos puros + porción externa de los 3 mixtos) y el agregador `AddLudekaApplicationCore`.
+- [ ] 3.4 GREEN: modificar `src/Ludeka.Web/Program.cs` — sustituir los bloques externos restantes y las dos llamadas de la tarea 2.4 por una única `builder.Services.AddLudekaApplicationCore(builder.Configuration);`.
+- [ ] 3.5 Confirmar en la prueba de 3.1 que el conjunto de `IHostedService` resuelto por la composición de `AddLudekaApplicationCore` está vacío (los 4 `AddHostedService` literales de `Program.cs` siguen registrados hasta R7, pero no forman parte de la composición que evalúa esta prueba — igual que exige el diseño §4.6: "solo se le aplica `AddLudekaApplicationCore`... más los registros mínimos de un host sin web").
+- [ ] 3.6 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (~229 líneas).
+
+### Fase 4 — R3a: Esquema del outbox
+
+*Rama: `inc/workers-cloud-run-04-esquema-outbox` · Depende de PR 1 mergeado (prueba de integración usa el fixture de R1) · Escenarios: `notification-outbox` "Migración del esquema que respalda el outbox..." (2).*
+
+- [ ] 4.1 RED (integración, depende de R1): en `tests/Ludeka.IntegrationTests/`, aplicar `MigrateAsync("20260917112154_AddProviderEmailVerifiedAtToExternalLogins")` (última migración real verificada) sobre PostgreSQL real, sembrar filas de `NotificationLogs`, aplicar `MigrateAsync()` hasta la nueva migración, afirmar cero pérdida (escenario "Migración Npgsql sobre notificaciones de producción existentes"). Debe fallar: la migración no existe.
+- [ ] 4.2 RED (unitaria SQLite): sembrar una base SQLite en disco con el esquema anterior y filas de `NotificationLogs`, ejecutar `SqliteSchemaMigrator.EnsureSchemaUpToDateAsync`, afirmar columnas nuevas sin pérdida de datos (escenario "Reconciliación de una base SQLite ya existente en disco").
+- [ ] 4.3 GREEN: crear `src/Ludeka.Core/Enums/OutboxMessageStatus.cs` (`Pending = 0, Completed = 1, Dead = 2`).
+- [ ] 4.4 GREEN: crear `src/Ludeka.Core/Entities/NotificationOutboxMessage.cs` (diseño §5.2: `Id, EventType, Title, Summary, TargetUrl, ImageUrl, FieldsJson, TargetChannel, Status, Attempts, NextAttemptAt, CreatedAt, CompletedAt, ClaimedAt, ClaimedBy, LastError` + constructor privado para EF Core + constructor público, mismo patrón que `CommunityNotificationLog.cs:20-51`). **Resuelve C1**: sin `FieldsJson`/`TargetChannel` persistidos, toda notificación que sobreviva a un reinicio llegaría empobrecida a `DiscordWebhookClient.cs:64-68`/`TelegramBotClient.cs:107-113`.
+- [ ] 4.5 GREEN: modificar `src/Ludeka.Core/Entities/CommunityNotificationLog.cs` — añadir `MessageId?`, `Attempts`, `NextAttemptAt?` y los métodos `ForDelivery`, `RegisterFailedAttempt`, `MarkAsPermanentlyFailed` (diseño §5.2), en la línea de los tres métodos existentes (`MarkAsSent:53`, `MarkAsFailed:60`, `MarkAsDryRun:69`).
+- [ ] 4.6 GREEN: modificar `src/Ludeka.Infrastructure/Data/LudekaDbContext.cs` — `DbSet<NotificationOutboxMessage> NotificationOutboxMessages`, configuración e índices (`HasIndex(Status,NextAttemptAt,CreatedAt)`, `HasIndex(Status,CreatedAt)`, diseño §5.3), e índice único `HasIndex(MessageId,Channel)` sobre `NotificationLogs`. **No tocar `:283-285` ni `:403`.**
+- [ ] 4.7 GREEN: `dotnet ef migrations add AddNotificationOutbox` sobre `Ludeka.Infrastructure` (el nombre exacto lo fija `sdd-apply`; se propone aquí como referencia) — genera la migración Npgsql con la tabla y las 3 columnas.
+- [ ] 4.8 GREEN: modificar `src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs` — bloque de reconciliación para `NotificationOutboxMessages` (patrón `CREATE TABLE IF NOT EXISTS` + índices, como `:819-841`/`:843-863`) y bloque para las 3 columnas nuevas en `NotificationLogs` (patrón `PRAGMA table_info` + `ALTER TABLE`, como `:865-876`). **Recordatorio C5: usar el patrón incremental existente — no replicar el `CREATE TABLE` de una sola oportunidad de `:543-558`, que ya deja `NightlyCatalogingExecutionLogs` sin `BggDiscoveryCount` (preexistente, fuera de alcance, no se arregla aquí).**
+- [ ] 4.9 GREEN: crear `src/Ludeka.Application/Options/OutboxOptions.cs` — sección `Outbox` del diseño §5.4 (`Enabled` primero, `BatchSize`, `MaxDeliveryAttempts`, `MaxClaimAttempts`, `LeaseSeconds`, `RetryBackoffSeconds`, `RetryBackoffMultiplier`, `HealthPendingDepthDegraded`, `HealthOldestPendingDegradedMinutes`, `HealthQueryTimeoutSeconds`); `SectionName = "Outbox"`. Su registro en el contenedor se hace en R4a (tarea 6.10).
+- [ ] 4.10 Añadir la sección `Outbox` a `src/Ludeka.Web/appsettings.json` con los valores del diseño §5.4. (Alternativa aceptable: diferir a R4a si `sdd-apply` lo prefiere — nota, no bloqueante.)
+- [ ] 4.11 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde (documentar si la prueba de integración corrió con Docker real). Confirmar presupuesto (~344 líneas).
+
+### Fase 5 — R3b: Esquema de `JobExecutionLeases`
+
+*Rama: `inc/workers-cloud-run-05-esquema-concesiones-ventana` · Depende de PR 4 mergeado (mismo historial secuencial de migraciones) · Escenarios: `background-jobs-scheduling` "Migración del esquema de idempotencia por ventana..." (2).*
+
+- [ ] 5.1 RED (integración, depende de R1): aplicar la migración anterior real, aplicar `AddJobExecutionLeases`, afirmar cero pérdida en `NightlyCatalogingExecutionLogs` (escenario "Migración Npgsql sobre datos de producción existentes").
+- [ ] 5.2 RED (unitaria SQLite): sembrar base SQLite sin `JobExecutionLeases`, ejecutar el reconciliador, afirmar que la tabla aparece sin pérdida en `NightlyCatalogingExecutionLogs` (escenario "Reconciliación de una base SQLite ya existente en disco").
+- [ ] 5.3 GREEN: crear `src/Ludeka.Core/Entities/JobExecutionLease.cs` (diseño §7.1: `Id, JobName, WindowKey, Status, StartedAt, HeartbeatAt, CompletedAt, ProcessedCount, FailedCount, DurationMs, HostIdentifier, ErrorMessage`) con constructor privado/público y métodos de dominio mínimos (`MarkCompleted`, `MarkFailed`, `Touch` para el latido — el diseño solo enumera propiedades; estos métodos son necesarios para que `JobExecutionCoordinator` (R5) no manipule setters privados desde fuera, decisión de esta fase).
+- [ ] 5.4 GREEN: modificar `src/Ludeka.Infrastructure/Data/LudekaDbContext.cs` — `DbSet<JobExecutionLease> JobExecutionLeases`, `HasIndex(JobName,WindowKey).IsUnique()`, `HasIndex(JobName,StartedAt)`. **No tocar `:403`** (índice no único de `NightlyCatalogingExecutionLog`, diseño §7.1).
+- [ ] 5.5 GREEN: `dotnet ef migrations add AddJobExecutionLeases` — segunda migración de la cadena (la propuesta §4 admite explícitamente dos migraciones secuenciales).
+- [ ] 5.6 GREEN: modificar `src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs` — bloque de reconciliación `JobExecutionLeases` (patrón `CREATE TABLE IF NOT EXISTS` + 2 índices). **Mismo recordatorio C5.**
+- [ ] 5.7 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (~219 líneas).
+
+### Fase 6 — R4a: Outbox de escritura + contrato de reclamación
+
+*Rama: `inc/workers-cloud-run-06-outbox-escritura-reclamacion` · Depende de PR 3 (DI extraída) + PR 4 (esquema) mergeados · Escenarios: `notification-outbox` "Persistencia..." (2), "Reclamación exclusiva..." (1), parte de "Reintento..." (idempotencia de sub-entrega).*
+
+- [ ] 6.1 RED (unitaria SQLite): `EnqueueAsync` persiste la fila inmediatamente y sin dependencia temporal del despachador (escenario "El registro persiste inmediatamente al encolar").
+- [ ] 6.2 RED (unitaria SQLite): el registro sobrevive aunque el despachador nunca llegue a ejecutarse, y es reclamable por un despachador posterior (escenario "El registro sobrevive aunque el despachador nunca llegue a ejecutarse").
+- [ ] 6.3 RED (unitaria SQLite): `FieldsJson` y `TargetChannel` sobreviven al ciclo de encolado, leídos directamente del registro persistido sin invocar el despachador (**C1**).
+- [ ] 6.4 RED (unitaria SQLite): reclamar dos veces no duplica sub-entregas por canal — `UNIQUE(MessageId, Channel)` garantiza la idempotencia de `EnsureDeliveryAsync`.
+- [ ] 6.5 RED (integración, depende de R1): dos despachadores reclaman lotes al mismo tiempo sin solaparse — `ClaimPendingAsync` con dos conexiones reales contra PostgreSQL, intersección vacía (escenario "Dos despachadores reclaman lotes al mismo tiempo sin solaparse").
+- [ ] 6.6 RED (prueba dirigida): `ClaimPendingAsync` con `claimedBy` conteniendo comillas no altera la sentencia SQL — confirma que solo se usa `DbParameter`, nunca interpolación de cadenas (matriz de amenazas del diseño §14, fila "Inyección SQL en la reclamación").
+- [ ] 6.7 GREEN: modificar `src/Ludeka.Application/Contracts/ICommunityNotificationQueue.cs` — retirar `ReadAllAsync` de la interfaz (línea `:11`). `InMemoryCommunityNotificationQueue.cs` no necesita ningún cambio de código (su método público ya coincide, y `tests/Ludeka.UnitTests/Infrastructure/CommunityNotificationQueueTests.cs:15,28` sigue compilando por tipar la variable como la clase concreta, verificado por el diseño §6.1).
+- [ ] 6.8 GREEN: crear `src/Ludeka.Application/Contracts/INotificationOutboxRepository.cs` (diseño §6.1) — incluye `OutboxClaim` y `OutboxHealthSnapshot`. **Nota de nombre de fichero:** el diseño no fija dónde viven exactamente estos dos `record` dentro de `src/Ludeka.Application/DTOs/`; `sdd-apply` decide el fichero concreto (p. ej. `OutboxClaim.cs` y `OutboxHealthSnapshot.cs` separados, o agrupados en `OutboxDtos.cs`).
+- [ ] 6.9 GREEN: crear `src/Ludeka.Infrastructure/Repositories/NotificationOutboxRepository.cs` — `ClaimPendingAsync` con comando ADO.NET parametrizado sobre `db.Database.GetDbConnection()` y rama por proveedor (`IsNpgsql()`/`IsSqlite()`, diseño §6.3/§6.4, mismo patrón que `SqliteSchemaMigrator.cs:19-40`); el resto de métodos (`EnqueueAsync`, `GetDeliveriesAsync`, `EnsureDeliveryAsync`, `CompleteMessageAsync`, `ReleaseMessageAsync`, `MarkMessageDeadAsync`, `GetHealthSnapshotAsync`) con LINQ/EF Core normal.
+- [ ] 6.10 GREEN: crear `src/Ludeka.Infrastructure/Notifications/OutboxCommunityNotificationQueue.cs` — `EnqueueAsync` persistente, `Scoped`; registra el fallo con `ILogger` **antes** de propagar la excepción (**resuelve C2**: `FoundingVerdictService.cs:219-222` (read-only) y `RuleQAService.cs:201-204` (read-only) se tragan la excepción en su `catch` vacío — esos dos ficheros NO se tocan, el rastro queda en el log del outbox en su lugar).
+- [ ] 6.11 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — dentro de `AddLudekaDomainServices`, cambiar el registro heredado de la tarea 2.2 de `AddSingleton<ICommunityNotificationQueue, InMemoryCommunityNotificationQueue>` a `AddScoped<ICommunityNotificationQueue, OutboxCommunityNotificationQueue>` (con `InMemoryCommunityNotificationQueue` disponible solo bajo configuración de desarrollo local); registrar `INotificationOutboxRepository` y `IOptions<OutboxOptions>`.
+- [ ] 6.12 Si no se completó en la tarea 4.10, añadir la sección `Outbox` a `appsettings.json` ahora.
+- [ ] 6.13 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto contra la estimación de §1 (~386 líneas, margen ajustado). **Contingencia:** si el recuento real supera 400, extraer las tareas 6.5+6.6 (integración + inyección SQL) a una sub-rebanada `R4a-bis` antes de mergear; no comprimir código para encajar.
+
+### Fase 7 — R4b: Despachador real + reintentos + *fan-out* por canal
+
+*Rama: `inc/workers-cloud-run-07-despachador-reintentos` · Depende de PR 6 mergeado · Escenarios: `notification-outbox` "Reintento con contador..." (3) + "Supervivencia de notificaciones..." (1).*
+
+- [ ] 7.1 RED (unitaria SQLite): un intento fallido incrementa `Attempts` y programa reintento en estado no terminal (escenario "Un intento fallido incrementa el contador y programa un reintento").
+- [ ] 7.2 RED (unitaria SQLite): agotados los intentos máximos → `Failed` terminal, no vuelve a reclamarse (escenario "Se agota el número máximo de intentos").
+- [ ] 7.3 RED (unitaria SQLite): entrega correcta en el primer intento → `Sent` terminal (escenario "Entrega correcta en el primer intento").
+- [ ] 7.4 RED (unitaria SQLite): canal habilitado **después** del encolado se entrega igualmente (decisión 4 del maintainer, diseño §6.5) — encolar con Telegram deshabilitado, habilitar, reclamar de nuevo, afirmar entrega.
+- [ ] 7.5 RED (unitaria SQLite): notificación `Queued` sobrevive a un reinicio simulado del host y acaba enviándose — destruir y reconstruir el despachador contra el mismo almacén persistido (escenario "Notificación pendiente entregada tras un reinicio simulado del host").
+- [ ] 7.6 GREEN: crear `src/Ludeka.Application/Contracts/INotificationOutboxDispatcher.cs` (diseño §6.1) — `DispatchPendingAsync`, un ciclo acotado, sin bucle.
+- [ ] 7.7 GREEN: crear `src/Ludeka.Application/Features/Community/NotificationOutboxDispatcher.cs` — algoritmo de 5 pasos del diseño §6.5 (reclamar lote → derivar canales AHORA releyendo `CommunityNotificationOptions` → `EnsureDeliveryAsync` por canal → entregar → completar/liberar con retroceso/`Dead` al agotar `MaxClaimAttempts`).
+- [ ] 7.8 GREEN: modificar `src/Ludeka.Application/Features/Community/CommunityNotificationService.cs` — extraer `SendOnChannelAsync` (privado, sin persistencia) de `SendToDiscordAsync`(`:102-149`)/`SendToTelegramAsync`(`:151-198`); añadir `DeliverAsync` (público, para el despachador, opera sobre una sub-entrega ya existente sin crear fila nueva). Los métodos públicos existentes conservan firma y comportamiento (diseño §6.6). Extender `tests/Ludeka.UnitTests/Application/CommunityNotificationServiceTests.cs` con casos para `DeliverAsync`.
+- [ ] 7.9 GREEN: modificar `src/Ludeka.Infrastructure/Notifications/CommunityNotificationDispatcherHostedService.cs` — reescribir `ProcessQueueAsync` (hoy `:39-63`) para invocar `INotificationOutboxDispatcher.DispatchPendingAsync` en un ciclo de sondeo acotado, sustituyendo el consumo infinito de `ReadAllAsync` (hoy `:43`). **No tocar `RunPeriodicScanAsync` en esta rebanada** — su idempotencia del boletín de viernes es trabajo de R5 (tarea 9.16).
+- [ ] 7.10 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — registrar `INotificationOutboxDispatcher`/`NotificationOutboxDispatcher`.
+- [ ] 7.11 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (~392 líneas, margen ajustado). **Misma contingencia que 6.13** si el recuento real lo excede.
+
+### Fase 8 — R4c: *Health check* del outbox
+
+*Rama: `inc/workers-cloud-run-08-health-check-outbox` · Depende de PR 6 mergeado (usa `INotificationOutboxRepository`) · Escenario: `health-checks` "El componente `notification_queue` reporta salud observable... (modificado)".*
+
+- [ ] 8.1 RED (unitaria SQLite): por debajo de todos los umbrales → `Healthy`, con `pending_count`/`oldest_pending_age_seconds`/`dead_count`/`provider` reales en lugar de `queue_type`/`operational`.
+- [ ] 8.2 RED (unitaria SQLite): `pending_count > HealthPendingDepthDegraded` o `oldest_pending_age > HealthOldestPendingDegradedMinutes` o `dead_count > 0` → `Degraded` (nunca `Unhealthy`, diseño §10.1); consulta que lanza excepción → `Unhealthy`.
+- [ ] 8.3 GREEN: modificar `src/Ludeka.Web/Health/NotificationQueueHealthCheck.cs` — inyectar `INotificationOutboxRepository` + `IOptionsMonitor<OutboxOptions>`, reemplazar el cuerpo actual (`:17-35`) con la tabla de umbrales del diseño §10.1 y la consulta única de §10.
+- [ ] 8.4 GREEN: modificar `tests/Ludeka.UnitTests/Health/HealthChecksTests.cs` — actualizar `NotificationQueueHealthCheck_ConColaOperativa_DebeRetornarHealthy` (`:97-112`) y `NotificationQueueHealthCheck_ConColaNula_DebeRetornarUnhealthy` (`:114-126`) al nuevo constructor de 2 dependencias; ajustar el registro de servicios de `DependencyInjection_DebeRegistrarHealthChecks_ConEtiquetasReady` (`:129-141`, línea `:136`) para que ya no dependa de `ICommunityNotificationQueue` sino de `INotificationOutboxRepository` (impacto conocido, diseño §10.2 — la prueba deja de compilar si no se actualiza aquí).
+- [ ] 8.5 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (~140 líneas).
+
+### Fase 9 — R5: Idempotencia por ventana en los 4 trabajos
+
+*Rama: `inc/workers-cloud-run-09-idempotencia-ventana` · Depende de PR 5 (esquema `JobExecutionLeases`) + PR 3 (DI) mergeados · Escenarios: `background-jobs-scheduling` "Ejecución única..." (2, integración), "Ausencia de estado en memoria..." (2), "Métricas mínimas..." (1); `nightly-batch-continuous-ingest` (2). Riesgo Medio heredado, no remedido por esta fase.*
+
+- [ ] 9.1 RED (integración, depende de R1): cinco instancias concurrentes disputan la misma ventana del lote nocturno — solo una completa, las demás detectan la reclamación/completado y terminan sin procesar duplicado (escenario "Cinco instancias concurrentes disputan la misma ventana").
+- [ ] 9.2 RED (integración, depende de R1): el planificador reintenta el disparo de una ventana ya completada — choca contra `UNIQUE`, no contra un `if` en memoria (escenario "El planificador reintenta el disparo de una ventana ya completada").
+- [ ] 9.3 RED (unitaria SQLite): instancia recién iniciada sin estado — el lote nocturno no repite una ventana ya completada; `_lastExecutionDate` ya no existe en el código fuente (escenario "Instancia recién iniciada sin estado previo — lote nocturno").
+- [ ] 9.4 RED (unitaria SQLite): instancia recién iniciada sin estado — el boletín semanal no se re-despacha; `_lastFridayBulletinDispatched` ya no existe (escenario "...boletín semanal de notificaciones").
+- [ ] 9.5 RED (unitaria SQLite): concesión huérfana — `Running` con latido caducado (`HeartbeatAt < ahora − StaleLeaseMinutes`) se toma por intercambio condicional; con latido vivo no se toca (diseño §7.3).
+- [ ] 9.6 RED (unitaria SQLite): clave de ventana estable entre instancias — fronteras ancladas al epoch Unix en UTC (diseño §7.2), tabla de casos para los 4 trabajos (`nightly-cataloging` diaria, `price-radar` por bloque de horas, `social-collector` por bloque de minutos, `notification-outbox` por segundo).
+- [ ] 9.7 RED (unitaria SQLite): métricas mínimas (inicio, fin, procesados, fallidos, duración) persistidas incluso con fallos parciales (escenario "Bitácora completa tras una ejecución con fallos parciales").
+- [ ] 9.8 RED (unitaria SQLite): ventana ya completada, instancia nueva sin estado no repite la fase de catalogación (`nightly-batch-continuous-ingest`, escenario 1).
+- [ ] 9.9 RED (unitaria SQLite): ventana pendiente, la instancia reserva, ejecuta y persiste el resultado con métricas (`nightly-batch-continuous-ingest`, escenario 2).
+- [ ] 9.10 GREEN: crear `src/Ludeka.Application/Contracts/IJobExecutionCoordinator.cs` y `src/Ludeka.Application/Contracts/IJobExecutionLeaseRepository.cs` (diseño §7.4).
+- [ ] 9.11 GREEN: crear `src/Ludeka.Application/Features/Jobs/JobExecutionCoordinator.cs` — `INSERT` primero (diseño §7.3), toma de control por intercambio condicional, clasificación `Completed`/`Failed`/`SkippedAlreadyCompleted`/`SkippedHeldByOther`.
+- [ ] 9.12 GREEN: crear `src/Ludeka.Infrastructure/Repositories/JobExecutionLeaseRepository.cs` — clasificación de violación de unicidad por proveedor (`PostgresException.SqlState == "23505"` / `SqliteException.SqliteErrorCode == 19`, diseño §7.4); `TryAcquireAsync` **nunca** propaga la excepción de proveedor a `Ludeka.Application`.
+- [ ] 9.13 GREEN: modificar `src/Ludeka.Infrastructure/Background/NightlyCatalogingHostedService.cs` — unidad de trabajo de un disparo vía el coordinador; retirar `_lastExecutionDate` (`:22,67`) y el sondeo de 15 min (`:79-80`).
+- [ ] 9.14 GREEN: modificar `src/Ludeka.Infrastructure/Background/PriceRadarHostedService.cs` — retirar el bucle de `CheckIntervalHours` (`:69-72`), envolver con el coordinador.
+- [ ] 9.15 GREEN: modificar `src/Ludeka.Infrastructure/Background/SocialCollectorHostedService.cs` — retirar el bucle de `IntervalMinutes` (`:82-83`), envolver con el coordinador.
+- [ ] 9.16 GREEN: modificar `src/Ludeka.Infrastructure/Notifications/CommunityNotificationDispatcherHostedService.cs` — en `RunPeriodicScanAsync`, sustituir `_lastFridayBulletinDispatched` (`:16,92`) por una concesión de ventana vía el coordinador; retirar el `Task.Delay` de 60 min (`:103`) en favor del mismo mecanismo de sondeo acotado que R4b (tarea 7.9) introdujo para el drenaje del outbox. **Hueco declarado, para decisión de `sdd-apply`:** el diseño no fija el `JobName`/`WindowKey` de esta concesión — no es uno de los 4 trabajos nombrados en la tabla §7.2 — ni si el escaneo de sorteos próximos a expirar (`RunExpiringGiveawaysScanAsync`) necesita concesión alguna. Ningún escenario de la especificación exige idempotencia para ese escaneo. Propuesta razonable para `sdd-apply`: `JobName = "community-weekly-bulletin"`, `WindowKey = yyyy-'W'ww` en UTC, y dejar el escaneo de sorteos sin concesión.
+- [ ] 9.17 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — registrar `IJobExecutionCoordinator`/`JobExecutionCoordinator`/`IJobExecutionLeaseRepository`/`JobExecutionLeaseRepository`.
+- [ ] 9.18 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (heredado ~250-350, sin repartir).
+
+### Fase 10 — R6: `Ludeka.Jobs` + `Dockerfile` + pipeline
+
+*Rama: `inc/workers-cloud-run-10-ludeka-jobs-pipeline` · Depende de PR 7 (despachador) + PR 9 (coordinador) mergeados · Escenarios: `background-jobs-scheduling` "Contrato de código de salida..." (2), "Ejecución de vida corta..." (1); matriz de amenazas (2 filas); `dockerfile-build` (2, manuales); parte de "Documentación operativa..." (1, pipeline). Riesgo Medio heredado, no remedido por esta fase.*
+
+- [ ] 10.1 RED (unitaria): análisis de argumentos — posicional, `--job=<nombre>`, `Workers:JobName` de configuración, nombre desconocido/vacío/con espacios/con otra capitalización → salida **2** con lista de nombres válidos en `stderr` (matriz de amenazas, "Selección de trabajo por argumento").
+- [ ] 10.2 RED (unitaria): precedencia determinista ante dos fuentes en conflicto (posicional gana sobre `--job=`) — nunca se ejecutan dos trabajos (misma fila de la matriz, caso explícito).
+- [ ] 10.3 RED (unitaria): guarda de coherencia de proveedor — con `Workers:RequirePostgreSqlInProduction=true` y `ASPNETCORE_ENVIRONMENT=Production`, una cadena SQLite resuelta → salida **3**, nombrando la variable ausente (matriz, "Procedencia de la base de datos"; diseño §8.6, guarda 1).
+- [ ] 10.4 RED (unitaria): guarda de esquema al día — `Database.GetPendingMigrationsAsync()` no vacío en PostgreSQL → salida **3**, el trabajo nunca migra (matriz, "Propiedad del esquema"; diseño §8.6, guarda 2).
+- [ ] 10.5 RED (unitaria): contrato de código de salida — fallo observable → distinto de cero; éxito, incluida ventana ya completada → **0** (`background-jobs-scheduling`, "Contrato de código de salida por ejecución", 2 escenarios).
+- [ ] 10.6 RED (unitaria): el proceso termina por sí mismo tras su unidad de trabajo, sin reentrar en ningún bucle de sondeo (`background-jobs-scheduling`, "Ejecución de vida corta — una unidad de trabajo por disparo").
+- [ ] 10.7 GREEN: crear `src/Ludeka.Jobs/Ludeka.Jobs.csproj` (diseño §8.1: `Microsoft.NET.Sdk`, `OutputType=Exe`, `net10.0`, `Nullable`, `ImplicitUsings`, `Microsoft.Extensions.Hosting`, `appsettings.json` de `Ludeka.Web` enlazado con `<Content Include>`).
+- [ ] 10.8 GREEN: crear `src/Ludeka.Jobs/JobNames.cs` — constantes de los 4 nombres (`nightly-cataloging`, `price-radar`, `social-collector`, `notification-outbox`), única fuente de verdad.
+- [ ] 10.9 GREEN: crear `src/Ludeka.Jobs/IJobRunner.cs` y `src/Ludeka.Jobs/JobRunnerServiceCollectionExtensions.cs` (`AddLudekaJobRunners()`).
+- [ ] 10.10 GREEN: crear `src/Ludeka.Jobs/Runners/NightlyCatalogingJobRunner.cs`, `PriceRadarJobRunner.cs`, `SocialCollectorJobRunner.cs`, `NotificationOutboxJobRunner.cs` — 4 *runners* finos, cada uno calcula su `WindowKey` e invoca al coordinador (R5) o al despachador de outbox (R4b).
+- [ ] 10.11 GREEN: crear las guardas de arranque de §8.6 del diseño (nombre de fichero decidido por esta fase: `src/Ludeka.Jobs/StartupGuards.cs`).
+- [ ] 10.12 GREEN: crear `src/Ludeka.Jobs/Program.cs` — `Host.CreateApplicationBuilder(args)`, `AddLudekaApplicationCore`, `AddScoped<ISessionPermissionGuard, DenyAllSessionPermissionGuard>()` (creada en la tarea 2.3), `AddLudekaJobRunners()`, guardas de arranque, `PosixSignalRegistration` para `SIGTERM`, selección de *runner* por nombre, código de salida. **Nunca `host.RunAsync()`** (diseño §8.3).
+- [ ] 10.13 Modificar `Ludeka.sln` — alta de `Ludeka.Jobs` en la carpeta `src` (segunda mitad de la tarea 1.2; diseño §8.8).
+- [ ] 10.14 Modificar `Dockerfile` — los 3 cambios de §8.7 del diseño (`COPY src/Ludeka.Jobs/Ludeka.Jobs.csproj src/Ludeka.Jobs/` tras `:26`; `RUN dotnet restore src/Ludeka.Jobs/Ludeka.Jobs.csproj` tras `:29`; `RUN dotnet publish /src/src/Ludeka.Jobs/Ludeka.Jobs.csproj -c Release -o /app/publish /p:UseAppHost=false` tras `:40`, ruta absoluta). **`ENTRYPOINT:81` no se toca** — es la decisión, no un olvido.
+- [ ] 10.15 Modificar `.github/workflows/ci-cd.yml` — paso nuevo de publicación de los 4 Cloud Run Jobs (diseño §8.9), condicionado a `has_gcp == 'true'` igual que los pasos existentes (`:86`, `:96`).
+- [ ] 10.16 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (heredado ~280-380, sin repartir).
+- [ ] 10.17 ☐ **Checklist manual del maintainer** — arranque en modo trabajo con nombre: `docker run --rm --no-healthcheck --entrypoint dotnet ludeka:ci Ludeka.Jobs.dll nightly-cataloging` (`dockerfile-build`, "Arranque en modo trabajo de fondo con nombre (nuevo)").
+- [ ] 10.18 ☐ **Checklist manual del maintainer** — confirmar que ninguna sonda `HEALTHCHECK` se evalúa durante esa ejecución (`dockerfile-build`, "La sonda `HEALTHCHECK` no aplica a una ejecución en modo trabajo (nuevo)").
+- [ ] 10.19 ☐ **Checklist manual del maintainer** — confirmar que el modo servicio web sigue arrancando bajo usuario sin privilegios, sin regresión (`dockerfile-build`, "Ejecución segura bajo usuario no-root... (sin cambios)" — no exige nueva verificación técnica, solo confirmación de que la imagen no regresionó).
+- [ ] 10.20 ☐ **Checklist manual/documental del maintainer** — en el primer despliegue real tras el merge de este PR, confirmar que se publica también la revisión del artefacto de trabajos, no solo la del servicio web (`background-jobs-scheduling`, "El pipeline publica también la revisión del artefacto de trabajos").
+
+### Fase 11 — R7: Retirada de los `AddHostedService`
+
+*Rama: `inc/workers-cloud-run-11-retirada-hosted-services` · Depende de PR 10 mergeado.*
+
+> 🚨 **CONDICIÓN DE SEGURIDAD EN PRODUCCIÓN — repetida del §3.** Este PR se abre pero **NO se mergea** hasta que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y la cuenta de servicio con `roles/run.invoker` están provisionados y **disparando de verdad** en Google Cloud. Mergear antes deja producción sin ningún ejecutor de trabajos.
+
+- [ ] 11.1 RED (unitaria): resolver `IEnumerable<IHostedService>` sobre la composición real del host web y afirmar que no contiene ninguno de los 4 tipos de trabajo de negocio (`background-jobs-scheduling`, "El host web no ejecuta ningún trabajo de negocio en proceso", escenario 1).
+- [ ] 11.2 RED (estructural): búsqueda de `AddHostedService` para los 4 tipos en `src/` no devuelve resultados (mismo requisito, escenario 2 — técnica exacta decidida por `sdd-apply`: búsqueda de texto sobre el árbol de fuentes o aserción de reflexión).
+- [ ] 11.3 GREEN: modificar `src/Ludeka.Web/Program.cs` — retirar los 4 `AddHostedService<...>()` (`:166,215,244,319`).
+- [ ] 11.4 GREEN: modificar `src/Ludeka.Web/appsettings.json` — añadir la sección `Workers` (diseño §7.5: `Enabled`, `JobName`, `JobTimeoutMinutes`, `StaleLeaseMinutes`, `RequirePostgreSqlInProduction`) y `Outbox` si no se añadió antes (tareas 4.10/6.12).
+- [ ] 11.5 Modificar `docs/deployment/DEPLOYMENT_GUIDE.md` y `docs/deployment/google-cloud-run.md` — documentar los 4 Cloud Run Jobs, los 4 Cloud Scheduler con sus crones (diseño §8.9), la cuenta de servicio con `roles/run.invoker`, la nota operativa de cadencia-frente-a-ventana y la recomendación de retención de 90 días para `JobExecutionLeases` (diseño §7.2).
+- [ ] 11.6 Modificar `openspec/config.yaml` — alta de `src/Ludeka.Jobs` y `tests/Ludeka.IntegrationTests` en `projects`.
+- [ ] 11.7 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (heredado ~150-250, sin repartir).
+- [ ] 11.8 ☐ **Checklist manual del maintainer** — confirmar que `docs/deployment/` documenta los Cloud Run Jobs, los 4 Cloud Scheduler y la cuenta de servicio (`background-jobs-scheduling`, "Guías de despliegue documentan la infraestructura nueva").
+- [ ] 11.9 ☐ **Checklist manual del maintainer — GATE DE PRODUCCIÓN:** Cloud Scheduler dispara el Job correspondiente en su cadencia y la cuenta de servicio está autorizada por `roles/run.invoker` (`background-jobs-scheduling`, "Disparo real por Cloud Scheduler e invocación autorizada del Job"). **Sin esta confirmación, no mergear este PR.**
+- [ ] 11.10 ☐ **Checklist manual del maintainer — GATE DE PRODUCCIÓN:** un reinicio o reemplazo real del contenedor en Cloud Run no pierde notificaciones `Queued` pendientes (`notification-outbox`, "Reinicio del contenedor en el entorno real..."). Verificar tras confirmar 11.9, antes o inmediatamente después del merge.
+
+---
+
+## 5. Contradicciones y huecos declarados
+
+| # | Hallazgo | Origen | Tratamiento en esta fase |
+|---|---|---|---|
+| C1 | `FieldsJson`/`TargetChannel` sin columna, `RetryFailedNotificationAsync` ya emite hoy notificaciones empobrecidas en silencio | Diseño §2 | Tarea 4.4 (columna `FieldsJson`/`TargetChannel` en `NotificationOutboxMessage`), verificado en tarea 6.3 |
+| C2 | `EnqueueAsync` cambia de perfil de fallo; los dos productores lo silencian en un `catch` vacío | Diseño §2 | Tarea 6.10 (`OutboxCommunityNotificationQueue` registra con `ILogger` antes de propagar) — `FoundingVerdictService.cs`/`RuleQAService.cs` NO se tocan |
+| C3 | `Microsoft.Extensions.Http` no referenciado en `src/`; `SocialIngestionService.cs:43` lo exige | Diseño §2 | Tarea 3.2 (paquete añadido), detectado en rojo por la prueba de humo de la tarea 3.1 |
+| C4 | Atomicidad transaccional entre cambio de dominio y encolado, no alcanzable dentro del alcance aprobado | Diseño §2 | **Sin tarea generada, deliberadamente** — el maintainer lo asumió al aprobar el diseño; perseguirlo es un incremento propio |
+| C5 | `SqliteSchemaMigrator.cs:543-558` crea `NightlyCatalogingExecutionLogs` sin `BggDiscoveryCount` — preexistente, fuera de alcance | Diseño §2 | **Sin tarea de arreglo** — recordatorio explícito en las tareas 4.8 y 5.6 para que R3 no replique el mismo patrón de `CREATE TABLE` de una sola oportunidad |
+| G1 | Discrepancia entre mi estimación ascendente de R4 (~830 líneas combinadas) y la estimación descendente del diseño (~380-470) | Esta fase, §1 | Declarada explícitamente en §1; no cambia la clasificación de riesgo (ambas superan 400 con margen), sí motiva partir en 3 en vez de 2 |
+| G2 | El diseño solo nombra explícitamente una costura de partición para R4 (el *health check*); la costura escritura/reclamación frente a despachador/reintentos es una derivación de esta fase, no una cita del diseño | Esta fase, §1 | Nota de transparencia en §6, no bloqueante bajo `auto-chain` |
+| G3 | `CommunityNotificationDispatcherHostedService.cs` — el diseño atribuye su reescritura a "R4 / R5" pero no fija el `JobName`/`WindowKey` de la concesión del boletín de viernes, ni si el escaneo de sorteos necesita concesión | Diseño §12 (tabla de ficheros) | Hueco declarado en la tarea 9.16, con propuesta razonable para `sdd-apply`, no una decisión de esta fase |
+| G4 | La atribución interna de 3 rangos mixtos de `Program.cs` (Instagram, hub social, recolector social) entre "dominio" y "externo" es interpretación de esta fase, no cita textual del diseño | Esta fase, §1 | No cambia el total de 196 líneas retiradas, solo el reparto entre R2a/R2b; declarado en la tabla de medición de R2 |
+
+---
+
+## 6. Decisiones pendientes para el maintainer
+
+**Ninguna decisión bloquea el arranque de `sdd-apply`.** `delivery_strategy: auto-chain` autoriza partir automáticamente donde la medición lo justifique, y ninguna de las tres rebanadas en riesgo solicita `size:exception` (todas se parten limpiamente bajo 400). Se listan, como transparencia y no como bloqueo, los dos puntos donde esta fase fue más allá de lo que el diseño nombró explícitamente:
+
+1. **R4 se parte en 3 PRs, no en 2.** El diseño solo nombra la costura del *health check* como separable (§16); la segunda costura (escritura+reclamación frente a despachador+reintentos) la deriva esta fase de la medición (§1, hallazgo G1/G2). Si el orquestador o el maintainer prefieren 2 PRs en vez de 3 para R4, la fusión natural es unir R4a+R4b (~778 líneas combinadas, por encima de 400, exigiría entonces `size:exception` explícito) — no se recomienda, pero se deja constancia de la alternativa.
+2. **El nombre de trabajo y la ventana de la concesión del boletín de viernes** dentro de `CommunityNotificationDispatcherHostedService.cs` (tarea 9.16) no están fijados por el diseño. La propuesta de esta fase (`JobName = "community-weekly-bulletin"`) es una sugerencia para `sdd-apply`, no una decisión que requiera aprobación previa del maintainer — ningún escenario de la especificación depende del nombre exacto.
+
+---
+
+## 7. Checklist consolidado de verificación manual del maintainer (7 escenarios)
+
+La especificación clasifica estos 7 escenarios como verificación manual, ligada a infraestructura real de Google Cloud sin acceso autorizado en este ciclo. Se listan aquí de forma consolidada además de en su fase correspondiente, para que no desaparezcan del desglose:
+
+1. ☐ Documentación de despliegue actualizada (Jobs/Scheduler/IAM) — tarea 11.8.
+2. ☐ El pipeline publica la revisión del artefacto de trabajos además de la del servicio web — tarea 10.20.
+3. ☐ **[GATE]** Cloud Scheduler dispara e IAM autoriza la invocación del Job — tarea 11.9.
+4. ☐ **[GATE]** Reinicio real del contenedor sin pérdida de notificaciones pendientes — tarea 11.10.
+5. ☐ Arranque del contenedor en modo trabajo de fondo con nombre — tarea 10.17.
+6. ☐ La sonda `HEALTHCHECK` no se evalúa en modo trabajo — tarea 10.18.
+7. ☐ Ejecución bajo usuario no-root en modo servicio web sigue sin regresión (sin cambios; confirmación, no nueva verificación) — tarea 10.19.
+
+Los ítems 3 y 4 son, además, el **gate de producción** del §3: ninguno de los dos puede saltarse antes de mergear el PR 11 (R7).
+
+---
+
+## 8. Resumen de trazabilidad (20 requisitos, 36 escenarios)
+
+Confirmado escenario por escenario contra los 6 ficheros de `specs/`: 22 unitarios SQLite (20 de trabajo nuevo + 2 "sin cambios" en `health-checks` que ya pasan hoy) + 7 de integración PostgreSQL (dependientes de R1) + 7 manuales del maintainer (6 de trabajo nuevo + 1 "sin cambios" en `dockerfile-build`) = **36**. Cada fila de la tabla de trazabilidad de 19 filas de `background-jobs-scheduling/spec.md` §2 tiene una fase asignada en este documento (§4); ninguna especificación se convirtió de manual a automática ni al revés.
+
+---
+
+## Cobertura de las cinco decisiones del diseño (D1–D7) por fase
+
+| Decisión | Contenido | Fases que la implementan |
+|---|---|---|
+| D1 | Contrato de extracción de DI (4 métodos) | Fases 2-3 (R2a, R2b) |
+| D2 | Esquema del outbox (fila por mensaje + sub-entregas) | Fase 4 (R3a) |
+| D3 | Contrato de reclamación frente a `ICommunityNotificationQueue` | Fases 6-7 (R4a, R4b) |
+| D4 | Clave de ventana e idempotencia (`JobExecutionLeases`) | Fases 5, 9 (R3b, R5) |
+| D5 | `src/Ludeka.Jobs` | Fase 10 (R6) |
+| D6 | Política de pruebas de integración (proyecto aparte, fallo ruidoso) | Fase 1 (R1) |
+| D7 | *Health check* del outbox | Fase 8 (R4c) |
