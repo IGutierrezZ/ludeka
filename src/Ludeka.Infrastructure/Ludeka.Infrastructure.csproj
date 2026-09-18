@@ -12,6 +12,13 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-*" />
+    <!-- INC-47 R2a: necesario para que AddLudekaPersistence/AddLudekaDomainServices liguen
+         Configure<T>(IConfigurationSection) igual que Program.cs hoy (que lo hereda gratis del
+         framework compartido de ASP.NET Core al ser Microsoft.NET.Sdk.Web). También trae consigo
+         Microsoft.Extensions.Configuration.Binder (Get<T>()). El diseño (§4.4) y tasks.md (3.2)
+         asignaban este paquete a R2b junto a Microsoft.Extensions.Http; se adelanta aquí porque R2a
+         no compila sin él — R2b no necesita volver a añadirlo. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0-*" />
     <PackageReference Include="System.Threading.RateLimiting" Version="10.0.0-*" />
   </ItemGroup>
 

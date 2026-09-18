@@ -26,6 +26,7 @@ using Ludeka.Infrastructure.YouTube;
 using Ludeka.Application.Features.Discovery;
 using Ludeka.Infrastructure.Background;
 using Ludeka.Infrastructure.Stores;
+using Ludeka.Infrastructure.DependencyInjection;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web.Components;
@@ -59,56 +60,18 @@ if (!string.IsNullOrWhiteSpace(cloudRunPort) && int.TryParse(cloudRunPort, out v
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Configuración de Opciones de Base de Datos y Administrador
-builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
-builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection(AdminUserOptions.SectionName));
+// Composición de persistencia y de dominio (INC-47, diseño §4 D1): extraída a
+// Ludeka.Infrastructure.DependencyInjection.LudekaServiceCollectionExtensions para que el futuro
+// Ludeka.Jobs pueda consumirla sin referenciar este host web.
+builder.Services.AddLudekaPersistence(builder.Configuration);
+builder.Services.AddLudekaDomainServices(builder.Configuration);
 
 // Incremento 46: cookie de sesión propia y esquemas sociales dirigidos por configuración.
 // Un proveedor habilitado sin credenciales no tumba el arranque: se avisa y no se registra.
 var authenticationOptions = builder.Configuration
     .GetSection(AuthenticationOptions.SectionName)
     .Get<AuthenticationOptions>() ?? new AuthenticationOptions();
-builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.SectionName));
 builder.Services.AddLudekaAuthentication(authenticationOptions);
-builder.Services.AddScoped<IExternalLoginRepository, ExternalLoginRepository>();
-builder.Services.AddScoped<IExternalLoginService, ExternalLoginService>();
-builder.Services.AddScoped<IAccountConnectionsService, AccountConnectionsService>();
-
-// Configuración de persistencia dual (SQLite local / PostgreSQL en Supabase) y Clean Architecture
-var dbOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration.GetConnectionString("PostgreSqlConnection")
-    ?? "Data Source=ludeka.db";
-
-bool isPostgreSql = dbOptions.IsPostgreSql(connectionString);
-
-builder.Services.AddDbContext<LudekaDbContext>(options =>
-{
-    if (isPostgreSql)
-    {
-        options.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(5),
-                errorCodesToAdd: null);
-        });
-    }
-    else
-    {
-        options.UseSqlite(connectionString);
-    }
-});
-
-builder.Services.AddScoped<IGameRepository, SqliteGameRepository>();
-
-// Caché Nivel 1 (Aplicación en Memoria) y Decorador del Catálogo
-builder.Services.AddMemoryCache();
-builder.Services.AddScoped<CatalogService>();
-builder.Services.AddScoped<ICatalogService>(sp =>
-    new CachedCatalogService(
-        sp.GetRequiredService<CatalogService>(),
-        sp.GetRequiredService<IMemoryCache>()));
 
 // Caché Nivel 2 (HTTP / Output Caching con Tags de Invalidación)
 builder.Services.AddOutputCache(options =>
@@ -140,34 +103,14 @@ builder.Services.AddScoped<IBggClient>(sp =>
         : sp.GetRequiredService<BggXmlApiClient>();
 });
 
-builder.Services.AddScoped<IUserCollectionRepository, SqliteUserCollectionRepository>();
-builder.Services.AddScoped<IGameLoanRepository, SqliteGameLoanRepository>();
-builder.Services.AddScoped<IUserReviewRepository, SqliteUserReviewRepository>();
-builder.Services.AddScoped<IGamePlayLogRepository, SqliteGamePlayLogRepository>();
-builder.Services.AddScoped<IGamePlayLogService, GamePlayLogService>();
-builder.Services.AddScoped<IFoundingVerdictRepository, SqliteFoundingVerdictRepository>();
-builder.Services.AddScoped<IFoundingVerdictService, FoundingVerdictService>();
-
-builder.Services.AddScoped<IMediaRepository, SqliteMediaRepository>();
+// IBrokenLinkCheckerService NO se mueve en R2a (INC-47): registrarlo en AddLudekaDomainServices
+// exigiría referenciar Microsoft.Extensions.Http desde Ludeka.Infrastructure, paquete que R2b añade
+// explícitamente (tasks.md 3.2). El resto de este bloque (repositorios y servicios de dominio de
+// colección/préstamos/reseñas/partidas/veredictos/medios/importación BGG) ya vive en
+// AddLudekaDomainServices. Desviación declarada en el informe de sdd-apply de R2a.
 builder.Services.AddHttpClient<IBrokenLinkCheckerService, BrokenLinkCheckerService>();
-builder.Services.AddScoped<IMediaService, MediaService>();
 
-builder.Services.AddScoped<IPendingBggImportRepository, SqlitePendingBggImportRepository>();
-builder.Services.AddScoped<IBggImportService, BggImportService>();
-builder.Services.AddScoped<IBggCatalogQueueService, BggCatalogQueueService>();
-builder.Services.AddScoped<IBggSearchAssistedService, BggSearchAssistedService>();
-
-// Incremento 24: Detección Automática de Juegos en Novedades y Cola Nocturna Inteligente BGG/Gemini
-builder.Services.Configure<NightlyCatalogingOptions>(builder.Configuration.GetSection("NightlyCataloging"));
-builder.Services.AddScoped<INewsGameExtractor, NewsGameExtractor>();
-builder.Services.AddScoped<INightlyCatalogingLogRepository, SqliteNightlyCatalogingLogRepository>();
-builder.Services.AddScoped<IBggDiscoveryService, BggDiscoveryService>();
-builder.Services.AddScoped<INightlyCatalogingService, NightlyCatalogingService>();
 builder.Services.AddHostedService<NightlyCatalogingHostedService>();
-
-// Incremento 17: Sistema Comunitario de Reporte de Errores y Bandeja de Moderación de Fichas
-builder.Services.AddScoped<IGameIssueReportRepository, SqliteGameIssueReportRepository>();
-builder.Services.AddScoped<IGameIssueReportService, GameIssueReportService>();
 
 // Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
 builder.Services.Configure<CloudflareR2Options>(builder.Configuration.GetSection(CloudflareR2Options.SectionName));
@@ -190,16 +133,6 @@ builder.Services.AddScoped<IBggCatalogStagingRepository, SqliteBggCatalogStaging
 builder.Services.AddHttpClient<IGeekDoImagesClient, GeekDoImagesClient>();
 builder.Services.AddHttpClient<IBggMassIngestionService, BggMassIngestionService>();
 
-builder.Services.AddScoped<IGameEditLogRepository, SqliteGameEditLogRepository>();
-builder.Services.AddScoped<IGameEditorService, GameEditorService>();
-
-// Incremento 37: Motor Privado y Centralizado de Enlaces de Afiliado para Tiendas Colaboradoras
-builder.Services.Configure<AffiliateOptions>(builder.Configuration.GetSection(AffiliateOptions.SectionName));
-builder.Services.AddSingleton<IAffiliateUrlResolver, AffiliateUrlResolver>();
-
-// Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
-builder.Services.AddSingleton<ISleeveStoreUrlResolver, SleeveStoreUrlResolver>();
-
 // Incremento 27: Monitorización y Verificación de Stock en Tiempo Real en Enlaces de Compra
 builder.Services.Configure<StoreStockOptions>(builder.Configuration.GetSection(StoreStockOptions.SectionName));
 builder.Services.AddSingleton<SimulationStoreStockClient>();
@@ -208,39 +141,19 @@ builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<Sim
 builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<HtmlSchemaStoreStockClient>());
 builder.Services.AddScoped<IStoreStockService, StoreStockService>();
 
-// Incremento 45: Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar'
-builder.Services.Configure<PriceRadarOptions>(builder.Configuration.GetSection(PriceRadarOptions.SectionName));
-builder.Services.AddScoped<IGamePriceRepository, SqliteGamePriceRepository>();
-builder.Services.AddScoped<IPriceRadarService, PriceRadarService>();
 builder.Services.AddHostedService<PriceRadarHostedService>();
 
-// Incremento 6: Sorteos, Novedades del Viernes, Q&A de Reglas y Tarjetas Sociales
-builder.Services.AddScoped<IGiveawayRepository, SqliteGiveawayRepository>();
-builder.Services.AddScoped<IGiveawayService, GiveawayService>();
-builder.Services.AddScoped<IWeeklyReleaseRepository, SqliteWeeklyReleaseRepository>();
-builder.Services.AddScoped<IWeeklyReleaseService, WeeklyReleaseService>();
-builder.Services.AddScoped<IRuleQARepository, SqliteRuleQARepository>();
-builder.Services.AddScoped<IRuleQAService, RuleQAService>();
-builder.Services.AddScoped<ISocialCardService, SocialCardService>();
-
 // Incremento 28: Generador y Publicador Directo de Posts para Instagram en Moderación
+// (solo el cliente; IInstagramPostDraftRepository/IInstagramComposerService/IInstagramPublisherService
+// ya viven en AddLudekaDomainServices, INC-47 R2a)
 builder.Services.Configure<InstagramOptions>(builder.Configuration.GetSection(InstagramOptions.SectionName));
 builder.Services.AddHttpClient<IInstagramApiClient, InstagramApiClient>();
-builder.Services.AddScoped<IInstagramPostDraftRepository, SqliteInstagramPostDraftRepository>();
-builder.Services.AddScoped<IInstagramComposerService, InstagramComposerService>();
-builder.Services.AddScoped<IInstagramPublisherService, InstagramPublisherService>();
-
-// Incremento 8: Expansiones, Sinergias y Mezclador de Mesa
-builder.Services.AddScoped<IExpansionRepository, SqliteExpansionRepository>();
-builder.Services.AddScoped<IExpansionService, ExpansionService>();
 
 // Incremento 9: Notificaciones y Webhooks de Comunidad (Discord y Telegram)
+// (solo los clientes; la cola/repositorio/servicio ya viven en AddLudekaDomainServices, INC-47 R2a)
 builder.Services.Configure<CommunityNotificationOptions>(builder.Configuration.GetSection(CommunityNotificationOptions.SectionName));
 builder.Services.AddHttpClient<IDiscordWebhookClient, DiscordWebhookClient>();
 builder.Services.AddHttpClient<ITelegramBotClient, TelegramBotClient>();
-builder.Services.AddSingleton<ICommunityNotificationQueue, InMemoryCommunityNotificationQueue>();
-builder.Services.AddScoped<ICommunityNotificationRepository, SqliteCommunityNotificationRepository>();
-builder.Services.AddScoped<ICommunityNotificationService, CommunityNotificationService>();
 builder.Services.AddHostedService<CommunityNotificationDispatcherHostedService>();
 
 // Incremento 46 (Paso 2): la identidad se resuelve desde la sesión autenticada y la simulación
@@ -255,10 +168,6 @@ builder.Services.AddSingleton<IUserSessionInvalidator, InMemoryUserSessionInvali
 // Hallazgo W1: las escrituras administrativas revalidan el permiso sobre el AppUser actual (relectura
 // sin rastreo), de modo que la suspensión o la revocación en caliente bloquean la siguiente operación.
 builder.Services.AddScoped<ISessionPermissionGuard, SessionPermissionGuard>();
-builder.Services.AddScoped<IUserLibraryService, UserLibraryService>();
-builder.Services.AddScoped<IUserLibraryStatsService, UserLibraryStatsService>();
-builder.Services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
-builder.Services.AddScoped<IUserLocationService, UserLocationService>();
 
 // Incremento 13: Módulo de Síntesis con IA (Google Gemini / Heurística)
 builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
@@ -269,39 +178,11 @@ builder.Services.Configure<YouTubeOptions>(builder.Configuration.GetSection(YouT
 builder.Services.AddSingleton<IChannelFocusProvider, ChannelFocusProvider>();
 builder.Services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>();
 
-// Incremento 19: Directorio de Editoriales, Creadores y Tiendas con Foco Audiovisual
-builder.Services.AddScoped<IPublisherRepository, SqlitePublisherRepository>();
-builder.Services.AddScoped<ICreatorRepository, SqliteCreatorRepository>();
-builder.Services.AddScoped<IStoreRepository, SqliteStoreRepository>();
-builder.Services.AddScoped<IPublisherService, PublisherService>();
-builder.Services.AddScoped<ICreatorService, CreatorService>();
-builder.Services.AddScoped<IStoreService, StoreService>();
-builder.Services.AddScoped<IChannelDirectoryProvider, ChannelDirectoryProvider>();
-
-// Incremento 20: Gestión de Usuarios, Permisos Granulares de Moderación y Auditoría para la Mesa Fundadora
-builder.Services.AddScoped<IUserRepository, SqliteUserRepository>();
-builder.Services.AddScoped<IAuditLogRepository, SqliteAuditLogRepository>();
-builder.Services.AddScoped<IUserManagementService, UserManagementService>();
-builder.Services.AddScoped<IAuditService, AuditService>();
-
-// Incremento 21: Dashboard de Inicio Editorial y Eventos Lúdicos
-builder.Services.AddScoped<IBoardGameEventRepository, SqliteBoardGameEventRepository>();
-builder.Services.AddScoped<HomeDashboardService>();
-builder.Services.AddScoped<IHomeDashboardService, CachedHomeDashboardService>(sp =>
-    new CachedHomeDashboardService(
-        sp.GetRequiredService<HomeDashboardService>(),
-        sp.GetRequiredService<IMemoryCache>()));
-
-// Incremento 22: Módulo Completo de Grandes Eventos Lúdicos
-builder.Services.AddScoped<IBoardGameEventService, BoardGameEventService>();
-
-// Incremento 42: Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Directorio de Cuentas)
-builder.Services.AddScoped<ISocialInboxRepository, SqliteSocialInboxRepository>();
-builder.Services.AddScoped<IMonitoredAccountRepository, SqliteMonitoredAccountRepository>();
+// Incremento 42: Hub de Ingesta Social y Multimedia — solo los clientes de extracción/análisis;
+// el resto (repositorios, ISocialIngestionService, IMonitoredAccountService) ya vive en
+// AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 299-304).
 builder.Services.AddHttpClient<ISocialMetadataExtractor, OpenGraphSocialMetadataExtractor>();
 builder.Services.AddHttpClient<ISocialAiAnalysisService, GeminiSocialAnalysisService>();
-builder.Services.AddScoped<ISocialIngestionService, SocialIngestionService>();
-builder.Services.AddScoped<IMonitoredAccountService, MonitoredAccountService>();
 
 // Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Telegram / Blogs / Instagram)
 builder.Services.Configure<SocialCollectorOptions>(builder.Configuration.GetSection(SocialCollectorOptions.SectionName));
@@ -315,7 +196,7 @@ builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<
 builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<RssBlogFeedCollector>());
 builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<InstagramFeedCollector>());
 
-builder.Services.AddScoped<ISocialCollectorService, SocialCollectorService>();
+// ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
 builder.Services.AddHostedService<SocialCollectorHostedService>();
 
 // Incremento 10: Observabilidad con Health Checks Oficiales de ASP.NET Core
