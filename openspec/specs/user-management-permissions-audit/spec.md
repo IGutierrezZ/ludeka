@@ -143,3 +143,24 @@ Toda edición de una entidad del catálogo por un moderador autorizado DEBE regi
 - ENTONCES se almacena un "AuditLogEntry" con EntityType "Game", Action "Updated"
 - Y el registro contiene un cambio en "Duration" con valor anterior "60-90" y valor nuevo "45-75"
 - Y la entrada es visible en "/admin/auditoria" para la Mesa Fundadora
+### Requirement: Acciones de auditoría para vinculación y desvinculación de proveedores externos
+
+El enumerado `AuditAction` DEBE incluir los valores `LinkedProvider` y `UnlinkedProvider`. La bitácora DEBE resolver, para cada uno de estos valores, un nombre visible en español distinto del texto genérico reservado a una acción sin nombre reconocido.
+
+#### Scenario: Nombre visible de LinkedProvider
+
+- GIVEN una entrada de auditoría con `Action=LinkedProvider`
+- WHEN se solicita su nombre visible
+- THEN se obtiene un texto en español específico para la vinculación, distinto del texto genérico de acción desconocida.
+
+#### Scenario: Nombre visible de UnlinkedProvider
+
+- GIVEN una entrada de auditoría con `Action=UnlinkedProvider`
+- WHEN se solicita su nombre visible
+- THEN se obtiene un texto en español específico para la desvinculación, distinto del texto genérico de acción desconocida.
+
+#### Scenario: Los valores nuevos no colisionan con los existentes
+
+- GIVEN el enumerado `AuditAction` ampliado con `LinkedProvider` y `UnlinkedProvider`
+- WHEN se enumeran todos sus valores
+- THEN cada uno de los dos valores nuevos es distinto entre sí y de todos los valores ya definidos previamente.

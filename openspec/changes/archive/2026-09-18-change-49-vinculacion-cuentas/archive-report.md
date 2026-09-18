@@ -3,6 +3,52 @@
 > **Cambio:** `change-49-vinculacion-cuentas` · **Fase:** `sdd-archive` · **Fecha:** 2026-09-18
 > **Rama / worktree de esta fase:** `inc/vinculacion-cuentas-archivo` — `C:\repos\ludeka-wt\vinculacion-cuentas` (parte de `origin/main` ya actualizado con los 7 PRs del incremento, #23-#29, mergeados)
 > **Resultado de esta fase:** **archivado parcial.** El volcado a la especificación viva del sistema y el archivado del documento de incremento están completos. El archivado SDD estándar (fusión de specs delta + traslado de la carpeta de cambio) está **bloqueado** para 2 de las 3 capacidades por un rechazo mecánico legítimo de `gentle-ai sdd-archive-compose`; no se ha aplicado ningún merge manual ni se ha movido la carpeta del cambio, tal como exige el contrato de composición mecánica de la skill `sdd-archive`.
+>
+> ⬆️ **ESTADO SUPERADO.** El párrafo anterior describe el resultado de la fase `sdd-archive` en el momento en que se escribió, y se conserva porque su diagnóstico de las causas (secciones 5.2 y 5.3) es el registro honesto de lo que ocurrió. **Ambos bloqueos quedaron resueltos después por el orquestador y el archivado está completo**: ver la sección 0 inmediatamente debajo.
+
+---
+
+## 0. Resolución de los bloqueos — archivado COMPLETO
+
+Los dos rechazos de composición documentados en las secciones 5.2 y 5.3 se resolvieron tras esta fase. El archivado SDD de INC-49 está **cerrado**.
+
+### 0.1 `social-login-authentication` — defecto de forma en la delta, corregido
+
+**Causa**: la delta declaraba el renombrado del requisito en una nota `(Previously: ...)` dentro del bloque `MODIFIED`, en vez de en la sección `## RENAMED Requirements` que exige la convención. La herramienta no podía localizar el requisito canónico y se negaba, correctamente, a escribir nada.
+
+**Corrección** (commit `47cfd20`): se añadió a la delta una sección `## RENAMED Requirements` con el formato del precedente vivo del repositorio (`openspec/changes/archive/2026-09-10-portada-editorial/specs/home-landing-hero/spec.md:7-13`), declarando nombre antiguo y nuevo explícitamente más sus notas `(Reason: ...)` y `(Migration: ...)`. La nota en prosa del bloque `MODIFIED` pasó a remitir a esa sección en vez de duplicarla.
+
+Composición verificada correcta: el requisito canónico quedó renombrado a «Vinculación manual de proveedores desde sesión activa» y su contenido sustituido por el definitivo.
+
+### 0.2 `user-management-permissions-audit` — spec canónica migrada por decisión del maintainer
+
+**Causa**: la spec canónica seguía en la prosa numerada con Gherkin de INC-20, anterior a la convención de encabezados `### Requirement:`/`#### Scenario:`, así que no había nada contra lo que componer. El bloqueo **no lo causó INC-49**: la spec ya arrastraba deriva de INC-46, que añadió valores de `AuditAction` sin actualizarla.
+
+**Decisión del maintainer**: migrar la spec canónica al formato estándar y cerrar la deriva, en lugar de retirar la delta o dejar el cambio sin archivar.
+
+**Migración** (commit `b502c8f`, 120 → 145 líneas): reestructuración a 3 requisitos con 5 escenarios, conservando íntegro todo el contenido sustantivo —los 5 escenarios Gherkin originales sobreviven con su redacción exacta— y las secciones de contexto, dominio y contratos como preámbulo numerado, siguiendo el patrón de otras specs canónicas ya migradas.
+
+**Siete derivas factuales corregidas contra el código real**, no entre documentos:
+
+| # | Elemento | Decía | Dice el código | Referencia |
+|---|---|---|---|---|
+| 1 | `AuditAction` | 6 valores | 10 valores (se documentan los 8 previos a INC-49; los 2 nuevos los aporta la delta) | `AuditAction.cs:6-57` |
+| 2 | `ModeratorPermission` | 7 banderas, `All = 127` | 12 banderas, `All = 4095` | `ModeratorPermission.cs:10-81` |
+| 3 | `AuditEntityType` | 7 valores | 8 valores (faltaba `InstagramPost`) | `AuditEntityType.cs:6-47` |
+| 4 | Entidad `AppUser` | 8 campos | 9 campos (faltaba `Country`) | `AppUser.cs:11-19` |
+| 5 | `ICurrentUserService` | Declaraba `SwitchUser` | **No existe** desde INC-46; sí expone `UserId`, `UserName`, `Roles`, `IsFoundingTeam`, `IsInRole` | `ICurrentUserService.cs:11-34` |
+| 6 | `IUserManagementService.GetUsersAsync` | `UserFilterDto filter` | `UserFilterDto? filter = null` | `IUserManagementService.cs:14` |
+| 7 | Precedencia de `HasPermission` | Mesa Fundadora concedía «incondicionalmente» **y** la suspensión denegaba «incondicionalmente» — contradictorio | La suspensión se evalúa **antes** que el rol, así que un fundador suspendido obtiene `false` | `ModeratorPermissionRules.cs:28-36` |
+
+La deriva 7 era una **contradicción interna real** del documento heredado, no una simple desactualización: describía dos reglas incondicionales incompatibles para el caso de un fundador suspendido.
+
+### 0.3 Estado terminal
+
+Las **tres** capacidades quedaron compuestas en `openspec/specs/` y la carpeta del cambio se trasladó con `git mv` a `openspec/changes/archive/2026-09-18-change-49-vinculacion-cuentas/`, conservando el historial. `openspec/changes/` ya no contiene `change-49-vinculacion-cuentas` como cambio activo.
+
+**Sigue pendiente, sin cambios**: la tarea 4.5 (smoke test manual de navegador, sin credenciales OAuth en el repositorio) y el WARNING de `ExternalLoginEvents` descrito más abajo. Ninguno de los dos se ha ocultado ni se ha dado por resuelto.
+
+**Deuda ajena detectada al migrar, y no corregida por quedar fuera de alcance**: el módulo 14 de `docs/specs/sistema/` arrastra la misma deriva de `AuditAction` que tenía este documento, y quedan otras specs canónicas del repositorio sin migrar al formato `### Requirement:`.
 
 ---
 
@@ -133,9 +179,9 @@ No hay ningún otro `diff -r` que reportar en esta fase: no hubo traslado de car
 | `docs/increments/archive/inc-49-vinculacion-cuentas.md` | Movido y cabecera actualizada | Archivo de incrementos |
 | `docs/increments/ROADMAP.md` | Actualizado (tabla + sección en curso) | Roadmap |
 | `openspec/specs/account-provider-connections/spec.md` | Creado (copia mecánica verificada) | Specs canónicas |
-| `openspec/specs/social-login-authentication/spec.md` | **Sin cambios — composición rechazada** | Specs canónicas |
-| `openspec/specs/user-management-permissions-audit/spec.md` | **Sin cambios — composición rechazada** | Specs canónicas |
-| `openspec/changes/change-49-vinculacion-cuentas/` | **Sin mover — permanece activa** | Cambios activos |
-| `openspec/changes/change-49-vinculacion-cuentas/archive-report.md` | Creado (este fichero) | Cambio activo |
+| `openspec/specs/social-login-authentication/spec.md` | ~~Sin cambios — composición rechazada~~ → **Compuesta** tras la corrección de la sección `RENAMED` (ver §0.1) | Specs canónicas |
+| `openspec/specs/user-management-permissions-audit/spec.md` | ~~Sin cambios — composición rechazada~~ → **Migrada al formato estándar y compuesta** (ver §0.2) | Specs canónicas |
+| `openspec/changes/change-49-vinculacion-cuentas/` | ~~Sin mover — permanece activa~~ → **Trasladada** a `openspec/changes/archive/2026-09-18-change-49-vinculacion-cuentas/` con `git mv` | Archivo |
+| `openspec/changes/archive/2026-09-18-change-49-vinculacion-cuentas/archive-report.md` | Creado (este fichero) y ampliado con §0 | Archivo |
 
-**El ciclo SDD de INC-49 no está cerrado en `openspec/`.** El código, las pruebas y la especificación viva del sistema SÍ reflejan el estado final real e implementado. Queda pendiente, como trabajo de una fase futura (una corrección de `sdd-spec` sobre la delta de `social-login-authentication`, y una decisión del maintainer sobre `user-management-permissions-audit`), reintentar la sincronización de specs y el traslado de la carpeta.
+**El ciclo SDD de INC-49 está cerrado en `openspec/`.** El código, las pruebas y la especificación viva del sistema reflejan el estado final real e implementado, y las tres capacidades quedaron compuestas en las specs canónicas. La afirmación tachada de arriba describía el estado en el momento de escribir la fase; la sección 0 documenta cómo se resolvió.
