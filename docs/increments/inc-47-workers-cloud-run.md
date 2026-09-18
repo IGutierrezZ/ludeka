@@ -1,6 +1,6 @@
 # INC-47: Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente)
 
-> **Estado:** ⏳ En progreso (pendiente de aprobación de alcance)
+> **Estado:** ⏳ En progreso — alcance **aprobado por el maintainer el 2026-09-18**; ciclo SDD en `sdd-spec`
 > **Fecha de Inicio:** 2026-09-15
 > **Rama de Trabajo:** `inc/workers-cloud-run`
 > **Worktree:** `C:\repos\ludeka-wt\workers-cloud-run`
@@ -14,6 +14,10 @@
 Los cuatro trabajos en segundo plano de Ludeka se ejecutan **dentro del proceso web**, con **estado en memoria** y **sin coordinación entre instancias**. En la configuración real de despliegue esto es incorrecto por construcción.
 
 ### Evidencia verificada en `main` (`a54cb31`)
+
+> ⚠️ **Las citas de esta sección están obsoletas.** Se recogieron contra `a54cb31`; después entraron INC-46, INC-49, INC-50 e INC-51. `sdd-explore` las reverificó contra `56c02b9` el 2026-09-18 y encontró tres correcciones: los cuatro `AddHostedService` están en `Program.cs:166,215,244,319` (no 146/195/224/289), el registro de la cola en `:241` (no 221), los productores en `FoundingVerdictService.cs:217` y `RuleQAService.cs:199` (no 211 y 186), y **la ruta `Infrastructure/Notifications/CommunityNotificationService.cs` no existe**: el fichero vive en `src/Ludeka.Application/Features/Community/`. El inventario de cuatro workers sigue completo y las tres fallas siguen vivas.
+>
+> **Fuente de verdad para las fases posteriores:** [`openspec/changes/change-47-workers-cloud-run/exploration.md`](../../openspec/changes/change-47-workers-cloud-run/exploration.md), no esta sección.
 
 **Registro de los cuatro workers** — `Program.cs:146,195,224,289`. Son los únicos `AddHostedService` del proyecto.
 
@@ -92,11 +96,34 @@ Se propone **externalizar los cuatro trabajos** a *Cloud Run Jobs* disparados po
 
 ---
 
-## 3. Decisiones pendientes para el maintainer
+## 3. Decisiones del maintainer
 
-1. **Modelo de ejecución.** Se propone **Cloud Run Jobs + Cloud Scheduler**. Alternativa: workers en proceso con `pg_advisory_lock`. La primera es la respuesta nativa de Cloud Run y la única que resuelve la cola; la segunda no añade infraestructura nueva.
-2. **Proyecto separado o modo del host.** Se propone un modo *job* dentro del host existente (mismo contenedor, un argumento de entrada) para no duplicar la imagen. Alternativa: proyecto `Ludeka.Jobs` independiente, más limpio pero con un segundo artefacto a construir y desplegar.
-3. **Frecuencia de Cloud Scheduler.** Se propone 1×/día para el lote, cada 6 h para el radar, cada 120 min para el recolector social y cada 5-15 min para el outbox. Ajustable por configuración.
+### ✅ Resueltas
+
+1. **Modelo de ejecución — decidido el 2026-09-18: Cloud Run Jobs + Cloud Scheduler (Rama A).** Los cuatro trabajos se externalizan a ejecuciones de vida corta disparadas por planificador y se retiran los cuatro `AddHostedService` del host web. **Descartada** la alternativa de conservarlos en proceso con `pg_advisory_lock`. Los dos datos que decidieron la elección, ambos aportados por `sdd-explore`: ninguna de las dos ramas resuelve la pérdida de notificaciones por sí sola (el outbox es obligatorio en ambas), y la brecha de pruebas contra PostgreSQL real es común a ambas —40 ficheros de `tests/` usan `UseSqlite` y ninguno `UseNpgsql`—, de modo que la Rama B no ahorraba esa inversión.
+2. **Alcance — aprobado el 2026-09-18.** Aprobada [`proposal.md`](../../openspec/changes/change-47-workers-cloud-run/proposal.md), que amplía el alcance con un **habilitador de pruebas de integración contra PostgreSQL real como primera rebanada** (sin él, el criterio de aceptación §4.6 de este documento no es verificable) y prevé una cadena de siete PRs.
+3. **Frecuencias de Cloud Scheduler — no bloqueante.** Se arrastran los valores propuestos (1×/día para el lote, cada 6 h para el radar, cada 120 min para el recolector social, cada 5-15 min para el despachador de outbox), todos configurables.
+4. **Modelo de fila del outbox — decidido el 2026-09-18: una fila por mensaje lógico con sub-entregas por canal.** Descartada la alternativa de reclamar por fila-canal sobre el esquema actual. **El dato que decidió la elección:** el *fan-out* por canal se decide **al enviar, no al encolar** — `CommunityNotificationService.BroadcastAsync` consulta `_options.Enabled` (línea 66) y `_options.DiscordEnabled` / `_options.TelegramEnabled` (líneas 89 y 94), de modo que hoy un mensaje se encola sin canal resuelto. Reclamar por fila-canal habría obligado a mover esa decisión a `EnqueueAsync`, introduciendo una pérdida silenciosa: un mensaje encolado con Telegram deshabilitado nunca llegaría a Telegram aunque se habilitase minutos después con la fila pendiente. Coste aceptado: esquema mayor, migración más grande y revisión de `SqliteCommunityNotificationRepository.GetRecentLogsAsync`.
+
+5. **Empaquetado del host de trabajos — decidido el 2026-09-18: proyecto `src/Ludeka.Jobs` independiente** (aplicación de consola). Descartado el modo *job* del host web por argumento.
+
+   El argumento con el que este documento proponía el modo del host («mismo contenedor, un argumento de entrada, para no duplicar la imagen») **era falso**, corregido por inspección del `Dockerfile` y de `Ludeka.sln`: **un proyecto separado no obliga a una segunda imagen ni a un segundo artefacto.** Cloud Run Jobs permite sobrescribir el comando del contenedor, así que el servicio web arranca con el `ENTRYPOINT ["dotnet", "Ludeka.Web.dll"]` por defecto y el Job lo sobrescribe; basta publicar ambos proyectos en el mismo `/app/publish`. El runtime `mcr.microsoft.com/dotnet/aspnet:10.0` ejecuta una aplicación de consola sin necesitar una segunda base.
+
+   **Motivo real de la elección:** con un proyecto separado el compilador custodia la frontera de la extracción de DI de la rebanada R2, porque el proyecto de trabajos solo puede consumir lo que la extensión expone públicamente. Con el modo del host, R2 deja de ser una frontera y se convierte en un `if` dentro de `Program.cs`, y nada impediría que una edición futura colara registro exclusivamente web en el camino del trabajo. Ventaja adicional: el proceso de trabajo no carga componentes Razor, antiforgery, *output caching*, autenticación por cookie ni los endpoints de salud.
+
+   **Coste medido, para no subestimarlo ni inflarlo:** `Ludeka.sln` tiene 5 proyectos y ninguno de consola; el `Dockerfile` solo restaura y publica `Ludeka.Web.csproj`, así que hay que añadir sus líneas de `COPY` del `.csproj`, restauración y publicación hacia el mismo `/app/publish`; y el `--no-build` de `ci-cd.yml:43` obliga a que el proyecto esté en la solución. Tres puntos de cambio acotados, no un segundo pipeline.
+
+6. **Estrategia de entrega — decidida el 2026-09-18: `auto-chain` con `stacked-to-main`.** Cada una de las siete rebanadas abre su PR contra `main` y mergea al estar verde, con ramas `inc/workers-cloud-run-NN-<nombre>`. Sigue el precedente de INC-49 (ocho PRs, #19 y #23-#30, todos a `main`). Descartada `feature-branch-chain` por no retener seis rebanadas ni hacer divergir `main` mientras INC-48, INC-50 e INC-51 siguen abiertos.
+
+   > 🚨 **CONDICIÓN DE SEGURIDAD EN PRODUCCIÓN — INSEPARABLE DE ESTA DECISIÓN**
+   >
+   > **El PR de la rebanada R7 se abre pero NO se mergea** hasta que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y la cuenta de servicio con `roles/run.invoker` están provisionados y **disparando de verdad** en Google Cloud.
+   >
+   > Motivo: R7 retira los cuatro `AddHostedService` del host web. Mergearla dispara un despliegue que deja el host **sin ningún ejecutor de trabajos**, y los Jobs que deben sustituirlos se provisionan a mano, fuera del repositorio, porque este ciclo no tiene acceso autorizado a GCP. R1 a R6 son aditivas y conviven con los workers en proceso todavía registrados, así que mergean sin riesgo: el peligro está concentrado entero en R7.
+
+### ⏳ Abiertas
+
+Ninguna. Las seis decisiones están resueltas y el diseño (`openspec/changes/change-47-workers-cloud-run/design.md`) está fijado, pendiente de la puerta de aprobación de AGENTS.md §1.2 antes de `sdd-apply`.
 
 ---
 
