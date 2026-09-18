@@ -19,11 +19,14 @@ using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Options;
+using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Notifications;
 using Ludeka.Infrastructure.Options;
 using Ludeka.Infrastructure.Repositories;
 using Ludeka.Infrastructure.Services;
+using Ludeka.Infrastructure.Stores;
+using Ludeka.Infrastructure.YouTube;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -105,9 +108,10 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IFoundingVerdictService, FoundingVerdictService>();
 
         services.AddScoped<IMediaRepository, SqliteMediaRepository>();
-        // IBrokenLinkCheckerService (Program.cs, AddHttpClient) NO se mueve en R2a: registrarlo aquí
-        // exigiría referenciar Microsoft.Extensions.Http desde Ludeka.Infrastructure, y ese paquete
-        // se añade explícitamente en R2b (tasks.md 3.2). Desviación declarada, ver informe de sdd-apply.
+        // IBrokenLinkCheckerService (antigua Program.cs:152) se mueve aquí en R2b: ya referencia
+        // Microsoft.Extensions.Http desde Ludeka.Infrastructure (deuda declarada por R2a, cerrada
+        // por R2b, tasks.md 3.2).
+        services.AddHttpClient<IBrokenLinkCheckerService, BrokenLinkCheckerService>();
         services.AddScoped<IMediaService, MediaService>();
 
         services.AddScoped<IPendingBggImportRepository, SqlitePendingBggImportRepository>();
@@ -206,10 +210,118 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IMonitoredAccountService, MonitoredAccountService>();
 
         // Incremento 44: Worker de Recolección Automática de Canales Sociales — solo ISocialCollectorService
-        // es de dominio (diseño §4.1 fila 307-318); sus cuatro ISocialChannelCollector siguen en Program.cs
-        // hasta R2b, así que el orden de esa IEnumerable<T> se afirma en la prueba de humo de R2b (3.1).
+        // es de dominio (diseño §4.1 fila 307-318); sus cuatro ISocialChannelCollector viven en
+        // AddLudekaExternalIntegrations (R2b), que es donde tasks.md 3.1 afirma el orden completo de
+        // esa IEnumerable<T>.
         services.AddScoped<ISocialCollectorService, SocialCollectorService>();
 
         return services;
     }
+
+    /// <summary>Clientes HTTP tipados y adaptadores de servicios externos (BGG, Cloudflare R2,
+    /// ingesta masiva BGG, tiendas, Instagram, Discord/Telegram, Gemini, YouTube, extracción/análisis
+    /// social y feeds de canales sociales monitorizados). Diseño §4/D1, tabla §4.1.</summary>
+    public static IServiceCollection AddLudekaExternalIntegrations(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Incremento 23: cliente real BGG XML API2 con resiliencia y autenticación, con selector
+        // hacia el cliente simulado según configuración.
+        services.Configure<BggOptions>(configuration.GetSection(BggOptions.SectionName));
+        services.AddTransient<BggResilienceAndAuthHandler>();
+        services.AddHttpClient<BggXmlApiClient>()
+            .AddHttpMessageHandler<BggResilienceAndAuthHandler>();
+        services.AddSingleton<SimulatedBggClient>();
+
+        services.AddScoped<IBggClient>(sp =>
+        {
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BggOptions>>().Value;
+            return options.ShouldSimulate
+                ? sp.GetRequiredService<SimulatedBggClient>()
+                : sp.GetRequiredService<BggXmlApiClient>();
+        });
+
+        // Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
+        services.Configure<CloudflareR2Options>(configuration.GetSection(CloudflareR2Options.SectionName));
+        services.AddSingleton<IImageOptimizationService, SkiaSharpImageOptimizationService>();
+        services.AddScoped<CloudflareR2StorageService>();
+        services.AddScoped<SimulatedImageStorageService>();
+        services.AddScoped<PhysicalFileImageStorageService>();
+        services.AddScoped<IImageStorageService>(sp =>
+        {
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CloudflareR2Options>>().Value;
+            if (options.HasValidCredentials)
+            {
+                return sp.GetRequiredService<CloudflareR2StorageService>();
+            }
+            return sp.GetRequiredService<SimulatedImageStorageService>();
+        });
+
+        // Incremento 41: Ingesta Masiva de Catálogo BGG, Fotos GeekDo y Síntesis IA en Lotes
+        services.Configure<BggMassIngestionOptions>(configuration.GetSection(BggMassIngestionOptions.SectionName));
+        services.AddScoped<IBggCatalogStagingRepository, SqliteBggCatalogStagingRepository>();
+        services.AddHttpClient<IGeekDoImagesClient, GeekDoImagesClient>();
+        services.AddHttpClient<IBggMassIngestionService, BggMassIngestionService>();
+
+        // Incremento 27: Monitorización y Verificación de Stock en Tiempo Real en Enlaces de Compra.
+        // Orden significativo (diseño §4.3, preservado sin cambios): IEnumerable<IStoreStockClient>
+        // resuelve Simulation antes de HtmlSchema, y la resolución singular de IStoreStockClient (si
+        // alguien la pidiera) devolvería HtmlSchema por ser el último registro.
+        services.Configure<StoreStockOptions>(configuration.GetSection(StoreStockOptions.SectionName));
+        services.AddSingleton<SimulationStoreStockClient>();
+        services.AddHttpClient<HtmlSchemaStoreStockClient>();
+        services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<SimulationStoreStockClient>());
+        services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<HtmlSchemaStoreStockClient>());
+        services.AddScoped<IStoreStockService, StoreStockService>();
+
+        // Incremento 28: Generador y Publicador Directo de Posts para Instagram en Moderación
+        // (solo el cliente; IInstagramPostDraftRepository/IInstagramComposerService/IInstagramPublisherService
+        // ya viven en AddLudekaDomainServices, INC-47 R2a)
+        services.Configure<InstagramOptions>(configuration.GetSection(InstagramOptions.SectionName));
+        services.AddHttpClient<IInstagramApiClient, InstagramApiClient>();
+
+        // Incremento 9: Notificaciones y Webhooks de Comunidad (Discord y Telegram)
+        // (solo los clientes; la cola/repositorio/servicio ya viven en AddLudekaDomainServices, INC-47 R2a)
+        services.Configure<CommunityNotificationOptions>(configuration.GetSection(CommunityNotificationOptions.SectionName));
+        services.AddHttpClient<IDiscordWebhookClient, DiscordWebhookClient>();
+        services.AddHttpClient<ITelegramBotClient, TelegramBotClient>();
+
+        // Incremento 13: Módulo de Síntesis con IA (Google Gemini / Heurística)
+        services.Configure<GeminiOptions>(configuration.GetSection(GeminiOptions.SectionName));
+        services.AddHttpClient<IAiGameSummaryService, GeminiGameSummaryService>();
+
+        // Incremento 14: Búsqueda Quirúrgica y Enlace de YouTube en Tiempo Real
+        services.Configure<YouTubeOptions>(configuration.GetSection(YouTubeOptions.SectionName));
+        services.AddSingleton<IChannelFocusProvider, ChannelFocusProvider>();
+        services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>();
+
+        // Incremento 42: Hub de Ingesta Social y Multimedia — solo los clientes de extracción/análisis;
+        // el resto (repositorios, ISocialIngestionService, IMonitoredAccountService) ya vive en
+        // AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 299-304).
+        services.AddHttpClient<ISocialMetadataExtractor, OpenGraphSocialMetadataExtractor>();
+        services.AddHttpClient<ISocialAiAnalysisService, GeminiSocialAnalysisService>();
+
+        // Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube
+        // RSS / Telegram / Blogs / Instagram). Orden significativo (diseño §4.3, preservado sin
+        // cambios): IEnumerable<ISocialChannelCollector> resuelve YouTube, Telegram, RSS, Instagram.
+        services.Configure<SocialCollectorOptions>(configuration.GetSection(SocialCollectorOptions.SectionName));
+        services.AddHttpClient<YouTubeFeedCollector>();
+        services.AddHttpClient<TelegramChannelCollector>();
+        services.AddHttpClient<RssBlogFeedCollector>();
+        services.AddHttpClient<InstagramFeedCollector>();
+
+        services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<YouTubeFeedCollector>());
+        services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<TelegramChannelCollector>());
+        services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<RssBlogFeedCollector>());
+        services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<InstagramFeedCollector>());
+        // ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
+
+        return services;
+    }
+
+    /// <summary>Punto de entrada único de los dos hosts. Registra la composición completa de dominio
+    /// e infraestructura, sin ningún registro específicamente web.</summary>
+    public static IServiceCollection AddLudekaApplicationCore(this IServiceCollection services, IConfiguration configuration)
+        => services
+            .AddLudekaPersistence(configuration)
+            .AddLudekaDomainServices(configuration)
+            .AddLudekaExternalIntegrations(configuration);
 }

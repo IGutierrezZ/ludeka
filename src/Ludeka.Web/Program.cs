@@ -60,11 +60,10 @@ if (!string.IsNullOrWhiteSpace(cloudRunPort) && int.TryParse(cloudRunPort, out v
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Composición de persistencia y de dominio (INC-47, diseño §4 D1): extraída a
+// Composición completa de dominio e infraestructura (INC-47, diseño §4 D1): extraída a
 // Ludeka.Infrastructure.DependencyInjection.LudekaServiceCollectionExtensions para que el futuro
 // Ludeka.Jobs pueda consumirla sin referenciar este host web.
-builder.Services.AddLudekaPersistence(builder.Configuration);
-builder.Services.AddLudekaDomainServices(builder.Configuration);
+builder.Services.AddLudekaApplicationCore(builder.Configuration);
 
 // Incremento 46: cookie de sesión propia y esquemas sociales dirigidos por configuración.
 // Un proveedor habilitado sin credenciales no tumba el arranque: se avisa y no se registra.
@@ -89,71 +88,10 @@ builder.Services.AddOutputCache(options =>
               .Tag("tag-static"));
 });
 
-builder.Services.Configure<BggOptions>(builder.Configuration.GetSection(BggOptions.SectionName));
-builder.Services.AddTransient<BggResilienceAndAuthHandler>();
-builder.Services.AddHttpClient<BggXmlApiClient>()
-    .AddHttpMessageHandler<BggResilienceAndAuthHandler>();
-builder.Services.AddSingleton<SimulatedBggClient>();
-
-builder.Services.AddScoped<IBggClient>(sp =>
-{
-    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BggOptions>>().Value;
-    return options.ShouldSimulate
-        ? sp.GetRequiredService<SimulatedBggClient>()
-        : sp.GetRequiredService<BggXmlApiClient>();
-});
-
-// IBrokenLinkCheckerService NO se mueve en R2a (INC-47): registrarlo en AddLudekaDomainServices
-// exigiría referenciar Microsoft.Extensions.Http desde Ludeka.Infrastructure, paquete que R2b añade
-// explícitamente (tasks.md 3.2). El resto de este bloque (repositorios y servicios de dominio de
-// colección/préstamos/reseñas/partidas/veredictos/medios/importación BGG) ya vive en
-// AddLudekaDomainServices. Desviación declarada en el informe de sdd-apply de R2a.
-builder.Services.AddHttpClient<IBrokenLinkCheckerService, BrokenLinkCheckerService>();
-
 builder.Services.AddHostedService<NightlyCatalogingHostedService>();
-
-// Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
-builder.Services.Configure<CloudflareR2Options>(builder.Configuration.GetSection(CloudflareR2Options.SectionName));
-builder.Services.AddSingleton<IImageOptimizationService, SkiaSharpImageOptimizationService>();
-builder.Services.AddScoped<CloudflareR2StorageService>();
-builder.Services.AddScoped<SimulatedImageStorageService>();
-builder.Services.AddScoped<PhysicalFileImageStorageService>();
-builder.Services.AddScoped<IImageStorageService>(sp =>
-{
-    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CloudflareR2Options>>().Value;
-    if (options.HasValidCredentials)
-    {
-        return sp.GetRequiredService<CloudflareR2StorageService>();
-    }
-    return sp.GetRequiredService<SimulatedImageStorageService>();
-});
-// Incremento 41: Ingesta Masiva de Catálogo BGG, Fotos GeekDo y Síntesis IA en Lotes
-builder.Services.Configure<BggMassIngestionOptions>(builder.Configuration.GetSection(BggMassIngestionOptions.SectionName));
-builder.Services.AddScoped<IBggCatalogStagingRepository, SqliteBggCatalogStagingRepository>();
-builder.Services.AddHttpClient<IGeekDoImagesClient, GeekDoImagesClient>();
-builder.Services.AddHttpClient<IBggMassIngestionService, BggMassIngestionService>();
-
-// Incremento 27: Monitorización y Verificación de Stock en Tiempo Real en Enlaces de Compra
-builder.Services.Configure<StoreStockOptions>(builder.Configuration.GetSection(StoreStockOptions.SectionName));
-builder.Services.AddSingleton<SimulationStoreStockClient>();
-builder.Services.AddHttpClient<HtmlSchemaStoreStockClient>();
-builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<SimulationStoreStockClient>());
-builder.Services.AddSingleton<IStoreStockClient>(sp => sp.GetRequiredService<HtmlSchemaStoreStockClient>());
-builder.Services.AddScoped<IStoreStockService, StoreStockService>();
 
 builder.Services.AddHostedService<PriceRadarHostedService>();
 
-// Incremento 28: Generador y Publicador Directo de Posts para Instagram en Moderación
-// (solo el cliente; IInstagramPostDraftRepository/IInstagramComposerService/IInstagramPublisherService
-// ya viven en AddLudekaDomainServices, INC-47 R2a)
-builder.Services.Configure<InstagramOptions>(builder.Configuration.GetSection(InstagramOptions.SectionName));
-builder.Services.AddHttpClient<IInstagramApiClient, InstagramApiClient>();
-
-// Incremento 9: Notificaciones y Webhooks de Comunidad (Discord y Telegram)
-// (solo los clientes; la cola/repositorio/servicio ya viven en AddLudekaDomainServices, INC-47 R2a)
-builder.Services.Configure<CommunityNotificationOptions>(builder.Configuration.GetSection(CommunityNotificationOptions.SectionName));
-builder.Services.AddHttpClient<IDiscordWebhookClient, DiscordWebhookClient>();
-builder.Services.AddHttpClient<ITelegramBotClient, TelegramBotClient>();
 builder.Services.AddHostedService<CommunityNotificationDispatcherHostedService>();
 
 // Incremento 46 (Paso 2): la identidad se resuelve desde la sesión autenticada y la simulación
@@ -168,33 +106,6 @@ builder.Services.AddSingleton<IUserSessionInvalidator, InMemoryUserSessionInvali
 // Hallazgo W1: las escrituras administrativas revalidan el permiso sobre el AppUser actual (relectura
 // sin rastreo), de modo que la suspensión o la revocación en caliente bloquean la siguiente operación.
 builder.Services.AddScoped<ISessionPermissionGuard, SessionPermissionGuard>();
-
-// Incremento 13: Módulo de Síntesis con IA (Google Gemini / Heurística)
-builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
-builder.Services.AddHttpClient<IAiGameSummaryService, GeminiGameSummaryService>();
-
-// Incremento 14: Búsqueda Quirúrgica y Enlace de YouTube en Tiempo Real
-builder.Services.Configure<YouTubeOptions>(builder.Configuration.GetSection(YouTubeOptions.SectionName));
-builder.Services.AddSingleton<IChannelFocusProvider, ChannelFocusProvider>();
-builder.Services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>();
-
-// Incremento 42: Hub de Ingesta Social y Multimedia — solo los clientes de extracción/análisis;
-// el resto (repositorios, ISocialIngestionService, IMonitoredAccountService) ya vive en
-// AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 299-304).
-builder.Services.AddHttpClient<ISocialMetadataExtractor, OpenGraphSocialMetadataExtractor>();
-builder.Services.AddHttpClient<ISocialAiAnalysisService, GeminiSocialAnalysisService>();
-
-// Incremento 44: Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Telegram / Blogs / Instagram)
-builder.Services.Configure<SocialCollectorOptions>(builder.Configuration.GetSection(SocialCollectorOptions.SectionName));
-builder.Services.AddHttpClient<YouTubeFeedCollector>();
-builder.Services.AddHttpClient<TelegramChannelCollector>();
-builder.Services.AddHttpClient<RssBlogFeedCollector>();
-builder.Services.AddHttpClient<InstagramFeedCollector>();
-
-builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<YouTubeFeedCollector>());
-builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<TelegramChannelCollector>());
-builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<RssBlogFeedCollector>());
-builder.Services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<InstagramFeedCollector>());
 
 // ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
 builder.Services.AddHostedService<SocialCollectorHostedService>();

@@ -26,20 +26,21 @@ namespace Ludeka.UnitTests.Infrastructure.DependencyInjection;
 /// Prueba de humo de la rebanada R2a (INC-47, diseño §4/§4.6): aplica únicamente
 /// <see cref="LudekaServiceCollectionExtensions.AddLudekaPersistence"/> y
 /// <see cref="LudekaServiceCollectionExtensions.AddLudekaDomainServices"/> — sin
-/// <c>AddLudekaExternalIntegrations</c>, que todavía no existe (llega en R2b) — y confirma que el
-/// grafo de dependencias de persistencia y dominio se resuelve completo con
-/// <c>validateOnBuild: true</c>, que convierte cualquier dependencia ausente en un fallo de
-/// construcción con el nombre del servicio (diseño §4.6).
+/// <c>AddLudekaExternalIntegrations</c> (que R2b ya extrajo, pero esta prueba sigue afirmando la
+/// composición AISLADA de persistencia+dominio a propósito, como red de seguridad independiente de
+/// esa costura) — y confirma que el grafo de dependencias de persistencia y dominio se resuelve
+/// completo con <c>validateOnBuild: true</c>, que convierte cualquier dependencia ausente en un
+/// fallo de construcción con el nombre del servicio (diseño §4.6).
 ///
-/// Los tipos que el diseño clasifica como <c>AddLudekaExternalIntegrations</c> (fila §4.1) siguen
-/// registrados de forma inline en <c>Program.cs</c> hasta que R2b los extraiga; varios servicios de
-/// dominio los exigen como dependencia dura de constructor (p. ej. <c>NightlyCatalogingService</c>
-/// necesita <c>IBggClient</c>, <c>PriceRadarService</c> necesita <c>IStoreStockService</c>,
+/// Los tipos que el diseño clasifica como <c>AddLudekaExternalIntegrations</c> (fila §4.1) viven
+/// ahora en esa extensión real (INC-47 R2b); varios servicios de dominio los exigen como
+/// dependencia dura de constructor (p. ej. <c>NightlyCatalogingService</c> necesita
+/// <c>IBggClient</c>, <c>PriceRadarService</c> necesita <c>IStoreStockService</c>,
 /// <c>CommunityNotificationService</c> necesita los dos clientes de webhook). Para que esta
-/// composición AISLADA sea construible sin adelantar el trabajo de R2b, esta prueba registra dobles
-/// mínimos de esos límites externos — nunca se invocan, solo satisfacen la forma del grafo — y la
-/// composición real de <c>Program.cs</c> sigue proveyendo las implementaciones reales sin cambios,
-/// porque ese fichero conserva inline sus propios registros hasta que R2b los mueva.
+/// composición AISLADA siga siendo construible sin arrastrar <c>AddLudekaExternalIntegrations</c>
+/// completa, esta prueba registra dobles mínimos de esos límites externos — nunca se invocan, solo
+/// satisfacen la forma del grafo — y la composición real de <c>AddLudekaApplicationCore</c> sigue
+/// proveyendo las implementaciones reales sin cambios.
 /// </summary>
 public class LudekaPersistenceAndDomainServicesTests
 {
@@ -125,16 +126,17 @@ public class LudekaPersistenceAndDomainServicesTests
             throw new NotImplementedException();
     }
 
-    private sealed class FakeBrokenLinkCheckerService : IBrokenLinkCheckerService
-    {
-        public Task<BrokenLinkReportDto> CheckLinksAsync(CancellationToken ct = default) =>
-            throw new NotImplementedException();
-    }
-
     /// <summary>
-    /// Registra dobles mínimos de los límites de <c>AddLudekaExternalIntegrations</c> (R2b, todavía
-    /// no extraída) que los servicios de dominio de R2a exigen como dependencia dura de constructor.
-    /// Ninguno se invoca: <c>validateOnBuild</c> solo necesita que el tipo exista en el contenedor.
+    /// Registra dobles mínimos de los límites de <c>AddLudekaExternalIntegrations</c> (R2b) que los
+    /// servicios de dominio de R2a exigen como dependencia dura de constructor. Ninguno se invoca:
+    /// <c>validateOnBuild</c> solo necesita que el tipo exista en el contenedor.
+    ///
+    /// INC-47 R2b retiró de aquí los dobles de <c>IBrokenLinkCheckerService</c> y de <see
+    /// cref="HttpClient"/> desnudo: ambos quedan cubiertos por el registro REAL que
+    /// <c>AddLudekaDomainServices</c> añade ahora para <c>IBrokenLinkCheckerService</c> vía
+    /// <c>AddHttpClient&lt;T,U&gt;</c>, cuyo efecto colateral (<c>TryAddTransient&lt;HttpClient&gt;</c>)
+    /// también satisface a <c>SocialIngestionService</c>. Confirmado en verde tras la extracción, no
+    /// asumido: eran dobles que la deuda de paquete de R2a obligaba, no dobles permanentes de frontera.
     /// </summary>
     private static IServiceCollection AddExternalIntegrationBoundaryDoubles(IServiceCollection services) =>
         services
@@ -146,9 +148,7 @@ public class LudekaPersistenceAndDomainServicesTests
             .AddSingleton<IInstagramApiClient, FakeInstagramApiClient>()
             .AddSingleton<ISocialMetadataExtractor, FakeSocialMetadataExtractor>()
             .AddSingleton<ISocialAiAnalysisService, FakeSocialAiAnalysisService>()
-            .AddSingleton<IImageStorageService, FakeImageStorageService>()
-            .AddSingleton<IBrokenLinkCheckerService, FakeBrokenLinkCheckerService>()
-            .AddSingleton(new HttpClient());
+            .AddSingleton<IImageStorageService, FakeImageStorageService>();
 
     [Fact]
     public void AddLudekaPersistenceAndAddLudekaDomainServices_ResolveExpectedDomainServices()
@@ -181,12 +181,13 @@ public class LudekaPersistenceAndDomainServicesTests
         Assert.IsAssignableFrom<IUserLibraryService>(sp.GetRequiredService<IUserLibraryService>());
     }
 
-    // Nota de alcance (tasks.md 2.5): el riesgo 2 de la propuesta (orden de registro de
-    // IEnumerable<ISocialChannelCollector> e IEnumerable<IStoreStockClient>) NO se afirma en esta
+    // Nota de alcance (tasks.md 2.5, cerrada por R2b): el riesgo 2 de la propuesta (orden de registro
+    // de IEnumerable<ISocialChannelCollector> e IEnumerable<IStoreStockClient>) NO se afirma en esta
     // rebanada. Las dos colecciones completas viven enteramente en AddLudekaExternalIntegrations
-    // (diseño §4.1, filas 204-209 y 307-318: ni siquiera ISocialCollectorService, IStoreStockService
-    // — solo ISocialCollectorService cae en dominio, y no participa de ninguna de las dos
-    // IEnumerable<T> en riesgo). No hay "parte de dominio" de ese orden que afirmar en la composición
-    // aislada de R2a: la aserción completa de ambas secuencias queda en R2b, tarea 3.1, que sí aplica
-    // AddLudekaApplicationCore con las cuatro extensiones ya disponibles. Desviación declarada.
+    // (diseño §4.1, filas 204-209 y 307-318: ni siquiera IStoreStockService cae en dominio — solo
+    // ISocialCollectorService lo hace, y no participa de ninguna de las dos IEnumerable<T> en riesgo).
+    // No hay "parte de dominio" de ese orden que afirmar en esta composición aislada: la aserción
+    // completa de ambas secuencias vive en
+    // LudekaServiceCollectionExtensionsTests.AddLudekaApplicationCore_ResolvesFullCompositionWithoutWebRegistrations
+    // (INC-47 R2b, tasks.md 3.1), que sí aplica las cuatro extensiones.
 }
