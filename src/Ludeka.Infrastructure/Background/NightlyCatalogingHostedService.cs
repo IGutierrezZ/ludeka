@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Jobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,10 +17,12 @@ namespace Ludeka.Infrastructure.Background;
 /// </summary>
 public class NightlyCatalogingHostedService : BackgroundService
 {
+    // INC-47, R5, diseño §7.2: nombre estable del trabajo en JobExecutionLeases.
+    private const string JobName = "nightly-cataloging";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptionsMonitor<NightlyCatalogingOptions> _optionsMonitor;
     private readonly ILogger<NightlyCatalogingHostedService> _logger;
-    private DateTimeOffset _lastExecutionDate = DateTimeOffset.MinValue;
 
     public NightlyCatalogingHostedService(
         IServiceScopeFactory scopeFactory,
@@ -53,19 +56,42 @@ public class NightlyCatalogingHostedService : BackgroundService
             {
                 var nowUtc = DateTimeOffset.UtcNow;
 
-                // Comprobar si es la hora configurada (o posterior) y no se ha ejecutado hoy
-                if (nowUtc.Hour >= options.ExecutionHourUtc && _lastExecutionDate.Date != nowUtc.Date)
+                // La hora configurada sigue decidiendo CUÁNDO intentarlo; SI ya se ejecutó hoy lo
+                // decide ahora JobExecutionLeases vía el coordinador (INC-47, R5) — el campo
+                // _lastExecutionDate desaparece, tal como exige la especificación
+                // "Ausencia de estado en memoria para el control de ejecución".
+                if (nowUtc.Hour >= options.ExecutionHourUtc)
                 {
                     try
                     {
-                        _logger.LogInformation("Disparando ejecución automática de catalogación nocturna a las {Time} UTC.", nowUtc);
+                        var windowKey = JobWindowKeyCalculator.DailyUtc(nowUtc);
 
+                        // Una única concesión de ámbito por intento: IJobExecutionCoordinator es
+                        // Scoped (depende de LudekaDbContext) y este servicio es Singleton
+                        // (AddHostedService), así que no puede inyectarse por constructor sin
+                        // crear una dependencia cautiva — mismo motivo por el que
+                        // INotificationOutboxDispatcher ya se resuelve así (tasks.md 7.9).
                         using var scope = _scopeFactory.CreateScope();
-                        var service = scope.ServiceProvider.GetRequiredService<INightlyCatalogingService>();
+                        var coordinator = scope.ServiceProvider.GetRequiredService<IJobExecutionCoordinator>();
 
-                        // Ruta de sistema sin sesión: el ciclo programado no pasa por la guarda de la interfaz.
-                        await service.RunScheduledCatalogingAsync(options.DailyCatalogingLimit, stoppingToken);
-                        _lastExecutionDate = nowUtc;
+                        var outcome = await coordinator.ExecuteWithWindowLeaseAsync(
+                            JobName, windowKey,
+                            async (heartbeat, ct) =>
+                            {
+                                _logger.LogInformation("Disparando ejecución automática de catalogación nocturna a las {Time} UTC.", nowUtc);
+
+                                var service = scope.ServiceProvider.GetRequiredService<INightlyCatalogingService>();
+
+                                // Ruta de sistema sin sesión: el ciclo programado no pasa por la guarda de la interfaz.
+                                var result = await service.RunScheduledCatalogingAsync(options.DailyCatalogingLimit, ct);
+                                return new JobWorkResult(result.TotalCatalogedCount, result.FailedCount, result.Status);
+                            },
+                            stoppingToken);
+
+                        if (outcome == JobLeaseOutcome.Failed)
+                        {
+                            _logger.LogError("Error en la ejecución programada de catalogación nocturna para la ventana {WindowKey}.", windowKey);
+                        }
                     }
                     catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                     {

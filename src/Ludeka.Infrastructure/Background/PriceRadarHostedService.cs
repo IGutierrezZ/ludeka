@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Jobs;
 using Ludeka.Application.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +17,9 @@ namespace Ludeka.Infrastructure.Background;
 /// </summary>
 public class PriceRadarHostedService : BackgroundService
 {
+    // INC-47, R5, diseño §7.2: nombre estable del trabajo en JobExecutionLeases.
+    private const string JobName = "price-radar";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptionsMonitor<PriceRadarOptions> _optionsMonitor;
     private readonly ILogger<PriceRadarHostedService> _logger;
@@ -51,14 +56,35 @@ public class PriceRadarHostedService : BackgroundService
             {
                 try
                 {
-                    _logger.LogInformation("Ejecutando ciclo del Radar de Precios para títulos en seguimiento...");
+                    var nowUtc = DateTimeOffset.UtcNow;
+                    var blockHours = Math.Max(1, options.CheckIntervalHours);
+                    var windowKey = JobWindowKeyCalculator.HourlyBlock(nowUtc, blockHours);
 
+                    // Una única concesión de ámbito por intento: IJobExecutionCoordinator es
+                    // Scoped y este servicio es Singleton (AddHostedService); inyectarlo por
+                    // constructor sería una dependencia cautiva (mismo motivo que 7.9).
                     using var scope = _scopeFactory.CreateScope();
-                    var radarService = scope.ServiceProvider.GetRequiredService<IPriceRadarService>();
+                    var coordinator = scope.ServiceProvider.GetRequiredService<IJobExecutionCoordinator>();
 
-                    int scanned = await radarService.ScanWantToBuyPricesAsync(options.MaxGamesPerScan, stoppingToken);
+                    var outcome = await coordinator.ExecuteWithWindowLeaseAsync(
+                        JobName, windowKey,
+                        async (heartbeat, ct) =>
+                        {
+                            _logger.LogInformation("Ejecutando ciclo del Radar de Precios para títulos en seguimiento...");
 
-                    _logger.LogInformation("Ciclo del Radar de Precios completado: {Scanned} títulos analizados.", scanned);
+                            var radarService = scope.ServiceProvider.GetRequiredService<IPriceRadarService>();
+
+                            int scanned = await radarService.ScanWantToBuyPricesAsync(options.MaxGamesPerScan, ct);
+
+                            _logger.LogInformation("Ciclo del Radar de Precios completado: {Scanned} títulos analizados.", scanned);
+                            return new JobWorkResult(scanned, 0, null);
+                        },
+                        stoppingToken);
+
+                    if (outcome == JobLeaseOutcome.Failed)
+                    {
+                        _logger.LogError("Error durante la ejecución del ciclo del Radar de Precios para la ventana {WindowKey}.", windowKey);
+                    }
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
