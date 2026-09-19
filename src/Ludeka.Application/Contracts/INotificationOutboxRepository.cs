@@ -22,9 +22,13 @@ public interface INotificationOutboxRepository
     /// inmediatamente al encolar").</summary>
     Task EnqueueAsync(NotificationOutboxMessage message, CancellationToken ct = default);
 
-    // La reclamación exclusiva por lotes (ClaimPendingAsync) llega en el PR 6c de esta
-    // partición, junto con su SQL por proveedor y sus pruebas de concurrencia real. Es la
-    // única operación del contrato que no usa EF Core, y se aísla para poder revisarla sola.
+    /// <summary>Reclama hasta <paramref name="batchSize"/> mensajes de forma exclusiva y
+    /// atómica. En PostgreSQL con <c>FOR UPDATE SKIP LOCKED</c> (diseño §6.3); en SQLite en
+    /// modo degradado, sin garantía de exclusión entre procesos (diseño §6.4). La sentencia
+    /// desplaza <c>NextAttemptAt</c> al futuro: el lote devuelto queda invisible para
+    /// cualquier otro despachador durante la concesión de <paramref name="lease"/>.</summary>
+    Task<IReadOnlyList<OutboxClaim>> ClaimPendingAsync(
+        int batchSize, string claimedBy, TimeSpan lease, CancellationToken ct = default);
 
     /// <summary>Sub-entregas por canal ya creadas para un mensaje del outbox.</summary>
     Task<IReadOnlyList<CommunityNotificationLog>> GetDeliveriesAsync(Guid messageId, CancellationToken ct = default);

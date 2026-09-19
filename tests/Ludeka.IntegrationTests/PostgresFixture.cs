@@ -96,3 +96,19 @@ public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>
 public sealed class PostgresJobLeasesCollection : ICollectionFixture<PostgresFixture>
 {
 }
+
+/// <summary>
+/// Colección independiente para <see cref="NotificationOutboxClaimConcurrencyTests"/> (INC-47,
+/// R4a, diseño §6.3). El motivo es el mismo que el de <see cref="PostgresJobLeasesCollection"/>:
+/// la colección "postgres-real" ya aloja <see cref="NotificationOutboxMigrationTests"/>, que
+/// migra hasta un punto histórico concreto antes de migrar hacia delante, y xUnit no garantiza
+/// el orden de ejecución entre clases de una misma colección. Compartir contenedor arriesgaría
+/// que la migración parcial de esa prueba dejase el esquema del outbox sin crear justo cuando
+/// esta prueba necesita reclamar filas reales. Un contenedor propio (misma clase
+/// <see cref="PostgresFixture"/>, instancia independiente por colección) elimina el riesgo sin
+/// modificar el fixture existente ni ninguna de las otras dos colecciones.
+/// </summary>
+[CollectionDefinition("postgres-real-outbox-claim")]
+public sealed class PostgresOutboxClaimCollection : ICollectionFixture<PostgresFixture>
+{
+}
