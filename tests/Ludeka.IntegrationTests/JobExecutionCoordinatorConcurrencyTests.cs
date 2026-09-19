@@ -29,6 +29,16 @@ public class JobExecutionCoordinatorConcurrencyTests
         _fixture = fixture;
     }
 
+    /// <summary>Instancias que no consiguen la ventana: las cinco del escenario menos la ganadora.</summary>
+    private const int ExpectedLosers = 4;
+
+    /// <summary>
+    /// Tope de seguridad para que la prueba no se cuelgue si un defecto real impide que las cuatro
+    /// perdedoras lleguen a intentarlo. No participa en el camino normal, donde la espera se
+    /// resuelve en milisegundos.
+    /// </summary>
+    private static readonly TimeSpan ContentionTimeout = TimeSpan.FromSeconds(30);
+
     private static JobExecutionCoordinator NewCoordinator(LudekaDbContext context) =>
         new(new JobExecutionLeaseRepository(context));
 
@@ -50,18 +60,41 @@ public class JobExecutionCoordinatorConcurrencyTests
         const string windowKey = "2026-09-19";
         var processedCount = 0;
 
+        // La ganadora retiene la ventana hasta que las otras cuatro hayan intentado adquirirla.
+        // Sin esta sincronización el resultado depende del planificador: JobExecutionCoordinator
+        // confirma la concesión ANTES de ejecutar el trabajo y llama a MarkCompletedAsync DESPUÉS,
+        // así que una instancia que llegue tarde lee AlreadyCompleted en lugar de HeldByOther y la
+        // aserción de contención falla de forma intermitente. El escenario AlreadyCompleted ya lo
+        // cubre la otra prueba de esta clase; esta existe para ejercitar la contención real.
+        var losersAttempted = 0;
+        var allLosersAttempted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
         // Act: cinco instancias del proceso (cada una con su propia conexión real), simulando el
         // escalado hasta --max-instances=5, disputan la misma ventana a la vez.
         var instanceTasks = Enumerable.Range(0, 5).Select(async _ =>
         {
             await using var db = new LudekaDbContext(options);
             var coordinator = NewCoordinator(db);
-            return await coordinator.ExecuteWithWindowLeaseAsync(jobName, windowKey, async (_, ct) =>
+            var outcome = await coordinator.ExecuteWithWindowLeaseAsync(jobName, windowKey, async (_, ct) =>
             {
                 Interlocked.Increment(ref processedCount);
-                await Task.Delay(100, ct); // ensancha la ventana de carrera real
+                // Retener la ventana tomada mientras las perdedoras la disputan. El coordinador no
+                // mantiene ninguna transacción abierta durante el trabajo y la adquisición usa
+                // SKIP LOCKED, así que ninguna instancia se bloquea esperando a esta.
+                await Task.WhenAny(allLosersAttempted.Task, Task.Delay(ContentionTimeout, ct));
                 return new JobWorkResult(20, 0, "ok");
             });
+
+            // Solo las perdedoras cuentan. Si un defecto real dejara que dos instancias adquirieran
+            // la ventana, el contador nunca llegaría a cuatro y la espera vencería por tiempo: la
+            // prueba seguiría adelante y las aserciones reportarían el reparto real de resultados.
+            if (outcome != JobLeaseOutcome.Completed &&
+                Interlocked.Increment(ref losersAttempted) == ExpectedLosers)
+            {
+                allLosersAttempted.TrySetResult();
+            }
+
+            return outcome;
         });
 
         var outcomes = await Task.WhenAll(instanceTasks);
@@ -69,7 +102,7 @@ public class JobExecutionCoordinatorConcurrencyTests
         // Assert: como máximo una completa el procesamiento; las demás detectan que la ventana
         // ya fue reclamada y terminan sin procesar ningún trabajo duplicado.
         Assert.Equal(1, outcomes.Count(o => o == JobLeaseOutcome.Completed));
-        Assert.Equal(4, outcomes.Count(o => o == JobLeaseOutcome.SkippedHeldByOther));
+        Assert.Equal(ExpectedLosers, outcomes.Count(o => o == JobLeaseOutcome.SkippedHeldByOther));
         Assert.Equal(1, processedCount);
 
         await using var assertDb = new LudekaDbContext(options);
