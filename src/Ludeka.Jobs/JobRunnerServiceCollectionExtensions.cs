@@ -1,0 +1,23 @@
+using Ludeka.Jobs.Runners;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Ludeka.Jobs;
+
+/// <summary>
+/// Registro de los cuatro <see cref="IJobRunner"/> (INC-47, R6, diseño §8.1/§8.2).
+/// <c>AddScoped</c>: cada uno depende de servicios con ámbito (el coordinador, los servicios de
+/// dominio), y la selección por nombre se resuelve dentro del ámbito único por intento que
+/// <c>Program.cs</c> crea (mismo patrón que <c>IEnumerable&lt;ISocialChannelCollector&gt;</c>,
+/// diseño §8.2).
+/// </summary>
+public static class JobRunnerServiceCollectionExtensions
+{
+    public static IServiceCollection AddLudekaJobRunners(this IServiceCollection services)
+    {
+        services.AddScoped<IJobRunner, NightlyCatalogingJobRunner>();
+        services.AddScoped<IJobRunner, PriceRadarJobRunner>();
+        services.AddScoped<IJobRunner, SocialCollectorJobRunner>();
+        services.AddScoped<IJobRunner, NotificationOutboxJobRunner>();
+        return services;
+    }
+}
