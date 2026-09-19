@@ -183,4 +183,80 @@ public class SqliteSchemaMigratorTests
         var legacyLogin = Assert.Single(logins);
         Assert.Null(legacyLogin.ProviderEmailVerifiedAt);
     }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_ConNotificationLogsPreexistente_DebeAgregarColumnasDeEntregaSinPerderDatos()
+    {
+        // Arrange: base SQLite con el esquema de NotificationLogs anterior a INC-47 (sin
+        // MessageId/Attempts/NextAttemptAt) y una fila de producción ya persistida.
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        using (var createCmd = connection.CreateCommand())
+        {
+            // "Games" debe existir para que el migrador considere la base "preexistente"
+            // (mismo umbral que usa el resto de este fichero).
+            createCmd.CommandText = """
+                CREATE TABLE "Games" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_Games" PRIMARY KEY
+                );
+                CREATE TABLE "NotificationLogs" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_NotificationLogs" PRIMARY KEY,
+                    "EventType" INTEGER NOT NULL,
+                    "Channel" INTEGER NOT NULL,
+                    "Title" TEXT NOT NULL,
+                    "Summary" TEXT NOT NULL,
+                    "TargetUrl" TEXT NULL,
+                    "ImageUrl" TEXT NULL,
+                    "Status" INTEGER NOT NULL,
+                    "ErrorDetails" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL,
+                    "SentAt" TEXT NULL
+                );
+                """;
+            await createCmd.ExecuteNonQueryAsync();
+        }
+
+        using (var insertCmd = connection.CreateCommand())
+        {
+            insertCmd.CommandText = """
+                INSERT INTO "NotificationLogs"
+                    ("Id", "EventType", "Channel", "Title", "Summary", "Status", "CreatedAt", "SentAt")
+                VALUES
+                    ('33333333-3333-3333-3333-333333333333', 0, 0, 'Notificación histórica', 'Resumen histórico', 1, '2026-08-01T00:00:00+00:00', '2026-08-01T00:00:05+00:00');
+                """;
+            await insertCmd.ExecuteNonQueryAsync();
+        }
+
+        var options = new DbContextOptionsBuilder<LudekaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        using var db = new LudekaDbContext(options);
+
+        // Act
+        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+
+        // Assert (1): las 3 columnas nuevas existen en NotificationLogs.
+        var columns = new List<string>();
+        using (var pragmaCmd = connection.CreateCommand())
+        {
+            pragmaCmd.CommandText = "PRAGMA table_info('NotificationLogs');";
+            using var reader = await pragmaCmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                columns.Add(reader.GetString(1));
+            }
+        }
+        Assert.Contains("MessageId", columns);
+        Assert.Contains("Attempts", columns);
+        Assert.Contains("NextAttemptAt", columns);
+
+        // Assert (2): la fila histórica no se pierde, trunca ni elimina, y recibe valores
+        // por defecto en las columnas nuevas.
+        var legacyLog = await db.NotificationLogs.AsNoTracking().SingleAsync(
+            l => l.Id == Guid.Parse("33333333-3333-3333-3333-333333333333"));
+        Assert.Equal("Notificación histórica", legacyLog.Title);
+        Assert.Null(legacyLog.MessageId);
+        Assert.Equal(0, legacyLog.Attempts);
+    }
 }

@@ -284,6 +284,13 @@ public class LudekaDbContext : DbContext
         notificationLog.HasIndex(n => n.Channel);
         notificationLog.HasIndex(n => n.CreatedAt);
 
+        // INC-47 (R3a, diseño §5.3): idempotencia de la creación de sub-entregas. Un mensaje
+        // reclamado por segunda vez no puede duplicar una sub-entrega existente. En PostgreSQL y
+        // en SQLite los NULL se consideran distintos en un índice único, así que las filas
+        // históricas con MessageId = NULL convivirán sin violar la restricción (verificado por
+        // la prueba que siembra una fila histórica antes de reconciliar el esquema).
+        notificationLog.HasIndex(n => new { n.MessageId, n.Channel }).IsUnique();
+
         // --- Configuración de UserPreference ---
         var userPref = modelBuilder.Entity<UserPreference>();
         userPref.ToTable("UserPreferences");

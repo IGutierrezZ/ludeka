@@ -874,6 +874,44 @@ public static class SqliteSchemaMigrator
                     await alterCmd.ExecuteNonQueryAsync(ct);
                 }
             }
+
+            // 24. Reconciliar columnas de sub-entrega en NotificationLogs (INC-47, esquema del
+            // outbox — concern A: columnas de entrega, diseño §5.2/§5.3). Patrón incremental
+            // (PRAGMA table_info + ALTER TABLE), igual que los puntos 21-23. NotificationLogs ya
+            // tiene su CREATE TABLE de una sola oportunidad en el punto 5 más arriba (líneas
+            // 149-172): estas 3 columnas se añaden con un bloque incremental en vez de editar ese
+            // CREATE TABLE, precisamente para no replicar el patrón que el hallazgo C5 condena
+            // (una tabla cuyo esquema evoluciona sin que su creación de una sola oportunidad ni
+            // un bloque incremental lo reflejen).
+            if (existingTables.Contains("NotificationLogs"))
+            {
+                var notificationLogColumns = await GetTableColumnsAsync(connection, "NotificationLogs", ct);
+                if (!notificationLogColumns.Contains("MessageId"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"NotificationLogs\" ADD COLUMN \"MessageId\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!notificationLogColumns.Contains("Attempts"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"NotificationLogs\" ADD COLUMN \"Attempts\" INTEGER NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!notificationLogColumns.Contains("NextAttemptAt"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"NotificationLogs\" ADD COLUMN \"NextAttemptAt\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+
+                // Idempotencia de la creación de sub-entregas (diseño §5.3): NULL se trata como
+                // distinto en un índice único SQLite, igual que en PostgreSQL, así que las filas
+                // históricas con MessageId = NULL convivirán sin violar la restricción.
+                using var idxCmd = connection.CreateCommand();
+                idxCmd.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_NotificationLogs_MessageId_Channel\" ON \"NotificationLogs\" (\"MessageId\", \"Channel\");";
+                await idxCmd.ExecuteNonQueryAsync(ct);
+            }
         }
         finally
         {
