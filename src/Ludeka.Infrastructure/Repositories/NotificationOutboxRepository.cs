@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,12 +15,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Ludeka.Infrastructure.Repositories;
 
 /// <summary>
-/// Persistencia del outbox de notificaciones (INC-47, R4a, diseño §6). Todos los métodos de
-/// esta rebanada usan LINQ/EF Core normal. La reclamación exclusiva por lotes
-/// (<c>ClaimPendingAsync</c>) llega en el PR 6c de esta partición: es el único método del
-/// contrato que necesita un comando ADO.NET crudo y parametrizado sobre
-/// <c>Database.GetDbConnection()</c>, con rama por proveedor, porque ni <c>FromSqlRaw</c> ni
-/// <c>SqlQueryRaw</c> componen un <c>UPDATE ... RETURNING</c> desde LINQ (diseño §6.4).
+/// Persistencia y reclamación exclusiva del outbox de notificaciones (INC-47, R4a, diseño
+/// §6). <see cref="ClaimPendingAsync"/> es el único método que usa un comando ADO.NET crudo y
+/// parametrizado sobre <c>Database.GetDbConnection()</c>, con rama por proveedor — mismo
+/// patrón que <see cref="SqliteSchemaMigrator"/> (<c>SqliteSchemaMigrator.cs:19-40</c>).
+/// Ni <c>FromSqlRaw</c> ni <c>SqlQueryRaw</c> componen un <c>UPDATE ... RETURNING</c> desde
+/// LINQ (diseño §6.4), así que esa es la única excepción; el resto de métodos usa LINQ/EF
+/// Core normal.
 /// </summary>
 public class NotificationOutboxRepository : INotificationOutboxRepository
 {
@@ -35,6 +38,64 @@ public class NotificationOutboxRepository : INotificationOutboxRepository
         await _db.NotificationOutboxMessages.AddAsync(message, ct);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyList<OutboxClaim>> ClaimPendingAsync(
+        int batchSize, string claimedBy, TimeSpan lease, CancellationToken ct = default)
+    {
+        var connection = _db.Database.GetDbConnection();
+        var shouldClose = false;
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(ct);
+            shouldClose = true;
+        }
+
+        try
+        {
+            var isSqlite = _db.Database.IsSqlite();
+            var now = DateTimeOffset.UtcNow;
+
+            using var command = connection.CreateCommand();
+            command.CommandText = isSqlite ? SqliteClaimSql : NpgsqlClaimSql;
+
+            // Solo DbParameter, nunca interpolación de cadenas (matriz de amenazas §14,
+            // "Inyección SQL en la reclamación").
+            AddParameter(command, "@ahora", now);
+            AddParameter(command, "@tamanoLote", batchSize);
+            AddParameter(command, "@reclamadoPor", claimedBy);
+
+            if (isSqlite)
+            {
+                // SQLite (modo degradado, diseño §6.4): sin aritmética de fechas en texto, el
+                // "hasta cuándo" de la concesión llega ya calculado desde C#.
+                AddParameter(command, "@hasta", now.Add(lease));
+            }
+            else
+            {
+                // PostgreSQL: aritmética de intervalo en la propia sentencia (diseño §6.3);
+                // @concesion viaja como TimeSpan -> interval.
+                AddParameter(command, "@concesion", lease);
+            }
+
+            var claims = new List<OutboxClaim>();
+            using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                claims.Add(MapClaim(reader, isSqlite));
+            }
+
+            return claims;
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
     public async Task<IReadOnlyList<CommunityNotificationLog>> GetDeliveriesAsync(
         Guid messageId, CancellationToken ct = default)
     {
@@ -132,4 +193,70 @@ public class NotificationOutboxRepository : INotificationOutboxRepository
 
         return message;
     }
+
+    private static OutboxClaim MapClaim(DbDataReader reader, bool isSqlite)
+    {
+        var id = isSqlite ? Guid.Parse(reader.GetString(0)) : reader.GetGuid(0);
+        var eventType = (NotificationEventType)reader.GetInt32(1);
+        var title = reader.GetString(2);
+        var summary = reader.GetString(3);
+        var targetUrl = reader.IsDBNull(4) ? null : reader.GetString(4);
+        var imageUrl = reader.IsDBNull(5) ? null : reader.GetString(5);
+        var fieldsJson = reader.GetString(6);
+        var targetChannel = reader.IsDBNull(7) ? (NotificationChannel?)null : (NotificationChannel)reader.GetInt32(7);
+        var attempts = reader.GetInt32(8);
+        var createdAt = reader.GetFieldValue<DateTimeOffset>(9);
+
+        return new OutboxClaim(id, eventType, title, summary, targetUrl, imageUrl, fieldsJson, targetChannel, attempts, createdAt);
+    }
+
+    private static void AddParameter(DbCommand command, string name, object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
+    // PostgreSQL (diseño §6.3): una sola sentencia — FOR UPDATE SKIP LOCKED solo bloquea
+    // durante ella, así que no hace falta abrir una transacción explícita. "Status" = 0 es
+    // OutboxMessageStatus.Pending.
+    private const string NpgsqlClaimSql = """
+        WITH reclamados AS (
+            SELECT "Id"
+              FROM "NotificationOutboxMessages"
+             WHERE "Status" = 0
+               AND "NextAttemptAt" <= @ahora
+             ORDER BY "NextAttemptAt", "CreatedAt"
+             LIMIT @tamanoLote
+               FOR UPDATE SKIP LOCKED
+        )
+        UPDATE "NotificationOutboxMessages" AS m
+           SET "Attempts"      = m."Attempts" + 1,
+               "NextAttemptAt" = @ahora + @concesion,
+               "ClaimedAt"     = @ahora,
+               "ClaimedBy"     = @reclamadoPor
+          FROM reclamados r
+         WHERE m."Id" = r."Id"
+        RETURNING m."Id", m."EventType", m."Title", m."Summary", m."TargetUrl",
+                  m."ImageUrl", m."FieldsJson", m."TargetChannel", m."Attempts", m."CreatedAt";
+        """;
+
+    // SQLite (diseño §6.4): modo degradado, sin cláusula de bloqueo — SQLite ya serializa a
+    // los escritores. "@hasta" llega precalculado desde C# (ver ClaimPendingAsync).
+    private const string SqliteClaimSql = """
+        UPDATE "NotificationOutboxMessages"
+           SET "Attempts" = "Attempts" + 1,
+               "NextAttemptAt" = @hasta,
+               "ClaimedAt" = @ahora,
+               "ClaimedBy" = @reclamadoPor
+         WHERE "Id" IN (
+             SELECT "Id" FROM "NotificationOutboxMessages"
+              WHERE "Status" = 0 AND "NextAttemptAt" <= @ahora
+              ORDER BY "NextAttemptAt", "CreatedAt"
+              LIMIT @tamanoLote
+         )
+        RETURNING "Id", "EventType", "Title", "Summary", "TargetUrl", "ImageUrl", "FieldsJson",
+                  "TargetChannel", "Attempts", "CreatedAt";
+        """;
 }
