@@ -10,18 +10,20 @@ namespace Ludeka.Infrastructure.Notifications;
 
 public class CommunityNotificationDispatcherHostedService : BackgroundService
 {
+    // INC-47 (R4b, tasks.md 7.9): cadencia de sondeo del outbox. El diseño no fija un valor
+    // exacto; decisión de sdd-apply, deliberadamente corta frente a LeaseSeconds (300s por
+    // defecto) porque gobierna solo la frecuencia de sondeo, no la ventana de exclusión mutua.
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
+
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ICommunityNotificationQueue _queue;
     private readonly ILogger<CommunityNotificationDispatcherHostedService> _logger;
     private DateTimeOffset _lastFridayBulletinDispatched = DateTimeOffset.MinValue;
 
     public CommunityNotificationDispatcherHostedService(
         IServiceScopeFactory scopeFactory,
-        ICommunityNotificationQueue queue,
         ILogger<CommunityNotificationDispatcherHostedService> logger)
     {
         _scopeFactory = scopeFactory;
-        _queue = queue;
         _logger = logger;
     }
 
@@ -36,29 +38,46 @@ public class CommunityNotificationDispatcherHostedService : BackgroundService
         await Task.WhenAll(queueConsumerTask, periodicScanTask);
     }
 
+    /// <summary>
+    /// Ciclo de sondeo acotado del outbox (INC-47, R4b, diseño §6.5): sustituye el consumo
+    /// infinito de <c>ICommunityNotificationQueue.ReadAllAsync</c> (retirado de la interfaz en
+    /// tasks.md 6.7) por <see cref="INotificationOutboxDispatcher.DispatchPendingAsync"/>, uno
+    /// por vuelta. El servicio ya no inyecta ninguna dependencia con ámbito por constructor —
+    /// tanto el despachador como la cola que este consume internamente son <c>Scoped</c>
+    /// (tasks.md 6.11/7.10) — y las resuelve aquí a través de <see cref="_scopeFactory"/>, el
+    /// mismo mecanismo que ya usa <see cref="RunPeriodicScanAsync"/> para
+    /// <c>ICommunityNotificationService</c>.
+    /// </summary>
     private async Task ProcessQueueAsync(CancellationToken stoppingToken)
     {
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await foreach (var message in _queue.ReadAllAsync(stoppingToken))
+            try
             {
-                try
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var service = scope.ServiceProvider.GetRequiredService<ICommunityNotificationService>();
+                using var scope = _scopeFactory.CreateScope();
+                var dispatcher = scope.ServiceProvider.GetRequiredService<INotificationOutboxDispatcher>();
 
-                    _logger.LogDebug("Despachando mensaje de cola: {Title}", message.Title);
-                    await service.BroadcastAsync(message, stoppingToken);
-                }
-                catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+                var result = await dispatcher.DispatchPendingAsync(stoppingToken);
+                if (result.ClaimedCount > 0)
                 {
-                    _logger.LogError(ex, "Error al procesar mensaje de notificación en segundo plano: {Message}", ex.Message);
+                    _logger.LogDebug(
+                        "Ciclo del outbox: {Claimed} reclamados, {Completed} completados, {Retried} reprogramados, {Dead} agotados.",
+                        result.ClaimedCount, result.CompletedCount, result.RetriedCount, result.DeadCount);
                 }
             }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            // Apagado limpio
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogError(ex, "Error al despachar el outbox de notificaciones: {Message}", ex.Message);
+            }
+
+            try
+            {
+                await Task.Delay(PollInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 

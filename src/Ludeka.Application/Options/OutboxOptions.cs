@@ -21,6 +21,12 @@ public class OutboxOptions
     public int HealthOldestPendingDegradedMinutes { get; set; } = 30;
     public int HealthQueryTimeoutSeconds { get; set; } = 2;
 
+    /// <summary>Solo para desarrollo local: mantiene <c>InMemoryCommunityNotificationQueue</c>
+    /// (cola en memoria, sin persistencia) en vez de <c>OutboxCommunityNotificationQueue</c>
+    /// (INC-47, R4b, tasks.md 6.11 — el diseño no fija el mecanismo exacto de selección; lo
+    /// decide esta fase, como configuración explícita y no como detección de entorno).</summary>
+    public bool UseInMemoryQueueForLocalDev { get; set; }
+
     /// <summary>Retroceso exponencial acotado para el siguiente intento (diseño §5.4):
     /// <c>ahora + RetryBackoffSeconds × RetryBackoffMultiplier^(attempts-1)</c>, con techo en
     /// <c>LeaseSeconds × 12</c>. Lo usan tanto la reclamación del mensaje (<c>attempts</c> =

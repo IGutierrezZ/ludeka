@@ -4,6 +4,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.DependencyInjection;
+using Ludeka.Infrastructure.Notifications;
 using Ludeka.Infrastructure.Services;
 using Ludeka.Infrastructure.Stores;
 using Microsoft.Extensions.Configuration;
@@ -98,5 +99,42 @@ public class LudekaServiceCollectionExtensionsTests
         Assert.Collection(storeStockClients,
             c => Assert.IsType<SimulationStoreStockClient>(c),
             c => Assert.IsType<HtmlSchemaStoreStockClient>(c));
+    }
+
+    /// <summary>
+    /// Trampa verificada de INC-47 (R4b, tasks.md 6.11): <c>Program.cs:95</c> registra
+    /// <c>CommunityNotificationDispatcherHostedService</c> con <c>AddHostedService</c>
+    /// (Singleton). Antes de la tarea 7.9 ese servicio recibía <c>ICommunityNotificationQueue</c>
+    /// por constructor; al pasar la cola de <c>AddSingleton</c> a <c>AddScoped</c> (tarea 6.11),
+    /// un singleton consumiendo un servicio con ámbito es la dependencia cautiva clásica. Ni
+    /// <c>ValidateScopes</c> ni <c>ValidateOnBuild</c> están configurados en ningún punto de
+    /// <c>src/</c>, así que en Development el fallo real sería <c>InvalidOperationException</c>
+    /// al arrancar el host — y una suite que solo llama <c>BuildServiceProvider()</c> sin estas
+    /// opciones no lo detectaría. Esta prueba reproduce exactamente esas dos opciones para que
+    /// la regresión se detecte aquí. Pasa porque 7.9 reescribió el hosted service para dejar de
+    /// inyectar la cola por constructor y resolverla por ámbito con <c>IServiceScopeFactory</c>.
+    /// </summary>
+    [Fact]
+    public void AddLudekaApplicationCore_ConDespachadorDeNotificacionesRegistrado_NoLanzaPorDependenciaCautiva()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<ICurrentUserService, FakeCurrentUserService>();
+        services.AddSingleton<ISessionPermissionGuard, DenyAllSessionPermissionGuard>();
+
+        var configuration = new ConfigurationBuilder().Build();
+        services.AddLudekaApplicationCore(configuration);
+        services.AddHostedService<CommunityNotificationDispatcherHostedService>();
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true,
+            ValidateOnBuild = true
+        });
+
+        var hostedService = provider.GetServices<IHostedService>()
+            .OfType<CommunityNotificationDispatcherHostedService>()
+            .Single();
+        Assert.NotNull(hostedService);
     }
 }
