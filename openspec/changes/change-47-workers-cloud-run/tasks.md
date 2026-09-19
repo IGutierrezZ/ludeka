@@ -138,10 +138,10 @@ R4a y R4b quedan bajo 400 pero **con margen ajustado (14 y 8 líneas)** dado que
 
 ---
 
-## 2. Corte final de la cadena (21 PRs, `stacked-to-main`)
+## 2. Corte final de la cadena (24 PRs, `stacked-to-main`)
 
 ```
-PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7a (R4b-entrega) → PR7b (R4b-despachador) → PR7c (R4b-cableado) → PR8 (R4c) → PR9a (R5-contrato) → PR9b (R5-repositorio) → PR9c (R5-coordinador) → PR9d (R5-cableado) → PR10 (R6) → PR11 (R7)
+PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7a (R4b-entrega) → PR7b (R4b-despachador) → PR7c (R4b-cableado) → PR8 (R4c) → PR9a (R5-contrato) → PR9b (R5-repositorio) → PR9c (R5-coordinador) → PR9d (R5-cableado) → PR10a (R6-esqueleto) → PR10b (R6-guardas) → PR10c (R6-runners) → PR10d (R6-entrega) → PR11 (R7)
 ```
 
 | Orden | Rama sugerida | Rebanada | Depende de |
@@ -165,7 +165,10 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 | 9b | `inc/workers-cloud-run-09b-repositorio-concesiones` | R5 — repositorio de concesiones, con `INSERT` crudo y clasificación por proveedor | PR9a mergeado (implementa su contrato) + PR5b mergeado (la tabla existe) |
 | 9c | `inc/workers-cloud-run-09c-coordinador-ventana` | R5 — el coordinador y su prueba de concurrencia real | PR9b mergeado (sus pruebas usan el repositorio real) |
 | 9d | `inc/workers-cloud-run-09d-cableado-trabajos` | R5 — cableado de los cuatro trabajos y su registro DI | PR9c mergeado |
-| 10 | `inc/workers-cloud-run-10-ludeka-jobs-pipeline` | R6 | PR7, PR9 mergeados (los 4 *runners* invocan al despachador y al coordinador) |
+| 10a | `inc/workers-cloud-run-10a-esqueleto-jobs` | R6 — el proyecto `Ludeka.Jobs` y la selección de trabajo por argumento | PR3 mergeado |
+| 10b | `inc/workers-cloud-run-10b-guardas-arranque` | R6 — guardas de arranque, ejecutor del host e identidad de sistema | PR10a mergeado |
+| 10c | `inc/workers-cloud-run-10c-runners-composicion` | R6 — los cuatro *runners*, su registro y el `Program.cs` completo | PR10b + PR7c + PR9d mergeados (los *runners* invocan al despachador y al coordinador) |
+| 10d | `inc/workers-cloud-run-10d-entrega-jobs` | R6 — `Dockerfile` y pipeline | PR10c mergeado (publica un artefacto que ya funciona) |
 | 11 | `inc/workers-cloud-run-11-retirada-hosted-services` | R7 | PR10 mergeado — **y además el gate de producción del §3** |
 
 > **Partición de PR4 decidida por el maintainer el 2026-09-19, después de ejecutar `sdd-apply`.** La rebanada R3a completa medía **515 líneas** contra el presupuesto duro de 400. Convención de medición aplicada (la del §0, no la que la instrucción de fase de aquella tanda dio por buena): se excluyen `*.Designer.cs`, `LudekaDbContextModelSnapshot.cs` y este propio `tasks.md`; el `.cs` de la migración **sí cuenta**, porque su `Up`/`Down` es exactamente lo que un revisor debe leer para validar el cambio de esquema de producción.
@@ -215,6 +218,18 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 > **Lo que sí hace esta fase:** retirar el estado de deduplicación **en memoria** —`_lastExecutionDate` (`NightlyCatalogingHostedService.cs:22,67`) y `_lastFridayBulletinDispatched` (`CommunityNotificationDispatcherHostedService.cs:16,92`)—, que es justo lo que los escenarios «Instancia recién iniciada sin estado previo» exigen que desaparezca del código fuente, y envolver el cuerpo de cada iteración con el coordinador, de modo que la decisión de ejecutar una ventana la tome la concesión en base de datos y no un `if` en memoria. **Los bucles y los `Task.Delay` se quedan**, y su retirada se traslada a la Fase 11.
 >
 > **Regla general que deja este hallazgo:** al partir un incremento que cambia el modelo de ejecución, hay que separar siempre **hacer la operación idempotente** de **cambiar quién la dispara**. La primera es aditiva y mergea sola; la segunda solo es segura cuando el disparador nuevo ya existe y está verificado.
+
+> **Partición de PR10 en cuatro (2026-09-19).** La Fase 10 se implementó completa y quedó en verde —`Ludeka.IntegrationTests.dll` 9/9, `Ludeka.UnitTests.dll` 1534/1534, código de salida 0—, y midió **1004 líneas** contra el techo de 400: **2,51 veces**. La estimación heredada era ~280-380. **474 de esas 1004 son las cuatro suites de pruebas nuevas**, el mismo patrón de todas las rebanadas del incremento.
+>
+> **Eje de corte: por capa de responsabilidad**, el cuarto uso del mismo eje tras R4a, R4b y R5. **10a** (268) — el proyecto, su alta en la solución, los nombres de trabajo, el contrato `IJobRunner` y la selección de trabajo por argumento. **10b** — las guardas de arranque, el ejecutor del host y la identidad de sistema. **10c** — los cuatro *runners*, su registro y el `Program.cs` completo. **10d** — `Dockerfile` y pipeline.
+>
+> **El `Program.cs` de 10a no es un relleno.** Un proyecto con `OutputType=Exe` necesita punto de entrada desde el primer PR, y el de 10a implementa exactamente el contrato que sus propias pruebas exigen: resolver el nombre de trabajo y salir con **2** si es desconocido, vacío o mal escrito, antes de levantar ninguna composición. 10c lo extiende con el contenedor, las guardas y la ejecución del *runner*; no lo reemplaza.
+>
+> **10d va última y sola, y es deliberado.** Publicar los cuatro Cloud Run Jobs en el pipeline antes de que el artefacto haga algo útil sería publicar un binario que no funciona. La entrega llega cuando el trabajo ya existe.
+>
+> **Hueco de diseño resuelto en esta fase, con verificación empírica.** El §4.6 solo preveía `ILogger` y `DenyAllSessionPermissionGuard` como registros mínimos de un host sin web, y la tarea 10.12 repetía esa lista. Es insuficiente: `ICurrentUserService` solo se registra en `src/Ludeka.Web/Program.cs:102`, con una implementación específica de web. Se resuelve con `SystemCurrentUserService`, **deliberadamente sin privilegios** —`UserId` vacío, sin roles, `IsInRole` y `HasPermission` siempre `false`—, que es la semántica sin sesión que el propio contrato documenta y la coherente con el `DenyAllSessionPermissionGuard` que el diseño ya había elegido: un host sin humano detrás no debe presentar una identidad con permisos. **Ninguna de las cuatro rutas de trabajo comprueba permisos**, así que no bloquea nada.
+>
+> La verificación no se quedó en el argumento: retirando temporalmente ese registro, la prueba de composición falla con `Unable to resolve service for type 'ICurrentUserService'` al activar **17 servicios distintos** —más que los 11 que el análisis previo había contado, porque `ValidateOnBuild` valida el grafo entero y no solo lo que el host invoca—. Esa activación de `ValidateScopes` y `ValidateOnBuild` en `Ludeka.Jobs` es lo que convierte un hueco así en un fallo ruidoso al arrancar en lugar de una `NullReferenceException` en plena madrugada.
 
 **Restricciones de secuenciación que esta fase NO reordena** (dadas por el orquestador, no negociables): R1 siempre primera; R7 siempre última. El resto del orden (R2 antes de R3/R4/R5 para que sus registros DI nuevos aterricen en `LudekaServiceCollectionExtensions.cs` en vez de en `Program.cs`; R3 antes de R4/R5 porque el esquema precede al código que lo usa) es una decisión de esta fase, justificada arriba, no una restricción impuesta por el diseño.
 
@@ -569,21 +584,43 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 
 ### Fase 10 — R6: `Ludeka.Jobs` + `Dockerfile` + pipeline
 
+> **Esta fase se entrega en CUATRO PRs.** Midió 1004 líneas contra un techo de 400; el eje del corte y la resolución del hueco de `ICurrentUserService` están en la nota del §2. La numeración de tareas no cambia (10.1 a 10.20); cambia en qué PR viaja cada una.
+>
+> | PR | Tareas | Líneas |
+> |---|---|---|
+> | **10a** | 10.1, 10.2, 10.7, 10.8, 10.13 (y la mitad de 10.9 que es `IJobRunner`) | 268 |
+> | **10b** | 10.3, 10.4, 10.5, 10.6, 10.11 | — |
+> | **10c** | 10.9 (el agregador), 10.10, 10.12 | — |
+> | **10d** | 10.14, 10.15 | — |
+>
+> Las tareas **10.17 a 10.20 son checklist manual del maintainer** y no las marca ningún PR.
+
+#### Fase 10a — El proyecto y la selección de trabajo
+
+*Rama: `inc/workers-cloud-run-10a-esqueleto-jobs` · Depende de PR 3 mergeado.*
+
+- [x] 10a.1 GREEN (tareas 10.7, 10.8, 10.13 y la mitad de 10.9): `src/Ludeka.Jobs/Ludeka.Jobs.csproj` (30, diseño §8.1), `JobNames.cs` (27, única fuente de verdad de los cuatro nombres), `IJobRunner.cs` (21) y el alta en `Ludeka.sln` (15, segunda mitad de la tarea 1.2).
+- [x] 10a.2 RED + GREEN (tareas 10.1 y 10.2): `JobSelectionResolver.cs` (50) y `JobSelectionResolverTests.cs` (98) — análisis posicional, `--job=<nombre>` y `Workers:JobName` de configuración, con **precedencia determinista** (el posicional gana) para que nunca se ejecuten dos trabajos, y salida **2** con la lista de nombres válidos en `stderr` ante un nombre desconocido, vacío, con espacios o con otra capitalización. **RED confirmado:** `error CS0103: El nombre 'JobSelectionResolver' no existe en el contexto actual`, siete apariciones.
+- [x] 10a.3 GREEN: `Program.cs` (26) con la selección de trabajo. **No es un relleno:** un `OutputType=Exe` necesita punto de entrada desde el primer PR, y este implementa el contrato que sus pruebas exigen —resolver el nombre y salir con 2 si es inválido, antes de levantar ninguna composición—. El PR 10c lo **extiende** con el contenedor, las guardas y la ejecución del *runner*.
+- [x] 10a.4 Verificación de la rebanada: `dotnet test Ludeka.sln` → `Ludeka.IntegrationTests.dll` **9/9**, `Ludeka.UnitTests.dll` **1523/1523**, **0 omitidas**, código de salida **0**, sobre la rama en aislamiento con base en `063ffb7`. Los 1523 son los 1510 de la base más los 13 casos nuevos. **Presupuesto: 268 líneas sobre un techo de 400.** Diff enteramente aditivo.
+
+#### Desglose original de la Fase 10 (numeración estable, trazabilidad del §8)
+
 *Rama: `inc/workers-cloud-run-10-ludeka-jobs-pipeline` · Depende de PR 7 (despachador) + PR 9 (coordinador) mergeados · Escenarios: `background-jobs-scheduling` "Contrato de código de salida..." (2), "Ejecución de vida corta..." (1); matriz de amenazas (2 filas); `dockerfile-build` (2, manuales); parte de "Documentación operativa..." (1, pipeline). Riesgo Medio heredado, no remedido por esta fase.*
 
-- [ ] 10.1 RED (unitaria): análisis de argumentos — posicional, `--job=<nombre>`, `Workers:JobName` de configuración, nombre desconocido/vacío/con espacios/con otra capitalización → salida **2** con lista de nombres válidos en `stderr` (matriz de amenazas, "Selección de trabajo por argumento").
-- [ ] 10.2 RED (unitaria): precedencia determinista ante dos fuentes en conflicto (posicional gana sobre `--job=`) — nunca se ejecutan dos trabajos (misma fila de la matriz, caso explícito).
+- [x] 10.1 RED (unitaria): análisis de argumentos — posicional, `--job=<nombre>`, `Workers:JobName` de configuración, nombre desconocido/vacío/con espacios/con otra capitalización → salida **2** con lista de nombres válidos en `stderr` (matriz de amenazas, "Selección de trabajo por argumento").
+- [x] 10.2 RED (unitaria): precedencia determinista ante dos fuentes en conflicto (posicional gana sobre `--job=`) — nunca se ejecutan dos trabajos (misma fila de la matriz, caso explícito).
 - [ ] 10.3 RED (unitaria): guarda de coherencia de proveedor — con `Workers:RequirePostgreSqlInProduction=true` y `ASPNETCORE_ENVIRONMENT=Production`, una cadena SQLite resuelta → salida **3**, nombrando la variable ausente (matriz, "Procedencia de la base de datos"; diseño §8.6, guarda 1).
 - [ ] 10.4 RED (unitaria): guarda de esquema al día — `Database.GetPendingMigrationsAsync()` no vacío en PostgreSQL → salida **3**, el trabajo nunca migra (matriz, "Propiedad del esquema"; diseño §8.6, guarda 2).
 - [ ] 10.5 RED (unitaria): contrato de código de salida — fallo observable → distinto de cero; éxito, incluida ventana ya completada → **0** (`background-jobs-scheduling`, "Contrato de código de salida por ejecución", 2 escenarios).
 - [ ] 10.6 RED (unitaria): el proceso termina por sí mismo tras su unidad de trabajo, sin reentrar en ningún bucle de sondeo (`background-jobs-scheduling`, "Ejecución de vida corta — una unidad de trabajo por disparo").
-- [ ] 10.7 GREEN: crear `src/Ludeka.Jobs/Ludeka.Jobs.csproj` (diseño §8.1: `Microsoft.NET.Sdk`, `OutputType=Exe`, `net10.0`, `Nullable`, `ImplicitUsings`, `Microsoft.Extensions.Hosting`, `appsettings.json` de `Ludeka.Web` enlazado con `<Content Include>`).
-- [ ] 10.8 GREEN: crear `src/Ludeka.Jobs/JobNames.cs` — constantes de los 4 nombres (`nightly-cataloging`, `price-radar`, `social-collector`, `notification-outbox`), única fuente de verdad.
+- [x] 10.7 GREEN: crear `src/Ludeka.Jobs/Ludeka.Jobs.csproj` (diseño §8.1: `Microsoft.NET.Sdk`, `OutputType=Exe`, `net10.0`, `Nullable`, `ImplicitUsings`, `Microsoft.Extensions.Hosting`, `appsettings.json` de `Ludeka.Web` enlazado con `<Content Include>`).
+- [x] 10.8 GREEN: crear `src/Ludeka.Jobs/JobNames.cs` — constantes de los 4 nombres (`nightly-cataloging`, `price-radar`, `social-collector`, `notification-outbox`), única fuente de verdad.
 - [ ] 10.9 GREEN: crear `src/Ludeka.Jobs/IJobRunner.cs` y `src/Ludeka.Jobs/JobRunnerServiceCollectionExtensions.cs` (`AddLudekaJobRunners()`).
 - [ ] 10.10 GREEN: crear `src/Ludeka.Jobs/Runners/NightlyCatalogingJobRunner.cs`, `PriceRadarJobRunner.cs`, `SocialCollectorJobRunner.cs`, `NotificationOutboxJobRunner.cs` — 4 *runners* finos, cada uno calcula su `WindowKey` e invoca al coordinador (R5) o al despachador de outbox (R4b).
 - [ ] 10.11 GREEN: crear las guardas de arranque de §8.6 del diseño (nombre de fichero decidido por esta fase: `src/Ludeka.Jobs/StartupGuards.cs`).
 - [ ] 10.12 GREEN: crear `src/Ludeka.Jobs/Program.cs` — `Host.CreateApplicationBuilder(args)`, `AddLudekaApplicationCore`, `AddScoped<ISessionPermissionGuard, DenyAllSessionPermissionGuard>()` (creada en la tarea 2.3), `AddLudekaJobRunners()`, guardas de arranque, `PosixSignalRegistration` para `SIGTERM`, selección de *runner* por nombre, código de salida. **Nunca `host.RunAsync()`** (diseño §8.3).
-- [ ] 10.13 Modificar `Ludeka.sln` — alta de `Ludeka.Jobs` en la carpeta `src` (segunda mitad de la tarea 1.2; diseño §8.8).
+- [x] 10.13 Modificar `Ludeka.sln` — alta de `Ludeka.Jobs` en la carpeta `src` (segunda mitad de la tarea 1.2; diseño §8.8).
 - [ ] 10.14 Modificar `Dockerfile` — los 3 cambios de §8.7 del diseño (`COPY src/Ludeka.Jobs/Ludeka.Jobs.csproj src/Ludeka.Jobs/` tras `:26`; `RUN dotnet restore src/Ludeka.Jobs/Ludeka.Jobs.csproj` tras `:29`; `RUN dotnet publish /src/src/Ludeka.Jobs/Ludeka.Jobs.csproj -c Release -o /app/publish /p:UseAppHost=false` tras `:40`, ruta absoluta). **`ENTRYPOINT:81` no se toca** — es la decisión, no un olvido.
 - [ ] 10.15 Modificar `.github/workflows/ci-cd.yml` — paso nuevo de publicación de los 4 Cloud Run Jobs (diseño §8.9), condicionado a `has_gcp == 'true'` igual que los pasos existentes (`:86`, `:96`).
 - [ ] 10.16 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (heredado ~280-380, sin repartir).
