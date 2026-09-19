@@ -37,6 +37,7 @@ public class LudekaDbContext : DbContext
     public DbSet<MonitoredSocialAccount> MonitoredSocialAccounts => Set<MonitoredSocialAccount>();
     public DbSet<GamePriceSnapshot> GamePriceSnapshots => Set<GamePriceSnapshot>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<NotificationOutboxMessage> NotificationOutboxMessages => Set<NotificationOutboxMessage>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -500,5 +501,22 @@ public class LudekaDbContext : DbContext
             .WithMany()
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // --- Configuración de NotificationOutboxMessage (INC-47, R3a, diseño §5.3) ---
+        var outbox = modelBuilder.Entity<NotificationOutboxMessage>();
+        outbox.ToTable("NotificationOutboxMessages");
+        outbox.HasKey(m => m.Id);
+        outbox.Property(m => m.Title).IsRequired().HasMaxLength(250);
+        outbox.Property(m => m.Summary).IsRequired();
+        outbox.Property(m => m.FieldsJson).IsRequired();
+        outbox.Property(m => m.ClaimedBy).HasMaxLength(128);
+
+        // Índice de reclamación: cubre el filtro y la ordenación completos de la sentencia de
+        // reclamación (WHERE Status = 0 AND NextAttemptAt <= ahora ORDER BY NextAttemptAt, CreatedAt),
+        // que R4a implementa contra esta misma tabla.
+        outbox.HasIndex(m => new { m.Status, m.NextAttemptAt, m.CreatedAt });
+
+        // Índice del chequeo de salud: COUNT(*) y MIN(CreatedAt) sobre Status = Pending (diseño §11).
+        outbox.HasIndex(m => new { m.Status, m.CreatedAt });
     }
 }
