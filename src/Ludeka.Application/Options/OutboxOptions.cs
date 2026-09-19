@@ -1,3 +1,5 @@
+using System;
+
 namespace Ludeka.Application.Options;
 
 /// <summary>
@@ -18,4 +20,17 @@ public class OutboxOptions
     public int HealthPendingDepthDegraded { get; set; } = 100;
     public int HealthOldestPendingDegradedMinutes { get; set; } = 30;
     public int HealthQueryTimeoutSeconds { get; set; } = 2;
+
+    /// <summary>Retroceso exponencial acotado para el siguiente intento (diseño §5.4):
+    /// <c>ahora + RetryBackoffSeconds × RetryBackoffMultiplier^(attempts-1)</c>, con techo en
+    /// <c>LeaseSeconds × 12</c>. Lo usan tanto la reclamación del mensaje (<c>attempts</c> =
+    /// intentos de reclamación) como la sub-entrega por canal (<c>attempts</c> = intentos de
+    /// entrega).</summary>
+    public DateTimeOffset ComputeNextAttempt(int attempts)
+    {
+        var exponent = Math.Max(0, attempts - 1);
+        var delaySeconds = RetryBackoffSeconds * Math.Pow(RetryBackoffMultiplier, exponent);
+        var cappedSeconds = Math.Min(delaySeconds, LeaseSeconds * 12);
+        return DateTimeOffset.UtcNow.AddSeconds(cappedSeconds);
+    }
 }
