@@ -192,8 +192,11 @@ public static class LudekaServiceCollectionExtensions
 
         // INC-47 (R5, diseño §7.4, tasks.md 9.10-9.12/9.17): coordinador de idempotencia por
         // ventana e implementación del repositorio de concesiones, respaldados por
-        // JobExecutionLeases (esquema de R3b). Los cuatro BackgroundService de arriba lo
-        // consumen en vez de estado en memoria.
+        // JobExecutionLeases (esquema de R3b). Los runners de Ludeka.Jobs lo consumen en vez de
+        // estado en memoria.
+        // INC-47 (R7, diseño §7.5, tasks.md 11.4): sección Workers — StaleLeaseMinutes deja de
+        // vivir como constante en JobExecutionLeaseRepository (deuda declarada en tasks.md 9b.3).
+        services.Configure<WorkersOptions>(configuration.GetSection(WorkersOptions.SectionName));
         services.AddScoped<IJobExecutionLeaseRepository, JobExecutionLeaseRepository>();
         services.AddScoped<IJobExecutionCoordinator, JobExecutionCoordinator>();
 
