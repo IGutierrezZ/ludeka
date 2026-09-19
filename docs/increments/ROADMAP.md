@@ -60,7 +60,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-44** | Worker de Recolección Automática de Canales Sociales Monitorizados (YouTube RSS / Instagram) | ✅ Archivado | [inc-44-social-collector-worker.md](archive/inc-44-social-collector-worker.md) |
 | **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | ✅ Archivado | [inc-45-price-radar-discounts.md](archive/inc-45-price-radar-discounts.md) |
 | **INC-46** | Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada | ✅ Archivado | [inc-46-autenticacion-real.md](archive/inc-46-autenticacion-real.md) |
-| **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ⏳ En progreso (ciclo SDD arrancado) | [inc-47-workers-cloud-run.md](inc-47-workers-cloud-run.md) |
+| **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ✅ Archivado | [inc-47-workers-cloud-run.md](archive/inc-47-workers-cloud-run.md) |
 | **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ⏳ En progreso (migración entregada) | [inc-48-persistencia-produccion-postgres.md](inc-48-persistencia-produccion-postgres.md) |
 | **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ✅ Archivado | [inc-49-vinculacion-cuentas.md](archive/inc-49-vinculacion-cuentas.md) |
 | **INC-50** | Área de Cuenta: Puerta de Acceso en la Cabecera y Hub del Usuario | ⏳ Planificado | [inc-50-area-de-cuenta.md](inc-50-area-de-cuenta.md) |
@@ -68,10 +68,10 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 
 ## 🚨 Bloqueo de Salida a Producción
 
-Los incrementos **INC-47** e **INC-48** son **prerrequisitos de la salida a producción**. Hasta que ambos estén archivados, Ludeka no debe exponerse públicamente:
+**INC-47** quedó archivado el 2026-09-19 (menos el PR #60, retenido deliberadamente). Queda como **único prerrequisito abierto de salida a producción: INC-48** (persistencia de producción en PostgreSQL y medios en Cloudflare R2).
 
-1. **INC-47** — sin él, los trabajos se duplican al escalar y las notificaciones se pierden al escalar a cero.
-2. **INC-48** — sin él, el esquema de producción arranca incompleto y las imágenes no persisten.
+- **INC-47** — archivado. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está abierto y retenido hasta que el maintainer confirme que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` estén provisionados y disparando en GCP.
+- **INC-48** — aún no archivado. Sin él, el esquema de producción arranca incompleto y las imágenes no persisten.
 
 **INC-46 quedó archivado el 2026-09-16**: la identidad simulada está retirada, cada ruta administrativa exige sesión y permiso y toda escritura revalida la sesión.
 
@@ -79,15 +79,13 @@ Los incrementos **INC-47** e **INC-48** son **prerrequisitos de la salida a prod
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(INC-49 completó su cadena de 7 PRs, mergeó a `main` y quedó archivado el 2026-09-18; ya no figura aquí.)*
+*(INC-49 completó su cadena de 7 PRs, mergeó a `main` el 2026-09-18 y quedó archivado el 2026-09-18; ya no figura aquí.)*
+
+*(INC-47 completó su cadena de 11 PRs (#35–#59), mergeó a `main` el 2026-09-19 (`e8c0554`) y quedó archivado el 2026-09-19. El PR #60 (R7: retirada de `AddHostedService`) sigue abierto y retenido a propósito, pendiente de confirmación del maintainer de que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` están provisionados y disparando en GCP. **No se mergea hasta esa confirmación** para no dejar producción sin ningún ejecutor de trabajos.)*
 
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
 - **INC-50 Área de Cuenta** — worktree `C:\repos\ludeka-wt\area-de-cuenta`, rama `inc/area-de-cuenta`. Nace de un agujero destapado en el smoke test de INC-49: se puede iniciar sesión, pero **no hay ninguna puerta a la cuenta**. El único enlace a `/cuenta/conexiones` vive dentro del aviso que solo se muestra a cuentas sin correo verificado, no existe ningún enlace a `/login` en toda la interfaz, y la cabecera no consulta la sesión. El incremento añade el botón de persona en la cabecera y agrupa la ludoteca y los ajustes de usuario en un área de cuenta. **Arrastra pendiente el smoke test de INC-49 (tarea 4.5), que quedó en el paso 2 de 7.**
-- **INC-47 Trabajos en Segundo Plano en Cloud Run** — worktree `C:\repos\ludeka-wt\workers-cloud-run`. Ciclo SDD arrancado el 2026-09-18 con `sdd-explore`; planificación cerrada y **en fase `sdd-apply`** desde el 2026-09-18. El maintainer resolvió la bifurcación del §2.1 eligiendo la **Rama A: externalizar los cuatro trabajos a Cloud Run Jobs disparados por Cloud Scheduler**, retirando los cuatro `AddHostedService` del host web. La exploración destapó tres hallazgos que el documento de partida no anticipaba: el «outbox» actual crea su fila **después** de leer el `Channel` en memoria (no protege nada), `Program.cs` entrelaza la composición de DI de dominio con la web sin extensión reutilizable, y `NightlyCatalogingExecutionLog` no tiene ninguna restricción única por ventana temporal. El **Riesgo Alto de pruebas ya está cerrado**: R1 aportó `tests/Ludeka.IntegrationTests/` con Testcontainers (`postgres:17-alpine`), así que `FOR UPDATE SKIP LOCKED` y las migraciones se ejercitan hoy contra PostgreSQL real.
-  - **Entrega en cadena `stacked-to-main`: 14 PRs, 8 mergeados** al 2026-09-19 (`main` en `98cfe2d`). Las siete rebanadas lógicas R1–R7 no son siete PRs, porque dos hubo que partirlas al medirlas. Resultado real frente a la predicción de «tres rebanadas en riesgo de presupuesto (R2, R3 y R4)»: **R2a** necesitó `size:exception` (599 líneas, justificada porque en un movimiento puro un movimiento parcial es más difícil de revisar que el completo); **R2b** entró holgada (384); **R3a** midió 757 con las pruebas de dominio que faltaban y se partió en **tres** PRs sin excepción (351 + 232 + 227); **R3b** midió 447 y se partió en **dos** (176 + 271, el segundo pendiente). **R4 sigue siendo el riesgo abierto:** R4a y R4b están estimadas en ~386 y ~392 contra el techo de 400, y las estimaciones han quedado cortas en *todas* las rebanadas de este incremento, así que lo previsible es partirlas también.
-  - **Pendiente:** cerrar `05b` (esquema de `JobExecutionLeases`, trabajo ya hecho y verificado en verde) y las fases 6 a 11 — R4a, R4b, R4c, R5, R6 y R7. **R6 arrastra un hueco de diseño sin resolver:** `ICurrentUserService` se registra únicamente en `Program.cs` con una implementación específica de web y lo referencian 18 ficheros de `Ludeka.Application`, así que el host de trabajos necesita una identidad de sistema que el diseño §4.6 no contempla.
-  - 🚨 **El PR de R7 —la rebanada que retira los cuatro `AddHostedService`— no se mergea hasta que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y `roles/run.invoker` están provisionados y disparando en GCP:** mergearla antes deja producción sin ningún ejecutor de trabajos. Si hubiera que revertirla, **primero se pausan los cuatro Cloud Scheduler** y después se hace `git revert`.
 
 
 
