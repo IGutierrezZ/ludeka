@@ -13,6 +13,7 @@ using Ludeka.Application.Features.Founding;
 using Ludeka.Application.Features.Home;
 using Ludeka.Application.Features.Identity;
 using Ludeka.Application.Features.Instagram;
+using Ludeka.Application.Features.Jobs;
 using Ludeka.Application.Features.Library;
 using Ludeka.Application.Features.Media;
 using Ludeka.Application.Features.Plays;
@@ -188,6 +189,13 @@ public static class LudekaServiceCollectionExtensions
         }
 
         services.AddScoped<INotificationOutboxDispatcher, NotificationOutboxDispatcher>();
+
+        // INC-47 (R5, diseño §7.4, tasks.md 9.10-9.12/9.17): coordinador de idempotencia por
+        // ventana e implementación del repositorio de concesiones, respaldados por
+        // JobExecutionLeases (esquema de R3b). Los cuatro BackgroundService de arriba lo
+        // consumen en vez de estado en memoria.
+        services.AddScoped<IJobExecutionLeaseRepository, JobExecutionLeaseRepository>();
+        services.AddScoped<IJobExecutionCoordinator, JobExecutionCoordinator>();
 
         // Incremento 46 (Paso 2) / hallazgo W1: biblioteca, estadísticas, preferencias y ubicación de
         // usuario. ISessionPermissionGuard e ICurrentUserService permanecen en Program.cs (diseño §4.2):

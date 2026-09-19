@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.Features.Jobs;
@@ -36,6 +37,59 @@ public class JobExecutionCoordinatorTests : IDisposable
 
     private static JobExecutionCoordinator NewCoordinator(LudekaDbContext context) =>
         new(new JobExecutionLeaseRepository(context));
+
+    [Fact]
+    public async Task ExecuteWithWindowLeaseAsync_ConVentanaDelLoteNocturnoYaCompletada_NoRepiteElTrabajoYaNoHayEstadoEnMemoria()
+    {
+        // GIVEN una ventana del lote nocturno ya completada en la bitácora persistida.
+        using (var seedContext = CreateContext())
+        {
+            await NewCoordinator(seedContext).ExecuteWithWindowLeaseAsync(
+                "nightly-cataloging", "2026-09-18",
+                (_, _) => Task.FromResult(new JobWorkResult(5, 0, "ok")));
+        }
+
+        // WHEN una instancia nueva, con su propio contexto y sin ningún estado compartido en
+        // memoria, evalúa si debe ejecutar esa misma ventana.
+        var workInvoked = false;
+        using var freshContext = CreateContext();
+        var outcome = await NewCoordinator(freshContext).ExecuteWithWindowLeaseAsync(
+            "nightly-cataloging", "2026-09-18",
+            (_, _) => { workInvoked = true; return Task.FromResult(new JobWorkResult(5, 0, "ok")); });
+
+        // THEN no repite el trabajo...
+        Assert.Equal(JobLeaseOutcome.SkippedAlreadyCompleted, outcome);
+        Assert.False(workInvoked);
+
+        // AND no existe en el código fuente ningún campo equivalente a _lastExecutionDate.
+        var field = typeof(NightlyCatalogingHostedService).GetField(
+            "_lastExecutionDate", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.Null(field);
+    }
+
+    [Fact]
+    public async Task ExecuteWithWindowLeaseAsync_ConBoletinSemanalYaDespachado_NoLoRedespachaYaNoHayEstadoEnMemoria()
+    {
+        using (var seedContext = CreateContext())
+        {
+            await NewCoordinator(seedContext).ExecuteWithWindowLeaseAsync(
+                "community-weekly-bulletin", "2026-W38",
+                (_, _) => Task.FromResult(new JobWorkResult(1, 0, "ok")));
+        }
+
+        var workInvoked = false;
+        using var freshContext = CreateContext();
+        var outcome = await NewCoordinator(freshContext).ExecuteWithWindowLeaseAsync(
+            "community-weekly-bulletin", "2026-W38",
+            (_, _) => { workInvoked = true; return Task.FromResult(new JobWorkResult(1, 0, "ok")); });
+
+        Assert.Equal(JobLeaseOutcome.SkippedAlreadyCompleted, outcome);
+        Assert.False(workInvoked);
+
+        var field = typeof(CommunityNotificationDispatcherHostedService).GetField(
+            "_lastFridayBulletinDispatched", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.Null(field);
+    }
 
     [Fact]
     public async Task ExecuteWithWindowLeaseAsync_ConFallosParciales_PersisteBitacoraCompletaConMetricas()

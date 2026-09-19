@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Jobs;
 using Ludeka.Application.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +19,9 @@ namespace Ludeka.Infrastructure.Background;
 /// </summary>
 public class SocialCollectorHostedService : BackgroundService
 {
+    // INC-47, R5, diseño §7.2: nombre estable del trabajo en JobExecutionLeases.
+    private const string JobName = "social-collector";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptionsMonitor<SocialCollectorOptions> _optionsMonitor;
     private readonly ILogger<SocialCollectorHostedService> _logger;
@@ -55,18 +60,40 @@ public class SocialCollectorHostedService : BackgroundService
             {
                 try
                 {
-                    _logger.LogInformation("Ejecutando lote desatendido de recolección de canales sociales...");
+                    var nowUtc = DateTimeOffset.UtcNow;
+                    var blockMinutes = Math.Max(5, options.IntervalMinutes);
+                    var windowKey = JobWindowKeyCalculator.MinuteBlock(nowUtc, blockMinutes);
 
+                    // Una única concesión de ámbito por intento: IJobExecutionCoordinator es
+                    // Scoped y este servicio es Singleton (AddHostedService); inyectarlo por
+                    // constructor sería una dependencia cautiva (mismo motivo que 7.9).
                     using var scope = _scopeFactory.CreateScope();
-                    var collectorService = scope.ServiceProvider.GetRequiredService<ISocialCollectorService>();
+                    var coordinator = scope.ServiceProvider.GetRequiredService<IJobExecutionCoordinator>();
 
-                    // Ruta de sistema sin sesión: el ciclo desatendido no pasa por la guarda de la interfaz.
-                    var result = await collectorService.RunScheduledCollectionAsync(options.MaxItemsPerAccount, stoppingToken);
+                    var outcome = await coordinator.ExecuteWithWindowLeaseAsync(
+                        JobName, windowKey,
+                        async (heartbeat, ct) =>
+                        {
+                            _logger.LogInformation("Ejecutando lote desatendido de recolección de canales sociales...");
 
-                    _logger.LogInformation(
-                        "Lote desatendido de recolección completado: {Imported} publicaciones importadas a moderación ({Skipped} duplicados omitidos).",
-                        result.ItemsImported,
-                        result.ItemsSkippedDuplicates);
+                            var collectorService = scope.ServiceProvider.GetRequiredService<ISocialCollectorService>();
+
+                            // Ruta de sistema sin sesión: el ciclo desatendido no pasa por la guarda de la interfaz.
+                            var result = await collectorService.RunScheduledCollectionAsync(options.MaxItemsPerAccount, ct);
+
+                            _logger.LogInformation(
+                                "Lote desatendido de recolección completado: {Imported} publicaciones importadas a moderación ({Skipped} duplicados omitidos).",
+                                result.ItemsImported,
+                                result.ItemsSkippedDuplicates);
+
+                            return new JobWorkResult(result.ItemsImported, result.ErrorsCount, null);
+                        },
+                        stoppingToken);
+
+                    if (outcome == JobLeaseOutcome.Failed)
+                    {
+                        _logger.LogError("Error durante la ejecución del lote de recolección social para la ventana {WindowKey}.", windowKey);
+                    }
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
