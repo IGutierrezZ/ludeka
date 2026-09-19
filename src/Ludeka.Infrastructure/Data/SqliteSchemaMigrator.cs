@@ -945,6 +945,35 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("NotificationOutboxMessages");
             }
+
+            // 26. Crear tabla JobExecutionLeases si no existe (INC-47, R3b, diseño §7.1:
+            // concesión de ejecución por ventana, genérica para los cuatro trabajos). Patrón
+            // CREATE TABLE IF NOT EXISTS + índices, igual que los puntos 21/22/25 — tabla
+            // genuinamente nueva, sin esquema previo que preservar.
+            if (!existingTables.Contains("JobExecutionLeases"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "JobExecutionLeases" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_JobExecutionLeases" PRIMARY KEY,
+                        "JobName" TEXT NOT NULL,
+                        "WindowKey" TEXT NOT NULL,
+                        "Status" TEXT NOT NULL,
+                        "StartedAt" TEXT NOT NULL,
+                        "HeartbeatAt" TEXT NOT NULL,
+                        "CompletedAt" TEXT NULL,
+                        "ProcessedCount" INTEGER NOT NULL,
+                        "FailedCount" INTEGER NOT NULL,
+                        "DurationMs" INTEGER NULL,
+                        "HostIdentifier" TEXT NULL,
+                        "ErrorMessage" TEXT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_JobExecutionLeases_JobName_WindowKey" ON "JobExecutionLeases" ("JobName", "WindowKey");
+                    CREATE INDEX IF NOT EXISTS "IX_JobExecutionLeases_JobName_StartedAt" ON "JobExecutionLeases" ("JobName", "StartedAt");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("JobExecutionLeases");
+            }
         }
         finally
         {
