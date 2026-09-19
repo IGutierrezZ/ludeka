@@ -112,3 +112,18 @@ public sealed class PostgresJobLeasesCollection : ICollectionFixture<PostgresFix
 public sealed class PostgresOutboxClaimCollection : ICollectionFixture<PostgresFixture>
 {
 }
+
+/// <summary>
+/// Colección independiente para <see cref="JobExecutionCoordinatorConcurrencyTests"/> (INC-47,
+/// R5, diseño §7, tasks.md 9.1/9.2). Mismo motivo que <see cref="PostgresJobLeasesCollection"/> y
+/// <see cref="PostgresOutboxClaimCollection"/>: aislar en su propio contenedor una prueba que
+/// ejercita concurrencia real y aserciones de fila exactas sobre <c>JobExecutionLeases</c>, sin
+/// arriesgar interferencia de estado con otras clases de "postgres-real" ni con
+/// <see cref="JobExecutionLeaseMigrationTests"/> (que migra hasta un punto histórico concreto).
+/// Un contenedor propio elimina el riesgo sin modificar el fixture existente ni ninguna otra
+/// colección.
+/// </summary>
+[CollectionDefinition("postgres-real-job-coordinator")]
+public sealed class PostgresJobCoordinatorCollection : ICollectionFixture<PostgresFixture>
+{
+}
