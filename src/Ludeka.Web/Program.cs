@@ -109,6 +109,19 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Incremento 48 (PR2), diseño D3: guarda de arranque de coherencia de proveedor — espejo de la
+// Guarda 1 de Ludeka.Jobs.StartupGuards. Va ANTES que cualquier otro efecto de arranque (avisos,
+// inicialización de base de datos): en Production sin PostgreSQL resoluble el proceso debe fallar
+// explícitamente, nunca caer en silencio a una SQLite efímera.
+var webStartupGuardFailure = WebStartupGuards.Evaluate(
+    app.Configuration,
+    app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value,
+    app.Environment.EnvironmentName);
+if (webStartupGuardFailure is not null)
+{
+    throw new InvalidOperationException(webStartupGuardFailure);
+}
+
 // Aviso explícito de proveedores habilitados sin credenciales: la aplicación arranca sin ellos.
 foreach (var authenticationWarning in ExternalAuthenticationSchemes.GetConfigurationWarnings(authenticationOptions))
 {

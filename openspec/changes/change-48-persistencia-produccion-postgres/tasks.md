@@ -59,14 +59,18 @@ Chain strategy: stacked-to-main
 
 ## PR2 — Fail-fast de PostgreSQL en Production
 
-- [ ] 3.1 RED en `tests/Ludeka.UnitTests/Web/WebStartupGuardsTests.cs` (patrón `tests/Ludeka.UnitTests/Jobs/StartupGuardsTests.cs` (read-only), sin `ServiceProvider`/SQLite porque la firma recibe `DatabaseOptions` directo): Production+PostgreSQL resoluble pasa; Production+SQLite/ausente falla nombrando la conexión; entorno no-Production no activa; entorno `null` no activa; entorno `"production"` en minúsculas SÍ activa (matriz de amenazas, fila «Arranque del proceso»).
-- [ ] 3.2 GREEN: crear `src/Ludeka.Web/WebStartupGuards.cs` con `Evaluate(IConfiguration, DatabaseOptions, string?)`, espejando la Guarda 1 de `src/Ludeka.Jobs/StartupGuards.cs:44-54` (read-only).
-- [ ] 3.3 GREEN: invocar la guarda en `src/Ludeka.Web/Program.cs` tras `:108` y antes de `:117`; lanzar `InvalidOperationException` si devuelve mensaje.
-- [ ] 3.4 Añadir `Database:RequirePostgreSqlInProduction=true` a `src/Ludeka.Web/appsettings.json` (sección `Database`, junto a `:13-16`).
-- [ ] 3.5 Retirar `ConnectionStrings__DefaultConnection` del bloque `ENV` de `Dockerfile:61-64` (ajustar el `\` de continuación de la línea anterior).
-- [ ] 3.6 RED+GREEN: `docker-compose.yml:11` → valor por defecto `Staging` (no `Development`) + comentario de entorno local; añadir a `WebStartupGuardsTests.cs` una prueba que replica esa configuración efectiva contra `WebStartupGuards.Evaluate` y confirma que no activa la guarda.
-- [ ] 3.7 Añadir comentario de entorno local a `docker-compose.staging.yml` (sin cambio funcional; ya usa `Staging`).
-- [ ] 3.8 Ejecutar `dotnet test Ludeka.sln` completo y registrar el resultado.
+- [x] 3.1 RED en `tests/Ludeka.UnitTests/Web/WebStartupGuardsTests.cs` (patrón `tests/Ludeka.UnitTests/Jobs/StartupGuardsTests.cs` (read-only), sin `ServiceProvider`/SQLite porque la firma recibe `DatabaseOptions` directo): Production+PostgreSQL resoluble pasa; Production+SQLite/ausente falla nombrando la conexión; entorno no-Production no activa; entorno `null` no activa; entorno `"production"` en minúsculas SÍ activa (matriz de amenazas, fila «Arranque del proceso»). Confirmado en rojo: `CS0103 'WebStartupGuards' no existe` en los 6 puntos de uso.
+- [x] 3.2 GREEN: crear `src/Ludeka.Web/WebStartupGuards.cs` con `Evaluate(IConfiguration, DatabaseOptions, string?)`, espejando la Guarda 1 de `src/Ludeka.Jobs/StartupGuards.cs:44-54` (read-only). 7/7 verde.
+- [x] 3.3 GREEN: invocar la guarda en `src/Ludeka.Web/Program.cs` tras `builder.Build()` (línea real medida hoy: 110, no la `:108` de tasks.md) y antes de cualquier otro efecto de arranque (avisos, migración); lanza `InvalidOperationException` si devuelve mensaje. Sin arnés en tiempo de ejecución (guarda pura, ya probada en 3.1-3.2); `dotnet build` confirma la composición.
+- [x] 3.4 Añadido `RequirePostgreSqlInProduction: true` a `src/Ludeka.Web/appsettings.json` (sección `Database`, junto a `Provider`/`SeedDemoData`).
+- [x] 3.5 Retirado `ConnectionStrings__DefaultConnection` del bloque `ENV` de `Dockerfile:61-64`; ajustado el `\` de continuación de la línea anterior (`DOTNET_EnableDiagnostics=0` pasa a ser la última).
+- [x] 3.6 RED+GREEN: `docker-compose.yml:11` → valor por defecto `Staging` (no `Development`) + comentario de entorno local; añadida a `WebStartupGuardsTests.cs` la prueba `Evaluate_ConLaConfiguracionEfectivaDeDockerComposeYml_NoActivaLaGuarda` que replica esa configuración efectiva contra `WebStartupGuards.Evaluate` y confirma que no activa la guarda.
+- [x] 3.7 Añadido comentario de entorno local a `docker-compose.staging.yml` (sin cambio funcional; ya usaba `Staging`).
+- [x] 3.8 `dotnet test Ludeka.sln` completo (sin tubería, en primer plano): **1555/1555 unitarias (+7 sobre la base de 1548 de PR1b) y 9/9 de integración, exit 0.**
+
+### Tarea extra 3.9 — decidida por el maintainer el 2026-09-20, fuera del alcance original de `sdd-tasks`
+
+- [x] 3.9 RED+GREEN+REFACTOR: extraído `MediaOptions.ResolveLocalStoragePath(string? contentRootPath)` (`src/Ludeka.Application/Options/MediaOptions.cs`), único punto de la regla de resolución de ruta local de medios que hasta ahora vivía duplicada, sin ninguna prueba que las cruzara, en `LudekaServiceCollectionExtensions.ResolveMediaStoragePath` (Ludeka.Infrastructure, ruta de escritura, PR1a) y `MediaStaticFilesExtensions.ResolveMediaRoot` (Ludeka.Web, ruta de lectura HTTP, PR1b). Ambos métodos `private` se retiraron; los dos sitios llaman ahora al método público nuevo. Semántica exacta preservada (cubierta por `tests/Ludeka.UnitTests/Application/MediaOptionsTests.cs`, 6 casos): ruta absoluta → tal cual; relativa → `Path.Combine(contentRootPath, ruta)`; sin ruta local configurada → `null`; `contentRootPath` nulo/vacío con ruta relativa → tal cual. Los dos comentarios de aviso cruzado («si tocas esta resolución, cambia también la otra a mano» / «ninguna prueba cruza las dos resoluciones») se retiraron junto con los métodos que los llevaban: ya no aplican, hay un único método y sí lo cubre una prueba.
 
 ## PR3 — Health checks fieles (depende de PR1a fusionada)
 

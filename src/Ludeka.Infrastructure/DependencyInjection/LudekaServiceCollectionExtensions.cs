@@ -282,7 +282,7 @@ public static class LudekaServiceCollectionExtensions
         {
             var env = sp.GetService<IHostEnvironment>();
             var mediaOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaOptions>>().Value;
-            return new PhysicalFileImageStorageService(env, ResolveMediaStoragePath(mediaOptions, env));
+            return new PhysicalFileImageStorageService(env, mediaOptions.ResolveLocalStoragePath(env?.ContentRootPath));
         });
         services.AddScoped<IImageStorageService>(sp =>
         {
@@ -361,38 +361,6 @@ public static class LudekaServiceCollectionExtensions
         // ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
 
         return services;
-    }
-
-    /// <summary>Incremento 48 (PR1a, diseño D1): resuelve la ruta local de medios configurada contra
-    /// <see cref="IHostEnvironment.ContentRootPath"/> cuando es relativa. <see langword="null"/> si no
-    /// hay ninguna ruta configurada (precedencia de disco no aplicable).
-    /// <para>
-    /// ⚠️ Esta es la ruta de ESCRITURA. La de LECTURA la resuelve por separado
-    /// <c>MediaStaticFilesExtensions.ResolveMediaRoot</c> (Ludeka.Web, INC-48 PR1b), que sirve esos
-    /// mismos ficheros por HTTP bajo "/images". Las dos deben dar el MISMO directorio para el mismo
-    /// valor de configuración: si divergen, las imágenes se escriben en un sitio y se piden en otro,
-    /// y vuelve el 404 que PR1a corrigió en el constructor de <c>PhysicalFileImageStorageService</c>.
-    /// </para>
-    /// <para>
-    /// NINGUNA prueba cruza hoy las dos resoluciones: las de <c>MediaStaticFilesDeliveryTests</c>
-    /// construyen el servicio con una ruta ya absoluta o escriben el fichero por su cuenta, así que
-    /// jamás pasan por este método. Una divergencia NO se detectaría en la suite. Si tocas esta
-    /// resolución, cambia también la de Ludeka.Web a mano.
-    /// </para></summary>
-    private static string? ResolveMediaStoragePath(MediaOptions mediaOptions, IHostEnvironment? env)
-    {
-        if (!mediaOptions.HasLocalStoragePath)
-        {
-            return null;
-        }
-
-        var configuredPath = mediaOptions.LocalStoragePath;
-        if (Path.IsPathRooted(configuredPath) || env == null || string.IsNullOrWhiteSpace(env.ContentRootPath))
-        {
-            return configuredPath;
-        }
-
-        return Path.Combine(env.ContentRootPath, configuredPath);
     }
 
     /// <summary>Punto de entrada único de los dos hosts. Registra la composición completa de dominio
