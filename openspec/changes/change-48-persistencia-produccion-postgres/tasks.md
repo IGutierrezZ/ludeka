@@ -38,14 +38,14 @@ Chain strategy: stacked-to-main
 
 ## PR1a — Selección de almacén de medios (factoría de 3 vías)
 
-- [ ] 1.1 Crear `src/Ludeka.Application/Options/MediaOptions.cs`: `LocalStoragePath`, `HasLocalStoragePath`, `SectionName="Media"` (patrón `src/Ludeka.Application/Options/CloudflareR2Options.cs` (read-only), 50 líneas).
-- [ ] 1.2 RED en `tests/Ludeka.UnitTests/Infrastructure/DependencyInjection/MediaStorageSelectionTests.cs`: R2 válido gana sobre disco/memoria; disco configurado gana sobre memoria; sin ninguno → memoria (`ServiceCollection` + `ValidateOnBuild`, técnica de `tests/Ludeka.UnitTests/Web/WebHostHostedServiceCompositionTests.cs` (read-only) escenario 1).
-- [ ] 1.3 RED: prueba que confirma el defecto de `src/Ludeka.Infrastructure/Services/PhysicalFileImageStorageService.cs:28` (portada escrita en `{ruta}` pero pedida en `/images/games/...`).
-- [ ] 1.4 RED: aviso — `Production` sin R2 registra advertencia de almacén degradado; `Production` con R2 no la registra (spec `media-storage-precedence`, requisito 3).
-- [ ] 1.5 GREEN: `Configure<MediaOptions>` + factoría de 3 vías en `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs:273-286`, sustituyendo `AddScoped<PhysicalFileImageStorageService>()` por fábrica con ruta resuelta contra `ContentRootPath`.
-- [ ] 1.6 GREEN: corregir `PhysicalFileImageStorageService.cs:28` → `_gamesDirectory = Path.Combine(customPath, "games")`.
-- [ ] 1.7 GREEN: emitir el aviso de degradación en `src/Ludeka.Web/Program.cs` (mismo patrón que el bucle de `Program.cs:111-114`).
-- [ ] 1.8 Ejecutar `dotnet test Ludeka.sln` completo (nunca con tubería) y registrar el resultado en la descripción del PR.
+- [x] 1.1 Crear `src/Ludeka.Application/Options/MediaOptions.cs`: `LocalStoragePath`, `HasLocalStoragePath`, `SectionName="Media"` (patrón `src/Ludeka.Application/Options/CloudflareR2Options.cs` (read-only), 50 líneas).
+- [x] 1.2 RED en `tests/Ludeka.UnitTests/Infrastructure/DependencyInjection/MediaStorageSelectionTests.cs`: R2 válido gana sobre disco/memoria; disco configurado gana sobre memoria; sin ninguno → memoria (`ServiceCollection` + `ValidateOnBuild`, técnica de `tests/Ludeka.UnitTests/Web/WebHostHostedServiceCompositionTests.cs` (read-only) escenario 1).
+- [x] 1.3 RED: prueba que confirma el defecto de `src/Ludeka.Infrastructure/Services/PhysicalFileImageStorageService.cs:28` (portada escrita en `{ruta}` pero pedida en `/images/games/...`).
+- [x] 1.4 RED: aviso — `Production` sin R2 registra advertencia de almacén degradado; `Production` con R2 no la registra (spec `media-storage-precedence`, requisito 3).
+- [x] 1.5 GREEN: `Configure<MediaOptions>` + factoría de 3 vías en `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs:273-286`, sustituyendo `AddScoped<PhysicalFileImageStorageService>()` por fábrica con ruta resuelta contra `ContentRootPath`.
+- [x] 1.6 GREEN: corregir `PhysicalFileImageStorageService.cs:28` → `_gamesDirectory = Path.Combine(customPath, "games")`.
+- [x] 1.7 GREEN: emitir el aviso de degradación en `src/Ludeka.Web/Program.cs` (mismo patrón que el bucle de `Program.cs:111-114`).
+- [x] 1.8 Ejecutar `dotnet test Ludeka.sln` completo (nunca con tubería) y registrar el resultado en la descripción del PR.
 
 ## PR1b — Entrega HTTP del fallback en disco (depende de PR1a fusionada)
 
