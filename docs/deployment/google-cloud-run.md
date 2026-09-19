@@ -168,9 +168,33 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 ## 9. Trabajos en Segundo Plano: Cloud Run Jobs + Cloud Scheduler (INC-47)
 
 > [!IMPORTANT]
-> **Gate de producción.** El PR que retira los cuatro `IHostedService` en proceso del host web (`Ludeka.Web`) se abre pero **no se mergea** hasta confirmar que esta sección está provisionada y **disparando de verdad** contra el proyecto de Google Cloud real. Mergear antes deja producción sin ningún ejecutor de los cuatro trabajos de negocio: ni catalogación nocturna, ni radar de precios, ni recolector social, ni drenaje del outbox de notificaciones.
+> 🚨 **PUERTA DE PRIMER DESPLIEGUE — léela antes de configurar GCP por primera vez.**
+>
+> El host web (`Ludeka.Web`) **ya no ejecuta ningún trabajo de negocio en proceso**: los cuatro `IHostedService` se retiraron el 2026-09-19 (PR #60). A partir de ahí, **el único ejecutor de los cuatro trabajos es Cloud Run Jobs disparado por Cloud Scheduler**.
+>
+> Esa retirada se mergeó sin riesgo porque **en ese momento no existía ningún entorno de producción**: no había proyecto de GCP, ni base de datos de Supabase, ni despliegue. Todos los pasos de despliegue de `.github/workflows/ci-cd.yml` están condicionados a `has_gcp == 'true'`, que exige los secretos `GCP_PROJECT_ID` y `GCP_SA_KEY`; sin ellos el flujo los omite. Verificado: los 26 PRs del incremento registraron «Deploy to Google Cloud Run — skipping».
+>
+> **La garantía no desapareció: se trasladó del merge al despliegue.** En cuanto configures esos dos secretos, el primer `push` a `main` desplegará el servicio web **y** publicará los cuatro Cloud Run Jobs. Si en ese momento los Cloud Scheduler y `roles/run.invoker` no están provisionados, tendrás un servicio web en producción **sin ningún ejecutor de trabajos**: ni catalogación nocturna, ni radar de precios, ni recolector social, ni drenaje del outbox de notificaciones.
+>
+> **Las notificaciones no se pierden en ese hueco** —el outbox es persistente y se drena cuando alguien lo ejecute—, pero se retrasan. El resto de trabajos simplemente no corren hasta que haya disparador.
+>
+> **Orden correcto de puesta en marcha:** ver la lista de §9.0.
 
 Desde este incremento, la misma imagen de contenedor que publica `Ludeka.Web` (servicio HTTP) sirve también `Ludeka.Jobs` (ejecutable de vida corta, una unidad de trabajo por invocación, sin servidor HTTP ni sondas). El modo se selecciona **sobrescribiendo el `ENTRYPOINT`** del contenedor en el recurso Cloud Run Job — la imagen no cambia, solo el comando de arranque.
+
+### 9.0. Orden de puesta en marcha (primera vez)
+
+Sigue este orden. Los pasos 1 a 3 no despliegan nada, así que puedes hacerlos con calma; el riesgo aparece en el 4.
+
+1. **Base de datos.** Provisiona Supabase y guarda la cadena de conexión como secreto `SUPABASE_DB_CONNECTION`. Aplica las migraciones **desde fuera del proceso de trabajo**: `Ludeka.Jobs` tiene una guarda de arranque que sale con código 3 si detecta migraciones pendientes, y nunca migra por su cuenta (§9.4).
+2. **Proyecto de GCP y repositorio de artefactos.** Crea el proyecto, habilita Artifact Registry, Cloud Run, Cloud Scheduler e IAM.
+3. **Cuenta de servicio del planificador**, con `roles/run.invoker` sobre los Jobs que crearás en el paso 5.
+4. **Secretos de GitHub `GCP_PROJECT_ID` y `GCP_SA_KEY`.** ⚠️ **Este es el paso que arma el despliegue.** En el siguiente `push` a `main`, el flujo dejará de omitir los pasos de despliegue: publicará el servicio web y creará los cuatro Cloud Run Jobs.
+5. **Comprueba que los cuatro Jobs existen** (`gcloud run jobs list`). El paso del pipeline que los crea **nunca se ha ejecutado contra GCP real**: la ortografía de las banderas de `gcloud run jobs deploy` es un hueco de evidencia declarado desde el diseño §8.9. Si falla, corrígelo antes de seguir; no afecta al servicio web, que se despliega en un paso anterior.
+6. **Crea los cuatro Cloud Scheduler** con las cadencias de §9.2, cada uno apuntando a su Job con la cuenta de servicio del paso 3. **Esto no lo hace el pipeline: es manual.**
+7. **Verifica un disparo real** de cada uno (`gcloud run jobs executions list --job <nombre>`). Ojo al interpretarlo: un Job que encuentra la ventana ya completada **también sale con 0**. No prueba que hiciera trabajo, pero sí que el cableado y los permisos están bien, que es lo que necesitas saber aquí.
+
+Hasta completar el paso 7, **el sistema no tiene ejecutor de trabajos en producción**.
 
 ### 9.1. Los cuatro Cloud Run Jobs
 

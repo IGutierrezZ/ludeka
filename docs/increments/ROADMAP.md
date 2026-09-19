@@ -68,7 +68,9 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 
 ## 🚨 Bloqueo de Salida a Producción
 
-**INC-47** quedó archivado el 2026-09-19 (menos el PR #60, retenido deliberadamente). Queda como **único prerrequisito abierto de salida a producción: INC-48** (persistencia de producción en PostgreSQL y medios en Cloudflare R2).
+**INC-47** quedó archivado el 2026-09-19, con su cadena completa de 26 PRs mergeada. Queda como **único prerrequisito abierto de salida a producción: INC-48** (persistencia de producción en PostgreSQL y medios en Cloudflare R2).
+
+🚨 **Antes del primer despliegue real, sea cual sea el incremento que lo dispare:** el host web ya no ejecuta ningún trabajo de negocio en proceso, así que el único ejecutor son los Cloud Run Jobs. Configurar `GCP_PROJECT_ID` y `GCP_SA_KEY` es lo que arma el despliegue automático. **Sigue el orden de puesta en marcha de [`docs/deployment/google-cloud-run.md` §9.0](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md)** o tendrás un servicio web en producción sin nadie que ejecute la catalogación nocturna, el radar de precios, el recolector social ni el drenaje del outbox.
 
 - **INC-47** — archivado. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está abierto y retenido hasta que el maintainer confirme que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` estén provisionados y disparando en GCP.
 - **INC-48** — aún no archivado. Sin él, el esquema de producción arranca incompleto y las imágenes no persisten.
@@ -81,7 +83,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-49 completó su cadena de 7 PRs, mergeó a `main` el 2026-09-18 y quedó archivado el 2026-09-18; ya no figura aquí.)*
 
-*(INC-47 entregó su cadena de 26 PRs (#35–#60): **25 mergeados** a `main` el 2026-09-19 y archivado ese mismo día. El PR #60 (R7: retirada de `AddHostedService`) sigue abierto y retenido a propósito, pendiente de que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y `roles/run.invoker` están provisionados y disparando en GCP. **No se mergea hasta esa confirmación**, para no dejar producción sin ningún ejecutor de trabajos. Para revertirlo: primero pausar los cuatro Cloud Scheduler, después `git revert`.)*
+*(INC-47 entregó su cadena completa de 26 PRs (#35–#61), toda mergeada a `main` el 2026-09-19, y quedó archivado ese mismo día. 🚨 **Su puerta de seguridad sigue viva, pero es de DESPLIEGUE, no de merge:** el host web ya no ejecuta ningún trabajo en proceso, así que el único ejecutor son los Cloud Run Jobs. Se pudo mergear sin riesgo porque aún no existe entorno de producción —sin los secretos `GCP_PROJECT_ID` y `GCP_SA_KEY`, el flujo omite todo despliegue—. **Antes de configurar esos secretos, sigue el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0**, o el primer despliegue dejará producción sin ningún ejecutor de trabajos.)*
 
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
