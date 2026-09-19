@@ -165,17 +165,29 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IExpansionService, ExpansionService>();
 
         // Incremento 9: Notificaciones y Webhooks de Comunidad (Discord y Telegram)
-        // Línea heredada sin cambios (diseño §4.1, fila 241): R4a la convierte a outbox más adelante.
-        services.AddSingleton<ICommunityNotificationQueue, InMemoryCommunityNotificationQueue>();
         services.AddScoped<ICommunityNotificationRepository, SqliteCommunityNotificationRepository>();
         services.AddScoped<ICommunityNotificationService, CommunityNotificationService>();
 
         // INC-47 (R4a, diseño §6.1/§5.4): repositorio y opciones del outbox de notificaciones.
-        // El cableado de ICommunityNotificationQueue hacia OutboxCommunityNotificationQueue (y
-        // el despachador que la drena) es tarea de R4b: aquí solo se registran las piezas
-        // nuevas, sin modificar ninguno de los tres registros de arriba.
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
         services.AddScoped<INotificationOutboxRepository, NotificationOutboxRepository>();
+
+        // INC-47 (R4b, diseño §6.1/§6.2, tasks.md 6.11/7.10): cableado real de la cola sobre el
+        // outbox persistente — la línea heredada de la tarea 2.2 (AddSingleton InMemory) pasa a
+        // AddScoped sobre la implementación de outbox. InMemoryCommunityNotificationQueue solo
+        // sobrevive bajo configuración explícita de desarrollo local (decisión de sdd-apply: el
+        // diseño no fija el mecanismo exacto de selección; no es una comprobación de entorno).
+        var outboxOptions = configuration.GetSection(OutboxOptions.SectionName).Get<OutboxOptions>() ?? new OutboxOptions();
+        if (outboxOptions.UseInMemoryQueueForLocalDev)
+        {
+            services.AddSingleton<ICommunityNotificationQueue, InMemoryCommunityNotificationQueue>();
+        }
+        else
+        {
+            services.AddScoped<ICommunityNotificationQueue, OutboxCommunityNotificationQueue>();
+        }
+
+        services.AddScoped<INotificationOutboxDispatcher, NotificationOutboxDispatcher>();
 
         // Incremento 46 (Paso 2) / hallazgo W1: biblioteca, estadísticas, preferencias y ubicación de
         // usuario. ISessionPermissionGuard e ICurrentUserService permanecen en Program.cs (diseño §4.2):

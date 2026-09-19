@@ -194,6 +194,73 @@ public class NotificationOutboxDispatcherTests : IDisposable
         Assert.Equal(NotificationStatus.Sent, delivery.Status);
     }
 
+    [Fact]
+    public async Task DispatchPendingAsync_ConCanalHabilitadoDespuesDelEncolado_LoEntregaAlReclamarDeNuevo()
+    {
+        using var context = CreateContext();
+        var repository = new NotificationOutboxRepository(context);
+        var message = NewMessage(NotificationChannel.Telegram);
+        await repository.EnqueueAsync(message);
+
+        // Se encola con Telegram deshabilitado: el mensaje persiste igual (el encolado nunca
+        // comprueba canales habilitados; decisión 4 del maintainer, diseño §6.5).
+        var channelOptions = new CommunityNotificationOptions { Enabled = true, DiscordEnabled = true, TelegramEnabled = false };
+        var fakeService = new FakeChannelDeliveryService(_ => true);
+        var dispatcher = NewDispatcher(context, fakeService, channelOptions);
+
+        var firstAttempt = await dispatcher.DispatchPendingAsync();
+        Assert.Equal(1, firstAttempt.ClaimedCount);
+        Assert.Equal(1, firstAttempt.RetriedCount);
+        Assert.Equal(0, fakeService.DeliverCallCount);
+
+        // El primer ciclo liberó el mensaje con retroceso hacia el futuro: se adelanta el reloj
+        // manipulando NextAttemptAt directamente (mismo recurso que
+        // NotificationOutboxRepositoryTests.ReleaseMessageAsync_TrasUnFallo...), y AHORA se
+        // habilita Telegram sobre el MISMO objeto de opciones que ya usa el despachador.
+        await repository.ReleaseMessageAsync(message.Id, DateTimeOffset.UtcNow.AddSeconds(-1), null);
+        channelOptions.TelegramEnabled = true;
+
+        var secondAttempt = await dispatcher.DispatchPendingAsync();
+
+        Assert.Equal(1, secondAttempt.CompletedCount);
+        Assert.Equal(1, fakeService.DeliverCallCount);
+
+        using var readContext = CreateContext();
+        var readRepository = new NotificationOutboxRepository(readContext);
+        var delivery = Assert.Single(await readRepository.GetDeliveriesAsync(message.Id));
+        Assert.Equal(NotificationChannel.Telegram, delivery.Channel);
+        Assert.Equal(NotificationStatus.Sent, delivery.Status);
+    }
+
+    [Fact]
+    public async Task DispatchPendingAsync_TrasUnReinicioSimuladoDelHost_EntregaLaNotificacionPendiente()
+    {
+        // "Reinicio simulado": el contexto y el repositorio que encolaron se destruyen antes de
+        // que exista ningún despachador; uno nuevo, contra el mismo almacén persistido, es el
+        // que efectivamente entrega (especificación notification-outbox, "Notificación
+        // pendiente entregada tras un reinicio simulado del host").
+        Guid messageId;
+        using (var writerContext = CreateContext())
+        {
+            var writerRepository = new NotificationOutboxRepository(writerContext);
+            var message = NewMessage(NotificationChannel.Discord);
+            messageId = message.Id;
+            await writerRepository.EnqueueAsync(message);
+        }
+
+        using var dispatcherContext = CreateContext();
+        var fakeService = new FakeChannelDeliveryService(_ => true);
+        var dispatcher = NewDispatcher(dispatcherContext, fakeService);
+
+        var result = await dispatcher.DispatchPendingAsync();
+
+        Assert.Equal(1, result.CompletedCount);
+        using var readContext = CreateContext();
+        var readRepository = new NotificationOutboxRepository(readContext);
+        var delivery = Assert.Single(await readRepository.GetDeliveriesAsync(messageId));
+        Assert.Equal(NotificationStatus.Sent, delivery.Status);
+    }
+
     public void Dispose()
     {
         _connection.Dispose();
