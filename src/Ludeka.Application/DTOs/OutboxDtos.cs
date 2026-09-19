@@ -30,3 +30,12 @@ public record OutboxHealthSnapshot(
     DateTimeOffset? OldestPendingAt,
     int DeadCount,
     string Provider);
+
+/// <summary>Resultado de un ciclo de <c>INotificationOutboxDispatcher.DispatchPendingAsync</c>
+/// (INC-47, R4b, diseño §6.1/§6.5): cuántos mensajes se reclamaron en el lote y en qué
+/// desenlace terminó cada uno.</summary>
+public record OutboxDispatchResultDto(
+    int ClaimedCount,
+    int CompletedCount,
+    int RetriedCount,
+    int DeadCount);

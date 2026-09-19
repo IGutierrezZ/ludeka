@@ -406,8 +406,10 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 > | PR | Rama | Tareas | Contenido |
 > |---|---|---|---|
 > | **7a** | `inc/workers-cloud-run-07a-entrega-por-canal` | 7.8 | `DeliverAsync` y `SendOnChannelAsync` en `CommunityNotificationService`, el retroceso exponencial de `OutboxOptions`, y sus pruebas |
-> | **7b** | `inc/workers-cloud-run-07b-despachador-outbox` | 7.1, 7.2, 7.3, 7.6, 7.7, 7.10 | `INotificationOutboxDispatcher`, `OutboxDispatchResultDto`, el algoritmo de cinco pasos y su registro DI |
-> | **7c** | `inc/workers-cloud-run-07c-cableado-outbox` | 7.4, 7.5, 7.9, 7.11 + **6.7, 6.10, 6.11** | `OutboxCommunityNotificationQueue`, la reescritura de `ProcessQueueAsync`, la retirada de `ReadAllAsync`, el cambio del registro de la cola y los dos escenarios de supervivencia |
+> | **7b** | `inc/workers-cloud-run-07b-despachador-outbox` | 7.1, 7.2, 7.3, 7.6, 7.7 | `INotificationOutboxDispatcher`, `OutboxDispatchResultDto` y el algoritmo de cinco pasos |
+> | **7c** | `inc/workers-cloud-run-07c-cableado-outbox` | 7.4, 7.5, 7.9, 7.10, 7.11 + **6.7, 6.10, 6.11** | `OutboxCommunityNotificationQueue`, la reescritura de `ProcessQueueAsync`, la retirada de `ReadAllAsync`, los dos registros DI, el cambio del registro de la cola y los dos escenarios de supervivencia |
+>
+> La tarea **7.10** (registrar el despachador en DI) viaja en 7c, no en 7b, aunque pertenezca al despachador: toca `LudekaServiceCollectionExtensions.cs`, el mismo fichero que el cambio del registro de la cola de 6.11, y 7b no tiene margen para absorberlo. Nada consume el despachador hasta 7c, así que registrarlo antes no aporta nada.
 
 #### Fase 7a — Entrega por canal sobre una sub-entrega existente
 
@@ -419,15 +421,24 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 - [x] 7a.3 RED + GREEN: `CommunityNotificationServiceTests` (+80) con los casos de `DeliverAsync`. **RED confirmado:** `error CS1061: "ICommunityNotificationService" no contiene una definición para "DeliverAsync"`.
 - [x] 7a.4 Verificación de la rebanada: `dotnet test Ludeka.sln` → `Ludeka.IntegrationTests.dll` **7/7**, `Ludeka.UnitTests.dll` **1482/1482**, **0 omitidas**, código de salida **0**, sobre la rama en aislamiento con base en `3abdda7`. Los 1482 son los 1480 de la base más los 2 casos nuevos. **Presupuesto: 237 líneas sobre un techo de 400.**
 
+#### Fase 7b — El despachador del outbox
+
+*Rama: `inc/workers-cloud-run-07b-despachador-outbox` · Depende de PR7a mergeado (invoca `DeliverAsync`).*
+
+- [x] 7b.1 RED (tareas 7.1, 7.2 y 7.3): `tests/Ludeka.UnitTests/Application/NotificationOutboxDispatcherTests.cs` (201 líneas) con los tres escenarios del ciclo básico — un intento fallido incrementa `Attempts` y reprograma en estado no terminal; agotar `MaxDeliveryAttempts` deja la sub-entrega `Failed` y el mensaje deja de reclamarse; entrega correcta al primer intento deja la sub-entrega `Sent` y completa el mensaje. **RED confirmado:** `error CS0246: El nombre del tipo o del espacio de nombres 'NotificationOutboxDispatcher' no se encontró`. Incluye `FakeChannelDeliveryService : ICommunityNotificationService`, un doble con los once miembros de la interfaz, que es lo que permite forzar el desenlace de cada envío sin tocar red.
+- [x] 7b.2 GREEN (tarea 7.6): `src/Ludeka.Application/Contracts/INotificationOutboxDispatcher.cs` (16) — `DispatchPendingAsync`, **un ciclo acotado, sin bucle**. Y `OutboxDispatchResultDto` en `OutboxDtos.cs` (9): cuántos mensajes se reclamaron en el lote y en qué desenlace terminó cada uno. **Decisión de fase declarada:** el diseño no fijaba la forma de ese resultado; se agrupa en `OutboxDtos.cs` junto a `OutboxClaim` y `OutboxHealthSnapshot`, mismo criterio que en 6a.
+- [x] 7b.3 GREEN (tarea 7.7): `src/Ludeka.Application/Features/Community/NotificationOutboxDispatcher.cs` (170) — el algoritmo de cinco pasos del diseño §6.5: reclamar lote → derivar los canales **ahora**, releyendo `CommunityNotificationOptions` → `EnsureDeliveryAsync` por canal → entregar con `DeliverAsync` → completar, o liberar con retroceso, o marcar `Dead` al agotar `MaxClaimAttempts`. **`OutboxOptions.Enabled`, que existía sin consumidor desde 4b, recibe aquí su primer uso real**: cortocircuita `DispatchPendingAsync` antes de tocar la base de datos.
+- [x] 7b.4 Verificación de la rebanada: `dotnet test Ludeka.sln` → `Ludeka.IntegrationTests.dll` **7/7**, `Ludeka.UnitTests.dll` **1485/1485**, **0 omitidas**, código de salida **0**, sobre la rama en aislamiento con base en `0a88360`. Los 1485 son los 1482 de 7a más los 3 escenarios nuevos. **Presupuesto: 396 líneas sobre un techo de 400.**
+
 #### Desglose original de la Fase 7 (numeración estable, trazabilidad del §8)
 
-- [ ] 7.1 RED (unitaria SQLite): un intento fallido incrementa `Attempts` y programa reintento en estado no terminal (escenario "Un intento fallido incrementa el contador y programa un reintento").
-- [ ] 7.2 RED (unitaria SQLite): agotados los intentos máximos → `Failed` terminal, no vuelve a reclamarse (escenario "Se agota el número máximo de intentos").
-- [ ] 7.3 RED (unitaria SQLite): entrega correcta en el primer intento → `Sent` terminal (escenario "Entrega correcta en el primer intento").
+- [x] 7.1 RED (unitaria SQLite): un intento fallido incrementa `Attempts` y programa reintento en estado no terminal (escenario "Un intento fallido incrementa el contador y programa un reintento").
+- [x] 7.2 RED (unitaria SQLite): agotados los intentos máximos → `Failed` terminal, no vuelve a reclamarse (escenario "Se agota el número máximo de intentos").
+- [x] 7.3 RED (unitaria SQLite): entrega correcta en el primer intento → `Sent` terminal (escenario "Entrega correcta en el primer intento").
 - [ ] 7.4 RED (unitaria SQLite): canal habilitado **después** del encolado se entrega igualmente (decisión 4 del maintainer, diseño §6.5) — encolar con Telegram deshabilitado, habilitar, reclamar de nuevo, afirmar entrega.
 - [ ] 7.5 RED (unitaria SQLite): notificación `Queued` sobrevive a un reinicio simulado del host y acaba enviándose — destruir y reconstruir el despachador contra el mismo almacén persistido (escenario "Notificación pendiente entregada tras un reinicio simulado del host").
-- [ ] 7.6 GREEN: crear `src/Ludeka.Application/Contracts/INotificationOutboxDispatcher.cs` (diseño §6.1) — `DispatchPendingAsync`, un ciclo acotado, sin bucle.
-- [ ] 7.7 GREEN: crear `src/Ludeka.Application/Features/Community/NotificationOutboxDispatcher.cs` — algoritmo de 5 pasos del diseño §6.5 (reclamar lote → derivar canales AHORA releyendo `CommunityNotificationOptions` → `EnsureDeliveryAsync` por canal → entregar → completar/liberar con retroceso/`Dead` al agotar `MaxClaimAttempts`).
+- [x] 7.6 GREEN: crear `src/Ludeka.Application/Contracts/INotificationOutboxDispatcher.cs` (diseño §6.1) — `DispatchPendingAsync`, un ciclo acotado, sin bucle.
+- [x] 7.7 GREEN: crear `src/Ludeka.Application/Features/Community/NotificationOutboxDispatcher.cs` — algoritmo de 5 pasos del diseño §6.5 (reclamar lote → derivar canales AHORA releyendo `CommunityNotificationOptions` → `EnsureDeliveryAsync` por canal → entregar → completar/liberar con retroceso/`Dead` al agotar `MaxClaimAttempts`).
 - [x] 7.8 GREEN: modificar `src/Ludeka.Application/Features/Community/CommunityNotificationService.cs` — extraer `SendOnChannelAsync` (privado, sin persistencia) de `SendToDiscordAsync`(`:102-149`)/`SendToTelegramAsync`(`:151-198`); añadir `DeliverAsync` (público, para el despachador, opera sobre una sub-entrega ya existente sin crear fila nueva). Los métodos públicos existentes conservan firma y comportamiento (diseño §6.6). Extender `tests/Ludeka.UnitTests/Application/CommunityNotificationServiceTests.cs` con casos para `DeliverAsync`. → **Entregada en el PR 7a. Evidencia en las tareas 7a.1 a 7a.3.**
 - [ ] 7.9 GREEN: modificar `src/Ludeka.Infrastructure/Notifications/CommunityNotificationDispatcherHostedService.cs` — reescribir `ProcessQueueAsync` (hoy `:39-63`) para invocar `INotificationOutboxDispatcher.DispatchPendingAsync` en un ciclo de sondeo acotado, sustituyendo el consumo infinito de `ReadAllAsync` (hoy `:43`). **No tocar `RunPeriodicScanAsync` en esta rebanada** — su idempotencia del boletín de viernes es trabajo de R5 (tarea 9.16).
 - [ ] 7.10 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — registrar `INotificationOutboxDispatcher`/`NotificationOutboxDispatcher`.
