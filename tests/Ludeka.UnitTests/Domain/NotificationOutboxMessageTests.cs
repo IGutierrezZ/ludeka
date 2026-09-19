@@ -116,4 +116,73 @@ public class NotificationOutboxMessageTests
 
         Assert.Null(message.TargetChannel);
     }
+
+    // --- INC-47 (R4a, diseño §6.5): métodos de dominio nuevos que necesita
+    // NotificationOutboxRepository para mutar el mensaje sin exponer sus setters privados. ---
+
+    [Fact]
+    public void MarkCompleted_ConMensajePendiente_MarcaCompletadoYRegistraCompletedAt()
+    {
+        var message = new NotificationOutboxMessage(
+            NotificationEventType.CustomTestPing, "Ping", "Resumen del ping");
+
+        message.MarkCompleted();
+
+        Assert.Equal(OutboxMessageStatus.Completed, message.Status);
+        Assert.NotNull(message.CompletedAt);
+    }
+
+    [Fact]
+    public void Release_ConNuevoIntentoYError_ActualizaNextAttemptAtYLastErrorSinCambiarEstado()
+    {
+        var message = new NotificationOutboxMessage(
+            NotificationEventType.CustomTestPing, "Ping", "Resumen del ping");
+        var nextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(5);
+
+        message.Release(nextAttemptAt, "Discord respondió 503");
+
+        Assert.Equal(OutboxMessageStatus.Pending, message.Status);
+        Assert.Equal(nextAttemptAt, message.NextAttemptAt);
+        Assert.Equal("Discord respondió 503", message.LastError);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Release_ConErrorVacioONulo_LimpiaLastError(string? lastError)
+    {
+        var message = new NotificationOutboxMessage(
+            NotificationEventType.CustomTestPing, "Ping", "Resumen del ping");
+
+        message.Release(DateTimeOffset.UtcNow.AddMinutes(1), lastError);
+
+        Assert.Null(message.LastError);
+    }
+
+    [Fact]
+    public void MarkDead_ConMotivo_MarcaEstadoTerminalYNoVuelveAPendiente()
+    {
+        var message = new NotificationOutboxMessage(
+            NotificationEventType.CustomTestPing, "Ping", "Resumen del ping");
+
+        message.MarkDead("Se agotó MaxClaimAttempts");
+
+        Assert.Equal(OutboxMessageStatus.Dead, message.Status);
+        Assert.Equal("Se agotó MaxClaimAttempts", message.LastError);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void MarkDead_ConMotivoVacio_UsaMotivoPorDefecto(string reason)
+    {
+        var message = new NotificationOutboxMessage(
+            NotificationEventType.CustomTestPing, "Ping", "Resumen del ping");
+
+        message.MarkDead(reason);
+
+        Assert.Equal(OutboxMessageStatus.Dead, message.Status);
+        Assert.False(string.IsNullOrWhiteSpace(message.LastError));
+    }
 }

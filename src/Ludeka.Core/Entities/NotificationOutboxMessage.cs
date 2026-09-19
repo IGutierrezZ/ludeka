@@ -75,4 +75,32 @@ public class NotificationOutboxMessage
         NextAttemptAt = DateTimeOffset.UtcNow;
         CreatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>Marca el mensaje como completado: ninguna de sus sub-entregas por canal queda
+    /// en estado no terminal (INC-47, diseño §6.5, paso 5). No vuelve a ser reclamado.</summary>
+    public void MarkCompleted()
+    {
+        Status = OutboxMessageStatus.Completed;
+        CompletedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>Libera el mensaje de vuelta a pendiente con un nuevo momento de reintento,
+    /// tras un fallo de envío o un conjunto de canales vacío (INC-47, diseño §6.5, paso 2).
+    /// Permanece <see cref="OutboxMessageStatus.Pending"/>: sigue siendo reclamable.</summary>
+    public void Release(DateTimeOffset nextAttemptAt, string? lastError)
+    {
+        NextAttemptAt = nextAttemptAt;
+        LastError = string.IsNullOrWhiteSpace(lastError) ? null : lastError.Trim();
+    }
+
+    /// <summary>Agota <c>MaxClaimAttempts</c>: estado terminal, no vuelve a reclamarse
+    /// (INC-47, diseño §6.5, paso 2).</summary>
+    public void MarkDead(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            reason = "Motivo no especificado al agotar los intentos de reclamación.";
+
+        Status = OutboxMessageStatus.Dead;
+        LastError = reason.Trim();
+    }
 }
