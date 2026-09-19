@@ -103,7 +103,7 @@ builder.Services.AddScoped<ISessionPermissionGuard, SessionPermissionGuard>();
 
 // Incremento 10: Observabilidad con Health Checks Oficiales de ASP.NET Core
 builder.Services.AddHealthChecks()
-    .AddCheck<SqliteDatabaseHealthCheck>("sqlite_db", tags: ["ready"])
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
     .AddCheck<StorageHealthCheck>("storage", tags: ["ready"])
     .AddCheck<NotificationQueueHealthCheck>("notification_queue", tags: ["ready"]);
 
