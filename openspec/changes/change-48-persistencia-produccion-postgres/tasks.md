@@ -49,13 +49,13 @@ Chain strategy: stacked-to-main
 
 ## PR1b — Entrega HTTP del fallback en disco (depende de PR1a fusionada)
 
-- [ ] 2.1 ⚠️ Contingencia primero: probar host mínimo con `WebApplication.CreateBuilder` dentro de `Ludeka.UnitTests`. Confirmado por lectura directa: `tests/Ludeka.UnitTests/Ludeka.UnitTests.csproj` no tiene `FrameworkReference` a `Microsoft.AspNetCore.App` ni paquete `Microsoft.AspNetCore.TestHost`; los `using Microsoft.AspNetCore.*` existentes en `tests/Ludeka.UnitTests/Web/` son namespaces ligeros (`Http`, `Authentication`, `Components`), no arranque de host real. Si no compila/arranca, añadir el paquete o `FrameworkReference` al csproj.
-- [ ] 2.2 RED en `tests/Ludeka.UnitTests/Web/MediaStaticFilesDeliveryTests.cs`: imagen escrita por `PhysicalFileImageStorageService` se descarga con 200 vía host mínimo que compone solo `UseLudekaMediaFiles`.
-- [ ] 2.3 RED: URL de imagen nunca guardada devuelve 404.
-- [ ] 2.4 RED (matriz de amenazas, fila «Exposición de rutas»): petición con recorrido de directorio (`..%2f`/`%2e%2e/`) no sirve fichero fuera de la raíz de medios; ruta local relativa resuelve dentro de `ContentRootPath`.
-- [ ] 2.5 GREEN: crear `src/Ludeka.Web/Extensions/MediaStaticFilesExtensions.cs` → `UseLudekaMediaFiles` con `PhysicalFileProvider` bajo `/images`, sin activar `ServeUnknownFileTypes`.
-- [ ] 2.6 GREEN: insertar `app.UseLudekaMediaFiles(...)` en `src/Ludeka.Web/Program.cs` entre `:180` (`UseHttpsRedirection`) y `:183` (`UseAuthentication`).
-- [ ] 2.7 Ejecutar `dotnet test Ludeka.sln` completo y registrar el resultado.
+- [x] 2.1 ⚠️ Contingencia primero: probar host mínimo con `WebApplication.CreateBuilder` dentro de `Ludeka.UnitTests`. **Resultado: RESUELTA SIN CAMBIOS AL CSPROJ.** `dotnet build` del test aislado con la llamada a `WebApplication.CreateBuilder`/`WebApplicationOptions` ya escrita produjo un único error (`CS0234`, namespace `Ludeka.Web.Extensions` inexistente — el RED esperado de 2.2-2.4); ningún error sobre `WebApplication` ni ningún tipo de ASP.NET Core. La `ProjectReference` a `Ludeka.Web.csproj` (SDK `Microsoft.NET.Sdk.Web`) ya arrastra el `FrameworkReference` a `Microsoft.AspNetCore.App` lo bastante para compilar. Confirmado también en tiempo de ejecución: el host mínimo arranca Kestrel real en `127.0.0.1` con puerto efímero y sirve peticiones HTTP reales (los 5 casos de 2.2-2.4 en verde). No se tocó `Ludeka.UnitTests.csproj`.
+- [x] 2.2 RED confirmado (`CS0234` al referenciar `Ludeka.Web.Extensions`, inexistente) → GREEN en `tests/Ludeka.UnitTests/Web/MediaStaticFilesDeliveryTests.cs`: imagen escrita por `PhysicalFileImageStorageService` se descarga con 200 vía host mínimo que compone solo `UseLudekaMediaFiles` (bytes comparados byte a byte, no solo el código de estado).
+- [x] 2.3 RED (mismo `CS0234`) → GREEN: URL de imagen nunca guardada devuelve 404.
+- [x] 2.4 RED (mismo `CS0234`) → GREEN (matriz de amenazas, fila «Exposición de rutas»): petición con recorrido de directorio (`..%2f` y `%2e%2e/`, 2 casos `[Theory]`) no sirve fichero fuera de la raíz de medios — confirmado por ejecución real: ambas variantes devuelven exactamente 404, coincidiendo con la predicción del diseño; ruta local relativa resuelve dentro de `ContentRootPath` (caso adicional, `WebApplicationOptions.ContentRootPath` explícito).
+- [x] 2.5 GREEN: creado `src/Ludeka.Web/Extensions/MediaStaticFilesExtensions.cs` → `UseLudekaMediaFiles` con `PhysicalFileProvider` bajo `/images`, sin activar `ServeUnknownFileTypes` (se deja el valor por defecto `false`, documentado en comentario).
+- [x] 2.6 GREEN: insertado `app.UseLudekaMediaFiles(...)` en `src/Ludeka.Web/Program.cs` entre `UseHttpsRedirection()` (línea real medida hoy: 189, no la `:180` original de tasks.md — PR1a desplazó las líneas) y `UseAuthentication()` (línea real: 192, antes `:183`).
+- [x] 2.7 `dotnet test Ludeka.sln` completo (sin tubería, en primer plano): **1548/1548 unitarias (+5 sobre la base de 1543 de PR1a) y 9/9 de integración, exit 0.**
 
 ## PR2 — Fail-fast de PostgreSQL en Production
 
