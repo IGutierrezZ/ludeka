@@ -170,6 +170,13 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<ICommunityNotificationRepository, SqliteCommunityNotificationRepository>();
         services.AddScoped<ICommunityNotificationService, CommunityNotificationService>();
 
+        // INC-47 (R4a, diseño §6.1/§5.4): repositorio y opciones del outbox de notificaciones.
+        // El cableado de ICommunityNotificationQueue hacia OutboxCommunityNotificationQueue (y
+        // el despachador que la drena) es tarea de R4b: aquí solo se registran las piezas
+        // nuevas, sin modificar ninguno de los tres registros de arriba.
+        services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
+        services.AddScoped<INotificationOutboxRepository, NotificationOutboxRepository>();
+
         // Incremento 46 (Paso 2) / hallazgo W1: biblioteca, estadísticas, preferencias y ubicación de
         // usuario. ISessionPermissionGuard e ICurrentUserService permanecen en Program.cs (diseño §4.2):
         // sus únicas implementaciones viven en Ludeka.Web.
