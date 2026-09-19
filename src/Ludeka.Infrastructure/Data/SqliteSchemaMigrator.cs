@@ -912,6 +912,39 @@ public static class SqliteSchemaMigrator
                 idxCmd.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_NotificationLogs_MessageId_Channel\" ON \"NotificationLogs\" (\"MessageId\", \"Channel\");";
                 await idxCmd.ExecuteNonQueryAsync(ct);
             }
+
+            // 25. Crear tabla NotificationOutboxMessages si no existe (INC-47, esquema del outbox
+            // — concern B: tabla nueva del mensaje lógico, diseño §5.2/§5.3). Patrón CREATE TABLE
+            // IF NOT EXISTS + índices, igual que los puntos 21/22 (GamePriceSnapshots/
+            // ExternalLogins) — tabla genuinamente nueva, sin esquema previo que preservar.
+            if (!existingTables.Contains("NotificationOutboxMessages"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "NotificationOutboxMessages" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_NotificationOutboxMessages" PRIMARY KEY,
+                        "EventType" INTEGER NOT NULL,
+                        "Title" TEXT NOT NULL,
+                        "Summary" TEXT NOT NULL,
+                        "TargetUrl" TEXT NULL,
+                        "ImageUrl" TEXT NULL,
+                        "FieldsJson" TEXT NOT NULL,
+                        "TargetChannel" INTEGER NULL,
+                        "Status" INTEGER NOT NULL,
+                        "Attempts" INTEGER NOT NULL,
+                        "NextAttemptAt" TEXT NOT NULL,
+                        "CreatedAt" TEXT NOT NULL,
+                        "CompletedAt" TEXT NULL,
+                        "ClaimedAt" TEXT NULL,
+                        "ClaimedBy" TEXT NULL,
+                        "LastError" TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_NotificationOutboxMessages_Status_NextAttemptAt_CreatedAt" ON "NotificationOutboxMessages" ("Status", "NextAttemptAt", "CreatedAt");
+                    CREATE INDEX IF NOT EXISTS "IX_NotificationOutboxMessages_Status_CreatedAt" ON "NotificationOutboxMessages" ("Status", "CreatedAt");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("NotificationOutboxMessages");
+            }
         }
         finally
         {

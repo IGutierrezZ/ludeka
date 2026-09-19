@@ -259,4 +259,37 @@ public class SqliteSchemaMigratorTests
         Assert.Null(legacyLog.MessageId);
         Assert.Equal(0, legacyLog.Attempts);
     }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_ConBaseSqlitePreexistente_DebeCrearTablaNotificationOutboxMessages()
+    {
+        // Arrange: base SQLite preexistente sin la tabla del outbox (mismo umbral "Games existe"
+        // que usa el resto de este fichero). La tabla es enteramente nueva (INC-47, concern B),
+        // así que no hay fila histórica que preservar aquí — eso ya lo cubre la reconciliación de
+        // columnas sobre NotificationLogs, verificada en la prueba anterior.
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        using (var createCmd = connection.CreateCommand())
+        {
+            createCmd.CommandText = """
+                CREATE TABLE "Games" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_Games" PRIMARY KEY
+                );
+                """;
+            await createCmd.ExecuteNonQueryAsync();
+        }
+
+        var options = new DbContextOptionsBuilder<LudekaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        using var db = new LudekaDbContext(options);
+
+        // Act
+        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+
+        // Assert: la tabla NotificationOutboxMessages existe y aparece vacía.
+        var outboxMessages = await db.NotificationOutboxMessages.AsNoTracking().ToListAsync();
+        Assert.Empty(outboxMessages);
+    }
 }
