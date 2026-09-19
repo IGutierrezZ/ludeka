@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ludeka.Application\Ludeka.Application.csproj" />
+    <ProjectReference Include="..\Ludeka.Infrastructure\Ludeka.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Host.CreateApplicationBuilder vive en el paquete completo, no en .Abstractions
+         (diseño §8.1). Microsoft.Extensions.Http para los AddHttpClient de
+         AddLudekaExternalIntegrations llega por referencia transitiva de Ludeka.Infrastructure
+         (INC-47 R2b); no se referencia de nuevo aquí a propósito, para comprobar que el arrastre
+         por referencia de proyecto es real y no un supuesto sin verificar (informe de sdd-apply). -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Configuración: se ENLAZA el appsettings del host web, no se duplica (diseño §8.1). -->
+    <Content Include="..\Ludeka.Web\appsettings.json" Link="appsettings.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
