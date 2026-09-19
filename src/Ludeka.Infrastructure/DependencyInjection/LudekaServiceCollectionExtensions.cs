@@ -32,6 +32,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Ludeka.Infrastructure.DependencyInjection;
 
@@ -270,18 +271,33 @@ public static class LudekaServiceCollectionExtensions
         });
 
         // Incremento 40: Pipeline de Almacenamiento y Optimización de Medios (Cloudflare R2 + SkiaSharp + WebP)
+        // Incremento 48 (PR1a, diseño D1): factoría de precedencia de tres vías — R2 válido, disco
+        // local configurado (Media__LocalStoragePath), memoria — sustituye al selector binario original.
         services.Configure<CloudflareR2Options>(configuration.GetSection(CloudflareR2Options.SectionName));
+        services.Configure<MediaOptions>(configuration.GetSection(MediaOptions.SectionName));
         services.AddSingleton<IImageOptimizationService, SkiaSharpImageOptimizationService>();
         services.AddScoped<CloudflareR2StorageService>();
         services.AddScoped<SimulatedImageStorageService>();
-        services.AddScoped<PhysicalFileImageStorageService>();
+        services.AddScoped(sp =>
+        {
+            var env = sp.GetService<IHostEnvironment>();
+            var mediaOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaOptions>>().Value;
+            return new PhysicalFileImageStorageService(env, ResolveMediaStoragePath(mediaOptions, env));
+        });
         services.AddScoped<IImageStorageService>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CloudflareR2Options>>().Value;
-            if (options.HasValidCredentials)
+            var r2Options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CloudflareR2Options>>().Value;
+            if (r2Options.HasValidCredentials)
             {
                 return sp.GetRequiredService<CloudflareR2StorageService>();
             }
+
+            var mediaOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaOptions>>().Value;
+            if (mediaOptions.HasLocalStoragePath)
+            {
+                return sp.GetRequiredService<PhysicalFileImageStorageService>();
+            }
+
             return sp.GetRequiredService<SimulatedImageStorageService>();
         });
 
@@ -345,6 +361,25 @@ public static class LudekaServiceCollectionExtensions
         // ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
 
         return services;
+    }
+
+    /// <summary>Incremento 48 (PR1a, diseño D1): resuelve la ruta local de medios configurada contra
+    /// <see cref="IHostEnvironment.ContentRootPath"/> cuando es relativa. <see langword="null"/> si no
+    /// hay ninguna ruta configurada (precedencia de disco no aplicable).</summary>
+    private static string? ResolveMediaStoragePath(MediaOptions mediaOptions, IHostEnvironment? env)
+    {
+        if (!mediaOptions.HasLocalStoragePath)
+        {
+            return null;
+        }
+
+        var configuredPath = mediaOptions.LocalStoragePath;
+        if (Path.IsPathRooted(configuredPath) || env == null || string.IsNullOrWhiteSpace(env.ContentRootPath))
+        {
+            return configuredPath;
+        }
+
+        return Path.Combine(env.ContentRootPath, configuredPath);
     }
 
     /// <summary>Punto de entrada único de los dos hosts. Registra la composición completa de dominio

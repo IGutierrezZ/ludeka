@@ -27,6 +27,7 @@ using Ludeka.Infrastructure.Stores;
 using Ludeka.Infrastructure.DependencyInjection;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
+using Ludeka.Web;
 using Ludeka.Web.Components;
 using Ludeka.Web.Authentication;
 using Ludeka.Web.Services;
@@ -111,6 +112,14 @@ var app = builder.Build();
 foreach (var authenticationWarning in ExternalAuthenticationSchemes.GetConfigurationWarnings(authenticationOptions))
 {
     app.Logger.LogWarning("{AuthenticationWarning}", authenticationWarning);
+}
+
+// Incremento 48 (PR1a): aviso explícito de almacén de medios degradado en Production sin R2 válido.
+// La aplicación arranca igual; el almacén activo (disco local o memoria) puede no sobrevivir un reinicio.
+var cloudflareOptionsValue = app.Services.GetRequiredService<IOptions<CloudflareR2Options>>().Value;
+foreach (var mediaStorageWarning in MediaStorageWarnings.GetConfigurationWarnings(cloudflareOptionsValue, app.Environment.EnvironmentName))
+{
+    app.Logger.LogWarning("{MediaStorageWarning}", mediaStorageWarning);
 }
 
 // Inicialización automática y siembra del catálogo Offline-First con resiliencia de directorios en Docker

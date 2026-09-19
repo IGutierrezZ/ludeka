@@ -54,8 +54,12 @@ public class PhysicalFileImageStorageServiceTests : IDisposable
         Assert.StartsWith("/images/games/catan-el-juego-cover-", result.RelativePath);
         Assert.EndsWith(".jpg", result.RelativePath);
 
-        var savedFile = Path.Combine(_tempDirectory, Path.GetFileName(result.RelativePath));
+        // INC-48 (PR1a), diseño D1: con customPath, la portada debe escribirse bajo "{ruta}/games/",
+        // coherente con la URL devuelta "/images/games/{fichero}". Defecto confirmado en
+        // PhysicalFileImageStorageService.cs:28 (escribía directamente en "{ruta}", sin subcarpeta).
+        var savedFile = Path.Combine(_tempDirectory, "games", Path.GetFileName(result.RelativePath));
         Assert.True(File.Exists(savedFile));
+        Assert.False(File.Exists(Path.Combine(_tempDirectory, Path.GetFileName(result.RelativePath))));
     }
 
     [Fact]

@@ -25,7 +25,12 @@ public class PhysicalFileImageStorageService : IImageStorageService
     {
         if (!string.IsNullOrWhiteSpace(customPath))
         {
-            _gamesDirectory = customPath;
+            // INC-48 (PR1a), diseño D1: SaveGameCoverAsync devuelve la URL "/images/games/{fichero}"
+            // (línea 85), así que la portada debe escribirse en la subcarpeta "games" de la ruta
+            // configurada. Antes se escribía en la raíz de customPath y quedaba inalcanzable por esa
+            // URL (404). SaveToFolderAsync y UploadOptimizedImageAsync ya usan _baseImagesDirectory
+            // sin este defecto.
+            _gamesDirectory = Path.Combine(customPath, "games");
             _baseImagesDirectory = customPath;
         }
         else if (env != null && !string.IsNullOrWhiteSpace(env.ContentRootPath))
