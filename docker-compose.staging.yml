@@ -1,3 +1,7 @@
+# Entorno LOCAL de desarrollo/pruebas manuales con SQLite (INC-48, PR2), bajo el perfil "staging"
+# del propio host. NO es una vía de despliegue a producción -esa es docker-compose.prod.yml, fuera
+# de alcance de este incremento-. Ya usa ASPNETCORE_ENVIRONMENT=Staging: no requiere ningún cambio
+# funcional, la guarda de arranque de WebStartupGuards no se activa fuera de Production.
 services:
   ludeka-web-staging:
     build:

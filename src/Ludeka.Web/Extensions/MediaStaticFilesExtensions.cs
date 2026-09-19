@@ -26,12 +26,16 @@ public static class MediaStaticFilesExtensions
         MediaOptions options,
         IHostEnvironment environment)
     {
-        if (!options.HasLocalStoragePath)
+        // INC-48, PR2, tarea 3.9: resolución unificada en MediaOptions.ResolveLocalStoragePath,
+        // que ya usa también LudekaServiceCollectionExtensions (Ludeka.Infrastructure) para la ruta
+        // de escritura. Antes de esta extracción cada ensamblado tenía su propia copia del mismo
+        // algoritmo, sin ninguna prueba que las cruzara; ResolveLocalStoragePath tiene su propia
+        // cobertura en MediaOptionsTests (Ludeka.Application), común a los dos sitios.
+        var mediaRoot = options.ResolveLocalStoragePath(environment.ContentRootPath);
+        if (mediaRoot is null)
         {
             return app;
         }
-
-        var mediaRoot = ResolveMediaRoot(options.LocalStoragePath, environment);
 
         // PhysicalFileImageStorageService ya crea el directorio al escribir (diseño D1), pero este
         // middleware se registra al arrancar el proceso, potencialmente antes de que exista ninguna
@@ -49,29 +53,5 @@ public static class MediaStaticFilesExtensions
             // extensión de fichero como binario genérico bajo /images, ampliando la superficie
             // expuesta sin necesidad — las portadas ya usan extensiones conocidas (.jpg/.jpeg/.png/.webp).
         });
-    }
-
-    /// <summary>
-    /// Resuelve <paramref name="localStoragePath"/> contra <see cref="IHostEnvironment.ContentRootPath"/>
-    /// cuando es relativa. Debe permanecer equivalente a la resolución que ya hace
-    /// <c>LudekaServiceCollectionExtensions.ResolveMediaStoragePath</c> (INC-48, PR1a) para el mismo
-    /// valor de configuración: si divergieran, las imágenes se escribirían en un directorio y se
-    /// intentarían servir desde otro, reproduciendo el defecto 404 que PR1a corrigió para la ruta de
-    /// escritura.
-    /// <para>
-    /// ⚠️ NINGUNA prueba cruza hoy las dos resoluciones. <c>MediaStaticFilesDeliveryTests</c> construye
-    /// <c>PhysicalFileImageStorageService</c> con una ruta ya absoluta, o escribe el fichero por su
-    /// cuenta, así que nunca pasa por la resolución de PR1a. Una divergencia NO se detectaría en la
-    /// suite: si tocas esta resolución, cambia también la de Ludeka.Infrastructure a mano.
-    /// </para>
-    /// </summary>
-    private static string ResolveMediaRoot(string localStoragePath, IHostEnvironment environment)
-    {
-        if (Path.IsPathRooted(localStoragePath) || string.IsNullOrWhiteSpace(environment.ContentRootPath))
-        {
-            return localStoragePath;
-        }
-
-        return Path.Combine(environment.ContentRootPath, localStoragePath);
     }
 }

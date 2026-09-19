@@ -57,11 +57,14 @@ RUN dotnet publish /src/src/Ludeka.Jobs/Ludeka.Jobs.csproj -c Release -o /app/pu
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Parámetros de entorno estándar para contenedores ASP.NET Core
+# Parámetros de entorno estándar para contenedores ASP.NET Core. Incremento 48 (PR2, diseño D3):
+# ya no fija ConnectionStrings__DefaultConnection. La imagen no debe imponer, por sí sola, una
+# cadena de conexión SQLite: en Production, la guarda de arranque de WebStartupGuards exige una
+# conexión PostgreSQL inyectada en tiempo de ejecución (variable de entorno o secreto), y aborta
+# explícitamente si no la encuentra, en vez de caer en silencio a SQLite efímera.
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \
-    DOTNET_EnableDiagnostics=0 \
-    ConnectionStrings__DefaultConnection="Data Source=/app/data/ludeka.db"
+    DOTNET_EnableDiagnostics=0
 
 # Instalar cURL (lo usa la sonda de salud del contenedor) y preparar directorios con permisos.
 # No se instala sqlite3: la aplicación usa SQLite embebido vía SQLitePCLRaw y la persistencia
