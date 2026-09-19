@@ -365,7 +365,20 @@ public static class LudekaServiceCollectionExtensions
 
     /// <summary>Incremento 48 (PR1a, diseño D1): resuelve la ruta local de medios configurada contra
     /// <see cref="IHostEnvironment.ContentRootPath"/> cuando es relativa. <see langword="null"/> si no
-    /// hay ninguna ruta configurada (precedencia de disco no aplicable).</summary>
+    /// hay ninguna ruta configurada (precedencia de disco no aplicable).
+    /// <para>
+    /// ⚠️ Esta es la ruta de ESCRITURA. La de LECTURA la resuelve por separado
+    /// <c>MediaStaticFilesExtensions.ResolveMediaRoot</c> (Ludeka.Web, INC-48 PR1b), que sirve esos
+    /// mismos ficheros por HTTP bajo "/images". Las dos deben dar el MISMO directorio para el mismo
+    /// valor de configuración: si divergen, las imágenes se escriben en un sitio y se piden en otro,
+    /// y vuelve el 404 que PR1a corrigió en el constructor de <c>PhysicalFileImageStorageService</c>.
+    /// </para>
+    /// <para>
+    /// NINGUNA prueba cruza hoy las dos resoluciones: las de <c>MediaStaticFilesDeliveryTests</c>
+    /// construyen el servicio con una ruta ya absoluta o escriben el fichero por su cuenta, así que
+    /// jamás pasan por este método. Una divergencia NO se detectaría en la suite. Si tocas esta
+    /// resolución, cambia también la de Ludeka.Web a mano.
+    /// </para></summary>
     private static string? ResolveMediaStoragePath(MediaOptions mediaOptions, IHostEnvironment? env)
     {
         if (!mediaOptions.HasLocalStoragePath)

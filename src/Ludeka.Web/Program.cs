@@ -29,6 +29,7 @@ using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web;
 using Ludeka.Web.Components;
+using Ludeka.Web.Extensions;
 using Ludeka.Web.Authentication;
 using Ludeka.Web.Services;
 using Microsoft.EntityFrameworkCore;
@@ -187,6 +188,16 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Incremento 48 (PR1b), diseño D2: entrega HTTP real del fallback de medios en disco.
+// MapStaticAssets() (más abajo) solo sirve el manifiesto de activos generado en compilación; no
+// sirve ficheros escritos en tiempo de ejecución por PhysicalFileImageStorageService, que es
+// exactamente lo que este middleware resuelve. Va antes de la autenticación porque los medios son
+// públicos y no deben pagar autenticación ni antiforgery. UseLudekaMediaFiles no hace nada si no
+// hay ruta local configurada (MediaOptions.HasLocalStoragePath): en ese caso el almacén activo es
+// Cloudflare R2 o memoria, ninguno de los cuales escribe ficheros en este proceso.
+var mediaOptionsValue = app.Services.GetRequiredService<IOptions<MediaOptions>>().Value;
+app.UseLudekaMediaFiles(mediaOptionsValue, app.Environment);
 
 // Incremento 46: la autenticación y la autorización preceden al antiforgery, según el diseño.
 app.UseAuthentication();
