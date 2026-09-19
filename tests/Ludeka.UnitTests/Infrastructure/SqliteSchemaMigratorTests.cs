@@ -292,4 +292,74 @@ public class SqliteSchemaMigratorTests
         var outboxMessages = await db.NotificationOutboxMessages.AsNoTracking().ToListAsync();
         Assert.Empty(outboxMessages);
     }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_ConNightlyCatalogingExecutionLogsPreexistente_DebeCrearJobExecutionLeasesSinPerderDatos()
+    {
+        // Arrange: base SQLite con "NightlyCatalogingExecutionLogs" ya creada con el mismo
+        // esquema que el CREATE TABLE de una sola oportunidad de este propio reconciliador
+        // (líneas 543-558) y una fila de producción ya persistida, ajena a JobExecutionLeases.
+        // Se lee por SQL crudo, no por el DbSet tipado: esa tabla real carece de
+        // "BggDiscoveryCount" (defecto preexistente C5, fuera de alcance de esta fase) y
+        // consultarla vía EF rompería por una columna que esta rebanada no toca.
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        using (var createCmd = connection.CreateCommand())
+        {
+            createCmd.CommandText = """
+                CREATE TABLE "Games" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_Games" PRIMARY KEY
+                );
+                CREATE TABLE "NightlyCatalogingExecutionLogs" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_NightlyCatalogingExecutionLogs" PRIMARY KEY,
+                    "StartedAt" TEXT NOT NULL,
+                    "CompletedAt" TEXT NULL,
+                    "QueueProcessedCount" INTEGER NOT NULL,
+                    "NewsDiscoveryCount" INTEGER NOT NULL,
+                    "TopBackfillCount" INTEGER NOT NULL,
+                    "TotalCatalogedCount" INTEGER NOT NULL,
+                    "FailedCount" INTEGER NOT NULL,
+                    "CatalogedTitlesJson" TEXT NOT NULL,
+                    "Status" TEXT NOT NULL,
+                    "ErrorMessage" TEXT NULL
+                );
+                """;
+            await createCmd.ExecuteNonQueryAsync();
+        }
+
+        using (var insertCmd = connection.CreateCommand())
+        {
+            insertCmd.CommandText = """
+                INSERT INTO "NightlyCatalogingExecutionLogs"
+                    ("Id", "StartedAt", "CompletedAt", "QueueProcessedCount", "NewsDiscoveryCount",
+                     "TopBackfillCount", "TotalCatalogedCount", "FailedCount", "CatalogedTitlesJson",
+                     "Status", "ErrorMessage")
+                VALUES
+                    ('55555555-5555-5555-5555-555555555555', '2026-09-01T02:00:00+00:00', '2026-09-01T02:04:00+00:00',
+                     12, 3, 2, 5, 0, '["Preexistente"]', 'Completed', NULL);
+                """;
+            await insertCmd.ExecuteNonQueryAsync();
+        }
+
+        var options = new DbContextOptionsBuilder<LudekaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        using var db = new LudekaDbContext(options);
+
+        // Act
+        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+
+        // Assert (1): la fila preexistente de la bitácora nocturna no se pierde, trunca ni elimina.
+        using (var countCmd = connection.CreateCommand())
+        {
+            countCmd.CommandText = "SELECT COUNT(*) FROM \"NightlyCatalogingExecutionLogs\" WHERE \"Id\" = '55555555-5555-5555-5555-555555555555';";
+            var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync());
+            Assert.Equal(1, count);
+        }
+
+        // Assert (2): la tabla JobExecutionLeases existe y aparece vacía.
+        var leases = await db.JobExecutionLeases.AsNoTracking().ToListAsync();
+        Assert.Empty(leases);
+    }
 }

@@ -38,6 +38,7 @@ public class LudekaDbContext : DbContext
     public DbSet<GamePriceSnapshot> GamePriceSnapshots => Set<GamePriceSnapshot>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<NotificationOutboxMessage> NotificationOutboxMessages => Set<NotificationOutboxMessage>();
+    public DbSet<JobExecutionLease> JobExecutionLeases => Set<JobExecutionLease>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -518,5 +519,21 @@ public class LudekaDbContext : DbContext
 
         // Índice del chequeo de salud: COUNT(*) y MIN(CreatedAt) sobre Status = Pending (diseño §11).
         outbox.HasIndex(m => new { m.Status, m.CreatedAt });
+
+        // --- Configuración de JobExecutionLease (INC-47, R3b, diseño §7.1) ---
+        var jobLease = modelBuilder.Entity<JobExecutionLease>();
+        jobLease.ToTable("JobExecutionLeases");
+        jobLease.HasKey(l => l.Id);
+        jobLease.Property(l => l.JobName).IsRequired().HasMaxLength(64);
+        jobLease.Property(l => l.WindowKey).IsRequired().HasMaxLength(32);
+        jobLease.Property(l => l.Status).IsRequired().HasMaxLength(20);
+        jobLease.Property(l => l.HostIdentifier).HasMaxLength(128);
+
+        // LA restricción. Es lo que hace que un reintento de Cloud Scheduler choque contra la
+        // base de datos y no contra un if en memoria (diseño §7.1).
+        jobLease.HasIndex(l => new { l.JobName, l.WindowKey }).IsUnique();
+
+        // Lectura operativa: últimas ejecuciones de un trabajo.
+        jobLease.HasIndex(l => new { l.JobName, l.StartedAt });
     }
 }

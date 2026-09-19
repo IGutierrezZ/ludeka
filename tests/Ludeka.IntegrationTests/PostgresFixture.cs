@@ -81,3 +81,18 @@ public sealed class PostgresFixture : IAsyncLifetime
 public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>
 {
 }
+
+/// <summary>
+/// Colección independiente para pruebas de migración que, igual que
+/// <see cref="NotificationOutboxMigrationTests"/>, aplican <c>MigrateAsync</c> hasta un punto
+/// histórico concreto antes de migrar hacia delante (INC-47, R3b). xUnit no garantiza el orden
+/// de ejecución entre clases de una misma colección: si esta prueba compartiera "postgres-real"
+/// con <see cref="NotificationOutboxMigrationTests"/>, una de las dos podría migrar HACIA ATRÁS
+/// el estado que la otra necesita, según qué clase corra primero. Un contenedor propio (misma
+/// clase <see cref="PostgresFixture"/>, instancia independiente por colección) elimina el riesgo
+/// de raíz sin modificar el fixture existente ni la colección "postgres-real".
+/// </summary>
+[CollectionDefinition("postgres-real-job-leases")]
+public sealed class PostgresJobLeasesCollection : ICollectionFixture<PostgresFixture>
+{
+}
