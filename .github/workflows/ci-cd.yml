@@ -116,3 +116,26 @@ jobs:
             CommunityNotifications__DiscordWebhookUrl=DISCORD_WEBHOOK_URL:latest
             CommunityNotifications__TelegramBotToken=TELEGRAM_BOT_TOKEN:latest
             CommunityNotifications__TelegramChatId=TELEGRAM_CHAT_ID:latest
+
+      # INC-47, R6 (diseño §8.9): un Cloud Run Job por trabajo, los cuatro sobre la MISMA imagen
+      # ya publicada arriba — el ENTRYPOINT por defecto arranca el servicio web y cada Job
+      # sobrescribe el comando del contenedor (diseño §8.7, decisión 5). Variables de entorno y
+      # secretos equivalentes a los del paso de arriba. Hueco de evidencia declarado por el diseño
+      # (§8.9): la ortografía exacta de las banderas de "gcloud run jobs deploy" y la disponibilidad
+      # de un modo "job" en deploy-cloudrun@v2 no se han verificado contra GCP real en este ciclo;
+      # el maintainer confirma la sintaxis al provisionar (checklist manual, tarea 10.17-10.20).
+      - name: Publicar la revisión de los Cloud Run Jobs
+        if: steps.check-secrets.outputs.has_gcp == 'true'
+        env:
+          REGION: ${{ secrets.GCP_REGION || 'europe-west1' }}
+          IMAGE_NAME: ${{ secrets.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ludeka/ludeka-web:${{ github.sha }}
+        run: |
+          for JOB in nightly-cataloging price-radar social-collector notification-outbox; do
+            gcloud run jobs deploy "ludeka-job-${JOB}" \
+              --image "${IMAGE_NAME}" \
+              --region "${REGION}" \
+              --command dotnet \
+              --args "Ludeka.Jobs.dll,${JOB}" \
+              --set-env-vars ASPNETCORE_ENVIRONMENT=Production,Database__Provider=PostgreSql,Database__SeedDemoData=false,Bgg__SimulateApi=false,Gemini__Simulate=false,YouTube__Simulate=false,CommunityNotifications__DryRun=false \
+              --set-secrets ConnectionStrings__DefaultConnection=SUPABASE_DB_CONNECTION:latest,Gemini__ApiKey=GEMINI_API_KEY:latest,Bgg__ApiToken=BGG_API_TOKEN:latest,YouTube__ApiKey=YOUTUBE_API_KEY:latest,CommunityNotifications__DiscordWebhookUrl=DISCORD_WEBHOOK_URL:latest,CommunityNotifications__TelegramBotToken=TELEGRAM_BOT_TOKEN:latest,CommunityNotifications__TelegramChatId=TELEGRAM_CHAT_ID:latest
+          done

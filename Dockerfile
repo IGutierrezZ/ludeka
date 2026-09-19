@@ -24,9 +24,15 @@ COPY src/Ludeka.Core/Ludeka.Core.csproj src/Ludeka.Core/
 COPY src/Ludeka.Application/Ludeka.Application.csproj src/Ludeka.Application/
 COPY src/Ludeka.Infrastructure/Ludeka.Infrastructure.csproj src/Ludeka.Infrastructure/
 COPY src/Ludeka.Web/Ludeka.Web.csproj src/Ludeka.Web/
+COPY src/Ludeka.Jobs/Ludeka.Jobs.csproj src/Ludeka.Jobs/
 
 # Restaurar paquetes NuGet de la aplicación web y sus dependencias
 RUN dotnet restore src/Ludeka.Web/Ludeka.Web.csproj
+
+# Restaurar paquetes NuGet del host de trabajos en segundo plano (INC-47, R6, diseño §8.7).
+# No se sustituye por "dotnet restore Ludeka.sln": esta etapa solo copia los .csproj de src/, y la
+# solución incluye los proyectos de prueba, que faltarían.
+RUN dotnet restore src/Ludeka.Jobs/Ludeka.Jobs.csproj
 
 
 # Copiar todo el código fuente del proyecto
@@ -38,6 +44,12 @@ COPY --from=css-build /src/wwwroot/app.css ./src/Ludeka.Web/wwwroot/app.css
 # Compilar y publicar en modo Release
 WORKDIR /src/src/Ludeka.Web
 RUN dotnet publish Ludeka.Web.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# Publicar el host de trabajos en el MISMO /app/publish (INC-47, R6, diseño §8.7): los ensamblados
+# compartidos (Ludeka.Core/Application/Infrastructure.dll) y el appsettings.json enlazado quedan
+# idénticos en las dos publicaciones, así que la segunda los reescribe con los mismos bytes. Ruta
+# absoluta porque el WORKDIR anterior lo deja en /src/src/Ludeka.Web, no en /src.
+RUN dotnet publish /src/src/Ludeka.Jobs/Ludeka.Jobs.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 # =====================================================================
 # Stage 3: Runtime Seguro de Producción (.NET 10 ASP.NET)
