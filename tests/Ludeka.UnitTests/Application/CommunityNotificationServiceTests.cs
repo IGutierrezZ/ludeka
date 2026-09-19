@@ -272,4 +272,84 @@ public class CommunityNotificationServiceTests
         Assert.False(result.Success);
         Assert.Equal(NotificationStatus.Failed, result.Status);
     }
+
+    // --- INC-47 (R4b, diseño §6.6, tasks.md 7.8): DeliverAsync envía sobre una sub-entrega del
+    // outbox ya existente y actualiza ESA fila, sin crear una fila nueva. La orquestación del
+    // fan-out por canal (7.1-7.5) se prueba de forma aislada en NotificationOutboxDispatcherTests
+    // con un doble de este servicio; aquí se prueba la propia mecánica de DeliverAsync. ---
+
+    [Fact]
+    public async Task DeliverAsync_ConEnvioExitoso_MarcaLaSubentregaComoSentYPersisteElCambio()
+    {
+        var options = Options.Create(new CommunityNotificationOptions
+        {
+            Enabled = true,
+            DryRun = false,
+            DiscordEnabled = true,
+            DiscordWebhookUrl = "https://discord.example/webhook"
+        });
+
+        var repo = new FakeNotificationRepository();
+        var discord = new FakeDiscordClient();
+        var service = new CommunityNotificationService(
+            options,
+            repo,
+            discord,
+            new FakeTelegramClient(),
+            new FakeGiveawayRepository(),
+            new FakeWeeklyReleaseRepository(),
+            NullLogger<CommunityNotificationService>.Instance);
+
+        var delivery = CommunityNotificationLog.ForDelivery(
+            Guid.NewGuid(), NotificationEventType.CustomTestPing, NotificationChannel.Discord,
+            "Ping de prueba", "Resumen del ping", null, null);
+        repo.Logs.Add(delivery);
+
+        var message = new CommunityNotificationMessage(NotificationEventType.CustomTestPing, "Ping de prueba", "Resumen del ping");
+
+        var result = await service.DeliverAsync(delivery, message);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, discord.SendCalls);
+        Assert.Equal(NotificationStatus.Sent, delivery.Status);
+        Assert.Equal(NotificationStatus.Sent, repo.Logs[0].Status);
+    }
+
+    [Fact]
+    public async Task DeliverAsync_AgotandoMaxDeliveryAttempts_MarcaLaSubentregaComoFailedTerminal()
+    {
+        var options = Options.Create(new CommunityNotificationOptions
+        {
+            Enabled = true,
+            DryRun = false,
+            DiscordEnabled = true,
+            DiscordWebhookUrl = "https://discord.example/webhook"
+        });
+
+        var repo = new FakeNotificationRepository();
+        var discord = new FakeDiscordClient { ShouldFail = true };
+        var service = new CommunityNotificationService(
+            options,
+            repo,
+            discord,
+            new FakeTelegramClient(),
+            new FakeGiveawayRepository(),
+            new FakeWeeklyReleaseRepository(),
+            NullLogger<CommunityNotificationService>.Instance,
+            outboxOptions: Options.Create(new OutboxOptions { MaxDeliveryAttempts = 1 }));
+
+        var delivery = CommunityNotificationLog.ForDelivery(
+            Guid.NewGuid(), NotificationEventType.CustomTestPing, NotificationChannel.Discord,
+            "Ping de prueba", "Resumen del ping", null, null);
+        repo.Logs.Add(delivery);
+
+        var message = new CommunityNotificationMessage(NotificationEventType.CustomTestPing, "Ping de prueba", "Resumen del ping");
+
+        var result = await service.DeliverAsync(delivery, message);
+
+        Assert.False(result.Success);
+        Assert.Equal(1, delivery.Attempts);
+        Assert.Equal(NotificationStatus.Failed, delivery.Status);
+        Assert.Equal(NotificationStatus.Failed, repo.Logs[0].Status);
+    }
 }

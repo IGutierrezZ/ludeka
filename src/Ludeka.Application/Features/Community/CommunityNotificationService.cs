@@ -27,6 +27,7 @@ public class CommunityNotificationService : ICommunityNotificationService
     private readonly IWeeklyReleaseRepository _weeklyReleaseRepository;
     private readonly ILogger<CommunityNotificationService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly OutboxOptions _outboxOptions;
 
     public CommunityNotificationService(
         IOptions<CommunityNotificationOptions> options,
@@ -36,7 +37,8 @@ public class CommunityNotificationService : ICommunityNotificationService
         IGiveawayRepository giveawayRepository,
         IWeeklyReleaseRepository weeklyReleaseRepository,
         ILogger<CommunityNotificationService> logger,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IOptions<OutboxOptions>? outboxOptions = null)
     {
         _options = options.Value;
         _repository = repository;
@@ -46,6 +48,10 @@ public class CommunityNotificationService : ICommunityNotificationService
         _weeklyReleaseRepository = weeklyReleaseRepository;
         _logger = logger;
         _permissionGuard = permissionGuard;
+        // INC-47 (R4b, diseño §6.6, tasks.md 7.8): parámetro opcional para no romper la firma
+        // existente (mismo patrón que permissionGuard) — DI lo resuelve solo en producción,
+        // donde ya está registrado (tasks.md 4b.3). Solo lo consume DeliverAsync.
+        _outboxOptions = outboxOptions?.Value ?? new OutboxOptions();
     }
 
     /// <summary>
@@ -116,36 +122,14 @@ public class CommunityNotificationService : ICommunityNotificationService
 
         await _repository.AddLogAsync(log, ct);
 
-        if (_options.DryRun || !_options.IsDiscordConfigured)
-        {
-            _logger.LogInformation("[DryRun] Simulación de emisión a Discord: {Title}", message.Title);
-            log.MarkAsDryRun();
-            await _repository.UpdateLogAsync(log, ct);
-            return new NotificationDispatchResult(true, NotificationChannel.Discord, NotificationStatus.DryRun);
-        }
+        var result = await SendOnChannelAsync(NotificationChannel.Discord, message, ct);
 
-        try
-        {
-            var result = await _discordClient.SendAsync(message, ct);
-            if (result.Success)
-            {
-                log.MarkAsSent();
-            }
-            else
-            {
-                log.MarkAsFailed(result.ErrorMessage ?? "Error desconocido en Discord Webhook.");
-            }
+        if (result.Status == NotificationStatus.DryRun) log.MarkAsDryRun();
+        else if (result.Success) log.MarkAsSent();
+        else log.MarkAsFailed(result.ErrorMessage ?? "Error desconocido en Discord Webhook.");
 
-            await _repository.UpdateLogAsync(log, ct);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al enviar webhook a Discord: {Message}", ex.Message);
-            log.MarkAsFailed(ex.Message);
-            await _repository.UpdateLogAsync(log, ct);
-            return new NotificationDispatchResult(false, NotificationChannel.Discord, NotificationStatus.Failed, ex.Message);
-        }
+        await _repository.UpdateLogAsync(log, ct);
+        return result;
     }
 
     public async Task<NotificationDispatchResult> SendToTelegramAsync(
@@ -165,34 +149,98 @@ public class CommunityNotificationService : ICommunityNotificationService
 
         await _repository.AddLogAsync(log, ct);
 
+        var result = await SendOnChannelAsync(NotificationChannel.Telegram, message, ct);
+
+        if (result.Status == NotificationStatus.DryRun) log.MarkAsDryRun();
+        else if (result.Success) log.MarkAsSent();
+        else log.MarkAsFailed(result.ErrorMessage ?? "Error desconocido en Telegram Bot API.");
+
+        await _repository.UpdateLogAsync(log, ct);
+        return result;
+    }
+
+    /// <summary>
+    /// Envía por <c>delivery.Channel</c> y actualiza ESA sub-entrega del outbox (Attempts,
+    /// Status, NextAttemptAt); no crea ninguna fila nueva (INC-47, R4b, diseño §6.6). Exclusivo
+    /// del despachador (<see cref="NotificationOutboxDispatcher"/>): los métodos públicos de
+    /// arriba crean su propia fila antes de enviar, este opera sobre una que ya existe.
+    /// </summary>
+    public async Task<NotificationDispatchResult> DeliverAsync(
+        CommunityNotificationLog delivery,
+        CommunityNotificationMessage message,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(delivery);
+        ArgumentNullException.ThrowIfNull(message);
+
+        var result = await SendOnChannelAsync(delivery.Channel, message, ct);
+
+        if (result.Status == NotificationStatus.DryRun)
+        {
+            delivery.MarkAsDryRun();
+        }
+        else if (result.Success)
+        {
+            delivery.MarkAsSent();
+        }
+        else
+        {
+            var error = result.ErrorMessage ?? "Error desconocido al reintentar la entrega.";
+            delivery.RegisterFailedAttempt(error, _outboxOptions.ComputeNextAttempt(delivery.Attempts + 1));
+
+            if (delivery.Attempts >= _outboxOptions.MaxDeliveryAttempts)
+            {
+                delivery.MarkAsPermanentlyFailed(error);
+            }
+        }
+
+        await _repository.UpdateLogAsync(delivery, ct);
+        return result;
+    }
+
+    /// <summary>
+    /// Mecánica pura de envío por canal, sin ninguna persistencia (INC-47, R4b, diseño §6.6).
+    /// Los tres métodos de envío de arriba delegan aquí: los dos históricos crean su propia fila
+    /// antes de llamar y la actualizan después; <see cref="DeliverAsync"/> opera sobre una
+    /// sub-entrega del outbox que ya existe.
+    /// </summary>
+    private async Task<NotificationDispatchResult> SendOnChannelAsync(
+        NotificationChannel channel,
+        CommunityNotificationMessage message,
+        CancellationToken ct)
+    {
+        if (channel == NotificationChannel.Discord)
+        {
+            if (_options.DryRun || !_options.IsDiscordConfigured)
+            {
+                _logger.LogInformation("[DryRun] Simulación de emisión a Discord: {Title}", message.Title);
+                return new NotificationDispatchResult(true, NotificationChannel.Discord, NotificationStatus.DryRun);
+            }
+
+            try
+            {
+                return await _discordClient.SendAsync(message, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al enviar webhook a Discord: {Message}", ex.Message);
+                return new NotificationDispatchResult(false, NotificationChannel.Discord, NotificationStatus.Failed, ex.Message);
+            }
+        }
+
         if (_options.DryRun || !_options.IsTelegramConfigured)
         {
             _logger.LogInformation("[DryRun] Simulación de emisión a Telegram: {Title}", message.Title);
-            log.MarkAsDryRun();
-            await _repository.UpdateLogAsync(log, ct);
             return new NotificationDispatchResult(true, NotificationChannel.Telegram, NotificationStatus.DryRun);
         }
 
         try
         {
-            var result = await _telegramClient.SendAsync(message, ct);
-            if (result.Success)
-            {
-                log.MarkAsSent();
-            }
-            else
-            {
-                log.MarkAsFailed(result.ErrorMessage ?? "Error desconocido en Telegram Bot API.");
-            }
-
-            await _repository.UpdateLogAsync(log, ct);
-            return result;
+            return await _telegramClient.SendAsync(message, ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al enviar mensaje a Telegram: {Message}", ex.Message);
-            log.MarkAsFailed(ex.Message);
-            await _repository.UpdateLogAsync(log, ct);
             return new NotificationDispatchResult(false, NotificationChannel.Telegram, NotificationStatus.Failed, ex.Message);
         }
     }

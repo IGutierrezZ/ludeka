@@ -138,10 +138,10 @@ R4a y R4b quedan bajo 400 pero **con margen ajustado (14 y 8 líneas)** dado que
 
 ---
 
-## 2. Corte final de la cadena (16 PRs, `stacked-to-main`)
+## 2. Corte final de la cadena (18 PRs, `stacked-to-main`)
 
 ```
-PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7 (R4b) → PR8 (R4c) → PR9 (R5) → PR10 (R6) → PR11 (R7)
+PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7a (R4b-entrega) → PR7b (R4b-despachador) → PR7c (R4b-cableado) → PR8 (R4c) → PR9 (R5) → PR10 (R6) → PR11 (R7)
 ```
 
 | Orden | Rama sugerida | Rebanada | Depende de |
@@ -157,7 +157,9 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 | 6a | `inc/workers-cloud-run-06a-contrato-outbox` | R4a — contrato del repositorio y métodos de dominio del mensaje | PR4c mergeado (la entidad existe desde ahí) |
 | 6b | `inc/workers-cloud-run-06b-repositorio-outbox` | R4a — implementación EF Core del repositorio y su cableado DI | PR6a mergeado (implementa su contrato) + PR3 mergeado (registra en la extensión ya extraída) |
 | 6c | `inc/workers-cloud-run-06c-reclamacion-exclusiva` | R4a — reclamación exclusiva por lotes (SQL crudo por proveedor) | PR6b mergeado (añade el método a la clase ya existente) + PR1 mergeado (fixture de R1 para la prueba de concurrencia) |
-| 7 | `inc/workers-cloud-run-07-despachador-reintentos` | R4b | PR6c mergeado (usa `INotificationOutboxRepository` completo, `ClaimPendingAsync` incluida) |
+| 7a | `inc/workers-cloud-run-07a-entrega-por-canal` | R4b — entrega por canal sobre una sub-entrega existente | PR6c mergeado (usa `INotificationOutboxRepository` completo) |
+| 7b | `inc/workers-cloud-run-07b-despachador-outbox` | R4b — el despachador y su ciclo de entrega, reintento y agotamiento | PR7a mergeado (invoca `DeliverAsync`) |
+| 7c | `inc/workers-cloud-run-07c-cableado-outbox` | R4b — cableado real del outbox al host, y los dos escenarios de supervivencia | PR7b mergeado (el hosted service invoca `INotificationOutboxDispatcher`) |
 | 8 | `inc/workers-cloud-run-08-health-check-outbox` | R4c | PR6b mergeado (usa `GetHealthSnapshotAsync`) |
 | 9 | `inc/workers-cloud-run-09-idempotencia-ventana` | R5 | PR5 mergeado (esquema `JobExecutionLeases`) + PR3 mergeado (DI) |
 | 10 | `inc/workers-cloud-run-10-ludeka-jobs-pipeline` | R6 | PR7, PR9 mergeados (los 4 *runners* invocan al despachador y al coordinador) |
@@ -186,6 +188,14 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 > **Tres tareas se trasladan a la Fase 7, y no es una preferencia de presupuesto.** La 6.7 (retirar `ReadAllAsync` de `ICommunityNotificationQueue`), la 6.10 (`OutboxCommunityNotificationQueue`) y la mitad de la 6.11 que cambia el registro de la cola **rompen la rama si se ejecutan aquí**, por dos motivos independientes verificados sobre el código real. Uno: `CommunityNotificationDispatcherHostedService.cs:14,20` tipa su campo `_queue` como la **interfaz**, no como la clase concreta, y la consume en `:43`; quien reescribe ese consumidor es la tarea **7.9**, así que retirar el método aquí da `CS1061`. El diseño §6.1 verificó que la **prueba** `CommunityNotificationQueueTests.cs:15` compila —esa sí tipa la clase concreta— y no revisó el servicio de producción. Dos: `Program.cs:95` registra el despachador con `AddHostedService`, que es **singleton**, y recibe esa cola por constructor; pasarla a `AddScoped` hace que un singleton consuma un servicio de ámbito, y `ValidateScopes`/`ValidateOnBuild` no están configurados en ningún punto de `src/`, así que en Development el host lanzaría `InvalidOperationException` al arrancar. A esos dos se suma un tercer motivo, de producto y no de compilación: mergear el cableado sin el despachador de 7.6/7.7 dejaría notificaciones persistiéndose en el outbox **sin nada que las drene** durante toda la ventana entre los dos merges.
 >
 > **Lectura de las dependencias aguas abajo:** la numeración de los PR 7 a 11 y de las fases 7 a 11 **no cambia**. Toda referencia a «PR6 mergeado» se lee como **PR6c mergeado** cuando el consumidor necesita `ClaimPendingAsync` (Fase 7), y como **PR6b mergeado** cuando solo necesita el resto del contrato (Fase 8, que consume `GetHealthSnapshotAsync`).
+
+> **Partición de PR7 en tres (2026-09-19).** La Fase 7 se implementó completa —las once tareas propias más las tres que la Fase 6 le trasladó— y quedó en verde: `Ludeka.IntegrationTests.dll` 7/7, `Ludeka.UnitTests.dll` 1490/1490, código de salida 0. Midió **1003 líneas** contra el techo de 400: **2,5 veces**, la mayor desviación absoluta del incremento, por encima incluso de las 830 de R4a sin partir. **493 de esas 1003 son aparato de pruebas** de cuatro ficheros: cinco escenarios de aceptación completos y un doble de `ICommunityNotificationService` con sus once miembros de interfaz.
+>
+> **Eje de corte: el mismo que funcionó en R4a, por capa de responsabilidad.** **7a** (237) — la entrega por canal: `DeliverAsync` y la extracción de `SendOnChannelAsync` de los dos métodos que hoy están casi duplicados, más el retroceso exponencial de `OutboxOptions`. **7b** (396) — el despachador: su contrato, su DTO de resultado, el algoritmo de cinco pasos y los tres escenarios de su ciclo básico (fallo con reintento, agotamiento terminal, éxito al primer intento). **7c** — el cableado real al host, más los dos escenarios que cierran el ciclo de supervivencia.
+>
+> **Por qué dos escenarios del despachador viajan en 7c y no en 7b.** Con los cinco, 7b mediría 463 y `size:exception` sería la única salida; `AGENTS.md` §1-bis punto 7 obliga a partir antes que a pedir excepción. Los dos que se mueven —«canal habilitado **después** del encolado» y «entregada tras un reinicio simulado del host»— son precisamente los que comprueban que el mensaje sobrevive a un cambio de mundo entre el encolado y la entrega: la razón de ser del outbox, y el mismo asunto del que trata el cableado de 7c. **7b no queda sin prueba:** el despachador llega con tres escenarios de aceptación que cubren sus tres desenlaces —entregado, reprogramado y agotado—. Lo que se pospone es cobertura adicional, no la demostración de que el algoritmo funciona; es una diferencia de grado con el caso que se rechazó en la tarea 6.13, donde lo que se habría separado era la **única** prueba de un mecanismo de SQL crudo.
+>
+> **Coste medido de esta partición:** el `UseInMemoryQueueForLocalDev` de `OutboxOptions` se traslada de 7a a 7c, donde está su único consumidor, para no mergear configuración muerta durante dos PRs.
 
 **Restricciones de secuenciación que esta fase NO reordena** (dadas por el orquestador, no negociables): R1 siempre primera; R7 siempre última. El resto del orden (R2 antes de R3/R4/R5 para que sus registros DI nuevos aterricen en `LudekaServiceCollectionExtensions.cs` en vez de en `Program.cs`; R3 antes de R4/R5 porque el esquema precede al código que lo usa) es una decisión de esta fase, justificada arriba, no una restricción impuesta por el diseño.
 
@@ -389,7 +399,27 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 
 ### Fase 7 — R4b: Despachador real + reintentos + *fan-out* por canal
 
-*Rama: `inc/workers-cloud-run-07-despachador-reintentos` · Depende de PR 6 mergeado · Escenarios: `notification-outbox` "Reintento con contador..." (3) + "Supervivencia de notificaciones..." (1).*
+*Depende de PR6c mergeado · Escenarios: `notification-outbox` "Reintento con contador..." (3) + "Supervivencia de notificaciones..." (1).*
+
+> **Esta fase se entrega en TRES PRs, y absorbe tres tareas de la Fase 6.** Midió 1003 líneas contra un techo de 400; el porqué del corte y del eje está en la nota del §2. La numeración de tareas **no cambia** —7.1 a 7.11, más 6.7, 6.10 y 6.11—; lo que cambia es en qué PR viaja cada una.
+>
+> | PR | Rama | Tareas | Contenido |
+> |---|---|---|---|
+> | **7a** | `inc/workers-cloud-run-07a-entrega-por-canal` | 7.8 | `DeliverAsync` y `SendOnChannelAsync` en `CommunityNotificationService`, el retroceso exponencial de `OutboxOptions`, y sus pruebas |
+> | **7b** | `inc/workers-cloud-run-07b-despachador-outbox` | 7.1, 7.2, 7.3, 7.6, 7.7, 7.10 | `INotificationOutboxDispatcher`, `OutboxDispatchResultDto`, el algoritmo de cinco pasos y su registro DI |
+> | **7c** | `inc/workers-cloud-run-07c-cableado-outbox` | 7.4, 7.5, 7.9, 7.11 + **6.7, 6.10, 6.11** | `OutboxCommunityNotificationQueue`, la reescritura de `ProcessQueueAsync`, la retirada de `ReadAllAsync`, el cambio del registro de la cola y los dos escenarios de supervivencia |
+
+#### Fase 7a — Entrega por canal sobre una sub-entrega existente
+
+*Rama: `inc/workers-cloud-run-07a-entrega-por-canal` · Depende de PR6c mergeado.*
+
+- [x] 7a.1 GREEN (tarea 7.8): `CommunityNotificationService` (+92/−44) — extraído `SendOnChannelAsync` (privado, sin persistencia) de `SendToDiscordAsync` y `SendToTelegramAsync`, que hoy eran casi duplicados, y añadido `DeliverAsync` (público): envía por `delivery.Channel` y actualiza **esa** sub-entrega del outbox (`Attempts`, `Status`, `NextAttemptAt`) **sin crear ninguna fila nueva**, diseño §6.6. Los métodos públicos existentes conservan firma y comportamiento. `ICommunityNotificationService` (+6) declara `DeliverAsync`.
+  **Desviación declarada:** `DeliverAsync` necesita `OutboxOptions` —número máximo de intentos y fórmula de retroceso—, una dependencia que `CommunityNotificationService` no tenía. Se añade como parámetro **opcional** de constructor (`IOptions<OutboxOptions>? outboxOptions = null`), mismo patrón que el `ISessionPermissionGuard? permissionGuard = null` que ya existía, para no romper las cinco pruebas preexistentes ni la firma pública.
+- [x] 7a.2 GREEN: `OutboxOptions` (+15) — `ComputeNextAttempt(attempts)`, retroceso exponencial acotado del diseño §5.4: `ahora + RetryBackoffSeconds × RetryBackoffMultiplier^(attempts−1)`, con techo en `LeaseSeconds × 12`. Lo consumen tanto la reclamación del mensaje como la sub-entrega por canal. **`UseInMemoryQueueForLocalDev` NO entra aquí**: viaja a 7c, donde está su único consumidor, para no mergear configuración muerta durante dos PRs.
+- [x] 7a.3 RED + GREEN: `CommunityNotificationServiceTests` (+80) con los casos de `DeliverAsync`. **RED confirmado:** `error CS1061: "ICommunityNotificationService" no contiene una definición para "DeliverAsync"`.
+- [x] 7a.4 Verificación de la rebanada: `dotnet test Ludeka.sln` → `Ludeka.IntegrationTests.dll` **7/7**, `Ludeka.UnitTests.dll` **1482/1482**, **0 omitidas**, código de salida **0**, sobre la rama en aislamiento con base en `3abdda7`. Los 1482 son los 1480 de la base más los 2 casos nuevos. **Presupuesto: 237 líneas sobre un techo de 400.**
+
+#### Desglose original de la Fase 7 (numeración estable, trazabilidad del §8)
 
 - [ ] 7.1 RED (unitaria SQLite): un intento fallido incrementa `Attempts` y programa reintento en estado no terminal (escenario "Un intento fallido incrementa el contador y programa un reintento").
 - [ ] 7.2 RED (unitaria SQLite): agotados los intentos máximos → `Failed` terminal, no vuelve a reclamarse (escenario "Se agota el número máximo de intentos").
@@ -398,7 +428,7 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 - [ ] 7.5 RED (unitaria SQLite): notificación `Queued` sobrevive a un reinicio simulado del host y acaba enviándose — destruir y reconstruir el despachador contra el mismo almacén persistido (escenario "Notificación pendiente entregada tras un reinicio simulado del host").
 - [ ] 7.6 GREEN: crear `src/Ludeka.Application/Contracts/INotificationOutboxDispatcher.cs` (diseño §6.1) — `DispatchPendingAsync`, un ciclo acotado, sin bucle.
 - [ ] 7.7 GREEN: crear `src/Ludeka.Application/Features/Community/NotificationOutboxDispatcher.cs` — algoritmo de 5 pasos del diseño §6.5 (reclamar lote → derivar canales AHORA releyendo `CommunityNotificationOptions` → `EnsureDeliveryAsync` por canal → entregar → completar/liberar con retroceso/`Dead` al agotar `MaxClaimAttempts`).
-- [ ] 7.8 GREEN: modificar `src/Ludeka.Application/Features/Community/CommunityNotificationService.cs` — extraer `SendOnChannelAsync` (privado, sin persistencia) de `SendToDiscordAsync`(`:102-149`)/`SendToTelegramAsync`(`:151-198`); añadir `DeliverAsync` (público, para el despachador, opera sobre una sub-entrega ya existente sin crear fila nueva). Los métodos públicos existentes conservan firma y comportamiento (diseño §6.6). Extender `tests/Ludeka.UnitTests/Application/CommunityNotificationServiceTests.cs` con casos para `DeliverAsync`.
+- [x] 7.8 GREEN: modificar `src/Ludeka.Application/Features/Community/CommunityNotificationService.cs` — extraer `SendOnChannelAsync` (privado, sin persistencia) de `SendToDiscordAsync`(`:102-149`)/`SendToTelegramAsync`(`:151-198`); añadir `DeliverAsync` (público, para el despachador, opera sobre una sub-entrega ya existente sin crear fila nueva). Los métodos públicos existentes conservan firma y comportamiento (diseño §6.6). Extender `tests/Ludeka.UnitTests/Application/CommunityNotificationServiceTests.cs` con casos para `DeliverAsync`. → **Entregada en el PR 7a. Evidencia en las tareas 7a.1 a 7a.3.**
 - [ ] 7.9 GREEN: modificar `src/Ludeka.Infrastructure/Notifications/CommunityNotificationDispatcherHostedService.cs` — reescribir `ProcessQueueAsync` (hoy `:39-63`) para invocar `INotificationOutboxDispatcher.DispatchPendingAsync` en un ciclo de sondeo acotado, sustituyendo el consumo infinito de `ReadAllAsync` (hoy `:43`). **No tocar `RunPeriodicScanAsync` en esta rebanada** — su idempotencia del boletín de viernes es trabajo de R5 (tarea 9.16).
 - [ ] 7.10 GREEN: modificar `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs` — registrar `INotificationOutboxDispatcher`/`NotificationOutboxDispatcher`.
 - [ ] 7.11 Verificación de la rebanada: `dotnet test Ludeka.sln` en verde. Confirmar presupuesto (~392 líneas, margen ajustado). **Misma contingencia que 6.13** si el recuento real lo excede.
