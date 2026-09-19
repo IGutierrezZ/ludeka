@@ -138,10 +138,10 @@ R4a y R4b quedan bajo 400 pero **con margen ajustado (14 y 8 líneas)** dado que
 
 ---
 
-## 2. Corte final de la cadena (18 PRs, `stacked-to-main`)
+## 2. Corte final de la cadena (21 PRs, `stacked-to-main`)
 
 ```
-PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7a (R4b-entrega) → PR7b (R4b-despachador) → PR7c (R4b-cableado) → PR8 (R4c) → PR9 (R5) → PR10 (R6) → PR11 (R7)
+PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-modelo) → PR4c (R3a-tabla) → PR5a (R3b-modelo) → PR5b (R3b-esquema) → PR6a (R4a-contrato) → PR6b (R4a-repositorio) → PR6c (R4a-reclamación) → PR7a (R4b-entrega) → PR7b (R4b-despachador) → PR7c (R4b-cableado) → PR8 (R4c) → PR9a (R5-contrato) → PR9b (R5-repositorio) → PR9c (R5-coordinador) → PR9d (R5-cableado) → PR10 (R6) → PR11 (R7)
 ```
 
 | Orden | Rama sugerida | Rebanada | Depende de |
@@ -161,7 +161,10 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 | 7b | `inc/workers-cloud-run-07b-despachador-outbox` | R4b — el despachador y su ciclo de entrega, reintento y agotamiento | PR7a mergeado (invoca `DeliverAsync`) |
 | 7c | `inc/workers-cloud-run-07c-cableado-outbox` | R4b — cableado real del outbox al host, y los dos escenarios de supervivencia | PR7b mergeado (el hosted service invoca `INotificationOutboxDispatcher`) |
 | 8 | `inc/workers-cloud-run-08-health-check-outbox` | R4c | PR6b mergeado (usa `GetHealthSnapshotAsync`) |
-| 9 | `inc/workers-cloud-run-09-idempotencia-ventana` | R5 | PR5 mergeado (esquema `JobExecutionLeases`) + PR3 mergeado (DI) |
+| 9a | `inc/workers-cloud-run-09a-contrato-ventana` | R5 — contratos, DTO y el cálculo de la clave de ventana | PR3 mergeado (DI) |
+| 9b | `inc/workers-cloud-run-09b-repositorio-concesiones` | R5 — repositorio de concesiones, con `INSERT` crudo y clasificación por proveedor | PR9a mergeado (implementa su contrato) + PR5b mergeado (la tabla existe) |
+| 9c | `inc/workers-cloud-run-09c-coordinador-ventana` | R5 — el coordinador y su prueba de concurrencia real | PR9b mergeado (sus pruebas usan el repositorio real) |
+| 9d | `inc/workers-cloud-run-09d-cableado-trabajos` | R5 — cableado de los cuatro trabajos y su registro DI | PR9c mergeado |
 | 10 | `inc/workers-cloud-run-10-ludeka-jobs-pipeline` | R6 | PR7, PR9 mergeados (los 4 *runners* invocan al despachador y al coordinador) |
 | 11 | `inc/workers-cloud-run-11-retirada-hosted-services` | R7 | PR10 mergeado — **y además el gate de producción del §3** |
 
@@ -196,6 +199,22 @@ PR1 (R1) → PR2 (R2a) → PR3 (R2b) → PR4a (R3a-columnas) → PR4b (R3a-model
 > **Por qué dos escenarios del despachador viajan en 7c y no en 7b.** Con los cinco, 7b mediría 463 y `size:exception` sería la única salida; `AGENTS.md` §1-bis punto 7 obliga a partir antes que a pedir excepción. Los dos que se mueven —«canal habilitado **después** del encolado» y «entregada tras un reinicio simulado del host»— son precisamente los que comprueban que el mensaje sobrevive a un cambio de mundo entre el encolado y la entrega: la razón de ser del outbox, y el mismo asunto del que trata el cableado de 7c. **7b no queda sin prueba:** el despachador llega con tres escenarios de aceptación que cubren sus tres desenlaces —entregado, reprogramado y agotado—. Lo que se pospone es cobertura adicional, no la demostración de que el algoritmo funciona; es una diferencia de grado con el caso que se rechazó en la tarea 6.13, donde lo que se habría separado era la **única** prueba de un mecanismo de SQL crudo.
 >
 > **Coste medido de esta partición:** el `UseInMemoryQueueForLocalDev` de `OutboxOptions` se traslada de 7a a 7c, donde está su único consumidor, para no mergear configuración muerta durante dos PRs.
+
+> **Partición de PR9 en cuatro, y corrección de alcance en cuatro tareas (2026-09-19).** La Fase 9 se implementó completa y quedó en verde —`Ludeka.IntegrationTests.dll` 9/9, `Ludeka.UnitTests.dll` 1510/1510, código de salida 0—, y midió **1132 líneas** contra el techo de 400: **2,83 veces**, la mayor desviación de todo el incremento. La estimación heredada era ~250-350 y nunca se remidió.
+>
+> **Eje de corte: por capa de responsabilidad**, el mismo que en R4a y R4b. **9a** (263) — los dos contratos, sus DTO y `JobWindowKeyCalculator` con sus pruebas; nada lo implementa todavía. **9b** (311) — `JobExecutionLeaseRepository` con el `INSERT` crudo y la clasificación de violación de unicidad por proveedor, más sus pruebas. **9c** (389) — el coordinador, sus pruebas unitarias **y la prueba de concurrencia real contra PostgreSQL**. **9d** (169) — el cableado de los cuatro servicios y su registro DI, el único PR que toca código que hoy corre en producción.
+>
+> **Diferencia con el corte que propuso `sdd-apply`:** su reparto dejaba la prueba de concurrencia real en 9d, junto al cableado. Se mueve a 9c porque **esa prueba demuestra el coordinador, no el cableado**: cinco instancias disputando la misma ventana es exactamente la garantía que 9c introduce. Mantenerla con su código respeta la regla dura de esta cadena —el código arriesgado viaja con sus pruebas— y, de paso, deja 9d como un PR pequeño y enteramente dedicado al único cambio que afecta al comportamiento en producción, que es como conviene revisarlo.
+>
+> ---
+>
+> **Corrección de alcance en las tareas 9.13, 9.14, 9.15 y 9.16, verificada sobre el código real.** Su texto manda retirar los bucles de sondeo. **Hacerlo en esta rebanada es una regresión de producción.** Los tres servicios tienen su trabajo dentro de un `while (!stoppingToken.IsCancellationRequested)` —`NightlyCatalogingHostedService.cs:48`, `PriceRadarHostedService.cs:46`, `SocialCollectorHostedService.cs:50`— con un `Task.Delay` al final (`:80`, `:69-72`, `:82-84`), y el cuarto tiene el de 60 min de `RunPeriodicScanAsync`. **Quien retira los cuatro `AddHostedService` es la Fase 11**, cuyo PR está retenido hasta confirmar la provisión en Google Cloud. Quitar los bucles con los servicios todavía registrados deja `ExecuteAsync` ejecutándose **una sola vez al arrancar el host**: el catálogo nocturno dejaría de ser nocturno, y el radar de precios y el recolector social dejarían de repetirse, durante toda la ventana entre el merge de esta fase y el disparo real de Cloud Scheduler.
+>
+> Además **contradice al §3 de este mismo documento**, que afirma que «R1 a R6 son aditivas y conviven con los workers en proceso todavía registrados».
+>
+> **Lo que sí hace esta fase:** retirar el estado de deduplicación **en memoria** —`_lastExecutionDate` (`NightlyCatalogingHostedService.cs:22,67`) y `_lastFridayBulletinDispatched` (`CommunityNotificationDispatcherHostedService.cs:16,92`)—, que es justo lo que los escenarios «Instancia recién iniciada sin estado previo» exigen que desaparezca del código fuente, y envolver el cuerpo de cada iteración con el coordinador, de modo que la decisión de ejecutar una ventana la tome la concesión en base de datos y no un `if` en memoria. **Los bucles y los `Task.Delay` se quedan**, y su retirada se traslada a la Fase 11.
+>
+> **Regla general que deja este hallazgo:** al partir un incremento que cambia el modelo de ejecución, hay que separar siempre **hacer la operación idempotente** de **cambiar quién la dispara**. La primera es aditiva y mergea sola; la segunda solo es segura cuando el disparador nuevo ya existe y está verificado.
 
 **Restricciones de secuenciación que esta fase NO reordena** (dadas por el orquestador, no negociables): R1 siempre primera; R7 siempre última. El resto del orden (R2 antes de R3/R4/R5 para que sus registros DI nuevos aterricen en `LudekaServiceCollectionExtensions.cs` en vez de en `Program.cs`; R3 antes de R4/R5 porque el esquema precede al código que lo usa) es una decisión de esta fase, justificada arriba, no una restricción impuesta por el diseño.
 
@@ -476,18 +495,38 @@ Cada tarea de implementación (`GREEN`) va precedida de su tarea de prueba (`RED
 
 ### Fase 9 — R5: Idempotencia por ventana en los 4 trabajos
 
-*Rama: `inc/workers-cloud-run-09-idempotencia-ventana` · Depende de PR 5 (esquema `JobExecutionLeases`) + PR 3 (DI) mergeados · Escenarios: `background-jobs-scheduling` "Ejecución única..." (2, integración), "Ausencia de estado en memoria..." (2), "Métricas mínimas..." (1); `nightly-batch-continuous-ingest` (2). Riesgo Medio heredado, no remedido por esta fase.*
+*Depende de PR5b (esquema `JobExecutionLeases`) + PR 3 (DI) mergeados · Escenarios: `background-jobs-scheduling` "Ejecución única..." (2, integración), "Ausencia de estado en memoria..." (2), "Métricas mínimas..." (1); `nightly-batch-continuous-ingest` (2).*
+
+> **Esta fase se entrega en CUATRO PRs.** Midió 1132 líneas contra un techo de 400; el porqué del corte, del eje y de la corrección de alcance de 9.13-9.16 está en la nota del §2. La numeración de tareas **no cambia** —9.1 a 9.18—; lo que cambia es en qué PR viaja cada una.
+>
+> | PR | Rama | Tareas | Líneas |
+> |---|---|---|---|
+> | **9a** | `inc/workers-cloud-run-09a-contrato-ventana` | 9.6, 9.10 | 263 |
+> | **9b** | `inc/workers-cloud-run-09b-repositorio-concesiones` | 9.5, 9.12 | 311 |
+> | **9c** | `inc/workers-cloud-run-09c-coordinador-ventana` | 9.1, 9.2, 9.7, 9.8, 9.9, 9.11 | 389 |
+> | **9d** | `inc/workers-cloud-run-09d-cableado-trabajos` | 9.3, 9.4, 9.13, 9.14, 9.15, 9.16, 9.17, 9.18 | 169 |
+
+#### Fase 9a — Contratos, DTO y cálculo de la clave de ventana
+
+*Rama: `inc/workers-cloud-run-09a-contrato-ventana` · Depende de PR 3 mergeado. Nada implementa estos contratos todavía.*
+
+- [x] 9a.1 GREEN (tarea 9.10): `IJobExecutionCoordinator.cs` (59) e `IJobExecutionLeaseRepository.cs` (40), diseño §7.4. **Decisión de nombre y ubicación declarada** (el diseño la dejaba abierta): `LeaseAcquisition` y `LeaseAcquisitionOutcome` agrupados en `src/Ludeka.Application/DTOs/JobExecutionDtos.cs` (29), mismo criterio de agrupación por funcionalidad que `OutboxDtos.cs`.
+- [x] 9a.2 RED + GREEN (tarea 9.6): `JobWindowKeyCalculator.cs` (67) con las claves de ventana **ancladas al epoch Unix en UTC** (diseño §7.2), y `JobWindowKeyCalculatorTests.cs` (68) con la tabla de granularidades de los cuatro trabajos: `nightly-cataloging` diaria, `price-radar` por bloque de horas, `social-collector` por bloque de minutos y `notification-outbox` por segundo. **RED confirmado:** `error CS0234: El tipo o el nombre del espacio de nombres 'Jobs' no existe en el espacio de nombres 'Ludeka.Application.Features'`.
+  **Añadido no previsto por el desglose, declarado:** la tarea 9.6 exigía claves estables entre instancias, pero ninguna tarea GREEN creaba el componente que las calcula. `JobWindowKeyCalculator` cubre ese hueco. Anclar al epoch —en vez de al arranque del proceso o a la medianoche local— es lo que hace que dos instancias en máquinas distintas deriven **la misma** clave para el mismo instante, que es la premisa de todo el mecanismo.
+- [x] 9a.3 Verificación de la rebanada: `dotnet test Ludeka.sln` → `Ludeka.IntegrationTests.dll` **7/7**, `Ludeka.UnitTests.dll` **1503/1503**, **0 omitidas**, código de salida **0**, sobre la rama en aislamiento con base en `f5d226a`. Los 1503 son los 1493 de la base más los 10 casos nuevos. **Presupuesto: 263 líneas sobre un techo de 400.** Diff enteramente aditivo.
+
+#### Desglose original de la Fase 9 (numeración estable, trazabilidad del §8)
 
 - [ ] 9.1 RED (integración, depende de R1): cinco instancias concurrentes disputan la misma ventana del lote nocturno — solo una completa, las demás detectan la reclamación/completado y terminan sin procesar duplicado (escenario "Cinco instancias concurrentes disputan la misma ventana").
 - [ ] 9.2 RED (integración, depende de R1): el planificador reintenta el disparo de una ventana ya completada — choca contra `UNIQUE`, no contra un `if` en memoria (escenario "El planificador reintenta el disparo de una ventana ya completada").
 - [ ] 9.3 RED (unitaria SQLite): instancia recién iniciada sin estado — el lote nocturno no repite una ventana ya completada; `_lastExecutionDate` ya no existe en el código fuente (escenario "Instancia recién iniciada sin estado previo — lote nocturno").
 - [ ] 9.4 RED (unitaria SQLite): instancia recién iniciada sin estado — el boletín semanal no se re-despacha; `_lastFridayBulletinDispatched` ya no existe (escenario "...boletín semanal de notificaciones").
 - [ ] 9.5 RED (unitaria SQLite): concesión huérfana — `Running` con latido caducado (`HeartbeatAt < ahora − StaleLeaseMinutes`) se toma por intercambio condicional; con latido vivo no se toca (diseño §7.3).
-- [ ] 9.6 RED (unitaria SQLite): clave de ventana estable entre instancias — fronteras ancladas al epoch Unix en UTC (diseño §7.2), tabla de casos para los 4 trabajos (`nightly-cataloging` diaria, `price-radar` por bloque de horas, `social-collector` por bloque de minutos, `notification-outbox` por segundo).
+- [x] 9.6 RED (unitaria SQLite): clave de ventana estable entre instancias — fronteras ancladas al epoch Unix en UTC (diseño §7.2), tabla de casos para los 4 trabajos (`nightly-cataloging` diaria, `price-radar` por bloque de horas, `social-collector` por bloque de minutos, `notification-outbox` por segundo).
 - [ ] 9.7 RED (unitaria SQLite): métricas mínimas (inicio, fin, procesados, fallidos, duración) persistidas incluso con fallos parciales (escenario "Bitácora completa tras una ejecución con fallos parciales").
 - [ ] 9.8 RED (unitaria SQLite): ventana ya completada, instancia nueva sin estado no repite la fase de catalogación (`nightly-batch-continuous-ingest`, escenario 1).
 - [ ] 9.9 RED (unitaria SQLite): ventana pendiente, la instancia reserva, ejecuta y persiste el resultado con métricas (`nightly-batch-continuous-ingest`, escenario 2).
-- [ ] 9.10 GREEN: crear `src/Ludeka.Application/Contracts/IJobExecutionCoordinator.cs` y `src/Ludeka.Application/Contracts/IJobExecutionLeaseRepository.cs` (diseño §7.4).
+- [x] 9.10 GREEN: crear `src/Ludeka.Application/Contracts/IJobExecutionCoordinator.cs` y `src/Ludeka.Application/Contracts/IJobExecutionLeaseRepository.cs` (diseño §7.4).
 - [ ] 9.11 GREEN: crear `src/Ludeka.Application/Features/Jobs/JobExecutionCoordinator.cs` — `INSERT` primero (diseño §7.3), toma de control por intercambio condicional, clasificación `Completed`/`Failed`/`SkippedAlreadyCompleted`/`SkippedHeldByOther`.
 - [ ] 9.12 GREEN: crear `src/Ludeka.Infrastructure/Repositories/JobExecutionLeaseRepository.cs` — clasificación de violación de unicidad por proveedor (`PostgresException.SqlState == "23505"` / `SqliteException.SqliteErrorCode == 19`, diseño §7.4); `TryAcquireAsync` **nunca** propaga la excepción de proveedor a `Ludeka.Application`.
 - [ ] 9.13 GREEN: modificar `src/Ludeka.Infrastructure/Background/NightlyCatalogingHostedService.cs` — unidad de trabajo de un disparo vía el coordinador; retirar `_lastExecutionDate` (`:22,67`) y el sondeo de 15 min (`:79-80`).
