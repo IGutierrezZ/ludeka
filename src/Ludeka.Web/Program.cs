@@ -21,10 +21,8 @@ using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
 using Ludeka.Infrastructure.Seeding;
 using Ludeka.Infrastructure.Services;
-using Ludeka.Infrastructure.Notifications;
 using Ludeka.Infrastructure.YouTube;
 using Ludeka.Application.Features.Discovery;
-using Ludeka.Infrastructure.Background;
 using Ludeka.Infrastructure.Stores;
 using Ludeka.Infrastructure.DependencyInjection;
 using Ludeka.Application.DTOs;
@@ -88,12 +86,6 @@ builder.Services.AddOutputCache(options =>
               .Tag("tag-static"));
 });
 
-builder.Services.AddHostedService<NightlyCatalogingHostedService>();
-
-builder.Services.AddHostedService<PriceRadarHostedService>();
-
-builder.Services.AddHostedService<CommunityNotificationDispatcherHostedService>();
-
 // Incremento 46 (Paso 2): la identidad se resuelve desde la sesión autenticada y la simulación
 // se retira. Scoped por ámbito (petición SSR o circuito) y poblada por UserCircuitHandler; sin
 // sesión, UserId vacío y todo denegado, sin usuario centinela.
@@ -106,9 +98,6 @@ builder.Services.AddSingleton<IUserSessionInvalidator, InMemoryUserSessionInvali
 // Hallazgo W1: las escrituras administrativas revalidan el permiso sobre el AppUser actual (relectura
 // sin rastreo), de modo que la suspensión o la revocación en caliente bloquean la siguiente operación.
 builder.Services.AddScoped<ISessionPermissionGuard, SessionPermissionGuard>();
-
-// ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
-builder.Services.AddHostedService<SocialCollectorHostedService>();
 
 // Incremento 10: Observabilidad con Health Checks Oficiales de ASP.NET Core
 builder.Services.AddHealthChecks()

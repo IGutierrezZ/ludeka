@@ -5,9 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Options;
 using Ludeka.Core.Entities;
 using Ludeka.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Ludeka.Infrastructure.Repositories;
 
@@ -22,18 +24,21 @@ namespace Ludeka.Infrastructure.Repositories;
 /// </summary>
 public class JobExecutionLeaseRepository : IJobExecutionLeaseRepository
 {
-    // Hueco declarado (tasks.md 9.12/9.17, informe de sdd-apply): la sección "Workers" de
-    // appsettings.json —y con ella Workers:StaleLeaseMinutes— no existe hasta la Fase 11 (tarea
-    // 11.4). Hasta entonces el umbral vive aquí como constante, con el mismo valor por defecto
-    // que el diseño documenta en su §7.5. Migrar a IOptionsMonitor<WorkersOptions> es trabajo de
-    // R7, cuando esa sección exista de verdad.
-    private const int StaleLeaseMinutes = 60;
+    // INC-47 (R7, diseño §7.5, tasks.md 11.4): StaleLeaseMinutes se lee ahora de
+    // Workers:StaleLeaseMinutes — cierra la deuda declarada en tasks.md 9b.3, cuando esta
+    // constante nació porque la sección "Workers" de appsettings.json todavía no existía.
+    // IOptions<WorkersOptions> es opcional para no romper los constructores directos que ya
+    // usaban las pruebas (JobExecutionLeaseRepositoryTests, JobExecutionCoordinatorTests,
+    // JobExecutionCoordinatorConcurrencyTests): sin contenedor de dependencias de por medio, se
+    // conserva el mismo valor por defecto que el diseño documenta.
+    private readonly int _staleLeaseMinutes;
 
     private readonly LudekaDbContext _db;
 
-    public JobExecutionLeaseRepository(LudekaDbContext db)
+    public JobExecutionLeaseRepository(LudekaDbContext db, IOptions<WorkersOptions>? workersOptions = null)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _staleLeaseMinutes = workersOptions?.Value.StaleLeaseMinutes ?? new WorkersOptions().StaleLeaseMinutes;
     }
 
     public async Task<LeaseAcquisition> TryAcquireAsync(
@@ -121,7 +126,7 @@ public class JobExecutionLeaseRepository : IJobExecutionLeaseRepository
         DbConnection connection, bool isSqlite, string jobName, string windowKey,
         DateTimeOffset now, string? hostIdentifier, CancellationToken ct)
     {
-        var staleThreshold = now.AddMinutes(-StaleLeaseMinutes);
+        var staleThreshold = now.AddMinutes(-_staleLeaseMinutes);
 
         using (var updateCommand = connection.CreateCommand())
         {

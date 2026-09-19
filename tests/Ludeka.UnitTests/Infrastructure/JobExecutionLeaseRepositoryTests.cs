@@ -1,11 +1,13 @@
 using System;
 using System.Threading.Tasks;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Options;
 using Ludeka.Core.Entities;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Ludeka.UnitTests.Infrastructure;
@@ -89,6 +91,37 @@ public class JobExecutionLeaseRepositoryTests : IDisposable
         var lease = await assertContext.JobExecutionLeases.AsNoTracking().SingleAsync(l => l.Id == liveId);
         Assert.Equal("host-vivo:333", lease.HostIdentifier);
         Assert.Equal("Running", lease.Status);
+    }
+
+    [Fact]
+    public async Task TryAcquireAsync_ConStaleLeaseMinutesConfigurado_UsaElUmbralDeConfiguracionEnLugarDelValorPorDefecto()
+    {
+        // INC-47 (R7, diseño §7.5, tasks.md 11.4): cierra la deuda de tasks.md 9b.3 —
+        // StaleLeaseMinutes deja de ser una constante fija y pasa a leerse de
+        // Workers:StaleLeaseMinutes. Este latido tiene 10 minutos, insuficiente para el valor por
+        // defecto (60, probado en TryAcquireAsync_ConConcesionVivaDeLatidoReciente_...) pero
+        // suficiente para un umbral configurado a 5.
+        Guid orphanId;
+        using (var arrangeContext = CreateContext())
+        {
+            var orphan = new JobExecutionLease("price-radar", "2026-09-19T10", "host-caido:444");
+            arrangeContext.JobExecutionLeases.Add(orphan);
+            await arrangeContext.SaveChangesAsync();
+            orphanId = orphan.Id;
+
+            arrangeContext.Entry(orphan).Property(l => l.HeartbeatAt).CurrentValue =
+                DateTimeOffset.UtcNow.AddMinutes(-10);
+            await arrangeContext.SaveChangesAsync();
+        }
+
+        using var actContext = CreateContext();
+        var workersOptions = Microsoft.Extensions.Options.Options.Create(new WorkersOptions { StaleLeaseMinutes = 5 });
+        var repository = new JobExecutionLeaseRepository(actContext, workersOptions);
+
+        var acquisition = await repository.TryAcquireAsync("price-radar", "2026-09-19T10", "host-nuevo:555");
+
+        Assert.Equal(LeaseAcquisitionOutcome.Acquired, acquisition.Outcome);
+        Assert.Equal(orphanId, acquisition.LeaseId);
     }
 
     public void Dispose() => _connection.Dispose();

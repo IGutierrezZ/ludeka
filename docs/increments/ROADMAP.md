@@ -81,7 +81,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-49 completó su cadena de 7 PRs, mergeó a `main` el 2026-09-18 y quedó archivado el 2026-09-18; ya no figura aquí.)*
 
-*(INC-47 completó su cadena de 11 PRs (#35–#59), mergeó a `main` el 2026-09-19 (`e8c0554`) y quedó archivado el 2026-09-19. El PR #60 (R7: retirada de `AddHostedService`) sigue abierto y retenido a propósito, pendiente de confirmación del maintainer de que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` están provisionados y disparando en GCP. **No se mergea hasta esa confirmación** para no dejar producción sin ningún ejecutor de trabajos.)*
+*(INC-47 entregó su cadena de 26 PRs (#35–#60): **25 mergeados** a `main` el 2026-09-19 y archivado ese mismo día. El PR #60 (R7: retirada de `AddHostedService`) sigue abierto y retenido a propósito, pendiente de que el maintainer confirme que Cloud Scheduler, el Cloud Run Job y `roles/run.invoker` están provisionados y disparando en GCP. **No se mergea hasta esa confirmación**, para no dejar producción sin ningún ejecutor de trabajos. Para revertirlo: primero pausar los cuatro Cloud Scheduler, después `git revert`.)*
 
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
