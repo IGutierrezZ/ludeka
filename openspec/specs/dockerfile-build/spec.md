@@ -23,7 +23,8 @@ Empaqueta la solución Ludeka en una imagen de contenedor Docker reproducible, l
 **Dado** el contenedor en ejecución a partir de `mcr.microsoft.com/dotnet/aspnet:10.0`  
 **Cuando** el proceso `dotnet Ludeka.Web.dll` arranca  
 **Entonces** se ejecuta bajo el usuario `app` (UID 1654)  
-**Y** escucha en el puerto interno `8080` (`ASPNETCORE_HTTP_PORTS=8080`).
+**Y** escucha en el puerto interno `8080` (`ASPNETCORE_HTTP_PORTS=8080`)  
+**Y** la imagen no ha fijado ningún valor por defecto de `ConnectionStrings__DefaultConnection`.
 
 ### Escenario 4: Sonda de salud integrada en el contenedor
 **Dado** el contenedor en ejecución  
