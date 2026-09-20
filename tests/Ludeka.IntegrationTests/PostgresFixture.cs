@@ -127,3 +127,19 @@ public sealed class PostgresOutboxClaimCollection : ICollectionFixture<PostgresF
 public sealed class PostgresJobCoordinatorCollection : ICollectionFixture<PostgresFixture>
 {
 }
+
+/// <summary>
+/// Colección independiente para <c>PostgresSchemaVerificationTests</c> (INC-48, R-esquema, diseño
+/// §D5, especificación <c>postgres-schema-verification</c>). Motivo distinto al de las otras tres
+/// colecciones adicionales: esa prueba no migra hasta un punto histórico, sino que migra el
+/// historial COMPLETO desde una base vacía y asevera recuentos EXACTOS (tablas totales, filas de
+/// <c>__EFMigrationsHistory</c>). Compartir contenedor con "postgres-real" — que ya aloja pruebas
+/// que migran a un punto histórico concreto o insertan filas propias — invalidaría esos recuentos
+/// de forma intermitente, porque xUnit no garantiza el orden de ejecución entre clases de una
+/// misma colección. Un contenedor propio (misma clase <see cref="PostgresFixture"/>, instancia
+/// independiente) elimina el riesgo sin modificar el fixture existente ni ninguna otra colección.
+/// </summary>
+[CollectionDefinition("postgres-real-schema")]
+public sealed class PostgresSchemaCollection : ICollectionFixture<PostgresFixture>
+{
+}
