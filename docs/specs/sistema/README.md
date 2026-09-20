@@ -24,8 +24,8 @@ graph TD
 - **`src/Ludeka.Infrastructure`:** Persistencia dual (SQLite con auto-migración en local / PostgreSQL Npgsql en Supabase para producción), cliente HTTP BGG XMLAPI2, webhooks de Discord/Telegram y semillado controlado.
 - **`src/Ludeka.Web`:** Interfaz Blazor Web App interactiva con Tailwind CSS, renderizado híbrido (SSR + InteractiveServer), Output Caching y componentes accesibles WCAG 2.2 AA.
 - **`src/Ludeka.Jobs`:** Host independiente de consola para Cloud Run Jobs, con resolución de trabajos por nombre, ejecución de unidades de trabajo de vida corta, observabilidad y reversión.
-- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (1.534 pruebas pasando al 100%).
-- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (9 pruebas pasando al 100%).
+- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (1.565 pruebas pasando al 100%).
+- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (10 pruebas pasando al 100%).
 
 ---
 

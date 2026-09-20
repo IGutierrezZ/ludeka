@@ -92,6 +92,11 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
+      # INC-48 (diseño §3): deploy-cloudrun@v2 no expone entradas nativas de sondas, y su entrada
+      # "metadata" no sirve aquí (ignora el resto de entradas del paso). La vía usada es "flags",
+      # que reenvía banderas arbitrarias a "gcloud run deploy". Sintaxis verificada solo contra la
+      # documentación oficial de esa orden, nunca contra un despliegue real (sin entorno de GCP en
+      # este ciclo) — ver docs/deployment/google-cloud-run.md §8.1 antes del primer despliegue.
       - name: Desplegar revisión en Google Cloud Run
         if: steps.check-secrets.outputs.has_gcp == 'true'
         uses: google-github-actions/deploy-cloudrun@v2
@@ -99,7 +104,7 @@ jobs:
           service: ${{ secrets.GCP_SERVICE_NAME || 'ludeka-web' }}
           region: ${{ secrets.GCP_REGION || 'europe-west1' }}
           image: ${{ secrets.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ludeka/ludeka-web:${{ github.sha }}
-          flags: '--allow-unauthenticated --port=8080 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=5'
+          flags: '--allow-unauthenticated --port=8080 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=5 --liveness-probe=httpGet.path=/healthz,httpGet.port=8080 --readiness-probe=httpGet.path=/ready,httpGet.port=8080'
           env_vars: |
             ASPNETCORE_ENVIRONMENT=Production
             Database__Provider=PostgreSql
@@ -108,6 +113,9 @@ jobs:
             Gemini__Simulate=false
             YouTube__Simulate=false
             CommunityNotifications__DryRun=false
+            Cloudflare__BucketName=ludeka-media
+            Cloudflare__PublicCdnBaseUrl=https://cdn.ludeka.com
+            Cloudflare__Simulate=false
           secrets: |
             ConnectionStrings__DefaultConnection=SUPABASE_DB_CONNECTION:latest
             Gemini__ApiKey=GEMINI_API_KEY:latest
@@ -116,6 +124,9 @@ jobs:
             CommunityNotifications__DiscordWebhookUrl=DISCORD_WEBHOOK_URL:latest
             CommunityNotifications__TelegramBotToken=TELEGRAM_BOT_TOKEN:latest
             CommunityNotifications__TelegramChatId=TELEGRAM_CHAT_ID:latest
+            Cloudflare__AccountId=CLOUDFLARE_ACCOUNT_ID:latest
+            Cloudflare__AccessKeyId=CLOUDFLARE_ACCESS_KEY_ID:latest
+            Cloudflare__SecretAccessKey=CLOUDFLARE_SECRET_ACCESS_KEY:latest
 
       # INC-47, R6 (diseño §8.9): un Cloud Run Job por trabajo, los cuatro sobre la MISMA imagen
       # ya publicada arriba — el ENTRYPOINT por defecto arranca el servicio web y cada Job
@@ -136,6 +147,9 @@ jobs:
               --region "${REGION}" \
               --command dotnet \
               --args "Ludeka.Jobs.dll,${JOB}" \
-              --set-env-vars ASPNETCORE_ENVIRONMENT=Production,Database__Provider=PostgreSql,Database__SeedDemoData=false,Bgg__SimulateApi=false,Gemini__Simulate=false,YouTube__Simulate=false,CommunityNotifications__DryRun=false \
-              --set-secrets ConnectionStrings__DefaultConnection=SUPABASE_DB_CONNECTION:latest,Gemini__ApiKey=GEMINI_API_KEY:latest,Bgg__ApiToken=BGG_API_TOKEN:latest,YouTube__ApiKey=YOUTUBE_API_KEY:latest,CommunityNotifications__DiscordWebhookUrl=DISCORD_WEBHOOK_URL:latest,CommunityNotifications__TelegramBotToken=TELEGRAM_BOT_TOKEN:latest,CommunityNotifications__TelegramChatId=TELEGRAM_CHAT_ID:latest
+              --set-env-vars ASPNETCORE_ENVIRONMENT=Production,Database__Provider=PostgreSql,Database__SeedDemoData=false,Bgg__SimulateApi=false,Gemini__Simulate=false,YouTube__Simulate=false,CommunityNotifications__DryRun=false,Cloudflare__BucketName=ludeka-media,Cloudflare__PublicCdnBaseUrl=https://cdn.ludeka.com,Cloudflare__Simulate=false \
+              --set-secrets ConnectionStrings__DefaultConnection=SUPABASE_DB_CONNECTION:latest,Gemini__ApiKey=GEMINI_API_KEY:latest,Bgg__ApiToken=BGG_API_TOKEN:latest,YouTube__ApiKey=YOUTUBE_API_KEY:latest,CommunityNotifications__DiscordWebhookUrl=DISCORD_WEBHOOK_URL:latest,CommunityNotifications__TelegramBotToken=TELEGRAM_BOT_TOKEN:latest,CommunityNotifications__TelegramChatId=TELEGRAM_CHAT_ID:latest,Cloudflare__AccountId=CLOUDFLARE_ACCOUNT_ID:latest,Cloudflare__AccessKeyId=CLOUDFLARE_ACCESS_KEY_ID:latest,Cloudflare__SecretAccessKey=CLOUDFLARE_SECRET_ACCESS_KEY:latest
+          # Nota: sin Media__LocalStoragePath — los Cloud Run Jobs no comparten disco con el servicio
+          # web (diseño §D6); con las credenciales de Cloudflare arriba, R2 gana la precedencia de
+          # tres vías y la catalogación nocturna no depende de un volumen que no existe en los Jobs.
           done
