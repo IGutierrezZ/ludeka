@@ -113,7 +113,7 @@ Añade los siguientes secretos:
    ```
    *(Nota: Puedes usar tanto el puerto directo `5432` como el Transaction Pooler `6543` de Supabase).*
 3. Al arrancar Ludeka por primera vez contra Supabase, **las migraciones oficiales de Entity Framework Core se ejecutarán automáticamente**, creando todas las tablas, índices nativos `jsonb` y el **usuario Administrador Fundador inicial permanente** (`admin-fundador` / `admin@ludeka.es`).
-4. No ejecutes [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) a mano en el **SQL Editor de Supabase**: está desactualizado y produce un esquema incompatible con EF Core. Las migraciones son la única fuente de verdad (su regeneración o retirada está planificada en el INC-48).
+4. No ejecutes [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) a mano en el **SQL Editor de Supabase**. Desde el INC-48 es un **derivado regenerado** desde las migraciones y ya no contradice al modelo, pero sigue siendo de referencia y auditoría: las migraciones son la única fuente de verdad, y `MigrateAsync()` las aplica solo en el despliegue del servicio web. **Los Cloud Run Jobs nunca migran** (§9.0, paso 1).
 
 ---
 
@@ -160,8 +160,29 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 ## 8. Notas Operativas (PostgreSQL en Producción)
 
 - **Acceso a secretos:** la cuenta de servicio que ejecuta el runtime necesita `roles/secretmanager.secretAccessor` para leer los secretos almacenados en Secret Manager.
-- **Medios en Cloudflare R2:** hoy las variables `Cloudflare__*` no se inyectan en el despliegue de Cloud Run, por lo que la aplicación cae en el almacenamiento simulado y las imágenes quedan **en memoria** (se pierden al reiniciar la instancia). Es una carencia conocida pendiente del INC-48.
-- **Readiness probe:** configura `/ready` como *readiness probe* en Cloud Run para que el tráfico no llegue a instancias con dependencias (base de datos, almacenamiento o cola) no disponibles.
+- **Medios en Cloudflare R2:** `Cloudflare__AccountId`, `Cloudflare__AccessKeyId` y `Cloudflare__SecretAccessKey` se inyectan como `secrets:` desde Secret Manager; `Cloudflare__BucketName`, `Cloudflare__PublicCdnBaseUrl` y `Cloudflare__Simulate=false` van como `env_vars:` (ver `.github/workflows/ci-cd.yml`). Sin `Cloudflare__Simulate=false`, `CloudflareR2Options.HasValidCredentials` sigue exigiendo `!Simulate` y el almacenamiento cae en memoria sin ningún síntoma visible aunque las tres credenciales estén bien inyectadas.
+- **Liveness y readiness probes:** `/healthz` y `/ready` quedan configurados como sondas del propio despliegue — ver la subsección 8.1 para el mecanismo exacto y su alcance de verificación.
+
+### 8.1. Sondas de liveness y readiness en Cloud Run
+
+`google-github-actions/deploy-cloudrun@v2` no tiene entradas nativas para sondas. Su entrada `metadata` (YAML de servicio) tampoco sirve para este pipeline: la documentación de la acción advierte que al usarla se ignora el resto de entradas (`image`, `region`, `env_vars`, `secrets`), lo que rompería el paso actual. La vía que usa `ci-cd.yml` es `flags`, que reenvía banderas arbitrarias a `gcloud run deploy` — y esa orden sí expone una bandera por sonda:
+
+| Bandera | Claves admitidas |
+|---|---|
+| `--liveness-probe=[KEY=VALUE,...]` | `initialDelaySeconds`, `timeoutSeconds`, `periodSeconds`, `failureThreshold`, `httpGet.port`, `httpGet.path`, `grpc.port`, `grpc.service` |
+| `--readiness-probe=[KEY=VALUE,...]` | `timeoutSeconds`, `periodSeconds`, `failureThreshold`, `successThreshold`, `httpGet.port`, `httpGet.path`, `grpc.port`, `grpc.service` |
+
+⚠️ Las dos banderas no son intercambiables: `--readiness-probe` no admite `initialDelaySeconds` y `--liveness-probe` no admite `successThreshold`.
+
+El contenedor escucha en el puerto 8080, así que `ci-cd.yml` configura:
+
+```
+--liveness-probe=httpGet.path=/healthz,httpGet.port=8080
+--readiness-probe=httpGet.path=/ready,httpGet.port=8080
+```
+
+> [!WARNING]
+> **Verificado solo contra la documentación oficial de `gcloud run deploy`, nunca contra un despliegue real** — no existe entorno de GCP en este ciclo. Es el mismo tipo de hueco que dejó INC-47 con la ortografía de `gcloud run jobs deploy` (§9.0, paso 5): quien provisione por primera vez debe comprobar que ambas banderas se aceptan tal cual antes de darlo por bueno.
 
 ---
 

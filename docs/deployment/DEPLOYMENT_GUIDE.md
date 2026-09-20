@@ -221,10 +221,14 @@ Los datos de aplicación residen en **Supabase (PostgreSQL)**, por lo que recons
 
 ## 10. Persistencia de Medios: Cloudflare R2 en Producción y Fallback Local
 
-Ludeka guarda los medios en **Cloudflare R2** (API compatible con S3) mediante `CloudflareR2StorageService`. La selección del servicio se decide en `src/Ludeka.Web/Program.cs` según `CloudflareR2Options.HasValidCredentials`.
+Ludeka guarda los medios en **Cloudflare R2** (API compatible con S3) mediante `CloudflareR2StorageService`. Desde el INC-48, la selección se decide en `LudekaServiceCollectionExtensions` con una precedencia de tres vías:
+
+1. **Credenciales R2 válidas** (`CloudflareR2Options.HasValidCredentials`) → `CloudflareR2StorageService`. Es el camino de producción.
+2. **Sin R2, pero con `Media__LocalStoragePath` configurada** → `PhysicalFileImageStorageService`, que escribe en disco y se sirve por HTTP bajo `/images`.
+3. **Sin ninguna de las dos** → `SimulatedImageStorageService`, en memoria.
 
 > [!WARNING]
-> Hoy, si no hay credenciales R2 válidas, la aplicación usa `SimulatedImageStorageService`, que guarda las imágenes **en memoria** y las pierde al reiniciar el contenedor. Es una carencia conocida pendiente del **INC-48**, no un comportamiento aceptable en producción. `PhysicalFileImageStorageService` está registrado pero hoy no se selecciona.
+> `HasValidCredentials` exige además que **`Cloudflare__Simulate` sea `false`**, y `appsettings.json` lo trae en `true`. Inyectar las tres credenciales sin poner esa variable a `false` deja el almacenamiento **en memoria sin ningún síntoma visible**: el despliegue parece correcto y las imágenes se pierden al reiniciar. Arrancar en `Production` sin R2 válido emite un aviso explícito en el log y `/ready` lo refleja en el componente `storage`.
 
 ### 10.1 Producción (Cloudflare R2)
 

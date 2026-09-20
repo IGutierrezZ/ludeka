@@ -27,8 +27,8 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
   - Ubicación: [`src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteSchemaMigrator.cs)
   - Inspecciona `PRAGMA table_info` al arrancar la aplicación en SQLite y añade dinámicamente columnas faltantes sin borrar ni reiniciar bases de datos de desarrollo. Se desactiva automáticamente cuando el proveedor es PostgreSQL.
 - **Esquema Real y Fuente de Verdad del Esquema:**
-  - El modelo consta de **32 tablas** reales. La única fuente de verdad son las migraciones de Entity Framework Core en `src/Ludeka.Infrastructure/Migrations/`, aplicadas automáticamente con `MigrateAsync()` al arrancar contra PostgreSQL.
-  - El script [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) está **desactualizado** respecto al modelo (le faltan `BggCatalogStaging`, `SocialInboxItems`, `MonitoredSocialAccounts`, `GamePriceSnapshots` y `ExternalLogins`, y contiene columnas obsoletas) y no debe ejecutarse contra Supabase. Su regeneración o retirada está planificada en el INC-48.
+  - El modelo consta de **34 tablas** reales, creadas por **7 migraciones**. La única fuente de verdad son las migraciones de Entity Framework Core en `src/Ludeka.Infrastructure/Migrations/`, aplicadas automáticamente con `MigrateAsync()` al arrancar contra PostgreSQL.
+  - El script [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) es un **derivado regenerado** desde esas migraciones (INC-48), no la fuente de verdad ni un fichero editable a mano. Dos pruebas automáticas impiden que vuelva a quedarse atrás: `SupabaseSchemaFreshnessTests` comprueba sin PostgreSQL que cada tabla del modelo tiene su `CREATE TABLE`, y `PostgresSchemaVerificationTests` migra desde cero contra un PostgreSQL 17 real y verifica las 34 tablas y las 7 filas de `__EFMigrationsHistory`. El comando de regeneración está en la cabecera del propio script.
 - **Usuario Administrador Fundador Garantizado (`AdminUserSeeder`):**
   - Ubicación: [`src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Seeding/AdminUserSeeder.cs)
   - En entornos limpios de producción o desarrollo, garantiza de forma idempotente la existencia de un usuario con rol `FoundingTeam` y permisos totales (`ModeratorPermission.All`), parametrizable mediante `AdminUserOptions`. Desde INC-46 la fila **no concede identidad ni sesión implícita** a ningún visitante.
@@ -58,17 +58,17 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
   - [`docker-compose.prod.yml`](file:///c:/repos/Ludeka/docker-compose.prod.yml): Entorno de producción con mapeo de variables de entorno y soporte `.env`.
 - **Pipeline de Integración y Entrega Continua (GitHub Actions):**
   - Archivo: [`.github/workflows/ci-cd.yml`](file:///c:/repos/Ludeka/.github/workflows/ci-cd.yml).
-  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 1.345 pruebas.
+  - *CI:* Ejecución automática en cada PR y push a ramas de incremento de compilación, verificación de Docker y suite completa de 1.565 pruebas unitarias + 10 de integración.
   - *CD:* Despliegue desatendido a Google Cloud Run al hacer merge a `main` si los secretos están configurados.
 
 ---
 
 ## 5. Diagnóstico de Salud (Health Checks)
 
-- Ubicación: `src/Ludeka.Web/Health/` (`SqliteDatabaseHealthCheck`, `StorageHealthCheck`, `NotificationQueueHealthCheck`).
+- Ubicación: `src/Ludeka.Web/Health/` (`DatabaseHealthCheck`, `StorageHealthCheck`, `NotificationQueueHealthCheck`).
 - Endpoints expuestos:
   - `/healthz`: Liveness check del proceso web, sin evaluación de dependencias.
-  - `/ready`: Readiness check (health checks con tag `ready`) que evalúa la conectividad real con la base de datos configurada (`CanConnectAsync` + `SELECT 1` y recuento de juegos), una prueba de escritura/lectura en el directorio de datos y la disponibilidad de la cola de notificaciones. La sonda de base de datos aún etiqueta el proveedor como SQLite y no distingue PostgreSQL, por lo que la verificación por proveedor está pendiente en el INC-48.
+  - `/ready`: Readiness check (health checks con tag `ready`) que evalúa la conectividad real con la base de datos configurada (`CanConnectAsync` + `SELECT 1` y recuento de juegos, con el proveedor efectivo — `Npgsql` o `Sqlite` — leído de `_dbContext.Database.ProviderName`, nunca de un literal fijo), el almacén de medios realmente configurado (credenciales de Cloudflare R2 válidas, o una escritura/lectura real contra la ruta local configurada, o degradación a memoria si no hay ninguno) y la disponibilidad de la cola de notificaciones.
 
 ---
 
