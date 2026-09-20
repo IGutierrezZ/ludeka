@@ -145,7 +145,7 @@ public class HealthChecksTests
     }
 
     [Fact]
-    public async Task SqliteDatabaseHealthCheck_ConBaseDeDatosOperativa_DebeRetornarHealthy()
+    public async Task DatabaseHealthCheck_ConBaseDeDatosOperativa_DebeRetornarHealthy()
     {
         // Arrange
         using var connection = new SqliteConnection("Data Source=:memory:");
@@ -158,7 +158,7 @@ public class HealthChecksTests
         using var dbContext = new LudekaDbContext(options);
         await dbContext.Database.EnsureCreatedAsync();
 
-        var healthCheck = new SqliteDatabaseHealthCheck(dbContext);
+        var healthCheck = new DatabaseHealthCheck(dbContext);
         var context = new HealthCheckContext();
 
         // Act
@@ -168,10 +168,48 @@ public class HealthChecksTests
         Assert.Equal(HealthStatus.Healthy, result.Status);
         Assert.Contains("operativa", result.Description, StringComparison.OrdinalIgnoreCase);
         Assert.True((bool)result.Data["can_connect"]);
+        // INC-48 (PR3), diseño D4: el proveedor DEBE leerse dinámicamente de ProviderName, nunca
+        // un literal fijo — de lo contrario en Production con PostgreSQL seguiría mintiendo "Sqlite".
+        Assert.Equal(dbContext.Database.ProviderName, result.Data["provider"]);
+    }
+
+    /// <summary>
+    /// INC-48 (PR3), escenario «El componente `database` reporta el proveedor real» de la
+    /// especificación `health-checks`, que exige verificarlo «sin PostgreSQL real».
+    /// <para>
+    /// Esta es la prueba que impide la regresión de verdad. La de SQLite de arriba compara
+    /// <c>ProviderName</c> consigo mismo: si alguien volviera a clavar el literal
+    /// <c>"Microsoft.EntityFrameworkCore.Sqlite"</c>, seguiría pasando, porque bajo SQLite ese
+    /// literal coincide por casualidad con el valor real. Forzando Npgsql, un literal fijo falla.
+    /// </para>
+    /// <para>
+    /// No hace falta servidor: <c>ProviderName</c> no abre conexión. El estado es
+    /// <see cref="HealthStatus.Unhealthy"/> porque no hay PostgreSQL al otro lado, y eso es
+    /// justamente lo que se quiere — el proveedor se reporta también cuando la base no responde.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task DatabaseHealthCheck_ConProveedorPostgreSql_ReportaNpgsqlYNuncaSqlite()
+    {
+        // Arrange: proveedor PostgreSQL efectivo, contra un host que no existe.
+        var options = new DbContextOptionsBuilder<LudekaDbContext>()
+            .UseNpgsql("Host=localhost;Port=1;Database=ludeka_inexistente;Username=nadie;Password=nada;Timeout=1")
+            .Options;
+
+        using var dbContext = new LudekaDbContext(options);
+        var healthCheck = new DatabaseHealthCheck(dbContext);
+
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
+
+        // Assert
+        var provider = Assert.IsType<string>(result.Data["provider"]);
+        Assert.Contains("Npgsql", provider, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Sqlite", provider, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task SqliteDatabaseHealthCheck_ConConexionCerrada_DebeRetornarUnhealthy()
+    public async Task DatabaseHealthCheck_ConConexionCerrada_DebeRetornarUnhealthy()
     {
         // Arrange
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -183,7 +221,7 @@ public class HealthChecksTests
         // Desechar explícitamente para forzar fallo de conexión
         dbContext.Dispose();
 
-        var healthCheck = new SqliteDatabaseHealthCheck(dbContext);
+        var healthCheck = new DatabaseHealthCheck(dbContext);
         var context = new HealthCheckContext();
 
         // Act
@@ -194,21 +232,26 @@ public class HealthChecksTests
         Assert.NotNull(result.Exception);
     }
 
+    // INC-48 (PR3), diseño D4: StorageHealthCheck deja de parsear "Data Source=" de la cadena de
+    // conexión de la base de datos (sin relación con el almacenamiento de medios) y pasa a sondear
+    // la vía de medios realmente seleccionada, con la misma precedencia de tres vías que D1
+    // (LudekaServiceCollectionExtensions): R2 con credenciales válidas, disco local configurado,
+    // memoria. Sustituye al único escenario "StorageHealthCheck_ConDirectorioAccesible" anterior.
     [Fact]
-    public async Task StorageHealthCheck_ConDirectorioAccesible_DebeRetornarHealthy()
+    public async Task StorageHealthCheck_ConR2ConfiguradoConCredencialesValidas_DebeRetornarHealthyConModoR2()
     {
         // Arrange
-        var tempDbPath = Path.Combine(Path.GetTempPath(), "ludeka_test_storage", "test.db");
-        var inMemorySettings = new Dictionary<string, string?>
+        var r2Options = Options.Create(new CloudflareR2Options
         {
-            { "ConnectionStrings:DefaultConnection", $"Data Source={tempDbPath}" }
-        };
+            Simulate = false,
+            AccountId = "cuenta-test",
+            AccessKeyId = "clave-test",
+            SecretAccessKey = "secreto-test",
+            BucketName = "ludeka-media"
+        });
+        var mediaOptions = Options.Create(new MediaOptions());
 
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        var storageCheck = new StorageHealthCheck(configuration);
+        var storageCheck = new StorageHealthCheck(r2Options, mediaOptions);
         var context = new HealthCheckContext();
 
         // Act
@@ -216,14 +259,56 @@ public class HealthChecksTests
 
         // Assert
         Assert.Equal(HealthStatus.Healthy, result.Status);
-        Assert.True((bool)result.Data["writable"]);
+        Assert.Equal("r2", result.Data["mode"]);
+        Assert.Equal("ludeka-media", result.Data["bucket"]);
+    }
 
-        // Cleanup
-        var dir = Path.GetDirectoryName(tempDbPath);
-        if (dir != null && Directory.Exists(dir))
+    [Fact]
+    public async Task StorageHealthCheck_SinR2PeroConRutaLocalConfigurada_DebeRetornarHealthyTrasEscrituraReal()
+    {
+        // Arrange
+        var tempMediaPath = Path.Combine(Path.GetTempPath(), $"ludeka_test_storage_{Guid.NewGuid():N}");
+        var r2Options = Options.Create(new CloudflareR2Options());
+        var mediaOptions = Options.Create(new MediaOptions { LocalStoragePath = tempMediaPath });
+
+        var storageCheck = new StorageHealthCheck(r2Options, mediaOptions);
+        var context = new HealthCheckContext();
+
+        try
         {
-            Directory.Delete(dir, true);
+            // Act
+            var result = await storageCheck.CheckHealthAsync(context);
+
+            // Assert: la escritura es real, no simulada — mismo fichero de sonda que la versión anterior.
+            Assert.Equal(HealthStatus.Healthy, result.Status);
+            Assert.Equal("disk", result.Data["mode"]);
+            Assert.True((bool)result.Data["writable"]);
         }
+        finally
+        {
+            if (Directory.Exists(tempMediaPath))
+            {
+                Directory.Delete(tempMediaPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task StorageHealthCheck_SinR2NiRutaLocalConfigurada_DebeRetornarDegradedConModoMemoria()
+    {
+        // Arrange
+        var r2Options = Options.Create(new CloudflareR2Options());
+        var mediaOptions = Options.Create(new MediaOptions());
+
+        var storageCheck = new StorageHealthCheck(r2Options, mediaOptions);
+        var context = new HealthCheckContext();
+
+        // Act
+        var result = await storageCheck.CheckHealthAsync(context);
+
+        // Assert
+        Assert.Equal(HealthStatus.Degraded, result.Status);
+        Assert.Equal("memory", result.Data["mode"]);
     }
 
     // Nota de decisión de sdd-apply (INC-47, R4c, impacto conocido, diseño §10.2): la prueba
@@ -259,7 +344,7 @@ public class HealthChecksTests
         services.AddScoped<INotificationOutboxRepository, NotificationOutboxRepository>();
 
         services.AddHealthChecks()
-            .AddCheck<SqliteDatabaseHealthCheck>("sqlite_db", tags: ["ready"])
+            .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
             .AddCheck<StorageHealthCheck>("storage", tags: ["ready"])
             .AddCheck<NotificationQueueHealthCheck>("notification_queue", tags: ["ready"]);
 

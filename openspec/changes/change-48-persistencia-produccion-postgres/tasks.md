@@ -74,13 +74,13 @@ Chain strategy: stacked-to-main
 
 ## PR3 — Health checks fieles (depende de PR1a fusionada)
 
-- [ ] 4.1 RED: adaptar en `tests/Ludeka.UnitTests/Health/HealthChecksTests.cs:148,161,174,186` los 2 tests de `SqliteDatabaseHealthCheck` para esperar el proveedor real vía `_dbContext.Database.ProviderName`, no el literal `"Microsoft.EntityFrameworkCore.Sqlite"`.
-- [ ] 4.2 RED: sustituir el test único `StorageHealthCheck_ConDirectorioAccesible...` (`HealthChecksTests.cs:197-227`) por 3 escenarios — R2 con credenciales válidas → `Healthy`/`mode=r2`; disco vía `MediaOptions.LocalStoragePath` → `Healthy` tras escritura real; ninguno → `Degraded`/`mode=memory` (spec `health-checks`, tabla D4 del diseño).
-- [ ] 4.3 GREEN: renombrar `src/Ludeka.Web/Health/SqliteDatabaseHealthCheck.cs` → `DatabaseHealthCheck.cs`; leer `_dbContext.Database.ProviderName` en vez del literal.
-- [ ] 4.4 GREEN: reescribir `src/Ludeka.Web/Health/StorageHealthCheck.cs` para sondear la vía de medios seleccionada (misma precedencia que PR1a) en vez de parsear `Data Source=`.
-- [ ] 4.5 GREEN: `src/Ludeka.Web/Program.cs:104` → `.AddCheck<DatabaseHealthCheck>("database", ...)` (antes `sqlite_db`).
-- [ ] 4.6 Actualizar `.AddCheck<SqliteDatabaseHealthCheck>("sqlite_db",...)` en `HealthChecksTests.cs:262` al nuevo tipo/nombre.
-- [ ] 4.7 Ejecutar `dotnet test Ludeka.sln` completo y registrar el resultado.
+- [x] 4.1 RED: adaptar en `tests/Ludeka.UnitTests/Health/HealthChecksTests.cs:148,161,174,186` los 2 tests de `SqliteDatabaseHealthCheck` para esperar el proveedor real vía `_dbContext.Database.ProviderName`, no el literal `"Microsoft.EntityFrameworkCore.Sqlite"`. **Nota de desfase corregida en apply**: la línea real de `Program.cs` era `106`, no `104` (PR1a/PR1b/PR2 desplazaron las líneas); confirmado por lectura directa antes de tocar nada. Confirmado en rojo: `CS0246 'DatabaseHealthCheck' no encontrado` en los 3 puntos de uso (los 2 tests renombrados + el registro DI de 4.6).
+- [x] 4.2 RED: sustituido el test único `StorageHealthCheck_ConDirectorioAccesible...` por 3 escenarios — R2 con credenciales válidas → `Healthy`/`mode=r2`; disco vía `MediaOptions.LocalStoragePath` → `Healthy` tras escritura real; ninguno → `Degraded`/`mode=memory` (spec `health-checks`, tabla D4 del diseño). Confirmado en rojo: `CS1729 'StorageHealthCheck' no contiene un constructor que tome 2 argumentos` en los 3 escenarios nuevos.
+- [x] 4.3 GREEN: renombrado `src/Ludeka.Web/Health/SqliteDatabaseHealthCheck.cs` → `DatabaseHealthCheck.cs`; lee `_dbContext.Database.ProviderName` (con fallback `"desconocido"` por nulabilidad de EF Core) en vez del literal; mensajes en español ya no mencionan "SQLite" a secas.
+- [x] 4.4 GREEN: reescrito `src/Ludeka.Web/Health/StorageHealthCheck.cs` — recibe `IOptions<CloudflareR2Options>`, `IOptions<MediaOptions>` e `IHostEnvironment?` (patrón `= null` de `PhysicalFileImageStorageService.cs:24`, PR1a) y sondea la misma precedencia de tres vías que D1 vía `MediaOptions.ResolveLocalStoragePath` (único punto desde la tarea 3.9, no se reintrodujo copia local) en vez de parsear `Data Source=`.
+- [x] 4.5 GREEN: `src/Ludeka.Web/Program.cs:106` (línea real, no la `:104` de la estimación original) → `.AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])` (antes `sqlite_db`).
+- [x] 4.6 Actualizado `.AddCheck<SqliteDatabaseHealthCheck>("sqlite_db",...)` en `HealthChecksTests.cs` (línea real tras 4.1-4.2: `312`, no la `:262` estimada) al nuevo tipo/nombre `DatabaseHealthCheck`/`"database"`.
+- [x] 4.7 `dotnet test Ludeka.sln` completo (sin tubería, en primer plano): **1563/1563 unitarias (+2 sobre la base de 1561 de PR2: `HealthChecksTests.cs` pasa de 9 a 11 — 9 base, −1 el escenario único sustituido en 4.2, +3 los nuevos escenarios de `StorageHealthCheck`) y 9/9 de integración, exit 0.**
 
 ## PR4 — Verificación de esquema PostgreSQL (independiente; puede ir en paralelo a PR2)
 
