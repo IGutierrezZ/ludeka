@@ -1,7 +1,7 @@
 # Especificación: docker-compose-orchestration (Orquestación y Persistencia)
 
 ## 1. Contexto y Propósito
-Define la orquestación de servicios para despliegue local, staging y producción mediante Docker Compose, garantizando persistencia del archivo SQLite (`ludeka.db`), aislamiento de red, inyección segura de configuración mediante `.env` y políticas de tolerancia a fallos.
+Define la orquestación de servicios para despliegue local y staging mediante Docker Compose, garantizando persistencia del archivo SQLite (`ludeka.db`), aislamiento de red, inyección segura de configuración mediante `.env`, políticas de tolerancia a fallos y declaración explícita del entorno de ejecución (`Development` o `Staging`) para evitar que un entorno local active accidentalmente una guarda de arranque de producción.
 
 ---
 
@@ -24,3 +24,19 @@ Define la orquestación de servicios para despliegue local, staging y producció
 **Cuando** el daemon de Docker detecta la caída  
 **Entonces** el servicio aplica la política `restart: unless-stopped`  
 **Y** reinicia automáticamente el contenedor sin requerir intervención manual del operador.
+
+### Escenario 4: La configuración de `docker-compose.yml` declara un entorno local sin Production
+**Dado** el fichero `docker-compose.yml` sin sobrescribir `ASPNETCORE_ENVIRONMENT`  
+**Cuando** se evalúa el entorno efectivo de ejecución  
+**Entonces** el valor por defecto NO es `Production` sino un entorno local (`Development` o equivalente)  
+**Y** la combinación resultante no activa la guarda de arranque de `production-persistence-guard`.
+
+### Escenario 5: `docker-compose.staging.yml` declara explícitamente entorno Staging
+**Dado** que `docker-compose.staging.yml` fija `ASPNETCORE_ENVIRONMENT=Staging`  
+**Cuando** se evalúa la guarda de arranque de `production-persistence-guard` con esa combinación  
+**Entonces** la guarda no se activa, permitiendo el uso de SQLite en staging local.
+
+### Escenario 6: Ambos ficheros incluyen comentario explícito de entorno local
+**Dado** `docker-compose.yml` y `docker-compose.staging.yml`  
+**Cuando** se revisa su cabecera o comentarios  
+**Entonces** ambos identifican explícitamente que son entornos locales/de pruebas con SQLite, no producción.

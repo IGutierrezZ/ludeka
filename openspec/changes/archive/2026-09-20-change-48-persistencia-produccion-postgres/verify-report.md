@@ -1,3 +1,19 @@
+```yaml
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:1d97fdba0294a547cb9d44bfefaada40536c572298ec28870f13f01cb7f847ea
+verdict: pass_with_warnings
+blockers: 0
+critical_findings: 0
+requirements: 11/11
+scenarios: 25/25
+test_command: dotnet test Ludeka.sln
+test_exit_code: 0
+test_output_hash: sha256:f278cd63b5249e8171ead74b71c4e7e252c4ac7c397359fea792b886c2b0c566
+build_command: dotnet build Ludeka.sln
+build_exit_code: 0
+build_output_hash: sha256:00cf05d42520b7a7bc93c57bd6940ea3223685971b35651e758f661bbdacccfe
+```
+
 # Informe de Verificación — INC-48: Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental
 
 > **Fase:** `sdd-verify` · **Fecha:** 2026-09-20
@@ -60,6 +76,17 @@ git diff --shortstat 62f5b78 57d93cd -- . ":!openspec"
 Coincide con la tabla «Cambios por fichero» de `design.md` §5, sin desbordamiento de alcance ni ficheros olvidados.
 
 ---
+
+### 2.4. Evidencia de compilación (exigida por el contrato del despachador)
+
+Ejecutada de forma independiente en el worktree de archivado, sobre `main` en `0a320e6`:
+
+```
+dotnet build Ludeka.sln   -> exit 0, 0 errores, 13 advertencias
+dotnet test  Ludeka.sln   -> exit 0, 1565/1565 unitarias, 10/10 de integración
+```
+
+Los resúmenes `sha256` de ambas salidas están en la cabecera legible por máquina de este informe (`build_output_hash` y `test_output_hash`). Es la tercera medición independiente de la suite en este ciclo, y coincide con las dos anteriores.
 
 ## 3. Conformidad requisito a requisito
 
