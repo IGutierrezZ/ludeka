@@ -61,21 +61,21 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-45** | Radar de Bajadas de Precios, Mínimos Históricos y Alertas de Ofertas para 'Quiero comprar' | ✅ Archivado | [inc-45-price-radar-discounts.md](archive/inc-45-price-radar-discounts.md) |
 | **INC-46** | Autenticación Real, Autorización por Roles y Retirada de la Identidad Simulada | ✅ Archivado | [inc-46-autenticacion-real.md](archive/inc-46-autenticacion-real.md) |
 | **INC-47** | Trabajos en Segundo Plano Correctos en Google Cloud Run (Jobs, Scheduler y Outbox Persistente) | ✅ Archivado | [inc-47-workers-cloud-run.md](archive/inc-47-workers-cloud-run.md) |
-| **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ⏳ En progreso (migración entregada) | [inc-48-persistencia-produccion-postgres.md](inc-48-persistencia-produccion-postgres.md) |
+| **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ✅ Archivado | [inc-48-persistencia-produccion-postgres.md](archive/inc-48-persistencia-produccion-postgres.md) |
 | **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ✅ Archivado | [inc-49-vinculacion-cuentas.md](archive/inc-49-vinculacion-cuentas.md) |
 | **INC-50** | Área de Cuenta: Puerta de Acceso en la Cabecera y Hub del Usuario | ⏳ Planificado | [inc-50-area-de-cuenta.md](inc-50-area-de-cuenta.md) |
 | **INC-51** | Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43 | ⏳ Planificado | [inc-51-huecos-cobertura-archivado.md](inc-51-huecos-cobertura-archivado.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
-**INC-47** quedó archivado el 2026-09-19, con su cadena completa de 26 PRs mergeada. Queda como **único prerrequisito abierto de salida a producción: INC-48** (persistencia de producción en PostgreSQL y medios en Cloudflare R2).
+**INC-47** quedó archivado el 2026-09-19 (26 PRs mergeadas). **INC-48** quedó archivado el 2026-09-20 (9 PRs mergeadas, #63–#71). Ambos **prerrequisitos de salida a producción están ahora cerrados**.
 
-🚨 **Antes del primer despliegue real, sea cual sea el incremento que lo dispare:** el host web ya no ejecuta ningún trabajo de negocio en proceso, así que el único ejecutor son los Cloud Run Jobs. Configurar `GCP_PROJECT_ID` y `GCP_SA_KEY` es lo que arma el despliegue automático. **Sigue el orden de puesta en marcha de [`docs/deployment/google-cloud-run.md` §9.0](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md)** o tendrás un servicio web en producción sin nadie que ejecute la catalogación nocturna, el radar de precios, el recolector social ni el drenaje del outbox.
+🚨 **Antes del primer despliegue real, sea cual sea el incremento que lo dispare:** el host web ya no ejecuta ningún trabajo de negocio en proceso (INC-47), así que el único ejecutor son los Cloud Run Jobs. Configurar `GCP_PROJECT_ID` y `GCP_SA_KEY` en los secretos de GitHub es lo que arma el despliegue automático. **Sigue estrictamente el orden de puesta en marcha de [`docs/deployment/google-cloud-run.md` §9.0](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md)** o tendrás un servicio web en producción sin nadie que ejecute la catalogación nocturna, el radar de precios, el recolector social ni el drenaje del outbox.
 
-- **INC-47** — archivado. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está abierto y retenido hasta que el maintainer confirme que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` estén provisionados y disparando en GCP.
-- **INC-48** — aún no archivado. Sin él, el esquema de producción arranca incompleto y las imágenes no persisten.
+- **INC-47** — archivado el 2026-09-19. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está abierto y retenido por el maintainer hasta que Cloud Scheduler, Cloud Run Job y `roles/run.invoker` estén provisionados y disparando en GCP.
+- **INC-48** — archivado el 2026-09-20. Resuelve: (1) imágenes en memoria, (2) fallback local sin HTTP, (3) arranque silencioso a SQLite en Production, (4) sondas de salud que mienten. Verificación `pass_with_warnings`, 1.565 unitarias + 10 de integración verdes.
 
-**INC-46 quedó archivado el 2026-09-16**: la identidad simulada está retirada, cada ruta administrativa exige sesión y permiso y toda escritura revalida la sesión.
+**INC-46 quedó archivado el 2026-09-16**: la identidad simulada está retirada, cada ruta administrativa exige sesión y permiso, y toda escritura revalida la sesión.
 
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
@@ -85,15 +85,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-47 entregó su cadena completa de 26 PRs (#35–#61), toda mergeada a `main` el 2026-09-19, y quedó archivado ese mismo día. 🚨 **Su puerta de seguridad sigue viva, pero es de DESPLIEGUE, no de merge:** el host web ya no ejecuta ningún trabajo en proceso, así que el único ejecutor son los Cloud Run Jobs. Se pudo mergear sin riesgo porque aún no existe entorno de producción —sin los secretos `GCP_PROJECT_ID` y `GCP_SA_KEY`, el flujo omite todo despliegue—. **Antes de configurar esos secretos, sigue el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0**, o el primer despliegue dejará producción sin ningún ejecutor de trabajos.)*
 
+*(INC-48 entregó su cadena de 9 PRs (#63–#71), toda mergeada a `main` el 2026-09-20, y quedó archivado ese mismo día. Resolvió cuatro defectos de producción: (1) imágenes en memoria en lugar de R2/disco, (2) fallback en disco con 404 por falta de middleware y desajuste de rutas, (3) arranque silencioso a SQLite efímera en Production, (4) sondas de salud que reportan valores codificados en lugar de estado real. Verificación: `pass_with_warnings`, 1.565 pruebas unitarias + 10 de integración verdes. Hueco abierto: no hay entorno de producción real para acreditar sondas de Cloud Run y despliegue.)*
+
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
-
-- **INC-48 Persistencia de Producción en PostgreSQL** — worktree `C:\repos\ludeka-wt\persistencia-produccion-postgres`, rama `inc/persistencia-produccion-postgres`. **Único prerrequisito abierto de salida a producción.** Cadena de **6 PRs** `stacked-to-main`: PR1a (factoría de medios de 3 vías) → PR1b (entrega HTTP del fallback) → PR2 (fail-fast de PostgreSQL) → PR3 (health checks fieles) → PR4 (verificación de esquema) → PR5 (verdad documental y despliegue, la última).
-
-  La auditoría de `sdd-explore` demostró que el §1 del documento de incremento estaba desfasado: el desfase de esquema **ya está resuelto** (34 `DbSet` = 34 tablas = 34 `CreateTable` en 7 migraciones, no 31 ni 27) y la corrección documental **ya se hizo en 5 de 6 citas** el 2026-09-15. A cambio destapó **tres defectos que el documento no recogía**: (1) `UseStaticFiles()` no existe en `src/`, así que el fallback local devolvería **404**; (2) `PhysicalFileImageStorageService.cs:28` escribe sin la subcarpeta `games` pero publica la URL con ella, un segundo 404 encadenado; y (3) `docker-compose.yml:11` defaultea a `Production`, así que la guarda nueva **rompería `docker compose up`** si no pasa a `Staging`.
-
-  **Hueco de evidencia acotado**: no está verificado que `google-github-actions/deploy-cloudrun@v2` admita sondas de *liveness* y *readiness*. Bloquea **solo PR5**; las demás rebanadas avanzan sin él. Mismo patrón que el hueco de `gcloud run jobs deploy` de INC-47.
-
-  **Trabajo diferido a un incremento futuro**: *staging* con PostgreSQL, perfil PostgreSQL local, `supabase-restore.ps1` y anonimización de datos personales. Objetivo declarado del maintainer (sacar copias de producción y montar entornos de desarrollo con ellas); hoy **no existe ningún script de restauración para PostgreSQL** y la copia arrastra datos personales reales.
 
 - **INC-50 Área de Cuenta** — worktree `C:\repos\ludeka-wt\area-de-cuenta`, rama `inc/area-de-cuenta`. Nace de un agujero destapado en el smoke test de INC-49: se puede iniciar sesión, pero **no hay ninguna puerta a la cuenta**. El único enlace a `/cuenta/conexiones` vive dentro del aviso que solo se muestra a cuentas sin correo verificado, no existe ningún enlace a `/login` en toda la interfaz, y la cabecera no consulta la sesión. El incremento añade el botón de persona en la cabecera y agrupa la ludoteca y los ajustes de usuario en un área de cuenta. **Arrastra pendiente el smoke test de INC-49 (tarea 4.5), que quedó en el paso 2 de 7.**
 

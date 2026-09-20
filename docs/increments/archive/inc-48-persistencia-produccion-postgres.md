@@ -1,6 +1,6 @@
 # INC-48: Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental
 
-> **Estado:** ⏳ En progreso (migración ya entregada; resto pendiente de aprobación de alcance)
+> **Estado:** ✅ Archivado (2026-09-20)
 > **Fecha de Inicio:** 2026-09-15
 > **Rama de Trabajo:** `inc/persistencia-produccion-postgres`
 > **Worktree:** `C:\repos\ludeka-wt\persistencia-produccion-postgres`
@@ -9,7 +9,41 @@
 
 ---
 
-## 1. Motivación y Visión
+## 0. Rectificación al archivar (2026-09-20)
+
+Este documento fue escrito al iniciar el incremento (2026-09-15) basándose en la hipótesis inicial sobre qué defectos había que arreglar. Durante `sdd-explore` se destaparon hechos que contradicen algunas afirmaciones de §1. Para preservar el valor histórico del documento sin propagar errores, se registran las correcciones aquí:
+
+### Afirmación falsa en §1.1
+**Lo que decía:** `LudekaDbContext` declara **31 `DbSet`** pero la única migración existente creaba **27 tablas**.
+
+**Lo real:** `LudekaDbContext` declara **34 `DbSet`** (no 31) y existen **7 migraciones** (no una) que crean exactamente **34 tablas** correspondientes a esos `DbSet`. El número 31 y 27 eran una lectura equivocada del estado real en 2026-09-15. El esquema **ya estaba completo antes de este incremento**.
+
+**Evidencia:** `PostgresSchemaVerificationTests.cs:42-86` migra desde cero contra PostgreSQL 17 real y asevera exactamente 34 tablas y 7 filas en `__EFMigrationsHistory`.
+
+### Afirmación desfasada en §1.2
+**Lo que decía:** `docs/database/supabase_schema.sql` es un esquema falso con ocho tablas mal, columnas obsoletas y desajustes con el modelo.
+
+**Lo real:** El documento se escribió contra un `supabase_schema.sql` que en efecto estaba obsoleto. En la entrega (2026-09-19) fue **regenerado fielmente a partir de las migraciones** y queda guardado por `SupabaseSchemaFreshnessTests.cs:22-45`, que impide divergencia futura. El script hoy contiene exactamente 35 sentencias `CREATE TABLE` (34 tablas del modelo + `__EFMigrationsHistory`).
+
+**Evidencia:** `supabase_schema.sql` regenerado en el commit `6d4093e` (PR #69), verificado en `verify-report.md` §3.3.
+
+### Afirmación con referencia caducada en §1.3
+
+**Lo que decía:** la selección del almacén de medios vive en `Program.cs:158-166` y el fallback acaba siempre en memoria.
+
+**Lo real: el §1.3 tenía razón en el fondo.** Este era un defecto auténtico, el primero de los cuatro que cerró el incremento: el selector era binario (Cloudflare R2 o memoria) y `PhysicalFileImageStorageService` nunca llegaba a seleccionarse, así que toda imagen de catálogo se perdía al reiniciar el proceso. Lo único que ha caducado es la referencia de línea, porque PR1a (#65) sustituyó aquel selector por una factoría de precedencia de tres vías que hoy vive en `src/Ludeka.Infrastructure/DependencyInjection/LudekaServiceCollectionExtensions.cs:277-302`.
+
+**Lo que el §1.3 no podía ver:** que arreglar la selección no bastaba. La auditoría destapó dos causas encadenadas más, ninguna recogida en este documento: `UseStaticFiles()` no existía en `src/`, de modo que el fallback en disco habría devuelto 404 aunque se seleccionara; y `PhysicalFileImageStorageService` escribía en la raíz de la ruta configurada mientras publicaba la URL con el segmento `games`, un segundo 404 encadenado al anterior.
+
+**Evidencia:** factoría y precedencia en `MediaStorageSelectionTests.cs:56-88`; entrega HTTP real y matriz de amenazas en `MediaStaticFilesDeliveryTests.cs:42-152`; corrección de ruta en `PhysicalFileImageStorageService.cs:33`, con `PhysicalFileImageStorageServiceTests.cs:37-63`.
+
+### Lo que este documento nunca recogió
+
+Dos de los cuatro defectos que el incremento cerró no aparecen en ningún punto del §1, porque se destaparon después: el arranque en `Production` caía en silencio a una base SQLite efímera, y las sondas de `/ready` reportaban un proveedor literal y un almacén de medios deducido de la cadena de conexión de la base de datos. Están documentados en el [módulo 35](file:///c:/repos/Ludeka/docs/specs/sistema/35-persistencia-produccion-y-medios-con-fallback.md) §4 y §5.
+
+---
+
+## 1. Motivación y Visión (Contexto Histórico)
 
 **Regla de verdad que este incremento hace cumplir:** **producción es PostgreSQL y Cloudflare R2; SQLite existe únicamente como motor de pruebas y de desarrollo local.** Hoy la documentación, la configuración y el código afirman simultáneamente lo contrario.
 
