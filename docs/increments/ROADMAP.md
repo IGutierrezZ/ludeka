@@ -65,7 +65,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ✅ Archivado | [inc-49-vinculacion-cuentas.md](archive/inc-49-vinculacion-cuentas.md) |
 | **INC-50** | Área de Cuenta: Puerta de Acceso en la Cabecera y Hub del Usuario | ⏳ Planificado | [inc-50-area-de-cuenta.md](inc-50-area-de-cuenta.md) |
 | **INC-51** | Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43 | ⏳ Planificado | [inc-51-huecos-cobertura-archivado.md](inc-51-huecos-cobertura-archivado.md) |
-| **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ⏳ En progreso | [inc-52-autenticacion-en-el-despliegue.md](inc-52-autenticacion-en-el-despliegue.md) |
+| **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -82,11 +82,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-52 Autenticación y Acceso Administrativo en el Primer Despliegue** — worktree `C:\repos\ludeka-wt\autenticacion-en-el-despliegue`, rama `inc/autenticacion-en-el-despliegue`. **Puerta del primer despliegue real.** Cadena `stacked-to-main` de 7 PRs: contrato, arnés y puerta de decisión N2, middleware de cabeceras reenviadas, pruebas de tubería, guarda de identidad y aviso, cableado del pipeline, y documentación.
-
-  La auditoría destapó **tres defectos bloqueantes** que ningún documento recogía y que no dan síntoma: `UseForwardedHeaders` no existe, así que el `redirect_uri` de OAuth saldría en `http://` y los tres proveedores rechazarían el acceso; el pipeline no inyecta ninguna credencial de autenticación, y no hay acceso por contraseña; y el correo del administrador fundador se fija de forma **irreversible** en el primer arranque, así que sin informarlo el maintainer quedaría fuera de su propio panel.
-
-  **Ninguno de los siete PRs puede quedarse sin fusionar antes de configurar `GCP_PROJECT_ID` y `GCP_SA_KEY`**: esos dos secretos arman el despliegue automático.
+*(INC-52 entregó su cadena de 8 PRs (#77–#84), toda mergeada a `main` el 2026-09-21, y quedó archivado ese mismo día. **Puerta del primer despliegue real.** Resolvió cinco defectos bloqueantes: `UseForwardedHeaders` no existía (B1, `redirect_uri` OAuth en `http` tras proxy), el pipeline no inyectaba credenciales de autenticación (B2, cero botones de acceso), el correo del administrador fundador se fijaba irreversiblemente en el primer arranque (B3, maintainer fuera de su panel), ningún registro advertía cuando cero proveedores estaban operativos (B4, logs silenciosos), y el ROADMAP mentía sobre el PR #60 abierto (B5, falsedad documental). Verificación: `pass_with_warnings`, 1.593 pruebas unitarias + 10 de integración verdes. **Nota:** la advertencia sobre el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0 sigue vigente: antes de configurar `GCP_PROJECT_ID` y `GCP_SA_KEY`, sigue ese orden o el primer despliegue dejará producción sin ejecutor de trabajos.*
 
 *(INC-49 completó su cadena de 7 PRs, mergeó a `main` el 2026-09-18 y quedó archivado el 2026-09-18; ya no figura aquí.)*
 

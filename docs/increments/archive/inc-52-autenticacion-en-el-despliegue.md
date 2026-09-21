@@ -1,6 +1,6 @@
 # INC-52: Autenticación y Acceso Administrativo en el Primer Despliegue de Producción
 
-> **Estado:** ⏳ En progreso (contrato SDD cerrado el 2026-09-20)
+> **Estado:** ✅ Archivado (2026-09-21)
 > **Fecha de Inicio:** 2026-09-20
 > **Rama de Trabajo:** `inc/autenticacion-en-el-despliegue`
 > **Worktree:** `C:\repos\ludeka-wt\autenticacion-en-el-despliegue`
