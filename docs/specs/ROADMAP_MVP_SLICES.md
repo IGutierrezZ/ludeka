@@ -480,6 +480,18 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 53: Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual
+- **Identificador SDD:** `change-53-ingesta-masiva-autonoma-bgg`
+- **Objetivo Principal:** Descarga y poblado 100% autónomo del dataset de clasificación BGG en la tabla de Staging sin manipulación de archivos locales por parte del usuario:
+  1. Descarga en streaming HTTP directo desde el dataset público y actualizado diariamente (`beefsack/bgg-ranking-historicals`), con filtrado comunitario (`usersrated >= 30`), resiliencia con fallback de 5 días y descompresión al vuelo sin sobrepasar 30 MB de memoria RAM.
+  2. Botón de acción interactivo en `/admin/cola-catalogacion` con indicadores reactivos de progreso y guarda de permisos `CanEditGames`.
+  3. Ejecución desatendida en `Ludeka.Jobs` con el runner `SeedStagingJobRunner` (`seed-staging`) y auto-siembra inteligente en Fase 3 de `nightly-cataloging` si staging está vacío.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-21 (cadena de 3 PRs apilados, suite completa 1.604 unitarias + 10 de integración en verde al 100%, 0 fallos).
+- **Documento:** [`inc-53-ingesta-masiva-autonoma-bgg.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-53-ingesta-masiva-autonoma-bgg.md).
+- **Módulos del Sistema:** [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md) y [`34-trabajos-en-segundo-plano-cloud-run.md`](file:///c:/repos/Ludeka/docs/specs/sistema/34-trabajos-en-segundo-plano-cloud-run.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
