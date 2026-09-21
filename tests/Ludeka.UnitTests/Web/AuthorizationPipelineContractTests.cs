@@ -31,12 +31,20 @@ public class AuthorizationPipelineContractTests
     {
         var source = ReadSource("src/Ludeka.Web/Program.cs");
 
+        // INC-52 (Fase 3), design.md D1: UseForwardedHeaders debe ir como PRIMER middleware de
+        // la tubería, antes del bloque de no-desarrollo (UseExceptionHandler/UseHsts) y, por
+        // tanto, antes de UseHttpsRedirection.
+        var forwardedHeaders = source.IndexOf("app.UseForwardedHeaders(", StringComparison.Ordinal);
+        var exceptionHandler = source.IndexOf("app.UseExceptionHandler(", StringComparison.Ordinal);
         var authentication = source.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
         var authorization = source.IndexOf("app.UseAuthorization();", StringComparison.Ordinal);
         var antiforgery = source.IndexOf("app.UseAntiforgery();", StringComparison.Ordinal);
         var https = source.IndexOf("app.UseHttpsRedirection();", StringComparison.Ordinal);
 
         Assert.True(https >= 0, "Program.cs no llama a UseHttpsRedirection().");
+        Assert.True(forwardedHeaders >= 0, "Program.cs no llama a UseForwardedHeaders().");
+        Assert.True(forwardedHeaders < https, "UseForwardedHeaders() debe ir antes de UseHttpsRedirection().");
+        Assert.True(forwardedHeaders < exceptionHandler, "UseForwardedHeaders() debe ir antes de UseExceptionHandler().");
         Assert.True(authentication > https, "UseAuthentication() debe ir después de UseHttpsRedirection().");
         Assert.True(authorization > authentication, "UseAuthorization() debe ir después de UseAuthentication().");
         Assert.True(antiforgery > authorization, "UseAntiforgery() debe ir después de UseAuthorization().");
