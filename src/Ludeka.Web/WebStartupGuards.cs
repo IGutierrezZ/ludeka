@@ -44,4 +44,39 @@ public static class WebStartupGuards
 
         return null;
     }
+
+    /// <summary>Evalúa la guarda de identidad del Administrador Fundador (INC-52, PR5, diseño D8) y
+    /// devuelve el mensaje de fallo si no pasa, o <see langword="null"/> si pasa. Función pura,
+    /// hermana de <see cref="Evaluate"/> y evaluada de forma independiente de ella.</summary>
+    /// <remarks>
+    /// Lee <c>configuration["AdminUser:Email"]</c> DIRECTAMENTE, nunca a través de
+    /// <see cref="AdminUserOptions"/> enlazado. <see cref="AdminUserOptions.Email"/> tiene un valor
+    /// por defecto en C# (<c>"admin@ludeka.es"</c>): si esta guarda leyera de las opciones enlazadas,
+    /// borrar la clave del <c>appsettings.json</c> en vez de vaciarla resucitaría ese valor por
+    /// defecto y la guarda fallaría EN ABIERTO — exactamente el defecto que existe para cerrar.
+    /// Leyendo la configuración directamente, tanto la clave ausente como el valor vacío se
+    /// traducen en «no informado» y la guarda falla en cerrado.
+    /// </remarks>
+    public static string? EvaluateAdminUserIdentity(IConfiguration configuration, string? environmentName)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var isProduction = string.Equals(environmentName, "Production", StringComparison.OrdinalIgnoreCase);
+        var adminUserEmail = configuration["AdminUser:Email"];
+
+        if (isProduction && string.IsNullOrWhiteSpace(adminUserEmail))
+        {
+            return "Guarda de arranque (identidad del Administrador Fundador): en Production se exige " +
+                   "un valor explícito y no vacío para AdminUser:Email (variable de entorno " +
+                   "AdminUser__Email, secreto ADMIN_USER_EMAIL) y no está informado. El sembrado del " +
+                   "Administrador Fundador ocurre una sola vez, contra base vacía, y es IRREVERSIBLE " +
+                   "por la vía de la aplicación: si se elude esta guarda con un valor cualquiera o " +
+                   "equivocado, ese correo queda fijado para siempre y el maintainer real pierde el " +
+                   "acceso a su propio panel de administración, sin otra vía de recuperación que " +
+                   "editar la fila a mano en la base de datos. Corrige AdminUser__Email con el correo " +
+                   "real y verificable del proveedor social elegido antes de volver a desplegar.";
+        }
+
+        return null;
+    }
 }

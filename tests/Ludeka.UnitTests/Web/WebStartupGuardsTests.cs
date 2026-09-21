@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using Ludeka.Infrastructure.Options;
 using Ludeka.Web;
 using Microsoft.Extensions.Configuration;
@@ -16,12 +18,17 @@ namespace Ludeka.UnitTests.Web;
 /// </summary>
 public class WebStartupGuardsTests
 {
-    private static IConfiguration BuildConfiguration(bool? requirePostgreSqlInProduction = null)
+    private static IConfiguration BuildConfiguration(bool? requirePostgreSqlInProduction = null, string? adminUserEmail = null)
     {
         var values = new Dictionary<string, string?>();
         if (requirePostgreSqlInProduction.HasValue)
         {
             values["Database:RequirePostgreSqlInProduction"] = requirePostgreSqlInProduction.Value ? "true" : "false";
+        }
+
+        if (adminUserEmail is not null)
+        {
+            values["AdminUser:Email"] = adminUserEmail;
         }
 
         return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
@@ -100,5 +107,91 @@ public class WebStartupGuardsTests
         var failure = WebStartupGuards.Evaluate(configuration, databaseOptions, environmentName: "Staging");
 
         Assert.Null(failure);
+    }
+
+    // RED de la tarea 5.1 (INC-52, PR5, diseño D8): guarda de identidad del Administrador Fundador,
+    // hermana de la guarda de coherencia de proveedor de arriba. Espera un método nuevo
+    // (WebStartupGuards.EvaluateAdminUserIdentity) que todavía no existe en esta tarea.
+
+    [Fact]
+    public void EvaluateAdminUserIdentity_G1_EnProductionConCorreoInformado_NoActivaLaGuarda()
+    {
+        var configuration = BuildConfiguration(adminUserEmail: "fundador@ludeka.es");
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName: "Production");
+
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void EvaluateAdminUserIdentity_G2_EnProductionSinLaClave_DevuelveFalloNombrandoLaClave()
+    {
+        var configuration = BuildConfiguration();
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName: "Production");
+
+        Assert.NotNull(failure);
+        Assert.Contains("AdminUser:Email", failure);
+    }
+
+    [Fact]
+    public void EvaluateAdminUserIdentity_G3_EnProductionConSoloEspacios_DevuelveFallo()
+    {
+        var configuration = BuildConfiguration(adminUserEmail: "   ");
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName: "Production");
+
+        Assert.NotNull(failure);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public void EvaluateAdminUserIdentity_G4_FueraDeProductionSinLaClave_NoActivaLaGuarda(string environmentName)
+    {
+        var configuration = BuildConfiguration();
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName);
+
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void EvaluateAdminUserIdentity_G5_ConEntornoProductionEnMinusculasSinLaClave_SiActivaLaGuarda()
+    {
+        var configuration = BuildConfiguration();
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName: "production");
+
+        Assert.NotNull(failure);
+    }
+
+    // RED→GREEN de la tarea 5.8 (INC-52, PR5, diseño D8): liga la guarda con el vaciado real de
+    // appsettings.json (tarea 5.6). Técnica de tests/Ludeka.UnitTests/Web/WebAuthenticationRegistrationTests.cs:125-127
+    // (read-only) — copia propia de GetRepoRoot, no clase de ayudantes compartida (misma decisión
+    // que design.md para AuthorizationPipelineContractTests/CiCdWorkflowContractTests).
+    [Fact]
+    public void EvaluateAdminUserIdentity_G6_ConLaConfiguracionEmpaquetadaYProduction_SiActivaLaGuarda()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "appsettings.json"), optional: false)
+            .Build();
+
+        var failure = WebStartupGuards.EvaluateAdminUserIdentity(configuration, environmentName: "Production");
+
+        Assert.NotNull(failure);
+        Assert.Contains("AdminUser:Email", failure);
+    }
+
+    private static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Ludeka.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return dir!.FullName;
     }
 }

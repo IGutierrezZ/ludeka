@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
@@ -37,6 +38,15 @@ public class WebAuthenticationRegistrationTests
     {
         var options = new AuthenticationOptions();
         options.Providers[ExternalProviderNames.Google] = Provider(true, "google-client-id", "google-client-secret");
+        return options;
+    }
+
+    private static AuthenticationOptions OptionsWithNoUsableProviders()
+    {
+        var options = new AuthenticationOptions();
+        options.Providers[ExternalProviderNames.Google] = Provider(false, "google-id", "google-secret");
+        options.Providers[ExternalProviderNames.Discord] = Provider(false, "discord-id", "discord-secret");
+        options.Providers[ExternalProviderNames.Facebook] = Provider(false, "facebook-id", "facebook-secret");
         return options;
     }
 
@@ -151,5 +161,43 @@ public class WebAuthenticationRegistrationTests
 
         Assert.NotNull(dir);
         return dir!.FullName;
+    }
+
+    // RED de la tarea 5.3 (INC-52, PR5, diseño D10): aviso agregado de "cero proveedores
+    // utilizables", hermano de GetConfigurationWarnings. Espera un método y un record nuevos
+    // (ExternalAuthenticationSchemes.GetNoUsableProviderNotice / AuthenticationStartupNotice) que
+    // todavía no existen en esta tarea.
+
+    [Fact]
+    public void GetNoUsableProviderNotice_A1_EnProductionSinProveedoresUtilizables_DevuelveAvisoDeNivelError()
+    {
+        var options = OptionsWithNoUsableProviders();
+
+        var notice = ExternalAuthenticationSchemes.GetNoUsableProviderNotice(options, environmentName: "Production");
+
+        Assert.NotNull(notice);
+        Assert.Equal(LogLevel.Error, notice!.Level);
+    }
+
+    [Fact]
+    public void GetNoUsableProviderNotice_A2_EnDevelopmentSinProveedoresUtilizables_DevuelveAvisoDeNivelWarning()
+    {
+        var options = OptionsWithNoUsableProviders();
+
+        var notice = ExternalAuthenticationSchemes.GetNoUsableProviderNotice(options, environmentName: "Development");
+
+        Assert.NotNull(notice);
+        Assert.Equal(LogLevel.Warning, notice!.Level);
+    }
+
+    [Fact]
+    public void GetNoUsableProviderNotice_A3_EnProductionConGoogleUtilizable_DevuelveNuloYNoAlteraLosAvisosPorProveedor()
+    {
+        var options = OptionsWithUsableGoogle();
+
+        var notice = ExternalAuthenticationSchemes.GetNoUsableProviderNotice(options, environmentName: "Production");
+
+        Assert.Null(notice);
+        Assert.Empty(ExternalAuthenticationSchemes.GetConfigurationWarnings(options));
     }
 }
