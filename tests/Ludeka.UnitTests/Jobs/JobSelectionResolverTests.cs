@@ -25,6 +25,7 @@ public class JobSelectionResolverTests
     [InlineData(JobNames.PriceRadar)]
     [InlineData(JobNames.SocialCollector)]
     [InlineData(JobNames.NotificationOutbox)]
+    [InlineData(JobNames.SeedStaging)]
     public void Resolve_ConArgumentoPosicionalValido_DevuelveEseTrabajo(string jobName)
     {
         var result = JobSelectionResolver.Resolve([jobName], EmptyConfiguration());

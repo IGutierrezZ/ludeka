@@ -13,15 +13,16 @@ public static class JobNames
     public const string PriceRadar = "price-radar";
     public const string SocialCollector = "social-collector";
     public const string NotificationOutbox = "notification-outbox";
+    public const string SeedStaging = "seed-staging";
 
-    /// <summary>Los cuatro nombres válidos, en el orden en que aparecen en la tabla del diseño
-    /// §7.2. Comparación sensible a mayúsculas y exacta (diseño §8.4): aceptar variantes
-    /// ortográficas del nombre que decide qué se ejecuta en producción no compensa el riesgo.</summary>
+    /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
+    /// Comparación sensible a mayúsculas y exacta.</summary>
     public static readonly IReadOnlyList<string> All =
     [
         NightlyCataloging,
         PriceRadar,
         SocialCollector,
-        NotificationOutbox
+        NotificationOutbox,
+        SeedStaging
     ];
 }

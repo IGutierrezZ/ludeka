@@ -226,10 +226,26 @@
                     </p>
                 </div>
 
-                <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button"
+                            @onclick="ExecuteAutonomousStagingSeedAsync"
+                            disabled="@(_isSeedingStaging || _isDrainingStaging)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-sky-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        @if (_isSeedingStaging)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Descargando y Poblando (~8.000)...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="download" Size="14" class="text-sky-500" />
+                            <span>Descargar y Poblar Catálogo BGG (~8.000)</span>
+                        }
+                    </button>
+
                     <button type="button"
                             @onclick="ExecuteStagingDrainAsync"
-                            disabled="@_isDrainingStaging"
+                            disabled="@(_isDrainingStaging || _isSeedingStaging)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isDrainingStaging)
                         {
@@ -284,6 +300,14 @@
                 <div class="p-4 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
                     <span><Icon Name="circle-check" Size="14" class="inline text-emerald-500 mr-1.5" /> @_drainCycleResult.Message</span>
                     <button type="button" @onclick="() => _drainCycleResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                </div>
+            }
+
+            @if (_stagingSeedResult != null)
+            {
+                <div class="p-4 rounded-xl bg-sky-500/10 border border-sky-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-sky-500 mr-1.5" /> @_stagingSeedResult</span>
+                    <button type="button" @onclick="() => _stagingSeedResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
         </div>
@@ -534,6 +558,7 @@
     private bool _isLoading = true;
     private bool _isProcessing = false;
     private bool _isDrainingStaging = false;
+    private bool _isSeedingStaging = false;
     private bool _isDiscoveringBgg = false;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
@@ -545,6 +570,7 @@
     private BggDiscoveryResultDto? _discoveryResult;
     private BggStagingMetricsDto? _stagingMetrics;
     private BggMassIngestionCycleResultDto? _drainCycleResult;
+    private string? _stagingSeedResult;
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
     private IReadOnlyList<NightlyCatalogingExecutionLogDto> _history = [];
 
@@ -627,6 +653,29 @@
         finally
         {
             _isDrainingStaging = false;
+        }
+    }
+
+    private async Task ExecuteAutonomousStagingSeedAsync()
+    {
+        if (_isSeedingStaging || _isDrainingStaging) return;
+
+        _isSeedingStaging = true;
+        _stagingSeedResult = null;
+
+        try
+        {
+            int ingestedCount = await MassIngestionService.DownloadAndIngestLatestRanksAsync();
+            _stagingSeedResult = $"Catálogo BGG descargado e incorporado con éxito: {ingestedCount} títulos procesados en staging.";
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _stagingSeedResult = $"Error en la descarga e ingesta de catálogo: {ex.Message}";
+        }
+        finally
+        {
+            _isSeedingStaging = false;
         }
     }
 

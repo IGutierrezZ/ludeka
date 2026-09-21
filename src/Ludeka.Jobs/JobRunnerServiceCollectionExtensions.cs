@@ -18,6 +18,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, PriceRadarJobRunner>();
         services.AddScoped<IJobRunner, SocialCollectorJobRunner>();
         services.AddScoped<IJobRunner, NotificationOutboxJobRunner>();
+        services.AddScoped<IJobRunner, SeedStagingJobRunner>();
         return services;
     }
 }
