@@ -229,23 +229,23 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <button type="button"
                             @onclick="ExecuteAutonomousStagingSeedAsync"
-                            disabled="@(_isSeedingStaging || _isDrainingStaging)"
+                            disabled="@(_isSeedingStaging || _isDrainingStaging || _isClearingStaging)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-sky-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isSeedingStaging)
                         {
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Descargando y Poblando (~8.000)...</span>
+                            <span>Descargando y Poblando (Top ~4.000)...</span>
                         }
                         else
                         {
                             <Icon Name="download" Size="14" class="text-sky-500" />
-                            <span>Descargar y Poblar Catálogo BGG (~8.000)</span>
+                            <span>Descargar y Poblar Catálogo BGG (Top ~4.000, ≥1.000 votos)</span>
                         }
                     </button>
 
                     <button type="button"
                             @onclick="ExecuteStagingDrainAsync"
-                            disabled="@(_isDrainingStaging || _isSeedingStaging)"
+                            disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isDrainingStaging)
                         {
@@ -258,6 +258,43 @@
                             <span>Drenar Ciclo de Staging Ahora</span>
                         }
                     </button>
+
+                    @if (!_confirmClearStaging)
+                    {
+                        <button type="button"
+                                @onclick="() => _confirmClearStaging = true"
+                                disabled="@(_isClearingStaging || _isSeedingStaging || _isDrainingStaging || (_stagingMetrics?.TotalInStaging ?? 0) == 0)"
+                                class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-rose-500 hover:text-rose-500 text-xs font-bold text-[var(--text-muted)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-40">
+                            <Icon Name="trash-2" Size="14" class="text-rose-500" />
+                            <span>Vaciar Staging</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="inline-flex items-center gap-1.5 p-1 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+                            <span class="text-xs text-rose-500 font-bold px-1.5">¿Seguro?</span>
+                            <button type="button"
+                                    @onclick="ExecuteClearStagingAsync"
+                                    disabled="@_isClearingStaging"
+                                    class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                @if (_isClearingStaging)
+                                {
+                                    <span class="animate-spin inline-block"><Icon Name="loader" Size="12" /></span>
+                                    <span>Vaciando...</span>
+                                }
+                                else
+                                {
+                                    <span>Sí, vaciar</span>
+                                }
+                            </button>
+                            <button type="button"
+                                    @onclick="() => _confirmClearStaging = false"
+                                    disabled="@_isClearingStaging"
+                                    class="px-2 py-1 rounded-lg bg-[var(--bg-surface)] text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                                Cancelar
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -559,6 +596,8 @@
     private bool _isProcessing = false;
     private bool _isDrainingStaging = false;
     private bool _isSeedingStaging = false;
+    private bool _isClearingStaging = false;
+    private bool _confirmClearStaging = false;
     private bool _isDiscoveringBgg = false;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
@@ -676,6 +715,30 @@
         finally
         {
             _isSeedingStaging = false;
+        }
+    }
+
+    private async Task ExecuteClearStagingAsync()
+    {
+        if (_isClearingStaging || _isSeedingStaging || _isDrainingStaging) return;
+
+        _isClearingStaging = true;
+        _confirmClearStaging = false;
+        _stagingSeedResult = null;
+
+        try
+        {
+            await MassIngestionService.ClearStagingAsync();
+            _stagingSeedResult = "Tabla de staging vaciada con éxito. Se han eliminado todos los registros pendientes.";
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _stagingSeedResult = $"Error al vaciar staging: {ex.Message}";
+        }
+        finally
+        {
+            _isClearingStaging = false;
         }
     }
 

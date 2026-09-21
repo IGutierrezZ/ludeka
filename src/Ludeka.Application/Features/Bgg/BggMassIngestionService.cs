@@ -73,7 +73,7 @@ public class BggMassIngestionService : IBggMassIngestionService
             ? Task.CompletedTask
             : _permissionGuard.RequireAsync(ModeratorPermission.CanEditGames, DenialMessage, ct);
 
-    public async Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 30, CancellationToken ct = default)
+    public async Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 1000, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dumpStream);
         if (minUsersRated <= 0) minUsersRated = _options.MinUsersRated;
@@ -532,6 +532,14 @@ public class BggMassIngestionService : IBggMassIngestionService
     public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default)
     {
         return ExecuteDownloadAndIngestAsync(minUsersRated, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ClearStagingAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        _logger.LogInformation("Vaciando completamente la tabla BggCatalogStaging por petición administrativa.");
+        await _stagingRepo.ClearStagingAsync(ct);
     }
 
     private async Task<int> ExecuteDownloadAndIngestAsync(int? minUsersRated, CancellationToken ct)

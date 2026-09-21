@@ -174,4 +174,9 @@ public class SqliteBggCatalogStagingRepository : IBggCatalogStagingRepository
     {
         return await _context.BggCatalogStaging.CountAsync(ct);
     }
+
+    public async Task ClearStagingAsync(CancellationToken ct = default)
+    {
+        await _context.BggCatalogStaging.ExecuteDeleteAsync(ct);
+    }
 }

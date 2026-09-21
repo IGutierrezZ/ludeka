@@ -11,9 +11,9 @@ namespace Ludeka.Application.Contracts;
 public interface IBggMassIngestionService
 {
     /// <summary>
-    /// Procesa un flujo de volcado CSV de ranks de BGG e inserta en staging los títulos que cumplan el umbral de votos.
+    /// Procesa un flujo de volcado CSV de ranks de BGG e inserta en staging los títulos que cumplan el umbral de votos (por defecto >= 1000).
     /// </summary>
-    Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 30, CancellationToken ct = default);
+    Task<int> IngestRanksDumpAsync(Stream dumpStream, int minUsersRated = 1000, CancellationToken ct = default);
 
     /// <summary>
     /// Procesa un lote de registros pendientes en staging para consultar /xmlapi2/thing en BGG (hasta 20 IDs).
@@ -61,6 +61,12 @@ public interface IBggMassIngestionService
     /// Versión de sistema para ejecutor en segundo plano (Ludeka.Jobs) sin la guarda de sesión interactiva.
     /// </summary>
     Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Vacía por completo la tabla intermedia de staging de catálogo BGG.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
+    /// </summary>
+    Task ClearStagingAsync(CancellationToken ct = default);
 }
 
 /// <summary>

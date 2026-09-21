@@ -129,11 +129,12 @@ Incorporación de `BackCoverImageUrl`, `TableImageUrl` en la tabla `Games` y cre
 ## 5. Capa Web y Presentación (`Ludeka.Web`)
 
 ### 5.1. Cuadro de Mandos en Administración (`CatalogQueueAdmin.razor`)
-Sección dedicada a "Ingesta Masiva BGG & Staging (~8.000 títulos)" con:
+Sección dedicada a "Ingesta Masiva BGG & Staging (Top ~4.000 títulos, ≥1.000 votos)" con:
 - Métricas en tiempo real: Total en staging, pendientes de detalle, imágenes, IA, listos para promoción y promovidos.
 - Alerta visual amarilla si la cuota de IA fue alcanzada (`QuotaExceeded`).
-- Botón de acción rápida: *«Drenar Lote de Staging (10 títulos)»* con feedback interactivo.
-- Botón de descarga y siembra autónoma (INC-53): *«Descargar y Poblar Catálogo BGG (~8.000 títulos)»*, protegido por la política de permisos `CanEditGames`, con animación reactiva (`_isSeedingStaging`), bloqueo concurrente mutuo y reporte detallado de títulos sembrados.
+- Botón de acción rápida: *«Drenar Ciclo de Staging Ahora»* con feedback interactivo.
+- Botón de descarga y siembra autónoma: *«Descargar y Poblar Catálogo BGG (Top ~4.000, ≥1.000 votos)»*, protegido por la política de permisos `CanEditGames`, con animación reactiva (`_isSeedingStaging`), bloqueo concurrente mutuo y reporte detallado de títulos sembrados.
+- Botón de acción destructiva protegida: *«Vaciar Staging»* con confirmación reactiva en dos pasos (*«¿Seguro? Sí, vaciar / Cancelar»*), invocando `ClearStagingAsync` mediante `ExecuteDeleteAsync` atómico en base de datos.
 
 ### 5.2. Galería Visual en Detalle de Juego (`GameDetail.razor`)
 Bloque *"Galería Visual y Componentes"* que renderiza la contraportada (`BackCoverImageUrl`) y la fotografía de despliegue en mesa (`TableImageUrl`) en diseño de tarjeta editorial con fallback seguro.
@@ -143,7 +144,7 @@ Bloque *"Galería Visual y Componentes"* que renderiza la contraportada (`BackCo
 ## 6. Integración en Ciclos Desatendidos y Cloud Run Jobs
 
 ### 6.1. Runner Autónomo `seed-staging` (`Ludeka.Jobs`)
-Incorporado en INC-53 como quinto trabajo fino de consola (`JobNames.SeedStaging`). Ejecuta una sola unidad de trabajo idempotente con clave diaria UTC, descargando y sembrando la tabla staging sin intervención humana.
+Incorporado en INC-53 como quinto trabajo fino de consola (`JobNames.SeedStaging`). Ejecuta una sola unidad de trabajo idempotente con clave diaria UTC, descargando y sembrando la tabla staging con el umbral configurado (`usersrated >= 1000`) sin intervención humana.
 
 ### 6.2. Auto-Siembra Inteligente en el Ciclo Nocturno (`NightlyCatalogingService.cs`)
 En la Fase 3 del ciclo nocturno, antes del drenaje de staging, se evalúan las métricas actuales: si `stagingMetrics.TotalInStaging == 0`, el servicio invoca automáticamente `RunScheduledDownloadAndIngestLatestRanksAsync()`, garantizando que la base de datos comience su ciclo de drenaje sin requerir que un operador humano haya poblado staging previamente.
@@ -155,12 +156,12 @@ En la Fase 3 del ciclo nocturno, antes del drenaje de staging, se evalúan las m
 Se cuenta con una batería completa de pruebas unitarias sin dependencias externas de red ni mocks pesados, empleando Fakes deterministas:
 - `BggCatalogStagingItemTests`: 12 pruebas de transiciones de dominio y validaciones.
 - `BggDumpParserTests`: 3 pruebas de streaming CSV, filtro por umbral de votos y caracteres escapados.
-- `BggMassIngestionAutonomousDownloadTests` (INC-53): 7 pruebas de descarga remota, resolución de fechas, fallback resiliente, streaming no buscable, simulación y permisos de moderador.
+- `BggMassIngestionAutonomousDownloadTests`: 10 pruebas de descarga remota, resolución de fechas, fallback resiliente, streaming no buscable, simulación, permisos de moderador, umbral 1.000 por defecto y vaciado atómico `ClearStagingAsync`.
 - `GeekDoImagesClientTests`: 3 pruebas del cliente de galería comunitaria y modo simulación.
 - `GeminiBatchSummaryTests`: 2 pruebas de síntesis en lotes y manejo de casos vacíos.
 - `BggMassIngestionServiceTests`: 4 pruebas completas del ciclo de ingesta, detalles BGG, control de cuota 429 y promoción atómica a catálogo.
-- `SeedStagingJobRunnerTests` (INC-53): 1 prueba del runner de Cloud Run Jobs coordinado bajo concesión de ventana.
-- `NightlyCatalogingServiceTests` (INC-53): 2 pruebas de auto-siembra condicional cuando staging está vacío frente a cuando ya contiene registros.
+- `SeedStagingJobRunnerTests`: 1 prueba del runner de Cloud Run Jobs coordinado bajo concesión de ventana.
+- `NightlyCatalogingServiceTests`: 2 pruebas de auto-siembra condicional cuando staging está vacío frente a cuando ya contiene registros.
 - `SqliteSchemaMigratorTests`: Validación de migración defensiva de esquema SQLite.
 
-**Total verificado en la solución tras INC-53:** **1.604 pruebas unitarias + 10 de integración en verde al 100% (1.614 pruebas totales)**.
+**Total verificado en la solución:** **1.609 pruebas unitarias + 10 de integración en verde al 100% (1.619 pruebas totales)**.

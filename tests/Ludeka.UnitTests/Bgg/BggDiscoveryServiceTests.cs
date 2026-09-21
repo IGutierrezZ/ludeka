@@ -292,5 +292,11 @@ public class BggDiscoveryServiceTests
 
         public Task<int> GetTotalCountAsync(CancellationToken ct = default) =>
             Task.FromResult(Items.Count);
+
+        public Task ClearStagingAsync(CancellationToken ct = default)
+        {
+            Items.Clear();
+            return Task.CompletedTask;
+        }
     }
 }
