@@ -116,6 +116,8 @@ jobs:
             Cloudflare__BucketName=ludeka-media
             Cloudflare__PublicCdnBaseUrl=https://cdn.ludeka.com
             Cloudflare__Simulate=false
+            Authentication__Providers__Google__Enabled=true
+            Authentication__Providers__Discord__Enabled=true
           secrets: |
             ConnectionStrings__DefaultConnection=SUPABASE_DB_CONNECTION:latest
             Gemini__ApiKey=GEMINI_API_KEY:latest
@@ -127,6 +129,11 @@ jobs:
             Cloudflare__AccountId=CLOUDFLARE_ACCOUNT_ID:latest
             Cloudflare__AccessKeyId=CLOUDFLARE_ACCESS_KEY_ID:latest
             Cloudflare__SecretAccessKey=CLOUDFLARE_SECRET_ACCESS_KEY:latest
+            Authentication__Providers__Google__ClientId=GOOGLE_OAUTH_CLIENT_ID:latest
+            Authentication__Providers__Google__ClientSecret=GOOGLE_OAUTH_CLIENT_SECRET:latest
+            Authentication__Providers__Discord__ClientId=DISCORD_OAUTH_CLIENT_ID:latest
+            Authentication__Providers__Discord__ClientSecret=DISCORD_OAUTH_CLIENT_SECRET:latest
+            AdminUser__Email=ADMIN_USER_EMAIL:latest
 
       # INC-47, R6 (diseño §8.9): un Cloud Run Job por trabajo, los cuatro sobre la MISMA imagen
       # ya publicada arriba — el ENTRYPOINT por defecto arranca el servicio web y cada Job
