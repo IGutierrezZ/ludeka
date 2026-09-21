@@ -1,10 +1,12 @@
 using Ludeka.Core.Entities;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class LudekaDbContext : DbContext
+public class LudekaDbContext : DbContext, IDataProtectionKeyContext
 {
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<UserCollectionItem> CollectionItems => Set<UserCollectionItem>();
     public DbSet<GameLoan> Loans => Set<GameLoan>();
