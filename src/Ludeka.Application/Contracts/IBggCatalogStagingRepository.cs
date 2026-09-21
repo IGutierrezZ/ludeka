@@ -32,4 +32,9 @@ public interface IBggCatalogStagingRepository
     Task ResetQuotaExceededStatusAsync(CancellationToken ct = default);
 
     Task<int> GetTotalCountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Vacía por completo la tabla intermedia de staging de catálogo BGG.
+    /// </summary>
+    Task ClearStagingAsync(CancellationToken ct = default);
 }

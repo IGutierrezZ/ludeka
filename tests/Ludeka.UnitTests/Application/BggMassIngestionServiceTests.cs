@@ -279,6 +279,12 @@ public class BggMassIngestionServiceTests
         public Task ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<int> GetTotalCountAsync(CancellationToken ct = default) => Task.FromResult(Items.Count);
+
+        public Task ClearStagingAsync(CancellationToken ct = default)
+        {
+            Items.Clear();
+            return Task.CompletedTask;
+        }
     }
 
     private class FakeBggClient : IBggClient

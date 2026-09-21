@@ -209,6 +209,47 @@ public class BggMassIngestionAutonomousDownloadTests
         Assert.Contains(results, r => r.BggId == 342942);
     }
 
+    [Fact]
+    public async Task ClearStagingAsync_RemovesAllItems_WhenAuthorized()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        stagingRepo.Items.Add(new BggCatalogStagingItem(174430, "Gloomhaven", 2017, 1, 62000, 8.42, 8.61, "Gloomhaven"));
+        stagingRepo.Items.Add(new BggCatalogStagingItem(224517, "Brass: Birmingham", 2018, 2, 48000, 8.41, 8.60, "Brass: Birmingham"));
+        var handler = new MockHttpMessageHandler();
+        var service = CreateService(stagingRepo, handler);
+
+        // Act
+        await service.ClearStagingAsync();
+
+        // Assert
+        Assert.Empty(stagingRepo.Items);
+        var metrics = await stagingRepo.GetMetricsAsync();
+        Assert.Equal(0, metrics.TotalInStaging);
+    }
+
+    [Fact]
+    public async Task ClearStagingAsync_ThrowsUnauthorized_WhenUserLacksPermission()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        stagingRepo.Items.Add(new BggCatalogStagingItem(174430, "Gloomhaven", 2017, 1, 62000, 8.42, 8.61, "Gloomhaven"));
+        var handler = new MockHttpMessageHandler();
+        var guard = new DenyingPermissionGuard();
+        var service = CreateService(stagingRepo, handler, permissionGuard: guard);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ClearStagingAsync());
+        Assert.Single(stagingRepo.Items);
+    }
+
+    [Fact]
+    public void Options_DefaultMinUsersRated_Is1000()
+    {
+        var options = new BggMassIngestionOptions();
+        Assert.Equal(1000, options.MinUsersRated);
+    }
+
     #region Helpers & Fakes
 
     private static BggMassIngestionService CreateService(
@@ -351,6 +392,12 @@ public class BggMassIngestionAutonomousDownloadTests
         public Task ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<int> GetTotalCountAsync(CancellationToken ct = default) => Task.FromResult(Items.Count);
+
+        public Task ClearStagingAsync(CancellationToken ct = default)
+        {
+            Items.Clear();
+            return Task.CompletedTask;
+        }
     }
 
     private class FakeBggClient : IBggClient

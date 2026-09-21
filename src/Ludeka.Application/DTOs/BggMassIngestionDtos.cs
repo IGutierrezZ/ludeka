@@ -77,9 +77,9 @@ public class BggMassIngestionOptions
     public const string SectionName = "BggMassIngestion";
 
     /// <summary>
-    /// Umbral mínimo de valoraciones para admitir un título en staging (por defecto 30).
+    /// Umbral mínimo de valoraciones para admitir un título en staging (por defecto 1000, ~4.000 títulos más destacados).
     /// </summary>
-    public int MinUsersRated { get; set; } = 30;
+    public int MinUsersRated { get; set; } = 1000;
 
     /// <summary>
     /// Tamaño de lote para consultar detalles /xmlapi2/thing de BGG (máximo 20 recomendado por BGG).
