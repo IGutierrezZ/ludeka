@@ -112,7 +112,7 @@ Añade los siguientes secretos:
    Host=aws-0-eu-central-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.tu-proyecto;Password=TU_PASSWORD;SSL Mode=Require;Trust Server Certificate=true;
    ```
    *(Nota: Puedes usar tanto el puerto directo `5432` como el Transaction Pooler `6543` de Supabase).*
-3. Al arrancar Ludeka por primera vez contra Supabase, **las migraciones oficiales de Entity Framework Core se ejecutarán automáticamente**, creando todas las tablas, índices nativos `jsonb` y el **usuario Administrador Fundador inicial permanente** (`admin-fundador` / `admin@ludeka.es`).
+3. Al arrancar Ludeka por primera vez contra Supabase, **las migraciones oficiales de Entity Framework Core se ejecutarán automáticamente**, creando todas las tablas e índices nativos `jsonb`. El Administrador Fundador **ya no se siembra con un correo fijo**: en `Production` la aplicación exige `AdminUser__Email` explícito y **aborta el arranque si falta** (§9.0, paso `1-bis`); el correo sembrado es el que se haya informado, y el sembrado es irreversible por la vía de la aplicación (§10.4). Fuera de `Production` sigue vigente el respaldo existente (`admin@ludeka.es`, `AdminUserSeeder.cs:41`, read-only).
 4. No ejecutes [`docs/database/supabase_schema.sql`](file:///c:/repos/Ludeka/docs/database/supabase_schema.sql) a mano en el **SQL Editor de Supabase**. Desde el INC-48 es un **derivado regenerado** desde las migraciones y ya no contradice al modelo, pero sigue siendo de referencia y auditoría: las migraciones son la única fuente de verdad, y `MigrateAsync()` las aplica solo en el despliegue del servicio web. **Los Cloud Run Jobs nunca migran** (§9.0, paso 1).
 
 ---
@@ -208,8 +208,14 @@ Desde este incremento, la misma imagen de contenedor que publica `Ludeka.Web` (s
 Sigue este orden. Los pasos 1 a 3 no despliegan nada, así que puedes hacerlos con calma; el riesgo aparece en el 4.
 
 1. **Base de datos.** Provisiona Supabase y guarda la cadena de conexión como secreto `SUPABASE_DB_CONNECTION`. Aplica las migraciones **desde fuera del proceso de trabajo**: `Ludeka.Jobs` tiene una guarda de arranque que sale con código 3 si detecta migraciones pendientes, y nunca migra por su cuenta (§9.4).
+
+**1-bis. Decide el correo del Administrador Fundador.** Debe ser un buzón **real y verificable por el proveedor social elegido** (Google, Discord o Facebook), y se guarda como secreto `ADMIN_USER_EMAIL`. ⚠️ **El sembrado es irreversible por la vía de la aplicación**: ocurre una sola vez, contra base vacía, en el primer arranque. Si lo informas mal, la recuperación es manual — ver §10.4.
+
 2. **Proyecto de GCP y repositorio de artefactos.** Crea el proyecto, habilita Artifact Registry, Cloud Run, Cloud Scheduler e IAM.
 3. **Cuenta de servicio del planificador**, con `roles/run.invoker` sobre los Jobs que crearás en el paso 5.
+
+**3-bis. Dominio, apps OAuth y claves de autenticación.** Antes del paso 4, que es el que arma el despliegue automático: mapea tu dominio propio en Cloud Run (§10.1), registra las tres apps OAuth con las URL de retorno de ese dominio (§10.2) y crea en Secret Manager las claves que el paso 4 dejará operativas (§10.3).
+
 4. **Secretos de GitHub `GCP_PROJECT_ID` y `GCP_SA_KEY`.** ⚠️ **Este es el paso que arma el despliegue.** En el siguiente `push` a `main`, el flujo dejará de omitir los pasos de despliegue: publicará el servicio web y creará los cuatro Cloud Run Jobs.
 5. **Comprueba que los cuatro Jobs existen** (`gcloud run jobs list`). El paso del pipeline que los crea **nunca se ha ejecutado contra GCP real**: la ortografía de las banderas de `gcloud run jobs deploy` es un hueco de evidencia declarado desde el diseño §8.9. Si falla, corrígelo antes de seguir; no afecta al servicio web, que se despliega en un paso anterior.
 6. **Crea los cuatro Cloud Scheduler** con las cadencias de §9.2, cada uno apuntando a su Job con la cuenta de servicio del paso 3. **Esto no lo hace el pipeline: es manual.**
@@ -292,3 +298,110 @@ A razón de un drenaje del outbox cada 5 minutos, la tabla `JobExecutionLeases` 
 > - **(c)** Cualquier otro mecanismo de disparo que el maintainer prefiera (por ejemplo, ampliar el `notification-outbox` existente para que también revise el boletín semanal en cada drenaje, aunque eso mezclaría dos responsabilidades con cadencias muy distintas en un mismo trabajo).
 >
 > Este hueco es independiente del gate de producción del §3/§9 (que exige confirmar que los CUATRO Cloud Scheduler existentes disparan de verdad): aunque ese gate se cumpla al 100 %, el boletín semanal y el escaneo de sorteos seguirán sin dispararse hasta que se resuelva este punto.
+
+---
+
+## 10. Dominio Propio, Apps OAuth y Primer Acceso del Administrador Fundador (INC-52)
+
+Esta sección completa lo que dejaron abierto INC-46 (autenticación real) e INC-49 (vinculación de cuentas): cómo entra el maintainer a su propio panel en el primer despliegue, qué hay que registrar en las consolas de los proveedores sociales, y qué protege realmente la aplicación al vivir detrás del proxy de Cloud Run. Los pasos `1-bis` y `3-bis` de §9.0 remiten aquí.
+
+### 10.1. Dominio propio en Cloud Run
+
+**Decisión ya tomada por el maintainer, y por qué.** Google marca el mapeo de dominio en Cloud Run como *preview* y advierte literalmente: «at the moment, this option is not recommended for production services» (verificado contra la documentación oficial). Aun así, este incremento **opta por el mapeo directo**, a sabiendas de esa advertencia, porque:
+
+- El proyecto **no tiene tráfico todavía**, así que el riesgo de latencia es bajo y sus consecuencias son reversibles.
+- Un balanceador de aplicación externo global **cobra exista o no tráfico**, lo que rompería el «coste cero sin tráfico» con el que está dimensionado todo el despliegue (§2 de esta guía: 512 MB, 1 vCPU, `min-instances: 0`).
+- La migración a balanceador **sigue abierta** el día en que el tráfico la justifique.
+
+Procedimiento:
+
+```bash
+# 1. Verificar la propiedad del dominio (paso de cuenta, independiente del servicio;
+#    se puede hacer antes del primer despliegue). Para un subdominio se verifica el dominio padre.
+gcloud domains verify DOMINIO_BASE
+
+# 2. Crear el mapeo. La orden GA "domain-mappings create" es para Cloud Run for Anthos/GKE,
+#    NO para Cloud Run gestionado: usa la variante beta.
+gcloud beta run domain-mappings create --service SERVICE --domain DOMAIN --region europe-west1
+
+# 3. Obtener los registros DNS exactos que Google exige para tu dominio.
+#    Los valores NO son constantes públicas: los entrega Google al crear el mapeo.
+#    No los inventes ni los copies de ningún blog.
+gcloud beta run domain-mappings describe --domain DOMAIN --region europe-west1
+```
+
+| Caso | Tipo de registro DNS |
+|---|---|
+| Dominio raíz o ápex (`tudominio.com`, nombre `@`) | `A` y `AAAA` |
+| Subdominio (`www.` o `app.`) | `CNAME` |
+
+> [!WARNING]
+> **Trampa del registro CAA — falla en silencio.** Cita literal de la documentación oficial: «If you use Certification Authority Authorization (CAA) DNS records for your custom domain, authorize both `pki.goog` and `letsencrypt.org`.» Si tu dominio ya tiene registros CAA restrictivos y no autorizas esas dos entidades, **la emisión del certificado falla sin ningún error visible**: el mapeo se queda esperando un certificado que nunca llega. Comprueba tus registros CAA existentes antes de mapear.
+
+Plazo habitual del certificado gestionado: unos 15 minutos, hasta 24 horas. No admite comodines ni permite subir un certificado propio en esta modalidad.
+
+**Hueco declarado, no confirmado contra fuente primaria:** el número exacto de registros `A`/`AAAA` para el ápex, y si el servicio queda inaccesible por HTTPS mientras se aprovisiona el certificado. Obtén los valores reales con el `describe` del paso 3; no dirijas tráfico real al dominio hasta confirmar el certificado activo.
+
+### 10.2. Registro de las tres apps OAuth
+
+Mapea el dominio **antes** de registrar las apps, para no tener que retocar tres consolas después. Las URL de retorno son constantes del código (`src/Ludeka.Web/Authentication/ExternalAuthenticationSchemes.cs:36-38`):
+
+| Proveedor | URL de retorno exacta |
+|---|---|
+| Google | `https://<dominio>/signin-google` |
+| Discord | `https://<dominio>/signin-discord` |
+| Facebook | `https://<dominio>/signin-facebook` |
+
+El primer despliegue solo cablea Google y Discord en `ci-cd.yml` (§10.3); Facebook queda fuera hasta que se resuelva la revisión de aplicaciones de Meta.
+
+### 10.3. Entradas de Secret Manager a crear antes del paso 4
+
+El paso 4 de §9.0 arma el despliegue automático. Antes de llegar a él, crea estas entradas en Secret Manager — son exactamente las que `ci-cd.yml` inyecta al servicio web (nunca a los cuatro Cloud Run Jobs, que no atienden HTTP ni siembran usuarios):
+
+| Entrada de Secret Manager | Clave de configuración de destino |
+|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | `Authentication__Providers__Google__ClientId` |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | `Authentication__Providers__Google__ClientSecret` |
+| `DISCORD_OAUTH_CLIENT_ID` | `Authentication__Providers__Discord__ClientId` |
+| `DISCORD_OAUTH_CLIENT_SECRET` | `Authentication__Providers__Discord__ClientSecret` |
+| `ADMIN_USER_EMAIL` | `AdminUser__Email` |
+
+La cuenta de servicio que ejecuta el despliegue necesita `roles/secretmanager.secretAccessor` sobre cada una (§8, "Acceso a secretos"). Si falta cualquier entrada, el despliegue del servicio web falla al arrancar el contenedor.
+
+**Añadir un proveedor después del primer despliegue** (por ejemplo, Facebook cuando la revisión de Meta esté lista): crea sus dos entradas en Secret Manager, añade sus dos líneas a `secrets:` y su línea `Enabled=true` a `env_vars:`, en el mismo paso "Desplegar revisión en Google Cloud Run" de `ci-cd.yml`.
+
+### 10.4. Primer acceso del Administrador Fundador
+
+**Esto no estaba escrito en ningún documento del repositorio antes de este incremento: es conducta emergente entre INC-46 e INC-49.**
+
+En el primer arranque contra base vacía, `AdminUserSeeder` crea la fila del Administrador Fundador con `Role = FoundingTeam` y permisos completos, **con cero filas en `ExternalLogins`** (`AdminUserSeeder.cs:56-69`, read-only): con esa fila, por sí sola, no se puede iniciar sesión.
+
+Quien la activa es la rama **2a** de `ExternalLoginService.ResolveAsync` (escenario «Correo verificado coincide con una cuenta sin identidades externas previas» de `social-login-authentication`): el maintainer inicia sesión social con un correo que su proveedor reporta como verificado y que coincide con `AdminUser:Email`; el método localiza la cuenta por correo, comprueba que no tiene proveedores vinculados, crea el vínculo y devuelve esa misma cuenta con sus permisos intactos.
+
+**El primer inicio de sesión social cuyo correo verificado coincida con `AdminUser:Email` ES la puerta de entrada. No hay ningún paso adicional.**
+
+Condición dura, y aquí es donde suele fallar sin avisar: el buzón debe ser **verificable por el proveedor que uses**, y cada proveedor llama distinto a "verificado" (`ExternalAuthenticationSchemes.cs:198,212,227`):
+
+| Proveedor | Claim que Ludeka lee como "verificado" |
+|---|---|
+| Google | `email_verified` |
+| Discord | `verified` |
+| Facebook | `verified` |
+
+Si tu cuenta social no tiene ese correo verificado ante el proveedor, el primer acceso del fundador no funciona aunque `AdminUser__Email` esté bien escrito.
+
+El correo se normaliza a minúsculas al sembrar (`AdminUserSeeder.cs:41`, read-only): verifica siempre con el correo en minúsculas.
+
+**Camino manual de recuperación si se sembró un correo equivocado:**
+
+1. **Más directo:** corrige a mano el campo `Email` de esa fila en Supabase (SQL Editor) para que coincida con el correo verificado real.
+2. **Alternativa vía redespliegue:** el sembrador (`AdminUserSeeder.cs:44-53`, read-only) busca una fila existente por `Id == "admin-fundador"` **o** por `Email` antes de decidir si promueve esa fila o crea una nueva, y **nunca reescribe el `Email` de la fila que promueve**. Por eso, degradar la fila mal sembrada (quitarle `FoundingTeam`) sin borrarla y redesplegar con el `AdminUser__Email` corregido **no basta por sí solo**: como nadie fija `AdminUser__Id`, esa misma fila sigue teniendo `Id = "admin-fundador"` y vuelve a coincidir primero, así que se promueve de nuevo con su correo antiguo. Esta vía solo funciona si, además, esa fila se borra (o se le cambia el `Id`) antes de redesplegar.
+
+### 10.5. Qué hace la aplicación detrás del proxy
+
+- **Solo se confía en `X-Forwarded-Proto`.** `X-Forwarded-Host` y `X-Forwarded-For` no se procesan: son las dos cabeceras con las que de verdad se suplantan enlaces y controles de acceso, y no procesarlas vale más que confiar en que nunca lleguen manipuladas.
+- **Las listas de confianza (`KnownProxies`, `KnownIPNetworks`) van vacías a propósito.** No hay una IP de front-end de Cloud Run estable que declarar. Lo que mitiga aceptar la cabecera desde cualquier origen no es restringir quién puede mandarla, sino **limitar qué se hace con ella**: solo se procesa el esquema, nunca el host ni la IP, así que lo peor que logra un cliente que llegue sin pasar por el proxy es mentirse a sí mismo sobre su propio esquema — no afecta a terceros ni eleva privilegios.
+- **`ForwardLimit = 1`** porque el mapeo de dominio directo (§10.1) introduce un único salto de proxy. **Si algún día se migra a un balanceador de aplicación global, el salto pasa a ser doble y este valor debe subir a `2`** — es el tipo de ajuste que nadie recuerda cuando cambia la topología, y que reintroduce el defecto original de este incremento sin ningún síntoma visible.
+- **Nada del código lee la IP remota hoy.** Si un futuro incremento necesita la IP real del cliente, deberá añadir `ForwardedHeaders.XForwardedFor` explícitamente y con su propia prueba — no se puede asumir que ya está disponible.
+- **La garantía completa depende de que todo el tráfico entre por el front-end de Cloud Run.** Si en algún momento el contenedor se expone por otra vía (una VPC, un puerto adicional, un despliegue paralelo), esta decisión hay que revisarla desde cero.
+- **`UseHttpsRedirection()` se conserva sin tocar** (`Program.cs:232`) y no produce bucle: el middleware necesita resolver un puerto HTTPS para actuar, no hay ninguna variable `HTTPS_PORT`/`ASPNETCORE_HTTPS_PORT` en este despliegue y Kestrel solo se vincula a HTTP, así que hoy se limita a avisar y apagarse. El riesgo solo aparecería si algún día se configura un puerto HTTPS resoluble **sin** que `UseForwardedHeaders` esté corrigiendo antes el esquema — no toques uno sin revisar el otro.
