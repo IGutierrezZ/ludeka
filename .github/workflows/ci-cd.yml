@@ -60,8 +60,11 @@ jobs:
 
       - name: Verificar configuración de secretos de Google Cloud
         id: check-secrets
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          if [ -n "${{ secrets.GCP_PROJECT_ID }}" ] && [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
+          if [ -n "$GCP_PROJECT_ID" ] && [ -n "$GCP_SA_KEY" ]; then
             echo "has_gcp=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_gcp=false" >> "$GITHUB_OUTPUT"
