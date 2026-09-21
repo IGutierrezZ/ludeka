@@ -974,6 +974,21 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("JobExecutionLeases");
             }
+
+            // 28. Crear tabla DataProtectionKeys si no existe (Persistencia de claves de sesión de ASP.NET Core)
+            if (!existingTables.Contains("DataProtectionKeys"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
+                        "Id" INTEGER NOT NULL CONSTRAINT "PK_DataProtectionKeys" PRIMARY KEY AUTOINCREMENT,
+                        "FriendlyName" TEXT NULL,
+                        "Xml" TEXT NULL
+                    );
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("DataProtectionKeys");
+            }
         }
         finally
         {

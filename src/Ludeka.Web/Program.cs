@@ -44,6 +44,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
@@ -64,6 +65,12 @@ builder.Services.AddRazorComponents()
 // Ludeka.Infrastructure.DependencyInjection.LudekaServiceCollectionExtensions para que el futuro
 // Ludeka.Jobs pueda consumirla sin referenciar este host web.
 builder.Services.AddLudekaApplicationCore(builder.Configuration);
+
+// Persistencia de claves criptográficas de sesión (Data Protection) en la base de datos compartida
+// para evitar pérdida de sesiones en Google Cloud Run por escalado a cero, despliegues o balanceo.
+builder.Services.AddDataProtection()
+    .SetApplicationName("Ludeka")
+    .PersistKeysToDbContext<LudekaDbContext>();
 
 // Incremento 46: cookie de sesión propia y esquemas sociales dirigidos por configuración.
 // Un proveedor habilitado sin credenciales no tumba el arranque: se avisa y no se registra.

@@ -1,35 +1,4 @@
--- ==============================================================================
--- ADVERTENCIA — ESTE ARCHIVO NO ES LA FUENTE DE VERDAD DEL ESQUEMA
--- ==============================================================================
--- Este script es un DERIVADO generado automáticamente a partir de las migraciones
--- de Entity Framework Core del proyecto. No se edita a mano: cualquier cambio
--- manual se pierde en la siguiente regeneración y puede desincronizarse del
--- esquema real sin que nada lo detecte.
---
--- La única fuente de verdad del esquema son las migraciones de Entity Framework
--- Core en src/Ludeka.Infrastructure/Migrations/, aplicadas automáticamente por
--- MigrateAsync() al arrancar la aplicación contra PostgreSQL.
---
--- Regeneración (forzando el proveedor PostgreSQL — restricción heredada de
--- INC-46; sin ella, EF generaría sintaxis SQLite en lugar de PostgreSQL):
---
---   Database__Provider=PostgreSql dotnet ef migrations script --idempotent \
---     --project src/Ludeka.Infrastructure --startup-project src/Ludeka.Web \
---     --context LudekaDbContext --output docs/database/supabase_schema.sql
---
--- La frescura de este fichero frente al modelo real se comprueba de forma
--- automática y offline (sin PostgreSQL real) en:
---   tests/Ludeka.UnitTests/Infrastructure/SupabaseSchemaFreshnessTests.cs
--- El esquema completo se verifica además migrando desde cero contra un
--- PostgreSQL 17 real (Testcontainers) en:
---   tests/Ludeka.IntegrationTests/PostgresSchemaVerificationTests.cs
---
--- El script es idempotente (--idempotent): cada sentencia comprueba primero si
--- su migración ya consta en "__EFMigrationsHistory". Aun así, su propósito es de
--- referencia y auditoría del esquema, no de despliegue manual contra Supabase.
--- ==============================================================================
-
-CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
     "ProductVersion" character varying(32) NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
@@ -1154,7 +1123,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260914001323_InitialSupabasePostgres') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260914001323_InitialSupabasePostgres', '10.0.4');
+    VALUES ('20260914001323_InitialSupabasePostgres', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1410,7 +1379,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260915100112_AddBggStagingSocialInboxPriceRadarAndGameImages') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260915100112_AddBggStagingSocialInboxPriceRadarAndGameImages', '10.0.4');
+    VALUES ('20260915100112_AddBggStagingSocialInboxPriceRadarAndGameImages', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1451,7 +1420,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260915164921_AddExternalLogins') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260915164921_AddExternalLogins', '10.0.4');
+    VALUES ('20260915164921_AddExternalLogins', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1469,7 +1438,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260917112154_AddProviderEmailVerifiedAtToExternalLogins') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260917112154_AddProviderEmailVerifiedAtToExternalLogins', '10.0.4');
+    VALUES ('20260917112154_AddProviderEmailVerifiedAtToExternalLogins', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1508,7 +1477,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260919000613_AddNotificationLogDeliveryColumns') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260919000613_AddNotificationLogDeliveryColumns', '10.0.4');
+    VALUES ('20260919000613_AddNotificationLogDeliveryColumns', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1558,7 +1527,7 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260919010426_AddNotificationOutboxMessages') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260919010426_AddNotificationOutboxMessages', '10.0.4');
+    VALUES ('20260919010426_AddNotificationOutboxMessages', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1604,7 +1573,30 @@ DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260919012754_AddJobExecutionLeases') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260919012754_AddJobExecutionLeases', '10.0.4');
+    VALUES ('20260919012754_AddJobExecutionLeases', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260921225042_AddDataProtectionKeys') THEN
+    CREATE TABLE "DataProtectionKeys" (
+        "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+        "FriendlyName" text,
+        "Xml" text,
+        CONSTRAINT "PK_DataProtectionKeys" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260921225042_AddDataProtectionKeys') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260921225042_AddDataProtectionKeys', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
