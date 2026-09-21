@@ -61,7 +61,7 @@ public static class LudekaServiceCollectionExtensions
 
         bool isPostgreSql = dbOptions.IsPostgreSql(connectionString);
 
-        services.AddDbContext<LudekaDbContext>(options =>
+        Action<DbContextOptionsBuilder> configureOptions = options =>
         {
             if (isPostgreSql)
             {
@@ -77,7 +77,10 @@ public static class LudekaServiceCollectionExtensions
             {
                 options.UseSqlite(connectionString);
             }
-        });
+        };
+
+        services.AddDbContext<LudekaDbContext>(configureOptions);
+        services.AddDbContextFactory<LudekaDbContext>(configureOptions, ServiceLifetime.Scoped);
 
         return services;
     }

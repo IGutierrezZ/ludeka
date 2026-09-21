@@ -27,6 +27,7 @@ public class GameEditorWebIntegrationTests
 
         services.AddMemoryCache();
         services.AddDbContext<LudekaDbContext>(opts => opts.UseSqlite(connection));
+        services.AddDbContextFactory<LudekaDbContext>(opts => opts.UseSqlite(connection));
         services.AddScoped<IGameRepository, SqliteGameRepository>();
         services.AddScoped<CatalogService>();
         services.AddScoped<ICatalogService, CatalogService>();

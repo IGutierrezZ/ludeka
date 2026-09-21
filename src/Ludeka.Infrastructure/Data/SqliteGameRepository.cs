@@ -8,21 +8,24 @@ using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteGameRepository : IGameRepository
+public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteGameRepository(LudekaDbContext context)
+    public SqliteGameRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteGameRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<Game?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Id == id, ct);
     }
@@ -32,14 +35,16 @@ public class SqliteGameRepository : IGameRepository
         if (string.IsNullOrWhiteSpace(slug)) return null;
         string normalized = slug.Trim().ToLowerInvariant();
 
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Slug == normalized, ct);
     }
 
     public async Task<Game?> GetByBggIdAsync(int bggId, CancellationToken ct = default)
     {
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.BggId == bggId, ct);
     }
@@ -50,7 +55,8 @@ public class SqliteGameRepository : IGameRepository
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
 
-        var query = _context.Games.AsNoTracking().AsQueryable();
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.Games.AsNoTracking().AsQueryable();
 
         // Filtro por término de búsqueda (bilingüe: título español o título original)
         if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
@@ -133,13 +139,15 @@ public class SqliteGameRepository : IGameRepository
 
     public async Task AddRangeAsync(IEnumerable<Game> games, CancellationToken ct = default)
     {
-        await _context.Games.AddRangeAsync(games, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.Games.AddRangeAsync(games, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Game game, CancellationToken ct = default)
     {
-        var existing = await _context.Games.FirstOrDefaultAsync(g => g.Id == game.Id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.Games.FirstOrDefaultAsync(g => g.Id == game.Id, ct);
         if (existing != null)
         {
             if (!ReferenceEquals(existing, game))
@@ -174,18 +182,20 @@ public class SqliteGameRepository : IGameRepository
                 existing.UpdateImages(game.CoverImageUrl, game.ThumbnailUrl);
             }
 
-            await _context.SaveChangesAsync(ct);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
     public async Task<bool> HasAnyAsync(CancellationToken ct = default)
     {
-        return await _context.Games.AnyAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games.AnyAsync(ct);
     }
 
     public async Task<IReadOnlyList<Game>> GetGamesWithoutAiSummaryAsync(int limit = 20, CancellationToken ct = default)
     {
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .Where(g => g.AiSummary == null)
             .Take(limit)
             .ToListAsync(ct);
@@ -196,7 +206,8 @@ public class SqliteGameRepository : IGameRepository
         if (string.IsNullOrWhiteSpace(publisherName)) return Array.Empty<Game>();
 
         var clean = publisherName.Trim();
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .Where(g => EF.Functions.Like(g.Publisher, $"%{clean}%"))
             .OrderBy(g => g.SpanishTitle)
@@ -208,7 +219,8 @@ public class SqliteGameRepository : IGameRepository
         if (string.IsNullOrWhiteSpace(designerName)) return Array.Empty<Game>();
 
         var clean = designerName.Trim();
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .Where(g => EF.Functions.Like(g.Designer, $"%{clean}%"))
             .OrderBy(g => g.SpanishTitle)
@@ -217,7 +229,8 @@ public class SqliteGameRepository : IGameRepository
 
     public async Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default)
     {
-        return await _context.Games
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
             .AsNoTracking()
             .OrderBy(g => g.SpanishTitle)
             .ToListAsync(ct);

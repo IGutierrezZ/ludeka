@@ -7,28 +7,32 @@ using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteMediaRepository : IMediaRepository
+public class SqliteMediaRepository : DbContextRepositoryBase, IMediaRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteMediaRepository(LudekaDbContext context)
+    public SqliteMediaRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteMediaRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<MediaItem?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.MediaItems
             .Include(m => m.Game)
             .FirstOrDefaultAsync(m => m.Id == id, ct);
     }
 
     public async Task<IReadOnlyList<MediaItem>> GetApprovedByGameIdAsync(Guid gameId, CancellationToken ct = default)
     {
-        var items = await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.MediaItems
             .Include(m => m.Game)
             .Where(m => m.GameId == gameId && m.Status == ModerationStatus.Approved)
             .ToListAsync(ct);
@@ -39,7 +43,8 @@ public class SqliteMediaRepository : IMediaRepository
 
     public async Task<IReadOnlyList<MediaItem>> GetPendingModerationAsync(CancellationToken ct = default)
     {
-        var items = await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.MediaItems
             .Include(m => m.Game)
             .Where(m => m.Status == ModerationStatus.PendingApproval)
             .ToListAsync(ct);
@@ -49,7 +54,8 @@ public class SqliteMediaRepository : IMediaRepository
 
     public async Task<IReadOnlyList<MediaItem>> GetOrphansAsync(CancellationToken ct = default)
     {
-        var items = await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.MediaItems
             .Where(m => m.GameId == null)
             .ToListAsync(ct);
 
@@ -58,7 +64,8 @@ public class SqliteMediaRepository : IMediaRepository
 
     public async Task<IReadOnlyList<MediaItem>> GetApprovedAsync(CancellationToken ct = default)
     {
-        var items = await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.MediaItems
             .Include(m => m.Game)
             .Where(m => m.Status == ModerationStatus.Approved)
             .ToListAsync(ct);
@@ -68,7 +75,8 @@ public class SqliteMediaRepository : IMediaRepository
 
     public async Task<IReadOnlyList<MediaItem>> GetAllAsync(CancellationToken ct = default)
     {
-        var items = await _context.MediaItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.MediaItems
             .Include(m => m.Game)
             .ToListAsync(ct);
 
@@ -79,28 +87,32 @@ public class SqliteMediaRepository : IMediaRepository
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
         var trimmed = url.Trim();
-        return await _context.MediaItems.AnyAsync(m => m.Url == trimmed, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.MediaItems.AnyAsync(m => m.Url == trimmed, ct);
     }
 
     public async Task AddAsync(MediaItem item, CancellationToken ct = default)
     {
-        await _context.MediaItems.AddAsync(item, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.MediaItems.AddAsync(item, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(MediaItem item, CancellationToken ct = default)
     {
-        _context.MediaItems.Update(item);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.MediaItems.Update(item);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var item = await _context.MediaItems.FindAsync([id], ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var item = await scope.Context.MediaItems.FindAsync([id], ct);
         if (item != null)
         {
-            _context.MediaItems.Remove(item);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.MediaItems.Remove(item);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

@@ -7,6 +7,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Ludeka.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
@@ -14,22 +15,24 @@ namespace Ludeka.Infrastructure.Data;
 /// Repositorio de persistencia de histórico de precios y métricas de ofertas sobre EF Core / SQLite / PostgreSQL.
 /// En SQLite, el filtrado de rango y ordenamiento por DateTimeOffset se evalúa en memoria para compatibilidad de proveedores.
 /// </summary>
-public class SqliteGamePriceRepository : IGamePriceRepository
+public class SqliteGamePriceRepository : DbContextRepositoryBase, IGamePriceRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteGamePriceRepository(LudekaDbContext context)
+    public SqliteGamePriceRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteGamePriceRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task RecordSnapshotAsync(GamePriceSnapshot snapshot, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
+        await using var scope = await CreateScopeAsync(ct);
         // Regla anti-saturación: evitar duplicados idénticos en las últimas 6 horas
         // EF Core SQLite no traduce comparaciones de rango sobre DateTimeOffset: se evalúa en memoria
-        var candidates = await _context.GamePriceSnapshots
+        var candidates = await scope.Context.GamePriceSnapshots
             .Where(s => s.GameId == snapshot.GameId &&
                         s.StoreName == snapshot.StoreName &&
                         s.Price == snapshot.Price &&
@@ -44,8 +47,8 @@ public class SqliteGamePriceRepository : IGamePriceRepository
             return;
         }
 
-        await _context.GamePriceSnapshots.AddAsync(snapshot, ct);
-        await _context.SaveChangesAsync(ct);
+        await scope.Context.GamePriceSnapshots.AddAsync(snapshot, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task RecordSnapshotsBatchAsync(IEnumerable<GamePriceSnapshot> snapshots, CancellationToken ct = default)
@@ -56,7 +59,8 @@ public class SqliteGamePriceRepository : IGamePriceRepository
         if (snapshotList.Count == 0) return;
 
         var gameIds = snapshotList.Select(s => s.GameId).Distinct().ToList();
-        var candidates = await _context.GamePriceSnapshots
+        await using var scope = await CreateScopeAsync(ct);
+        var candidates = await scope.Context.GamePriceSnapshots
             .Where(s => gameIds.Contains(s.GameId))
             .ToListAsync(ct);
 
@@ -81,8 +85,8 @@ public class SqliteGamePriceRepository : IGamePriceRepository
 
         if (toAdd.Count > 0)
         {
-            await _context.GamePriceSnapshots.AddRangeAsync(toAdd, ct);
-            await _context.SaveChangesAsync(ct);
+            await scope.Context.GamePriceSnapshots.AddRangeAsync(toAdd, ct);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
@@ -90,7 +94,8 @@ public class SqliteGamePriceRepository : IGamePriceRepository
     {
         if (limit <= 0) limit = 50;
 
-        var list = await _context.GamePriceSnapshots
+        await using var scope = await CreateScopeAsync(ct);
+        var list = await scope.Context.GamePriceSnapshots
             .Where(s => s.GameId == gameId)
             .ToListAsync(ct);
 
@@ -102,11 +107,12 @@ public class SqliteGamePriceRepository : IGamePriceRepository
 
     public async Task<GamePriceMetrics> GetMetricsAsync(Guid gameId, CancellationToken ct = default)
     {
-        var snapshots = await _context.GamePriceSnapshots
+        await using var scope = await CreateScopeAsync(ct);
+        var snapshots = await scope.Context.GamePriceSnapshots
             .Where(s => s.GameId == gameId)
             .ToListAsync(ct);
 
-        var game = await _context.Games
+        var game = await scope.Context.Games
             .FirstOrDefaultAsync(g => g.Id == gameId, ct);
 
         return GamePriceMetrics.Calculate(gameId, snapshots, game?.PurchaseLinks);
@@ -117,11 +123,12 @@ public class SqliteGamePriceRepository : IGamePriceRepository
         var idList = gameIds?.Distinct().ToList() ?? [];
         if (idList.Count == 0) return new Dictionary<Guid, GamePriceMetrics>();
 
-        var snapshots = await _context.GamePriceSnapshots
+        await using var scope = await CreateScopeAsync(ct);
+        var snapshots = await scope.Context.GamePriceSnapshots
             .Where(s => idList.Contains(s.GameId))
             .ToListAsync(ct);
 
-        var games = await _context.Games
+        var games = await scope.Context.Games
             .Where(g => idList.Contains(g.Id))
             .ToListAsync(ct);
 
@@ -144,7 +151,8 @@ public class SqliteGamePriceRepository : IGamePriceRepository
     {
         if (limit <= 0) limit = 100;
 
-        var list = await _context.GamePriceSnapshots
+        await using var scope = await CreateScopeAsync(ct);
+        var list = await scope.Context.GamePriceSnapshots
             .ToListAsync(ct);
 
         return list

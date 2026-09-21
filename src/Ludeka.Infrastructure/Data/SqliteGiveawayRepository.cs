@@ -6,22 +6,25 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteGiveawayRepository : IGiveawayRepository
+public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteGiveawayRepository(LudekaDbContext context)
+    public SqliteGiveawayRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteGiveawayRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<Giveaway>> GetGiveawaysAsync(bool includeExpired = false, CancellationToken ct = default)
     {
+        await using var scope = await CreateScopeAsync(ct);
         // En SQLite cargamos en memoria para realizar el filtrado y ordenación por DateTimeOffset
-        var list = await _context.Giveaways
+        var list = await scope.Context.Giveaways
             .Include(g => g.Game)
             .ToListAsync(ct);
 
@@ -35,7 +38,8 @@ public class SqliteGiveawayRepository : IGiveawayRepository
 
     public async Task<Giveaway?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Giveaways
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Giveaways
             .Include(g => g.Game)
             .FirstOrDefaultAsync(g => g.Id == id, ct);
     }
@@ -45,7 +49,8 @@ public class SqliteGiveawayRepository : IGiveawayRepository
         var cleanTitle = title.Trim().ToLowerInvariant();
         var cleanOrganizer = organizer.Trim().ToLowerInvariant();
 
-        var candidates = await _context.Giveaways.ToListAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var candidates = await scope.Context.Giveaways.ToListAsync(ct);
 
         return candidates.FirstOrDefault(g =>
             !g.IsExpired &&
@@ -57,23 +62,26 @@ public class SqliteGiveawayRepository : IGiveawayRepository
 
     public async Task AddAsync(Giveaway giveaway, CancellationToken ct = default)
     {
-        await _context.Giveaways.AddAsync(giveaway, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.Giveaways.AddAsync(giveaway, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Giveaway giveaway, CancellationToken ct = default)
     {
-        _context.Giveaways.Update(giveaway);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.Giveaways.Update(giveaway);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var item = await _context.Giveaways.FindAsync(new object[] { id }, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var item = await scope.Context.Giveaways.FindAsync(new object[] { id }, ct);
         if (item != null)
         {
-            _context.Giveaways.Remove(item);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.Giveaways.Remove(item);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

@@ -36,4 +36,8 @@
     <EmbeddedResource Include="Seeding\seed-games.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ludeka.UnitTests" />
+  </ItemGroup>
+
 </Project>
