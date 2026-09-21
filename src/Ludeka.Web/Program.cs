@@ -193,6 +193,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+
+// Incremento 52 (diseño D1, D6): reconstruye Request.Scheme a partir de X-Forwarded-Proto
+// cuando el proceso corre detrás de un proxy inverso que termina TLS (Cloud Run, Nginx). Va
+// PRIMERO y de forma incondicional, sin comprobar ASPNETCORE_ENVIRONMENT: todo lo que sigue
+// —HSTS, la redirección HTTPS, la cookie de sesión y el redirect_uri de los proveedores
+// OAuth— decide a partir de ese esquema.
+app.UseForwardedHeaders(ForwardedHeadersConfiguration.Build());
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
