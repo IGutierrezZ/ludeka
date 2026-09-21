@@ -122,10 +122,31 @@ if (webStartupGuardFailure is not null)
     throw new InvalidOperationException(webStartupGuardFailure);
 }
 
+// Incremento 52 (PR5), diseño D8: guarda de identidad del Administrador Fundador — hermana de la
+// guarda anterior, evaluada de forma independiente. En Production sin AdminUser:Email explícito el
+// proceso debe fallar aquí: AdminUserSeeder siembra ese correo de forma irreversible en el primer
+// arranque, mucho antes de que este método se invoque.
+var adminUserIdentityGuardFailure = WebStartupGuards.EvaluateAdminUserIdentity(
+    app.Configuration,
+    app.Environment.EnvironmentName);
+if (adminUserIdentityGuardFailure is not null)
+{
+    throw new InvalidOperationException(adminUserIdentityGuardFailure);
+}
+
 // Aviso explícito de proveedores habilitados sin credenciales: la aplicación arranca sin ellos.
 foreach (var authenticationWarning in ExternalAuthenticationSchemes.GetConfigurationWarnings(authenticationOptions))
 {
     app.Logger.LogWarning("{AuthenticationWarning}", authenticationWarning);
+}
+
+// Incremento 52 (PR5), diseño D10: aviso agregado cuando ningún proveedor social es utilizable —
+// complementa los avisos individuales de arriba con la condición agregada, más grave en Production
+// porque bloquea también el primer acceso del Administrador Fundador.
+var noProviderNotice = ExternalAuthenticationSchemes.GetNoUsableProviderNotice(authenticationOptions, app.Environment.EnvironmentName);
+if (noProviderNotice is not null)
+{
+    app.Logger.Log(noProviderNotice.Level, "{AuthenticationNotice}", noProviderNotice.Message);
 }
 
 // Incremento 48 (PR1a): aviso explícito de almacén de medios degradado en Production sin R2 válido.

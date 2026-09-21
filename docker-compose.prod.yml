@@ -16,7 +16,7 @@ services:
       - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
       - AdminUser__Id=${AdminUser__Id:-admin-fundador}
       - AdminUser__UserName=${AdminUser__UserName:-Administrador Ludeka}
-      - AdminUser__Email=${AdminUser__Email:-admin@ludeka.es}
+      - AdminUser__Email=${AdminUser__Email}
       - AdminUser__Country=${AdminUser__Country:-España}
       - Bgg__SimulateApi=${Bgg__SimulateApi:-false}
       - Bgg__ApiToken=${Bgg__ApiToken}

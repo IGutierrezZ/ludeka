@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using AuthenticationOptions = Ludeka.Application.Features.Identity.AuthenticationOptions;
 
 namespace Ludeka.Web.Authentication;
@@ -122,6 +123,38 @@ public static class ExternalAuthenticationSchemes
         return warnings;
     }
 
+    /// <summary>
+    /// Aviso agregado de "cero proveedores utilizables" (INC-52, PR5, diseño D10), hermano de
+    /// <see cref="GetConfigurationWarnings"/> — no lo modifica ni reutiliza su lista, porque su
+    /// tipo de retorno está fijado por una prueba vigente. Devuelve <see langword="null"/> si algún
+    /// proveedor cumple <see cref="ExternalProviderOptions.IsUsable"/>; si no, un aviso cuya
+    /// severidad depende del entorno: en Production nadie puede iniciar sesión, incluido el
+    /// Administrador Fundador, así que se registra como <see cref="LogLevel.Error"/>. Fuera de
+    /// Production se registra como <see cref="LogLevel.Warning"/>.
+    /// </summary>
+    public static AuthenticationStartupNotice? GetNoUsableProviderNotice(AuthenticationOptions options, string? environmentName)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        foreach (var name in ExternalProviderNames.All)
+        {
+            if (options.Providers.TryGetValue(name, out var provider) && provider.IsUsable)
+            {
+                return null;
+            }
+        }
+
+        var isProduction = string.Equals(environmentName, "Production", StringComparison.OrdinalIgnoreCase);
+        var level = isProduction ? LogLevel.Error : LogLevel.Warning;
+        var message =
+            "Ningún proveedor de autenticación social está operativo: Google, Discord y Facebook están " +
+            "deshabilitados o sin credenciales completas. Nadie puede iniciar sesión, incluido el " +
+            "Administrador Fundador. Revisa Authentication:Providers:{Proveedor}:Enabled y su " +
+            "ClientId/ClientSecret (AppId/AppSecret en Facebook).";
+
+        return new AuthenticationStartupNotice(level, message);
+    }
+
     /// <summary>Esquema de autenticación de un proveedor soportado.</summary>
     public static string SchemeFor(string providerName) => providerName switch
     {
@@ -221,3 +254,9 @@ public sealed record ExternalProviderRegistration(
     string CallbackPath,
     string ClientId,
     string ClientSecret);
+
+/// <summary>Aviso de arranque sobre el estado agregado de los proveedores de autenticación social
+/// (INC-52, PR5, diseño D10).</summary>
+/// <param name="Level"><see cref="LogLevel.Error"/> en Production, <see cref="LogLevel.Warning"/> en cualquier otro entorno.</param>
+/// <param name="Message">Mensaje explicativo, listo para registrarse.</param>
+public sealed record AuthenticationStartupNotice(LogLevel Level, string Message);
