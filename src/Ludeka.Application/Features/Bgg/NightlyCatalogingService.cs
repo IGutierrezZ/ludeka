@@ -196,6 +196,15 @@ public class NightlyCatalogingService : INightlyCatalogingService
             {
                 try
                 {
+                    // Auto-siembra condicional (INC-53): si Staging está vacío, disparar descarga autónoma inicial
+                    var stagingMetrics = await _massIngestionService.GetMetricsAsync(ct);
+                    if (stagingMetrics.TotalInStaging == 0)
+                    {
+                        _logger.LogInformation("Fase 3: Staging está vacío. Disparando auto-siembra inicial autónoma de catálogo BGG.");
+                        int seededCount = await _massIngestionService.RunScheduledDownloadAndIngestLatestRanksAsync(ct: ct);
+                        _logger.LogInformation("Auto-siembra completada: {Count} títulos incorporados a staging.", seededCount);
+                    }
+
                     _logger.LogInformation("Fase 3: Ejecutando ciclo de drenaje de staging masivo (detalles, fotos GeekDo/R2, IA por lotes y promoción).");
                     var drainResult = await _massIngestionService.RunScheduledDrainCycleAsync(ct);
                     topBackfillCount += drainResult.PromotedToCatalogCount;

@@ -105,4 +105,16 @@ public class BggMassIngestionOptions
     /// Activa el modo simulado de volcado y GeekDo para desarrollo local y tests.
     /// </summary>
     public bool Simulate { get; set; } = false;
+
+    /// <summary>
+    /// Plantilla URL para descargar el volcado CSV de ranks de BGG. Formato string con marcador {0:yyyy-MM-dd}.
+    /// Por defecto apunta al mirror diario público en GitHub Raw / Fastly CDN.
+    /// </summary>
+    public string RanksDumpUrlPattern { get; set; } =
+        "https://raw.githubusercontent.com/beefsack/bgg-ranking-historicals/master/{0:yyyy-MM-dd}.csv";
+
+    /// <summary>
+    /// Número máximo de días a retroceder en caso de que la fecha actual no esté disponible (HTTP 404).
+    /// </summary>
+    public int MaxFallbackDays { get; set; } = 5;
 }

@@ -198,6 +198,42 @@ public class NightlyCatalogingServiceTests
         Assert.Equal(3, savedLog.BggDiscoveryCount);
     }
 
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WhenStagingIsEmpty_TriggersAutonomousSeeding()
+    {
+        // Arrange
+        var fakeMassIngestion = new FakeMassIngestionService { TotalInStaging = 0 };
+        var service = CreateService(
+            out _, out _, out _, out _, out _, out _, out _,
+            limit: 5,
+            massIngestionService: fakeMassIngestion);
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal(1, fakeMassIngestion.RunScheduledCallCount);
+        Assert.Equal(1, fakeMassIngestion.DrainCallCount);
+    }
+
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WhenStagingHasItems_DoesNotTriggerAutonomousSeeding()
+    {
+        // Arrange
+        var fakeMassIngestion = new FakeMassIngestionService { TotalInStaging = 500 };
+        var service = CreateService(
+            out _, out _, out _, out _, out _, out _, out _,
+            limit: 5,
+            massIngestionService: fakeMassIngestion);
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal(0, fakeMassIngestion.RunScheduledCallCount);
+        Assert.Equal(1, fakeMassIngestion.DrainCallCount);
+    }
+
     private static NightlyCatalogingService CreateService(
         out FakePendingRepo pendingRepo,
         out FakeBggClient bggClient,
@@ -207,7 +243,8 @@ public class NightlyCatalogingServiceTests
         out FakeNewsExtractor newsExtractor,
         out FakeLogRepo logRepo,
         int limit = 20,
-        IBggDiscoveryService? discoveryService = null)
+        IBggDiscoveryService? discoveryService = null,
+        IBggMassIngestionService? massIngestionService = null)
     {
         pendingRepo = new FakePendingRepo();
         bggClient = new FakeBggClient();
@@ -236,7 +273,7 @@ public class NightlyCatalogingServiceTests
             options,
             NullLogger<NightlyCatalogingService>.Instance,
             aiSummaryService: null,
-            massIngestionService: null,
+            massIngestionService: massIngestionService,
             discoveryService: discoveryService
         );
     }
@@ -424,5 +461,47 @@ public class NightlyCatalogingServiceTests
             WasCalled = true;
             return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
         }
+    }
+
+    private class FakeMassIngestionService : IBggMassIngestionService
+    {
+        public int TotalInStaging { get; set; } = 0;
+        public int RunScheduledCallCount { get; private set; }
+        public int DrainCallCount { get; private set; }
+
+        public Task<BggStagingMetricsDto> GetMetricsAsync(CancellationToken ct = default) =>
+            Task.FromResult(new BggStagingMetricsDto(
+                TotalInStaging: TotalInStaging,
+                PendingFetchCount: TotalInStaging,
+                FetchedCount: 0,
+                PendingImagesCount: 0,
+                ImagesCompletedCount: 0,
+                PendingAiCount: 0,
+                AiCompletedCount: 0,
+                AiQuotaExceededCount: 0,
+                PendingPromotionCount: 0,
+                PromotedCount: 0,
+                FailedCount: 0
+            ));
+
+        public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default)
+        {
+            RunScheduledCallCount++;
+            return Task.FromResult(100);
+        }
+
+        public Task<BggMassIngestionCycleResultDto> RunScheduledDrainCycleAsync(CancellationToken ct = default)
+        {
+            DrainCallCount++;
+            return Task.FromResult(new BggMassIngestionCycleResultDto(0, 0, 0, 0, false, "Drain OK"));
+        }
+
+        public Task<int> DownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> IngestRanksDumpAsync(System.IO.Stream dumpStream, int minUsersRated = 30, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> ProcessPendingDetailsBatchAsync(int batchSize = 20, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> ProcessPendingImagesBatchAsync(int batchSize = 10, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<AiBatchProcessingResultDto> ProcessPendingAiBatchAsync(int gamesPerBatch = 8, int maxBatches = 5, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> PromoteReadyToCatalogBatchAsync(int batchSize = 50, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default) => throw new NotImplementedException();
     }
 }

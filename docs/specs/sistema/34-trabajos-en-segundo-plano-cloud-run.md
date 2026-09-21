@@ -20,9 +20,9 @@ Los cuatro trabajos se externalizan a *Cloud Run Jobs* disparados por *Cloud Sch
 
 ### 2.1. Selección del trabajo
 
-`JobSelectionResolver.Resolve` decide el nombre del trabajo **antes** de construir el contenedor, con precedencia determinista entre tres fuentes: argumento posicional, bandera `--job=<nombre>`, y `Workers:JobName` de configuración (leído con el indexador `configuration["Workers:JobName"]`; no existe sección `Workers` en ningún `appsettings.json` del repositorio). La comparación es sensible a mayúsculas y exacta contra `JobNames.All` (`src/Ludeka.Jobs/JobNames.cs`): `nightly-cataloging`, `price-radar`, `social-collector`, `notification-outbox`. Un nombre ausente, vacío o desconocido devuelve el código de salida 2 sin levantar la composición de dominio.
+`JobSelectionResolver.Resolve` decide el nombre del trabajo **antes** de construir el contenedor, con precedencia determinista entre tres fuentes: argumento posicional, bandera `--job=<nombre>`, y `Workers:JobName` de configuración (leído con el indexador `configuration["Workers:JobName"]`; no existe sección `Workers` en ningún `appsettings.json` del repositorio). La comparación es sensible a mayúsculas y exacta contra `JobNames.All` (`src/Ludeka.Jobs/JobNames.cs`): `nightly-cataloging`, `price-radar`, `social-collector`, `notification-outbox` y `seed-staging` (incorporado en INC-53). Un nombre ausente, vacío o desconocido devuelve el código de salida 2 sin levantar la composición de dominio.
 
-### 2.2. Los cuatro *runners*
+### 2.2. Los cinco *runners*
 
 Cada trabajo tiene un `IJobRunner` fino (`src/Ludeka.Jobs/Runners/`) que calcula su propia clave de ventana e invoca al coordinador de idempotencia (§3):
 
@@ -32,8 +32,9 @@ Cada trabajo tiene un `IJobRunner` fino (`src/Ludeka.Jobs/Runners/`) que calcula
 | `PriceRadarJobRunner` | `price-radar` | Bloque de `PriceRadarOptions.CheckIntervalHours` horas (`HourlyBlock`) | `IPriceRadarService.ScanWantToBuyPricesAsync` |
 | `SocialCollectorJobRunner` | `social-collector` | Bloque de `SocialCollectorOptions.IntervalMinutes` minutos, mínimo 5 (`MinuteBlock`) | `ISocialCollectorService.RunScheduledCollectionAsync` |
 | `NotificationOutboxJobRunner` | `notification-outbox` | Por segundo (`PerSecond`) | `INotificationOutboxDispatcher.DispatchPendingAsync` |
+| `SeedStagingJobRunner` (INC-53) | `seed-staging` | Diaria (`JobWindowKeyCalculator.DailyUtc`) | `IBggMassIngestionService.RunScheduledDownloadAndIngestLatestRanksAsync` |
 
-Los cuatro se registran `AddScoped<IJobRunner, ...>` (`JobRunnerServiceCollectionExtensions.cs`). `JobHostRunner.RunSelectedJobAsync` resuelve el pedido con `GetServices<IJobRunner>().SingleOrDefault(r => r.Name == jobName)`, lo ejecuta una sola vez y traduce el desenlace a código de salida.
+Los cinco se registran `AddScoped<IJobRunner, ...>` (`JobRunnerServiceCollectionExtensions.cs`). `JobHostRunner.RunSelectedJobAsync` resuelve el pedido con `GetServices<IJobRunner>().SingleOrDefault(r => r.Name == jobName)`, lo ejecuta una sola vez y traduce el desenlace a código de salida.
 
 ### 2.3. Contrato de código de salida
 

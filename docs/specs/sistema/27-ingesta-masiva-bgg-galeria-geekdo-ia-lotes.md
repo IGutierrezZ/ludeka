@@ -1,8 +1,8 @@
 # 27. Ingesta Masiva de Catálogo BGG (~8.000 títulos), Fotos GeekDo y Síntesis IA en Lotes
 
-> **Incremento Asociado:** INC-41 (`change-41-ingesta-bgg-catalogo`)  
+> **Incrementos Asociados:** INC-41 (`change-41-ingesta-bgg-catalogo`) e INC-53 (`2026-09-21-change-53-ingesta-masiva-autonoma-bgg`)  
 > **Estado:** Implementado, Verificado y Documentado  
-> **Módulo:** Catálogo, Ingesta BGG, Medios Comunitarios y Síntesis IA  
+> **Módulo:** Catálogo, Ingesta BGG, Medios Comunitarios, Síntesis IA y Automatización Autónomo-Desatendida  
 
 ---
 
@@ -16,6 +16,7 @@ El módulo de **Ingesta Masiva de Catálogo BGG, Galería GeekDo y Síntesis IA 
 4. **Síntesis Editorial IA en Lotes:** Optimiza el consumo de la cuota diaria gratuita de Google Gemini Flash (1.500 llamadas/día) agrupando de 5 a 10 juegos por llamada estructurada JSON, multiplicando por 5x a 10x la capacidad de enriquecimiento. Detecta de forma nativa la saturación de cuota (`RESOURCE_EXHAUSTED` / HTTP 429) para pausar elegantemente sin errores.
 5. **Orquestador Nocturno Híbrido:** Reestructura el proceso en segundo plano para que priorice primero las peticiones manuales de usuarios en cola, continúe con el drenaje de juegos listos de staging hacia el catálogo y rellene el cupo con novedades de BGG.
 6. **Panel de Monitorización y Galería Visual:** Ofrece un cuadro de mandos con métricas en `/admin/cola-catalogacion` y una sección visual de componentes en `GameDetail.razor`.
+7. **Descarga y Auto-Siembra 100% Autónoma (INC-53):** Descarga remota desatendida mediante streaming HTTP directo (`ResponseHeadersRead`) en memoria acotada (< 30 MB) desde el mirror público diario en GitHub Raw / Fastly CDN (`{yyyy-MM-dd}.csv`), con retroceso resiliente de fechas de hasta 5 días ante posibles desfases en la publicación de BGG, botón interactivo con permisos en el panel administrativo, subcomando `seed-staging` en Cloud Run Jobs e integración como auto-siembra inicial condicional en el ciclo nocturno si staging se encuentra vacío.
 
 ---
 
@@ -87,22 +88,25 @@ Se agregaron propiedades para la galería comunitaria y soporte de actualizació
 - `GeekDoGalleryImagesDto`: URLs de fotos más votadas (`FrontCoverUrl`, `BackCoverUrl`, `TableOrGameplayUrl`).
 - `AiGameBatchInputDto`: Datos esenciales de juego para síntesis en lote.
 - `AiBatchResultDto`: Resultado de la generación en lote (`Success`, `QuotaExhausted`, `Summaries`, `ErrorMessage`).
-- `BggMassIngestionOptions`: Configuración de límites y tamaños de lotes.
+- `BggMassIngestionOptions`: Configuración de límites y tamaños de lotes. En INC-53 incorpora `RanksDumpUrlPattern` (plantilla URL hacia el mirror público diario de GitHub Raw / Fastly CDN) y `MaxFallbackDays` (5 días de retroceso resiliente ante posibles 404).
 
 ### 3.2. Contratos de Persistencia y Clientes
 - **`IBggCatalogStagingRepository`**: Operaciones masivas `UpsertBatchAsync`, consultas paginadas de ítems pendientes por estado, actualización por lotes, métricas y reseteo de estados de fallo o cuota.
 - **`IGeekDoImagesClient`**: Extracción de las 3 imágenes más votadas desde GeekDo.
 - **`IAiGameSummaryService.GenerateBatchSummariesAsync`**: Sobrecarga para procesar listas de `AiGameBatchInputDto`.
 - **`IBggMassIngestionService`**: Orquestador integral con métodos:
+  - `DownloadAndIngestLatestRanksAsync(int? minUsersRated, ...)` (interactivo con guarda de permisos `CanEditGames`, INC-53).
+  - `RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated, ...)` (ruta de sistema desatendida para Cloud Run Jobs y auto-siembra nocturna, INC-53).
   - `IngestRanksDumpAsync(Stream csvStream, int minUsersRated, ...)`
   - `ProcessPendingDetailsBatchAsync(int batchSize, ...)`
   - `ProcessPendingImagesBatchAsync(int batchSize, ...)`
   - `ProcessPendingAiBatchAsync(int gamesPerBatch, int maxBatches, ...)`
   - `PromoteReadyToCatalogBatchAsync(int batchSize, ...)`
-  - `DrainStagingPipelineAsync(CancellationToken ct)`
+  - `RunDrainCycleAsync(...)` y `RunScheduledDrainCycleAsync(...)`
 
-### 3.3. Streaming CSV Parser (`BggDumpParser.cs`)
-Parser de alto rendimiento en streaming con `StreamReader` y máquina de estados para CSV que filtra en un único pase descartando juegos con menos de 30 valoraciones, evitando cargar ficheros enteros de ~150 MB en memoria RAM.
+### 3.3. Streaming CSV Parser y Robustez de Red (`BggDumpParser.cs`)
+Parser de alto rendimiento en streaming con `StreamReader` y máquina de estados para CSV que filtra en un único pase descartando juegos con menos de 30 valoraciones (`usersrated >= 30`), evitando cargar ficheros enteros en memoria RAM.
+En INC-53 se optimizó para streams de red continuos (`ResponseHeadersRead`) donde `inputStream.CanSeek` es falso: el parser detecta si el stream permite o no rebobinado (`Seek`), evitando excepciones y procesando directamente el flujo como texto UTF-8 con huella de memoria estrictamente acotada (< 30 MB).
 
 ---
 
@@ -125,24 +129,38 @@ Incorporación de `BackCoverImageUrl`, `TableImageUrl` en la tabla `Games` y cre
 ## 5. Capa Web y Presentación (`Ludeka.Web`)
 
 ### 5.1. Cuadro de Mandos en Administración (`CatalogQueueAdmin.razor`)
-Sección dedicada a "Ingesta Masiva de Catálogo (Staging)" con:
+Sección dedicada a "Ingesta Masiva BGG & Staging (~8.000 títulos)" con:
 - Métricas en tiempo real: Total en staging, pendientes de detalle, imágenes, IA, listos para promoción y promovidos.
 - Alerta visual amarilla si la cuota de IA fue alcanzada (`QuotaExceeded`).
 - Botón de acción rápida: *«Drenar Lote de Staging (10 títulos)»* con feedback interactivo.
+- Botón de descarga y siembra autónoma (INC-53): *«Descargar y Poblar Catálogo BGG (~8.000 títulos)»*, protegido por la política de permisos `CanEditGames`, con animación reactiva (`_isSeedingStaging`), bloqueo concurrente mutuo y reporte detallado de títulos sembrados.
 
 ### 5.2. Galería Visual en Detalle de Juego (`GameDetail.razor`)
 Bloque *"Galería Visual y Componentes"* que renderiza la contraportada (`BackCoverImageUrl`) y la fotografía de despliegue en mesa (`TableImageUrl`) en diseño de tarjeta editorial con fallback seguro.
 
 ---
 
-## 6. Verificación y Cobertura de Pruebas
+## 6. Integración en Ciclos Desatendidos y Cloud Run Jobs
 
-Se añadieron 24 pruebas automáticas sin librerías externas de mocking, utilizando Fakes puros acordes a Clean Architecture:
+### 6.1. Runner Autónomo `seed-staging` (`Ludeka.Jobs`)
+Incorporado en INC-53 como quinto trabajo fino de consola (`JobNames.SeedStaging`). Ejecuta una sola unidad de trabajo idempotente con clave diaria UTC, descargando y sembrando la tabla staging sin intervención humana.
+
+### 6.2. Auto-Siembra Inteligente en el Ciclo Nocturno (`NightlyCatalogingService.cs`)
+En la Fase 3 del ciclo nocturno, antes del drenaje de staging, se evalúan las métricas actuales: si `stagingMetrics.TotalInStaging == 0`, el servicio invoca automáticamente `RunScheduledDownloadAndIngestLatestRanksAsync()`, garantizando que la base de datos comience su ciclo de drenaje sin requerir que un operador humano haya poblado staging previamente.
+
+---
+
+## 7. Verificación y Cobertura de Pruebas
+
+Se cuenta con una batería completa de pruebas unitarias sin dependencias externas de red ni mocks pesados, empleando Fakes deterministas:
 - `BggCatalogStagingItemTests`: 12 pruebas de transiciones de dominio y validaciones.
 - `BggDumpParserTests`: 3 pruebas de streaming CSV, filtro por umbral de votos y caracteres escapados.
+- `BggMassIngestionAutonomousDownloadTests` (INC-53): 7 pruebas de descarga remota, resolución de fechas, fallback resiliente, streaming no buscable, simulación y permisos de moderador.
 - `GeekDoImagesClientTests`: 3 pruebas del cliente de galería comunitaria y modo simulación.
 - `GeminiBatchSummaryTests`: 2 pruebas de síntesis en lotes y manejo de casos vacíos.
 - `BggMassIngestionServiceTests`: 4 pruebas completas del ciclo de ingesta, detalles BGG, control de cuota 429 y promoción atómica a catálogo.
+- `SeedStagingJobRunnerTests` (INC-53): 1 prueba del runner de Cloud Run Jobs coordinado bajo concesión de ventana.
+- `NightlyCatalogingServiceTests` (INC-53): 2 pruebas de auto-siembra condicional cuando staging está vacío frente a cuando ya contiene registros.
 - `SqliteSchemaMigratorTests`: Validación de migración defensiva de esquema SQLite.
 
-**Total verificado en la solución:** **930 pruebas automáticas en verde al 100%**.
+**Total verificado en la solución tras INC-53:** **1.604 pruebas unitarias + 10 de integración en verde al 100% (1.614 pruebas totales)**.

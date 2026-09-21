@@ -26,16 +26,27 @@ public static class BggDumpParser
         Stream workingStream = inputStream;
         bool isGzip = false;
 
-        // Comprobación de cabecera GZip (Magic Numbers 0x1F, 0x8B)
-        if (inputStream.CanSeek && inputStream.Length >= 2)
+        // Comprobación de cabecera GZip (Magic Numbers 0x1F, 0x8B) únicamente si el stream admite Seek.
+        // En flujos continuos de red (ej. HttpClient con CanSeek == false), se procesa secuencialmente sin posicionamiento.
+        if (inputStream.CanSeek)
         {
-            int b1 = inputStream.ReadByte();
-            int b2 = inputStream.ReadByte();
-            inputStream.Position = 0;
-
-            if (b1 == 0x1F && b2 == 0x8B)
+            try
             {
-                isGzip = true;
+                if (inputStream.Length >= 2)
+                {
+                    int b1 = inputStream.ReadByte();
+                    int b2 = inputStream.ReadByte();
+                    inputStream.Position = 0;
+
+                    if (b1 == 0x1F && b2 == 0x8B)
+                    {
+                        isGzip = true;
+                    }
+                }
+            }
+            catch
+            {
+                isGzip = false;
             }
         }
 

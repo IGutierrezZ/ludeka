@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -516,5 +519,99 @@ public class BggMassIngestionService : IBggMassIngestionService
         {
             return null;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<int> DownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await ExecuteDownloadAndIngestAsync(minUsersRated, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default)
+    {
+        return ExecuteDownloadAndIngestAsync(minUsersRated, ct);
+    }
+
+    private async Task<int> ExecuteDownloadAndIngestAsync(int? minUsersRated, CancellationToken ct)
+    {
+        int threshold = minUsersRated.HasValue && minUsersRated.Value > 0 ? minUsersRated.Value : _options.MinUsersRated;
+
+        if (_options.Simulate)
+        {
+            _logger.LogInformation("Modo simulado activo: ingiriendo dataset sintético de catálogo BGG en staging.");
+            return await IngestSyntheticSampleAsync(threshold, ct);
+        }
+
+        var (stream, resolvedDate) = await OpenLatestRanksStreamAsync(ct);
+        await using (stream.ConfigureAwait(false))
+        {
+            _logger.LogInformation("Procesando volcado BGG correspondiente a la fecha {Date:yyyy-MM-dd} con umbral usersrated >= {MinVotes}",
+                resolvedDate, threshold);
+
+            return await IngestRanksDumpAsync(stream, threshold, ct);
+        }
+    }
+
+    private async Task<(Stream Stream, DateTime ResolvedDate)> OpenLatestRanksStreamAsync(CancellationToken ct)
+    {
+        var currentDate = DateTime.UtcNow.Date;
+        int maxFallback = Math.Max(0, _options.MaxFallbackDays);
+        var testedUrls = new List<string>();
+
+        for (int attempt = 0; attempt <= maxFallback; attempt++)
+        {
+            var date = currentDate.AddDays(-attempt);
+            string url = string.Format(CultureInfo.InvariantCulture, _options.RanksDumpUrlPattern, date);
+            testedUrls.Add(url);
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add("User-Agent", "Ludeka/1.0");
+
+                var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Volcado BGG encontrado exitosamente en {Url} tras {Attempts} intento(s).", url, attempt + 1);
+                    var stream = await response.Content.ReadAsStreamAsync(ct);
+                    return (stream, date);
+                }
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogInformation("Volcado BGG no encontrado (404) para {Date:yyyy-MM-dd} en {Url}. Probando día anterior...", date, url);
+                    response.Dispose();
+                    continue;
+                }
+
+                _logger.LogWarning("Respuesta inesperada {StatusCode} al consultar volcado BGG en {Url}.", response.StatusCode, url);
+                response.Dispose();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Error al intentar obtener volcado BGG para {Date:yyyy-MM-dd} en {Url}.", date, url);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"No se pudo obtener ningún volcado de clasificación de BGG tras comprobar {testedUrls.Count} fecha(s). URLs probadas: {string.Join(", ", testedUrls)}");
+    }
+
+    private async Task<int> IngestSyntheticSampleAsync(int minUsersRated, CancellationToken ct)
+    {
+        string sampleCsv = """
+            id,name,yearpublished,rank,bayesaverage,average,usersrated
+            174430,"Gloomhaven",2017,1,8.42,8.61,62000
+            224517,"Brass: Birmingham",2018,2,8.41,8.60,48000
+            342942,"Ark Nova",2021,3,8.35,8.53,42000
+            167791,"Terraforming Mars",2016,4,8.25,8.39,95000
+            999999,"Prototipo Olvidado",2024,15000,5.1,5.2,14
+            """;
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sampleCsv));
+        return await IngestRanksDumpAsync(ms, minUsersRated, ct);
     }
 }
