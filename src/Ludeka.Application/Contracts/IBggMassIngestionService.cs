@@ -50,6 +50,17 @@ public interface IBggMassIngestionService
     /// Ciclo de sistema del proceso nocturno (INC-46, W1): misma lógica sin la guarda de la interfaz.
     /// </summary>
     Task<BggMassIngestionCycleResultDto> RunScheduledDrainCycleAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Descarga y procesa de forma autónoma el volcado más reciente de clasificación de BGG en staging.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
+    /// </summary>
+    Task<int> DownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema para ejecutor en segundo plano (Ludeka.Jobs) sin la guarda de sesión interactiva.
+    /// </summary>
+    Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default);
 }
 
 /// <summary>
