@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,56 +6,64 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteFoundingVerdictRepository : IFoundingVerdictRepository
+public class SqliteFoundingVerdictRepository : DbContextRepositoryBase, IFoundingVerdictRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteFoundingVerdictRepository(LudekaDbContext context)
+    public SqliteFoundingVerdictRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context;
+    }
+
+    internal SqliteFoundingVerdictRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<FoundingVerdict?> GetByGameIdAsync(Guid gameId, CancellationToken ct = default)
     {
-        return await _context.FoundingVerdicts
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.FoundingVerdicts
             .FirstOrDefaultAsync(v => v.GameId == gameId, ct);
     }
 
     public async Task<FoundingVerdict?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.FoundingVerdicts
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.FoundingVerdicts
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }
 
     public async Task AddAsync(FoundingVerdict verdict, CancellationToken ct = default)
     {
-        await _context.FoundingVerdicts.AddAsync(verdict, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.FoundingVerdicts.AddAsync(verdict, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(FoundingVerdict verdict, CancellationToken ct = default)
     {
-        _context.FoundingVerdicts.Update(verdict);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.FoundingVerdicts.Update(verdict);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var item = await _context.FoundingVerdicts.FindAsync([id], ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var item = await scope.Context.FoundingVerdicts.FindAsync([id], ct);
         if (item != null)
         {
-            _context.FoundingVerdicts.Remove(item);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.FoundingVerdicts.Remove(item);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
     public async Task<IReadOnlyList<FoundingVerdict>> GetAllAsync(CancellationToken ct = default)
     {
         // En SQLite, el ordenamiento por DateTimeOffset debe realizarse en memoria
-        var list = await _context.FoundingVerdicts.ToListAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var list = await scope.Context.FoundingVerdicts.ToListAsync(ct);
         return list.OrderByDescending(v => v.CreatedAt).ToList().AsReadOnly();
     }
 }

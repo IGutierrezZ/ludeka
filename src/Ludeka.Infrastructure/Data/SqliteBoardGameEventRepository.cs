@@ -6,16 +6,18 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteBoardGameEventRepository : IBoardGameEventRepository
+public class SqliteBoardGameEventRepository : DbContextRepositoryBase, IBoardGameEventRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteBoardGameEventRepository(LudekaDbContext context)
+    public SqliteBoardGameEventRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteBoardGameEventRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<BoardGameEvent>> GetUpcomingEventsAsync(int limit = 20, CancellationToken ct = default)
@@ -24,8 +26,9 @@ public class SqliteBoardGameEventRepository : IBoardGameEventRepository
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
+        await using var scope = await CreateScopeAsync(ct);
         // Primero eventos vigentes o futuros (EndDate >= hoy) ordenados por StartDate ascendente
-        var upcoming = await _context.BoardGameEvents
+        var upcoming = await scope.Context.BoardGameEvents
             .AsNoTracking()
             .Where(e => e.EndDate >= today)
             .OrderBy(e => e.StartDate)
@@ -36,7 +39,7 @@ public class SqliteBoardGameEventRepository : IBoardGameEventRepository
         {
             // Si hay pocos eventos futuros, completar con los más recientes para no dejar el carril vacío
             int remaining = limit - upcoming.Count;
-            var past = await _context.BoardGameEvents
+            var past = await scope.Context.BoardGameEvents
                 .AsNoTracking()
                 .Where(e => e.EndDate < today)
                 .OrderByDescending(e => e.EndDate)
@@ -51,7 +54,8 @@ public class SqliteBoardGameEventRepository : IBoardGameEventRepository
 
     public async Task<IReadOnlyList<BoardGameEvent>> GetAllEventsAsync(CancellationToken ct = default)
     {
-        return await _context.BoardGameEvents
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.BoardGameEvents
             .AsNoTracking()
             .OrderBy(e => e.StartDate)
             .ToListAsync(ct);
@@ -59,7 +63,8 @@ public class SqliteBoardGameEventRepository : IBoardGameEventRepository
 
     public async Task<BoardGameEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.BoardGameEvents
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.BoardGameEvents
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id, ct);
     }
@@ -67,24 +72,27 @@ public class SqliteBoardGameEventRepository : IBoardGameEventRepository
     public async Task AddAsync(BoardGameEvent boardGameEvent, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(boardGameEvent);
-        await _context.BoardGameEvents.AddAsync(boardGameEvent, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.BoardGameEvents.AddAsync(boardGameEvent, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(BoardGameEvent boardGameEvent, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(boardGameEvent);
-        _context.BoardGameEvents.Update(boardGameEvent);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.BoardGameEvents.Update(boardGameEvent);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await _context.BoardGameEvents.FirstOrDefaultAsync(e => e.Id == id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var entity = await scope.Context.BoardGameEvents.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (entity != null)
         {
-            _context.BoardGameEvents.Remove(entity);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.BoardGameEvents.Remove(entity);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

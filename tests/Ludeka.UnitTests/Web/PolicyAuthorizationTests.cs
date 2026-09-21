@@ -49,6 +49,7 @@ public class PolicyAuthorizationTests : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<LudekaDbContext>(options => options.UseSqlite(_connection));
+        services.AddDbContextFactory<LudekaDbContext>(options => options.UseSqlite(_connection));
         services.AddScoped<IUserRepository, SqliteUserRepository>();
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddAuthorization(AuthorizationPolicies.Configure);

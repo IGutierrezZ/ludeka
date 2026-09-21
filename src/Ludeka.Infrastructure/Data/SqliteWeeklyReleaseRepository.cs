@@ -6,21 +6,24 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteWeeklyReleaseRepository : IWeeklyReleaseRepository
+public class SqliteWeeklyReleaseRepository : DbContextRepositoryBase, IWeeklyReleaseRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteWeeklyReleaseRepository(LudekaDbContext context)
+    public SqliteWeeklyReleaseRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteWeeklyReleaseRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<WeeklyRelease>> GetReleasesAsync(DateOnly? fromDate = null, CancellationToken ct = default)
     {
-        var query = _context.WeeklyReleases
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.WeeklyReleases
             .Include(r => r.Game)
             .AsQueryable();
 
@@ -37,30 +40,34 @@ public class SqliteWeeklyReleaseRepository : IWeeklyReleaseRepository
 
     public async Task<WeeklyRelease?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.WeeklyReleases
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.WeeklyReleases
             .Include(r => r.Game)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
     public async Task AddAsync(WeeklyRelease release, CancellationToken ct = default)
     {
-        await _context.WeeklyReleases.AddAsync(release, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.WeeklyReleases.AddAsync(release, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(WeeklyRelease release, CancellationToken ct = default)
     {
-        _context.WeeklyReleases.Update(release);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.WeeklyReleases.Update(release);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var item = await _context.WeeklyReleases.FindAsync(new object[] { id }, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var item = await scope.Context.WeeklyReleases.FindAsync(new object[] { id }, ct);
         if (item != null)
         {
-            _context.WeeklyReleases.Remove(item);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.WeeklyReleases.Remove(item);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

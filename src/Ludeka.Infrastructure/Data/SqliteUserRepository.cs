@@ -8,16 +8,18 @@ using Ludeka.Application.Features.Identity;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteUserRepository : IUserRepository
+public class SqliteUserRepository : DbContextRepositoryBase, IUserRepository
 {
-    private readonly LudekaDbContext _db;
-
-    public SqliteUserRepository(LudekaDbContext db)
+    public SqliteUserRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _db = db ?? throw new ArgumentNullException(nameof(db));
+    }
+
+    internal SqliteUserRepository(LudekaDbContext db) : base(db)
+    {
     }
 
     public async Task<AppUser?> GetByIdAsync(string id, CancellationToken ct = default)
@@ -27,19 +29,23 @@ public class SqliteUserRepository : IUserRepository
 
         // AsNoTracking: la identidad se relee en cada comprobación (políticas, circuito e
         // invalidación en caliente) y una entidad rastreada devolvería permisos obsoletos.
-        return await _db.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cleanId, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cleanId, ct);
     }
 
     public async Task<AppUser?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(email)) return null;
         var cleanEmail = email.Trim().ToLowerInvariant();
-        return await _db.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Email == cleanEmail, ct);
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.AppUsers.AsNoTracking().FirstOrDefaultAsync(u => u.Email == cleanEmail, ct);
     }
 
     public async Task<IReadOnlyList<AppUser>> GetAllAsync(string? search = null, UserRole? role = null, UserStatus? status = null, CancellationToken ct = default)
     {
-        var query = _db.AppUsers.AsNoTracking().AsQueryable();
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.AppUsers.AsNoTracking().AsQueryable();
 
         if (role.HasValue)
         {
@@ -69,13 +75,15 @@ public class SqliteUserRepository : IUserRepository
     public async Task AddAsync(AppUser user, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(user);
-        await _db.AppUsers.AddAsync(user, ct);
-        await _db.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.AppUsers.AddAsync(user, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(AppUser user, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(user);
+        await using var scope = await CreateScopeAsync(ct);
 
         // Corrección INC-49 (PR #7): si esta cuenta ya está bajo seguimiento por otra instancia en
         // el mismo DbContext (por ejemplo, tras un alta o una lectura con tracking anteriores en el
@@ -83,7 +91,7 @@ public class SqliteUserRepository : IUserRepository
         // adjuntar una segunda con la misma clave. Mismo patrón que
         // ExternalLoginRepository.RemoveAsync (PR #2), que corrigió el mismo conflicto del
         // ChangeTracker para ExternalLogin.
-        var trackedEntry = _db.ChangeTracker.Entries<AppUser>()
+        var trackedEntry = scope.Context.ChangeTracker.Entries<AppUser>()
             .FirstOrDefault(e => e.Entity.Id == user.Id);
 
         if (trackedEntry is not null && !ReferenceEquals(trackedEntry.Entity, user))
@@ -92,12 +100,12 @@ public class SqliteUserRepository : IUserRepository
         }
         else
         {
-            _db.AppUsers.Update(user);
+            scope.Context.AppUsers.Update(user);
         }
 
         try
         {
-            await _db.SaveChangesAsync(ct);
+            await scope.Context.SaveChangesAsync(ct);
         }
         catch (DbUpdateException ex)
         {
@@ -112,11 +120,12 @@ public class SqliteUserRepository : IUserRepository
     {
         if (string.IsNullOrWhiteSpace(id)) return;
         var cleanId = id.Trim().ToLowerInvariant();
-        var user = await _db.AppUsers.FirstOrDefaultAsync(u => u.Id == cleanId, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var user = await scope.Context.AppUsers.FirstOrDefaultAsync(u => u.Id == cleanId, ct);
         if (user != null)
         {
-            _db.AppUsers.Remove(user);
-            await _db.SaveChangesAsync(ct);
+            scope.Context.AppUsers.Remove(user);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }
