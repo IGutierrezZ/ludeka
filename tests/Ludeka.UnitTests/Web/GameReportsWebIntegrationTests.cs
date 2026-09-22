@@ -22,6 +22,7 @@ public class GameReportsWebIntegrationTests
         connection.Open();
 
         services.AddDbContext<LudekaDbContext>(opts => opts.UseSqlite(connection));
+        services.AddDbContextFactory<LudekaDbContext>(opts => opts.UseSqlite(connection));
         services.AddScoped<IGameIssueReportRepository, SqliteGameIssueReportRepository>();
         services.AddScoped<IGameIssueReportService, GameIssueReportService>();
 

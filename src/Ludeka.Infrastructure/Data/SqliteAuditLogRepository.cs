@@ -10,20 +10,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteAuditLogRepository : IAuditLogRepository
+public class SqliteAuditLogRepository : DbContextRepositoryBase, IAuditLogRepository
 {
-    private readonly LudekaDbContext _db;
-
-    public SqliteAuditLogRepository(LudekaDbContext db)
+    public SqliteAuditLogRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _db = db ?? throw new ArgumentNullException(nameof(db));
+    }
+
+    internal SqliteAuditLogRepository(LudekaDbContext db) : base(db)
+    {
     }
 
     public async Task AddAsync(AuditLogEntry entry, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        await _db.AuditLogs.AddAsync(entry, ct);
-        await _db.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.AuditLogs.AddAsync(entry, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<AuditLogEntry>> GetLogsAsync(
@@ -36,11 +38,12 @@ public class SqliteAuditLogRepository : IAuditLogRepository
         int take = 50,
         CancellationToken ct = default)
     {
-        var query = BuildQuery(userId, entityType, action);
+        await using var scope = await CreateScopeAsync(ct);
+        var query = BuildQuery(scope.Context, userId, entityType, action);
 
         // EF Core SQLite no traduce ORDER BY ni las comparaciones de rango sobre DateTimeOffset:
         // se materializa con los filtros traducibles y el rango de fechas y el orden se resuelven en memoria.
-        var logs = await query.ToListAsync(ct);
+        var logs = await query.AsNoTracking().ToListAsync(ct);
 
         if (fromDate.HasValue)
         {
@@ -68,11 +71,12 @@ public class SqliteAuditLogRepository : IAuditLogRepository
         DateTimeOffset? toDate = null,
         CancellationToken ct = default)
     {
-        var query = BuildQuery(userId, entityType, action);
+        await using var scope = await CreateScopeAsync(ct);
+        var query = BuildQuery(scope.Context, userId, entityType, action);
 
         // Mismo defecto que GetLogsAsync: el rango de fechas sobre DateTimeOffset no es
         // traducible por SQLite y se resuelve en memoria.
-        var logs = await query.ToListAsync(ct);
+        var logs = await query.AsNoTracking().ToListAsync(ct);
 
         if (fromDate.HasValue)
         {
@@ -87,12 +91,13 @@ public class SqliteAuditLogRepository : IAuditLogRepository
         return logs.Count;
     }
 
-    private IQueryable<AuditLogEntry> BuildQuery(
+    private static IQueryable<AuditLogEntry> BuildQuery(
+        LudekaDbContext db,
         string? userId,
         AuditEntityType? entityType,
         AuditAction? action)
     {
-        var query = _db.AuditLogs.AsQueryable();
+        var query = db.AuditLogs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(userId))
         {

@@ -10,18 +10,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteSocialInboxRepository : ISocialInboxRepository
+public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInboxRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteSocialInboxRepository(LudekaDbContext context)
+    public SqliteSocialInboxRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteSocialInboxRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<SocialInboxItem>> GetPendingAsync(SocialSubmissionType? typeFilter = null, CancellationToken ct = default)
     {
-        var items = await _context.SocialInboxItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.SocialInboxItems
+            .AsNoTracking()
             .Include(i => i.Game)
             .Where(i => i.Status == SocialInboxStatus.PendingReview)
             .ToListAsync(ct);
@@ -41,7 +44,9 @@ public class SqliteSocialInboxRepository : ISocialInboxRepository
         int pageSize = 50,
         CancellationToken ct = default)
     {
-        var items = await _context.SocialInboxItems
+        await using var scope = await CreateScopeAsync(ct);
+        var items = await scope.Context.SocialInboxItems
+            .AsNoTracking()
             .Include(i => i.Game)
             .ToListAsync(ct);
 
@@ -64,30 +69,36 @@ public class SqliteSocialInboxRepository : ISocialInboxRepository
 
     public async Task<SocialInboxItem?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.SocialInboxItems
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.SocialInboxItems
+            .AsNoTracking()
             .Include(i => i.Game)
             .FirstOrDefaultAsync(i => i.Id == id, ct);
     }
 
     public async Task<int> GetPendingCountAsync(CancellationToken ct = default)
     {
-        return await _context.SocialInboxItems
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.SocialInboxItems
+            .AsNoTracking()
             .CountAsync(i => i.Status == SocialInboxStatus.PendingReview, ct);
     }
 
     public async Task<SocialInboxItem> AddAsync(SocialInboxItem item, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        await _context.SocialInboxItems.AddAsync(item, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.SocialInboxItems.AddAsync(item, ct);
+        await scope.Context.SaveChangesAsync(ct);
         return item;
     }
 
     public async Task UpdateAsync(SocialInboxItem item, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        _context.SocialInboxItems.Update(item);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.SocialInboxItems.Update(item);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task<bool> ExistsBySourceUrlAsync(string sourceUrl, CancellationToken ct = default)
@@ -96,7 +107,9 @@ public class SqliteSocialInboxRepository : ISocialInboxRepository
             return false;
 
         var clean = sourceUrl.Trim();
-        return await _context.SocialInboxItems
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.SocialInboxItems
+            .AsNoTracking()
             .AnyAsync(i => i.SourceUrl == clean, ct);
     }
 }

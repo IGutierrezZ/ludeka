@@ -37,7 +37,7 @@ public record ExpansionSummaryDto(
         };
 
         var tagLabels = new List<string>();
-        foreach (var tag in g.ImpactTags)
+        foreach (var tag in g.ImpactTags ?? [])
         {
             string label = tag switch
             {
@@ -66,7 +66,7 @@ public record ExpansionSummaryDto(
             g.BggRating,
             g.ExpansionNecessity,
             necessityText,
-            g.ImpactTags.AsReadOnly(),
+            (g.ImpactTags ?? new List<ExpansionImpactTag>()).AsReadOnly(),
             tagLabels.AsReadOnly(),
             g.WhatItBringsSummary,
             g.ExtraPlayerCount,

@@ -9,18 +9,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqlitePublisherRepository : IPublisherRepository
+public class SqlitePublisherRepository : DbContextRepositoryBase, IPublisherRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqlitePublisherRepository(LudekaDbContext context)
+    public SqlitePublisherRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqlitePublisherRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<Publisher>> GetAllAsync(CancellationToken ct = default)
     {
-        return await _context.Publishers
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Publishers
             .AsNoTracking()
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
@@ -28,7 +30,8 @@ public class SqlitePublisherRepository : IPublisherRepository
 
     public async Task<Publisher?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Publishers
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Publishers
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
@@ -38,7 +41,8 @@ public class SqlitePublisherRepository : IPublisherRepository
         if (string.IsNullOrWhiteSpace(slug)) return null;
         var normalized = slug.Trim().ToLowerInvariant();
 
-        return await _context.Publishers
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Publishers
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Slug == normalized, ct);
     }
@@ -48,7 +52,8 @@ public class SqlitePublisherRepository : IPublisherRepository
         if (string.IsNullOrWhiteSpace(name)) return null;
         var normalized = name.Trim();
 
-        return await _context.Publishers
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Publishers
             .AsNoTracking()
             .FirstOrDefaultAsync(p => EF.Functions.Like(p.Name, normalized), ct);
     }
@@ -56,15 +61,17 @@ public class SqlitePublisherRepository : IPublisherRepository
     public async Task AddAsync(Publisher publisher, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(publisher);
-        await _context.Publishers.AddAsync(publisher, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.Publishers.AddAsync(publisher, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Publisher publisher, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(publisher);
 
-        var existing = await _context.Publishers.FirstOrDefaultAsync(p => p.Id == publisher.Id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.Publishers.FirstOrDefaultAsync(p => p.Id == publisher.Id, ct);
         if (existing != null)
         {
             existing.UpdateDetails(
@@ -76,17 +83,18 @@ public class SqlitePublisherRepository : IPublisherRepository
                 publisher.WebsiteUrl
             );
             existing.SetSocialLinks(publisher.SocialLinks);
-            await _context.SaveChangesAsync(ct);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var existing = await _context.Publishers.FirstOrDefaultAsync(p => p.Id == id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.Publishers.FirstOrDefaultAsync(p => p.Id == id, ct);
         if (existing != null)
         {
-            _context.Publishers.Remove(existing);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.Publishers.Remove(existing);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

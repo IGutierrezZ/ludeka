@@ -9,18 +9,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteCreatorRepository : ICreatorRepository
+public class SqliteCreatorRepository : DbContextRepositoryBase, ICreatorRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteCreatorRepository(LudekaDbContext context)
+    public SqliteCreatorRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteCreatorRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<Creator>> GetAllAsync(CancellationToken ct = default)
     {
-        return await _context.Creators
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Creators
             .AsNoTracking()
             .OrderBy(c => c.Name)
             .ToListAsync(ct);
@@ -28,7 +30,8 @@ public class SqliteCreatorRepository : ICreatorRepository
 
     public async Task<Creator?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Creators
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Creators
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
@@ -38,7 +41,8 @@ public class SqliteCreatorRepository : ICreatorRepository
         if (string.IsNullOrWhiteSpace(slug)) return null;
         var normalized = slug.Trim().ToLowerInvariant();
 
-        return await _context.Creators
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Creators
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Slug == normalized, ct);
     }
@@ -48,7 +52,8 @@ public class SqliteCreatorRepository : ICreatorRepository
         if (string.IsNullOrWhiteSpace(name)) return null;
         var normalized = name.Trim();
 
-        return await _context.Creators
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Creators
             .AsNoTracking()
             .FirstOrDefaultAsync(c => EF.Functions.Like(c.Name, normalized), ct);
     }
@@ -56,15 +61,17 @@ public class SqliteCreatorRepository : ICreatorRepository
     public async Task AddAsync(Creator creator, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(creator);
-        await _context.Creators.AddAsync(creator, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.Creators.AddAsync(creator, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Creator creator, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(creator);
 
-        var existing = await _context.Creators.FirstOrDefaultAsync(c => c.Id == creator.Id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.Creators.FirstOrDefaultAsync(c => c.Id == creator.Id, ct);
         if (existing != null)
         {
             existing.UpdateDetails(
@@ -76,17 +83,18 @@ public class SqliteCreatorRepository : ICreatorRepository
                 creator.WebsiteUrl
             );
             existing.SetSocialLinks(creator.SocialLinks);
-            await _context.SaveChangesAsync(ct);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var existing = await _context.Creators.FirstOrDefaultAsync(c => c.Id == id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.Creators.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (existing != null)
         {
-            _context.Creators.Remove(existing);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.Creators.Remove(existing);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

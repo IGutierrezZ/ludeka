@@ -10,35 +10,38 @@ using Microsoft.EntityFrameworkCore;
 namespace Ludeka.Infrastructure.Data;
 
 /// <summary>
-/// Repositorio SQLite para la persistencia y consulta de la bitácora de ejecuciones de catalogación nocturna.
+/// Repositorio para la persistencia y consulta de la bitácora de ejecuciones de catalogación nocturna con ámbitos efímeros.
 /// </summary>
-public class SqliteNightlyCatalogingLogRepository : INightlyCatalogingLogRepository
+public class SqliteNightlyCatalogingLogRepository : DbContextRepositoryBase, INightlyCatalogingLogRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteNightlyCatalogingLogRepository(LudekaDbContext context)
+    public SqliteNightlyCatalogingLogRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteNightlyCatalogingLogRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task AddAsync(NightlyCatalogingExecutionLog log, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(log);
-        await _context.NightlyCatalogingExecutionLogs.AddAsync(log, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.NightlyCatalogingExecutionLogs.AddAsync(log, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(NightlyCatalogingExecutionLog log, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(log);
-        _context.NightlyCatalogingExecutionLogs.Update(log);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.NightlyCatalogingExecutionLogs.Update(log);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<NightlyCatalogingExecutionLog>> GetRecentLogsAsync(int limit = 20, CancellationToken ct = default)
     {
-        // EF Core SQLite no traduce ORDER BY sobre DateTimeOffset: se materializa primero y se ordena en memoria.
-        var logs = await _context.NightlyCatalogingExecutionLogs
+        await using var scope = await CreateScopeAsync(ct);
+        var logs = await scope.Context.NightlyCatalogingExecutionLogs
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -51,8 +54,8 @@ public class SqliteNightlyCatalogingLogRepository : INightlyCatalogingLogReposit
 
     public async Task<NightlyCatalogingExecutionLog?> GetLatestLogAsync(CancellationToken ct = default)
     {
-        // EF Core SQLite no traduce ORDER BY sobre DateTimeOffset: se materializa primero y se ordena en memoria.
-        var logs = await _context.NightlyCatalogingExecutionLogs
+        await using var scope = await CreateScopeAsync(ct);
+        var logs = await scope.Context.NightlyCatalogingExecutionLogs
             .AsNoTracking()
             .ToListAsync(ct);
 

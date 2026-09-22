@@ -10,20 +10,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Repositories;
 
-public class SqliteCommunityNotificationRepository : ICommunityNotificationRepository
+public class SqliteCommunityNotificationRepository : DbContextRepositoryBase, ICommunityNotificationRepository
 {
-    private readonly LudekaDbContext _dbContext;
-
-    public SqliteCommunityNotificationRepository(LudekaDbContext dbContext)
+    public SqliteCommunityNotificationRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _dbContext = dbContext;
+    }
+
+    internal SqliteCommunityNotificationRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<CommunityNotificationLog>> GetRecentLogsAsync(
         int take = 50,
         CancellationToken ct = default)
     {
-        var logs = await _dbContext.NotificationLogs
+        await using var scope = await CreateScopeAsync(ct);
+        var logs = await scope.Context.NotificationLogs
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -37,7 +39,8 @@ public class SqliteCommunityNotificationRepository : ICommunityNotificationRepos
         Guid id,
         CancellationToken ct = default)
     {
-        return await _dbContext.NotificationLogs
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.NotificationLogs
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
 
@@ -46,8 +49,9 @@ public class SqliteCommunityNotificationRepository : ICommunityNotificationRepos
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(log);
-        await _dbContext.NotificationLogs.AddAsync(log, ct);
-        await _dbContext.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.NotificationLogs.AddAsync(log, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateLogAsync(
@@ -55,7 +59,8 @@ public class SqliteCommunityNotificationRepository : ICommunityNotificationRepos
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(log);
-        _dbContext.NotificationLogs.Update(log);
-        await _dbContext.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.NotificationLogs.Update(log);
+        await scope.Context.SaveChangesAsync(ct);
     }
 }

@@ -9,24 +9,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqlitePendingBggImportRepository : IPendingBggImportRepository
+public class SqlitePendingBggImportRepository : DbContextRepositoryBase, IPendingBggImportRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqlitePendingBggImportRepository(LudekaDbContext context)
+    public SqlitePendingBggImportRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context;
+    }
+
+    internal SqlitePendingBggImportRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<PendingBggImport?> GetByBggIdAsync(int bggId, CancellationToken ct = default)
     {
-        return await _context.PendingBggImports
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.PendingBggImports
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.BggId == bggId, ct);
     }
 
     public async Task<IReadOnlyList<PendingBggImport>> GetTopPendingAsync(int limit = 50, CancellationToken ct = default)
     {
-        return await _context.PendingBggImports
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.PendingBggImports
+            .AsNoTracking()
             .Where(p => p.Status == CatalogQueueStatus.Pending || p.Status == CatalogQueueStatus.Failed)
             .OrderBy(p => p.Status == CatalogQueueStatus.Failed ? 1 : 0)
             .ThenByDescending(p => p.RequestedCount)
@@ -36,7 +41,8 @@ public class SqlitePendingBggImportRepository : IPendingBggImportRepository
 
     public async Task<IReadOnlyList<PendingBggImport>> GetAllAsync(CatalogQueueStatus? status = null, CancellationToken ct = default)
     {
-        var query = _context.PendingBggImports.AsQueryable();
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.PendingBggImports.AsNoTracking().AsQueryable();
         if (status.HasValue)
         {
             query = query.Where(p => p.Status == status.Value);
@@ -49,25 +55,29 @@ public class SqlitePendingBggImportRepository : IPendingBggImportRepository
 
     public async Task<int> GetTotalPendingCountAsync(CancellationToken ct = default)
     {
-        return await _context.PendingBggImports
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.PendingBggImports
             .CountAsync(p => p.Status == CatalogQueueStatus.Pending || p.Status == CatalogQueueStatus.Failed, ct);
     }
 
     public async Task AddAsync(PendingBggImport item, CancellationToken ct = default)
     {
-        await _context.PendingBggImports.AddAsync(item, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.PendingBggImports.AddAsync(item, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(PendingBggImport item, CancellationToken ct = default)
     {
-        _context.PendingBggImports.Update(item);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.PendingBggImports.Update(item);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task ResetFailedToPendingAsync(CancellationToken ct = default)
     {
-        var failedItems = await _context.PendingBggImports
+        await using var scope = await CreateScopeAsync(ct);
+        var failedItems = await scope.Context.PendingBggImports
             .Where(p => p.Status == CatalogQueueStatus.Failed)
             .ToListAsync(ct);
 
@@ -76,6 +86,6 @@ public class SqlitePendingBggImportRepository : IPendingBggImportRepository
             item.ResetToPending();
         }
 
-        await _context.SaveChangesAsync(ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 }
