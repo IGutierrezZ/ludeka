@@ -25,6 +25,7 @@ using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Notifications;
 using Ludeka.Infrastructure.Options;
 using Ludeka.Infrastructure.Repositories;
+using Ludeka.Infrastructure.Seeding;
 using Ludeka.Infrastructure.Services;
 using Ludeka.Infrastructure.Stores;
 using Ludeka.Infrastructure.YouTube;
@@ -220,6 +221,7 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<ICreatorService, CreatorService>();
         services.AddScoped<IStoreService, StoreService>();
         services.AddScoped<IChannelDirectoryProvider, ChannelDirectoryProvider>();
+        services.AddScoped<IDirectorySeederService, DirectorySeederService>();
 
         // Incremento 20: Gestión de Usuarios, Permisos Granulares de Moderación y Auditoría para la Mesa Fundadora
         services.AddScoped<IUserRepository, SqliteUserRepository>();

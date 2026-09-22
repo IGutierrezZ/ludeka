@@ -65,6 +65,16 @@ public static class StartupGuards
                        "migración(es) pendiente(s). El trabajo no migra nunca el esquema.";
             }
         }
+        else
+        {
+            // En desarrollo local (SQLite), garantizar que el esquema esté inicializado y actualizado
+            var db = sp.GetRequiredService<LudekaDbContext>();
+            await db.Database.EnsureCreatedAsync(ct);
+            if (db.Database.IsSqlite())
+            {
+                await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db, ct);
+            }
+        }
 
         return null;
     }

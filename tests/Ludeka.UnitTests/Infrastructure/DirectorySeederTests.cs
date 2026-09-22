@@ -79,14 +79,24 @@ public class DirectorySeederTests : IDisposable
     {
         await SeedLegacyDesignersAsync();
 
-        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+        var result = await DirectorySeeder.SeedDirectoryAsync(_dbContext);
 
-        var all = await _dbContext.Creators.ToListAsync();
-        Assert.Equal(12, all.Count);
-        Assert.DoesNotContain(all, c => RetiredDesignerSlugs.Contains(c.Slug));
+        var creators = await _dbContext.Creators.ToListAsync();
+        var publishers = await _dbContext.Publishers.ToListAsync();
+        var stores = await _dbContext.Stores.ToListAsync();
+
+        Assert.Equal(35, creators.Count);
+        Assert.Equal(46, publishers.Count);
+        Assert.Equal(37, stores.Count);
+
+        Assert.Equal(34, result.CreatorsAdded); // 35 en total, 1 ya existía (analisis-paralisis)
+        Assert.Equal(46, result.PublishersAdded);
+        Assert.Equal(37, result.StoresAdded);
+
+        Assert.DoesNotContain(creators, c => RetiredDesignerSlugs.Contains(c.Slug));
 
         // "Análisis Parálisis" sobrevive sin duplicarse y conserva su link de YouTube
-        var analisisParalisis = all.Single(c => c.Slug == "analisis-paralisis");
+        var analisisParalisis = creators.Single(c => c.Slug == "analisis-paralisis");
         Assert.Contains(analisisParalisis.SocialLinks, l => l.Platform == SocialPlatform.YouTube);
     }
 
@@ -95,16 +105,30 @@ public class DirectorySeederTests : IDisposable
     {
         await SeedLegacyDesignersAsync();
 
-        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
-        var countAfterFirst = await _dbContext.Creators.CountAsync();
+        var firstResult = await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+        var creatorsAfterFirst = await _dbContext.Creators.CountAsync();
+        var publishersAfterFirst = await _dbContext.Publishers.CountAsync();
+        var storesAfterFirst = await _dbContext.Stores.CountAsync();
 
-        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
-        var countAfterSecond = await _dbContext.Creators.CountAsync();
+        var secondResult = await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+        var creatorsAfterSecond = await _dbContext.Creators.CountAsync();
+        var publishersAfterSecond = await _dbContext.Publishers.CountAsync();
+        var storesAfterSecond = await _dbContext.Stores.CountAsync();
 
-        Assert.Equal(countAfterFirst, countAfterSecond);
-        Assert.Equal(12, countAfterSecond);
-        var all = await _dbContext.Creators.ToListAsync();
-        Assert.DoesNotContain(all, c => RetiredDesignerSlugs.Contains(c.Slug));
+        Assert.Equal(creatorsAfterFirst, creatorsAfterSecond);
+        Assert.Equal(publishersAfterFirst, publishersAfterSecond);
+        Assert.Equal(storesAfterFirst, storesAfterSecond);
+
+        Assert.Equal(35, creatorsAfterSecond);
+        Assert.Equal(46, publishersAfterSecond);
+        Assert.Equal(37, storesAfterSecond);
+
+        Assert.Equal(0, secondResult.CreatorsAdded);
+        Assert.Equal(0, secondResult.PublishersAdded);
+        Assert.Equal(0, secondResult.StoresAdded);
+
+        var creators = await _dbContext.Creators.ToListAsync();
+        Assert.DoesNotContain(creators, c => RetiredDesignerSlugs.Contains(c.Slug));
     }
 
     [Fact]
@@ -121,7 +145,7 @@ public class DirectorySeederTests : IDisposable
 
         var all = await _dbContext.Creators.ToListAsync();
         Assert.Contains(all, c => c.Slug == "mi-canal-manual");
-        Assert.Equal(13, all.Count); // 12 del padrón (incl. analisis-paralisis) + 1 manual
+        Assert.Equal(36, all.Count); // 35 del padrón (incl. analisis-paralisis) + 1 manual
     }
 
     public void Dispose()

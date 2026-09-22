@@ -1,0 +1,1779 @@
+{
+  "publishers": [
+    {
+      "name": "Devir Iberia",
+      "slug": "devir-iberia",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial decana del juego de mesa moderno en español, responsable de Catan, Carcassonne y su reputada línea propia de autores nacionales e internacionales.",
+      "logoUrl": "/images/publishers/devir.png",
+      "websiteUrl": "https://devir.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://devir.es", "title": "Web oficial Devir" },
+        { "platform": "YouTube", "url": "https://youtube.com/@devirtv", "handle": "@devirtv", "title": "Devir TV (Tutoriales y Directos)" },
+        { "platform": "Instagram", "url": "https://instagram.com/deviriberia", "handle": "@deviriberia", "title": "Instagram Devir Iberia" },
+        { "platform": "Twitter", "url": "https://twitter.com/DevirIberia", "handle": "@DevirIberia", "title": "Twitter / X Devir Iberia" }
+      ]
+    },
+    {
+      "name": "Maldito Games",
+      "slug": "maldito-games",
+      "country": "España",
+      "city": "Sevilla",
+      "description": "Editorial especializada en grandes producciones, eurogames de peso medio y experto, y localizaciones de alta fidelidad como Terraforming Mars, Brass y Scythe.",
+      "logoUrl": "/images/publishers/maldito.png",
+      "websiteUrl": "https://malditogames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://malditogames.com", "title": "Web oficial Maldito Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@MalditoGames", "handle": "@MalditoGames", "title": "Maldito Games Oficial" },
+        { "platform": "Instagram", "url": "https://instagram.com/malditogames", "handle": "@malditogames", "title": "Instagram Maldito Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/MalditoGamesES", "handle": "@MalditoGamesES", "title": "Twitter / X Maldito Games" }
+      ]
+    },
+    {
+      "name": "Tranjis Games",
+      "slug": "tranjis-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial creadora del fenómeno superventas 'Virus!' y referente en juegos accesibles para toda la familia, party games y divulgación en las aulas.",
+      "logoUrl": "/images/publishers/tranjis.png",
+      "websiteUrl": "https://tranjisgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tranjisgames.com", "title": "Web oficial Tranjis Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@TranjisGames", "handle": "@TranjisGames", "title": "Tranjis Games TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/tranjisgames", "handle": "@tranjisgames", "title": "Instagram Tranjis Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/TranjisGames", "handle": "@TranjisGames", "title": "Twitter / X Tranjis Games" }
+      ]
+    },
+    {
+      "name": "Asmodee Ibérica",
+      "slug": "asmodee-iberica",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Filial española del líder internacional en distribución y publicación de títulos clave del hobby como Dixit, 7 Wonders, Exploding Kittens y la línea de Arkham Horror.",
+      "logoUrl": "/images/publishers/asmodee.png",
+      "websiteUrl": "https://asmodee.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://asmodee.es", "title": "Web oficial Asmodee España" },
+        { "platform": "YouTube", "url": "https://youtube.com/@AsmodeeIberica", "handle": "@AsmodeeIberica", "title": "Asmodee España" },
+        { "platform": "Instagram", "url": "https://instagram.com/asmodee_es", "handle": "@asmodee_es", "title": "Instagram Asmodee España" },
+        { "platform": "Twitter", "url": "https://twitter.com/Asmodee_ES", "handle": "@Asmodee_ES", "title": "Twitter Asmodee ES" }
+      ]
+    },
+    {
+      "name": "TCG Factory",
+      "slug": "tcg-factory",
+      "country": "España",
+      "city": "Zaragoza",
+      "description": "Editorial y distribuidora española con catálogo variado infantil, familiar, temático y juegos de rol con alta calidad de producción.",
+      "logoUrl": null,
+      "websiteUrl": "https://tcgfactory.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tcgfactory.com", "title": "Web oficial TCG Factory" },
+        { "platform": "YouTube", "url": "https://youtube.com/@tcgfactory", "handle": "@tcgfactory", "title": "TCG Factory TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/tcgfactory", "handle": "@tcgfactory", "title": "Instagram TCG Factory" },
+        { "platform": "Twitter", "url": "https://twitter.com/TCGFactory", "handle": "@TCGFactory", "title": "Twitter TCG Factory" }
+      ]
+    },
+    {
+      "name": "2Tomatoes Games",
+      "slug": "2tomatoes-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial independiente centrada en juegos asimétricos, de autor y producciones de culto como Root, Pax Pamir, Oath y Peak Oil.",
+      "logoUrl": null,
+      "websiteUrl": "https://2tomatoesgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://2tomatoesgames.com", "title": "Web oficial 2Tomatoes Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@2tomatoesgames", "handle": "@2tomatoesgames", "title": "2Tomatoes Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/2tomatoesgames", "handle": "@2tomatoesgames", "title": "Instagram 2Tomatoes" },
+        { "platform": "Twitter", "url": "https://twitter.com/2tomatoesgames", "handle": "@2tomatoesgames", "title": "Twitter 2Tomatoes" }
+      ]
+    },
+    {
+      "name": "Arrakis Games",
+      "slug": "arrakis-games",
+      "country": "España",
+      "city": "Valencia",
+      "description": "Editorial valenciana centrada en la cuidada localización y producción de eurogames medios y avanzados de prestigio internacional.",
+      "logoUrl": null,
+      "websiteUrl": "https://arrakisgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://arrakisgames.com", "title": "Web oficial Arrakis Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@ArrakisGames", "handle": "@ArrakisGames", "title": "Arrakis Games TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/arrakisgames", "handle": "@arrakisgames", "title": "Instagram Arrakis Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/ArrakisGames", "handle": "@ArrakisGames", "title": "Twitter Arrakis Games" }
+      ]
+    },
+    {
+      "name": "SD Games",
+      "slug": "sd-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Sello editorial del grupo SD Distribuciones, editor de grandes éxitos de mesa como Sagrada, Red Outpost, Dungeon Fighter y clásicos europeos.",
+      "logoUrl": null,
+      "websiteUrl": "https://sdgames.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://sdgames.es", "title": "Web oficial SD Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@SDGames", "handle": "@SDGames", "title": "Canal Oficial SD Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/sdgames_es", "handle": "@sdgames_es", "title": "Instagram SD Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/SDGames_es", "handle": "@SDGames_es", "title": "Twitter SD Games" }
+      ]
+    },
+    {
+      "name": "Mercurio Distribuciones",
+      "slug": "mercurio-distribuciones",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial referente en juegos de mesa familiares, infantiles, educativos y de agilidad mental con décadas de trayectoria.",
+      "logoUrl": null,
+      "websiteUrl": "https://mercurio.com.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://mercurio.com.es", "title": "Web oficial Mercurio" },
+        { "platform": "YouTube", "url": "https://youtube.com/@MercurioDistribuciones", "handle": "@MercurioDistribuciones", "title": "Mercurio Distribuciones" },
+        { "platform": "Instagram", "url": "https://instagram.com/mercuriodistribuciones", "handle": "@mercuriodistribuciones", "title": "Instagram Mercurio" },
+        { "platform": "Twitter", "url": "https://twitter.com/MercurioJuegos", "handle": "@MercurioJuegos", "title": "Twitter Mercurio Juegos" }
+      ]
+    },
+    {
+      "name": "GDM Games",
+      "slug": "gdm-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial de autor creada por Pak Gallego, célebre por Guerra de Mitos y la consagrada serie deductiva Sherlock (Q-System).",
+      "logoUrl": null,
+      "websiteUrl": "https://gdmgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://gdmgames.com", "title": "Web oficial GDM Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@GDMGames", "handle": "@GDMGames", "title": "GDM Games Oficial" },
+        { "platform": "Instagram", "url": "https://instagram.com/gdmgames", "handle": "@gdmgames", "title": "Instagram GDM Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/GDMGames", "handle": "@GDMGames", "title": "Twitter GDM Games" }
+      ]
+    },
+    {
+      "name": "Ediciones MasQueOca",
+      "slug": "masqueoca",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Veterana editorial española especializada en wargames, eurogames pesados, crowdfunding y grandes producciones internacionales como Camel Up o Fief.",
+      "logoUrl": null,
+      "websiteUrl": "https://masqueoca.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://masqueoca.com", "title": "Web oficial MasQueOca" },
+        { "platform": "YouTube", "url": "https://youtube.com/@EdicionesMasQueOca", "handle": "@EdicionesMasQueOca", "title": "Ediciones MasQueOca" },
+        { "platform": "Instagram", "url": "https://instagram.com/masqueoca", "handle": "@masqueoca", "title": "Instagram MasQueOca" },
+        { "platform": "Twitter", "url": "https://twitter.com/MasQueOca", "handle": "@MasQueOca", "title": "Twitter MasQueOca" }
+      ]
+    },
+    {
+      "name": "Looping Games",
+      "slug": "looping-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial independiente española fundada por Pedro Soto y Víctor Català, aclamada por su emblemática serie histórica de caja pequeña 19xx (1906 San Francisco, 1920 Wall Street, 1987 Channel Tunnel).",
+      "logoUrl": null,
+      "websiteUrl": "https://loopinggames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://loopinggames.com", "title": "Web oficial Looping Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@loopinggames", "handle": "@loopinggames", "title": "Looping Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/loopinggames", "handle": "@loopinggames", "title": "Instagram Looping Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/LoopingGames", "handle": "@LoopingGames", "title": "Twitter Looping Games" }
+      ]
+    },
+    {
+      "name": "Draco Ideas",
+      "slug": "draco-ideas",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial española especializada en juegos históricos, wargames tácticos y juegos de estrategia de producción nacional (2GM Tactics, Onus!, España 20).",
+      "logoUrl": null,
+      "websiteUrl": "https://dracoideas.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://dracoideas.com", "title": "Web oficial Draco Ideas" },
+        { "platform": "YouTube", "url": "https://youtube.com/@DracoIdeas", "handle": "@DracoIdeas", "title": "Draco Ideas TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/dracoideas", "handle": "@dracoideas", "title": "Instagram Draco Ideas" },
+        { "platform": "Twitter", "url": "https://twitter.com/DracoIdeas", "handle": "@DracoIdeas", "title": "Twitter Draco Ideas" }
+      ]
+    },
+    {
+      "name": "Eclipse Editorial",
+      "slug": "eclipse-editorial",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Sello editorial enfocado en juegos temáticos, fantasía, ciencia ficción y miniaturas financiados con gran éxito internacional en Kickstarter (Skull Tales, Nexum Galaxy).",
+      "logoUrl": null,
+      "websiteUrl": "https://eclipseeditorial.info",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://eclipseeditorial.info", "title": "Web oficial Eclipse Editorial" },
+        { "platform": "YouTube", "url": "https://youtube.com/@EclipseEditorial", "handle": "@EclipseEditorial", "title": "Eclipse Editorial" },
+        { "platform": "Instagram", "url": "https://instagram.com/eclipseeditorial", "handle": "@eclipseeditorial", "title": "Instagram Eclipse Editorial" },
+        { "platform": "Twitter", "url": "https://twitter.com/EclipseEditoria", "handle": "@EclipseEditoria", "title": "Twitter Eclipse Editorial" }
+      ]
+    },
+    {
+      "name": "Salt & Pepper Games",
+      "slug": "salt-pepper-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial boutique de juegos de mesa de autor y de deducción, célebre por su línea de juegos exclusivos para 2 personas y solitarios como Watergate, Resist!, Witchcraft! y Battle of Versailles.",
+      "logoUrl": null,
+      "websiteUrl": "https://saltandpeppergames.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://saltandpeppergames.es", "title": "Web oficial Salt & Pepper Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@SaltPepperGames", "handle": "@SaltPepperGames", "title": "Salt & Pepper Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/saltandpeppergames", "handle": "@saltandpeppergames", "title": "Instagram Salt & Pepper" },
+        { "platform": "Twitter", "url": "https://twitter.com/SaltPepperGames", "handle": "@SaltPepperGames", "title": "Twitter Salt & Pepper Games" }
+      ]
+    },
+    {
+      "name": "Doit Games",
+      "slug": "doit-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial centrada en juegos de mesa temáticos profundos, wargames accesibles y títulos históricos y narrativos de alta factura (Waterloo, Hegemony, Hannibal & Hamilcar).",
+      "logoUrl": null,
+      "websiteUrl": "https://doitgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://doitgames.com", "title": "Web oficial Doit Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/doitgames", "handle": "@doitgames", "title": "Instagram Doit Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/doitgames", "handle": "@doitgames", "title": "Twitter Doit Games" }
+      ]
+    },
+    {
+      "name": "Bumblebee Interactive",
+      "slug": "bumblebee-interactive",
+      "country": "España",
+      "city": "Valencia",
+      "description": "Editorial joven española orientada a juegos familiares modernos, roll & write, juegos accesibles e ilustrados con estética contemporánea.",
+      "logoUrl": null,
+      "websiteUrl": "https://bumblebee.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://bumblebee.es", "title": "Web oficial Bumblebee" },
+        { "platform": "Instagram", "url": "https://instagram.com/bumblebee_games", "handle": "@bumblebee_games", "title": "Instagram Bumblebee Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/Bumblebee_Games", "handle": "@Bumblebee_Games", "title": "Twitter Bumblebee Games" }
+      ]
+    },
+    {
+      "name": "Rocket Lemon Games",
+      "slug": "rocket-lemon-games",
+      "country": "España",
+      "city": "Sevilla",
+      "description": "Editorial independiente andaluza creadora de juegos frescos, rápidos y de autor como Mal Trago, Rey Paparajote y títulos party de dinámica ágil.",
+      "logoUrl": null,
+      "websiteUrl": "https://rocketlemongames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://rocketlemongames.com", "title": "Web oficial Rocket Lemon Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/rocketlemongames", "handle": "@rocketlemongames", "title": "Instagram Rocket Lemon Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/RocketLemonG", "handle": "@RocketLemonG", "title": "Twitter Rocket Lemon Games" }
+      ]
+    },
+    {
+      "name": "Last Level Games",
+      "slug": "last-level-games",
+      "country": "España",
+      "city": "Salamanca",
+      "description": "Distribuidora y editorial con un amplio catálogo de juegos de mesa, licencias pop, miniaturas y party games.",
+      "logoUrl": null,
+      "websiteUrl": "https://lastlevel.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://lastlevel.es", "title": "Web oficial Last Level" },
+        { "platform": "Instagram", "url": "https://instagram.com/lastleveldistribuciones", "handle": "@lastleveldistribuciones", "title": "Instagram Last Level" },
+        { "platform": "Twitter", "url": "https://twitter.com/LastLevelGames", "handle": "@LastLevelGames", "title": "Twitter Last Level Games" }
+      ]
+    },
+    {
+      "name": "DMZ Games",
+      "slug": "dmz-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial especializada en juegos de mesa de estrategia, eurogames familiares y party games dinámicos.",
+      "logoUrl": null,
+      "websiteUrl": "https://dmzgames.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://dmzgames.es", "title": "Web oficial DMZ Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/dmzgames", "handle": "@dmzgames", "title": "Instagram DMZ Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/dmzgames", "handle": "@dmzgames", "title": "Twitter DMZ Games" }
+      ]
+    },
+    {
+      "name": "Melmac Games",
+      "slug": "melmac-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial española nacida con la vocación de traer grandes juegos de autor internacionales independientes y gemas ocultas de los tableros (Cryptid, Calimala, Clans of Caledonia).",
+      "logoUrl": null,
+      "websiteUrl": "https://melmac-games.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://melmac-games.com", "title": "Web oficial Melmac Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/melmac_games", "handle": "@melmac_games", "title": "Instagram Melmac Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/MelmacGames", "handle": "@MelmacGames", "title": "Twitter Melmac Games" }
+      ]
+    },
+    {
+      "name": "Mont Tàber Edicions",
+      "slug": "mont-taber",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial catalana de juegos de mesa familiares y de autor, comprometida con producciones sostenibles y temáticas culturales cuidadas (Take a Seat, Dr. Jekyll & Mr. Hyde).",
+      "logoUrl": null,
+      "websiteUrl": "https://monttaber.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://monttaber.com", "title": "Web oficial Mont Tàber" },
+        { "platform": "Instagram", "url": "https://instagram.com/monttaber", "handle": "@monttaber", "title": "Instagram Mont Tàber" },
+        { "platform": "Twitter", "url": "https://twitter.com/mont_taber", "handle": "@mont_taber", "title": "Twitter Mont Tàber" }
+      ]
+    },
+    {
+      "name": "Primigenia Juegos",
+      "slug": "primigenia-juegos",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial española centrada en juegos de temática lovecraftiana, misterio, deducción y ambientaciones oscuras.",
+      "logoUrl": null,
+      "websiteUrl": "https://primigeniajuegos.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://primigeniajuegos.com", "title": "Web oficial Primigenia Juegos" },
+        { "platform": "Twitter", "url": "https://twitter.com/PrimigeniaJ", "handle": "@PrimigeniaJ", "title": "Twitter Primigenia" }
+      ]
+    },
+    {
+      "name": "Second Gate Games",
+      "slug": "second-gate-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Estudio editorial internacional con sede en España, creadores del aclamado juego Monster Slaughter, B-Sieged y Cactus Town.",
+      "logoUrl": null,
+      "websiteUrl": "https://secondgategames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://secondgategames.com", "title": "Web oficial Second Gate Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/secondgategames", "handle": "@secondgategames", "title": "Instagram Second Gate Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/SecondGateGames", "handle": "@SecondGateGames", "title": "Twitter Second Gate Games" }
+      ]
+    },
+    {
+      "name": "Cacahuete Games",
+      "slug": "cacahuete-games",
+      "country": "España",
+      "city": "Zaragoza",
+      "description": "Editorial independiente con juegos ligeros, familiares y portables con ilustraciones llamativas y mecánicas originales (Ambar, Silente).",
+      "logoUrl": null,
+      "websiteUrl": "https://cacahuetegames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://cacahuetegames.com", "title": "Web oficial Cacahuete Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/cacahuetegames", "handle": "@cacahuetegames", "title": "Instagram Cacahuete Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/CacahueteGames", "handle": "@CacahueteGames", "title": "Twitter Cacahuete Games" }
+      ]
+    },
+    {
+      "name": "Gen X Games",
+      "slug": "gen-x-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Sello editorial pionero vinculado a la histórica cadena Generación X, responsable de decenas de juegos de autor nacional, licencias de cómic y adaptaciones temáticas.",
+      "logoUrl": null,
+      "websiteUrl": "https://genxgames.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://genxgames.es", "title": "Web oficial Gen X Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/genxgames", "handle": "@genxgames", "title": "Instagram Gen X Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/genxgames", "handle": "@genxgames", "title": "Twitter Gen X Games" }
+      ]
+    },
+    {
+      "name": "Brain Picnic",
+      "slug": "brain-picnic",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial orientada a juegos de mesa ágiles, fillers creativos y dinámicas sociales de conexión intergeneracional.",
+      "logoUrl": null,
+      "websiteUrl": "https://brainpicnic.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://brainpicnic.es", "title": "Web oficial Brain Picnic" },
+        { "platform": "Twitter", "url": "https://twitter.com/BrainPicnic", "handle": "@BrainPicnic", "title": "Twitter Brain Picnic" }
+      ]
+    },
+    {
+      "name": "Falomir Juegos",
+      "slug": "falomir-juegos",
+      "country": "España",
+      "city": "Valencia",
+      "description": "Histórica empresa juguetera española fundada en 1945 en Valencia, modernizada con su línea de juegos de mesa contemporáneos y familiares.",
+      "logoUrl": null,
+      "websiteUrl": "https://falomirjuegos.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://falomirjuegos.com", "title": "Web oficial Falomir Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/falomirjuegos", "handle": "@falomirjuegos", "title": "Instagram Falomir Juegos" },
+        { "platform": "Twitter", "url": "https://twitter.com/FalomirJuegos", "handle": "@FalomirJuegos", "title": "Twitter Falomir Juegos" }
+      ]
+    },
+    {
+      "name": "Cayro",
+      "slug": "cayro",
+      "country": "España",
+      "city": "Dénia (Alicante)",
+      "description": "Empresa juguetera familiar alicantina desde 1954, pionera en el movimiento 'Play for Change' y en juegos de madera, de ingenio y familiares accesibles.",
+      "logoUrl": null,
+      "websiteUrl": "https://cayro.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://cayro.es", "title": "Web oficial Cayro" },
+        { "platform": "YouTube", "url": "https://youtube.com/@CayroTheGames", "handle": "@CayroTheGames", "title": "Cayro The Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/cayro_thegames", "handle": "@cayro_thegames", "title": "Instagram Cayro The Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/CayroTheGames", "handle": "@CayroTheGames", "title": "Twitter Cayro The Games" }
+      ]
+    },
+    {
+      "name": "Zacatrus Editorial",
+      "slug": "zacatrus-editorial",
+      "country": "España",
+      "city": "Madrid",
+      "description": "División editorial de Zacatrus, especializada en juegos de autor nacional de caja compacta, party games y éxitos familiares (Spoilers, Drafosaurus, Piratas de Nadie).",
+      "logoUrl": "/images/stores/zacatrus.png",
+      "websiteUrl": "https://zacatrus.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://zacatrus.es", "title": "Web oficial Zacatrus" },
+        { "platform": "YouTube", "url": "https://youtube.com/@zacatrustv", "handle": "@zacatrustv", "title": "Zacatrus TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/zacatrus", "handle": "@zacatrus", "title": "Instagram Zacatrus" },
+        { "platform": "Twitter", "url": "https://twitter.com/zacatrus", "handle": "@zacatrus", "title": "Twitter Zacatrus" }
+      ]
+    },
+    {
+      "name": "LudoNova",
+      "slug": "ludonova",
+      "country": "España",
+      "city": "Córdoba",
+      "description": "Una de las editoriales de mayor prestigio internacional de España, galardonada por producciones maestras como Babylonia, Ceylon, Yukon Airways y Kyoto.",
+      "logoUrl": null,
+      "websiteUrl": "https://ludonova.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://ludonova.com", "title": "Web oficial LudoNova" },
+        { "platform": "Instagram", "url": "https://instagram.com/ludonova", "handle": "@ludonova", "title": "Instagram LudoNova" },
+        { "platform": "Twitter", "url": "https://twitter.com/LudoNova", "handle": "@LudoNova", "title": "Twitter LudoNova" }
+      ]
+    },
+    {
+      "name": "Átomo Games",
+      "slug": "atomo-games",
+      "country": "España",
+      "city": "Córdoba",
+      "description": "Editorial española líder en juegos de mesa educativos, familiares e infantiles para el aula y el hogar (Mascotas, El Castillo del Terror, Rainbow).",
+      "logoUrl": null,
+      "websiteUrl": "https://atomo-games.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://atomo-games.com", "title": "Web oficial Átomo Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@AtomoGames", "handle": "@AtomoGames", "title": "Átomo Games TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/atomo_games", "handle": "@atomo_games", "title": "Instagram Átomo Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/atomo_games", "handle": "@atomo_games", "title": "Twitter Átomo Games" }
+      ]
+    },
+    {
+      "name": "Venatus Ediciones",
+      "slug": "venatus-ediciones",
+      "country": "España",
+      "city": "Granada",
+      "description": "Editorial andaluza de juegos de mesa ligeros, de humor y partidas rápidas y participativas.",
+      "logoUrl": null,
+      "websiteUrl": "https://venatusediciones.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://venatusediciones.com", "title": "Web oficial Venatus" },
+        { "platform": "Instagram", "url": "https://instagram.com/venatus_ediciones", "handle": "@venatus_ediciones", "title": "Instagram Venatus Ediciones" },
+        { "platform": "Twitter", "url": "https://twitter.com/VenatusEd", "handle": "@VenatusEd", "title": "Twitter Venatus Ediciones" }
+      ]
+    },
+    {
+      "name": "Trifulca Games",
+      "slug": "trifulca-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial independiente enfocada en confrontación directa, deducción y juegos de cartas de ritmo vertiginoso.",
+      "logoUrl": null,
+      "websiteUrl": "https://trifulcagames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://trifulcagames.com", "title": "Web oficial Trifulca Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/trifulcagames", "handle": "@trifulcagames", "title": "Instagram Trifulca Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/TrifulcaGames", "handle": "@TrifulcaGames", "title": "Twitter Trifulca Games" }
+      ]
+    },
+    {
+      "name": "Perro Loko Games",
+      "slug": "perro-loko-games",
+      "country": "España",
+      "city": "Sevilla",
+      "description": "Editorial sevillana reconocida por su dirección artística impecable, juegos temáticos y euros de caja mediana con componentes de alta gama (Dirty Fridge, Time Collectors, Bitoku).",
+      "logoUrl": null,
+      "websiteUrl": "https://perrolokogames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://perrolokogames.com", "title": "Web oficial Perro Loko Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/perrolokogames", "handle": "@perrolokogames", "title": "Instagram Perro Loko Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/PerroLokoGames", "handle": "@PerroLokoGames", "title": "Twitter Perro Loko Games" }
+      ]
+    },
+    {
+      "name": "PIF Games",
+      "slug": "pif-games",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial independiente creada para impulsar juegos familiares originales con mecánicas frescas y accesibles.",
+      "logoUrl": null,
+      "websiteUrl": "https://pifgames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://pifgames.com", "title": "Web oficial PIF Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/pifgames", "handle": "@pifgames", "title": "Instagram PIF Games" }
+      ]
+    },
+    {
+      "name": "Mixin Games",
+      "slug": "mixin-games",
+      "country": "España",
+      "city": "Valencia",
+      "description": "Editorial española orientada a fillers de cartas adictivos y dinámicos para jugar en cualquier lugar.",
+      "logoUrl": null,
+      "websiteUrl": "https://mixingames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://mixingames.com", "title": "Web oficial Mixin Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/mixingames", "handle": "@mixingames", "title": "Instagram Mixin Games" },
+        { "platform": "Twitter", "url": "https://twitter.com/MixinGames", "handle": "@MixinGames", "title": "Twitter Mixin Games" }
+      ]
+    },
+    {
+      "name": "Tembo Games",
+      "slug": "tembo-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial independiente de juegos de mesa para toda la familia y juegos party creados con esmero y sencillez de reglas.",
+      "logoUrl": null,
+      "websiteUrl": "https://tembogames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tembogames.com", "title": "Web oficial Tembo Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/tembogames", "handle": "@tembogames", "title": "Instagram Tembo Games" }
+      ]
+    },
+    {
+      "name": "Viravi Edicions",
+      "slug": "viravi-edicions",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial catalana de juegos de mesa familiares y educativos (Una Noche el Hombre Lobo, Castellers, Story Cubes).",
+      "logoUrl": null,
+      "websiteUrl": "https://viravi.es",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://viravi.es", "title": "Web oficial Viravi" },
+        { "platform": "Twitter", "url": "https://twitter.com/viraviedicions", "handle": "@viraviedicions", "title": "Twitter Viravi" }
+      ]
+    },
+    {
+      "name": "Invedars",
+      "slug": "invedars",
+      "country": "España",
+      "city": "Barcelona",
+      "description": "Editorial independiente de juegos de mesa temáticos, de estrategia y cartas con producciones históricas y de fantasía.",
+      "logoUrl": null,
+      "websiteUrl": "https://invedars.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://invedars.com", "title": "Web oficial Invedars" },
+        { "platform": "Twitter", "url": "https://twitter.com/invedars", "handle": "@invedars", "title": "Twitter Invedars" }
+      ]
+    },
+    {
+      "name": "Buscalume",
+      "slug": "buscalume",
+      "country": "España",
+      "city": "Santiago de Compostela",
+      "description": "Editorial gallega de juegos de autor con identidad propia, centrada en títulos familiares, culturales y de entretenimiento cooperativo.",
+      "logoUrl": null,
+      "websiteUrl": "https://buscalume.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://buscalume.com", "title": "Web oficial Buscalume" },
+        { "platform": "Instagram", "url": "https://instagram.com/buscalumexogos", "handle": "@buscalumexogos", "title": "Instagram Buscalume" }
+      ]
+    },
+    {
+      "name": "GatoBro Games",
+      "slug": "gatobro-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Pequeño sello editorial español enfocado en juegos de cartas rápidos y con gran sentido del humor.",
+      "logoUrl": null,
+      "websiteUrl": "https://gatobrogames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://gatobrogames.com", "title": "Web oficial GatoBro Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/gatobrogames", "handle": "@gatobrogames", "title": "Instagram GatoBro" }
+      ]
+    },
+    {
+      "name": "Cucafera Games",
+      "slug": "cucafera-games",
+      "country": "España",
+      "city": "Tarragona",
+      "description": "Editorial de juegos de mesa y juegos de rol centrada en ambientaciones mitológicas e históricas.",
+      "logoUrl": null,
+      "websiteUrl": "https://cucaferagames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://cucaferagames.com", "title": "Web oficial Cucafera Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/cucaferagames", "handle": "@cucaferagames", "title": "Instagram Cucafera Games" }
+      ]
+    },
+    {
+      "name": "Enpepe Games",
+      "slug": "enpepe-games",
+      "country": "España",
+      "city": "Madrid",
+      "description": "Editorial independiente nacida de la pasión por los juegos de mesa estratégicos de caja mediana y partidas ajustadas.",
+      "logoUrl": null,
+      "websiteUrl": "https://enpepegames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://enpepegames.com", "title": "Web oficial Enpepe Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/enpepegames", "handle": "@enpepegames", "title": "Instagram Enpepe Games" }
+      ]
+    },
+    {
+      "name": "Tang de Naranja",
+      "slug": "tang-de-naranja",
+      "country": "España",
+      "city": "Murcia",
+      "description": "Editorial y colectivo de diseño lúdico que promueve juegos de corte desenfadado, party games y prototipos originales.",
+      "logoUrl": null,
+      "websiteUrl": "https://tangdenaranja.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tangdenaranja.com", "title": "Web oficial Tang de Naranja" },
+        { "platform": "Instagram", "url": "https://instagram.com/tangdenaranja", "handle": "@tangdenaranja", "title": "Instagram Tang de Naranja" }
+      ]
+    },
+    {
+      "name": "Stonemaier Games",
+      "slug": "stonemaier-games",
+      "country": "EEUU",
+      "city": "St. Louis",
+      "description": "Editorial internacional de culto conocida por sus cuidadas producciones como Wingspan, Scythe y Viticulture.",
+      "logoUrl": "/images/publishers/stonemaier.png",
+      "websiteUrl": "https://stonemaiergames.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://stonemaiergames.com", "title": "Web oficial Stonemaier Games" },
+        { "platform": "YouTube", "url": "https://youtube.com/@jameystegmaier", "handle": "@jameystegmaier", "title": "Jamey Stegmaier" }
+      ]
+    }
+  ],
+  "stores": [
+    {
+      "name": "Zacatrus!",
+      "slug": "zacatrus",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle Fernández de los Ríos 57 (tiendas en Madrid, Barcelona, Valencia, Sevilla, Zaragoza, Valladolid, Vitoria)",
+      "description": "Cadena de tiendas físicas y tienda online referente con ludoteca de prueba, talleres, canal didáctico y catálogo exhaustivo.",
+      "logoUrl": "/images/stores/zacatrus.png",
+      "websiteUrl": "https://zacatrus.es",
+      "affiliateCode": "LDKZAC",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España", "Internacional"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://zacatrus.es", "title": "Web oficial Zacatrus" },
+        { "platform": "YouTube", "url": "https://youtube.com/@zacatrustv", "handle": "@zacatrustv", "title": "Zacatrus TV" },
+        { "platform": "Instagram", "url": "https://instagram.com/zacatrus", "handle": "@zacatrus", "title": "Instagram Zacatrus" }
+      ]
+    },
+    {
+      "name": "Cuarto de Juegos",
+      "slug": "cuarto-de-juegos",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle Jorge Juan 42, 28001 Madrid",
+      "description": "Mítica tienda madrileña de juegos de mesa tradicionales y de autor con décadas de experiencia y asesoramiento de referencia.",
+      "logoUrl": "/images/stores/cuartodejuegos.png",
+      "websiteUrl": "https://cuartodejuegos.es",
+      "affiliateCode": "LDKCDJ",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://cuartodejuegos.es", "title": "Web oficial Cuarto de Juegos" },
+        { "platform": "YouTube", "url": "https://youtube.com/@cuartodejuegos", "handle": "@cuartodejuegos", "title": "Cuarto de Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/cuartodejuegos", "handle": "@cuartodejuegos", "title": "Instagram Cuarto de Juegos" }
+      ]
+    },
+    {
+      "name": "Dungeon Marvels",
+      "slug": "dungeon-marvels",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Carrer d'Olzinelles 29, 08014 Barcelona",
+      "description": "Tienda especializada de Barcelona con amplio surtido de eurogames, wargames, miniaturas y rapidez de envío.",
+      "logoUrl": null,
+      "websiteUrl": "https://dungeonmarvels.com",
+      "affiliateCode": "LDKDM",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://dungeonmarvels.com", "title": "Web oficial Dungeon Marvels" },
+        { "platform": "YouTube", "url": "https://youtube.com/@dungeonmarvels", "handle": "@dungeonmarvels", "title": "Dungeon Marvels" },
+        { "platform": "Instagram", "url": "https://instagram.com/dungeonmarvels", "handle": "@dungeonmarvels", "title": "Instagram Dungeon Marvels" }
+      ]
+    },
+    {
+      "name": "Jugamos Otra",
+      "slug": "jugamos-otra",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Fuenlabrada (Madrid)",
+      "address": "Calle Nazaret 7, 28941 Fuenlabrada, Madrid",
+      "description": "Tienda online y física especializada en juegos de mesa, novedades de importación, ofertas y canal de partidas didácticas.",
+      "logoUrl": null,
+      "websiteUrl": "https://jugamosotra.com",
+      "affiliateCode": "LDKJO",
+      "hasLoyaltyProgram": false,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://jugamosotra.com", "title": "Web oficial Jugamos Otra" },
+        { "platform": "YouTube", "url": "https://youtube.com/@jugamosotra", "handle": "@jugamosotra", "title": "Jugamos Otra" },
+        { "platform": "Instagram", "url": "https://instagram.com/jugamosotra", "handle": "@jugamosotra", "title": "Instagram Jugamos Otra" }
+      ]
+    },
+    {
+      "name": "JugarXJugar",
+      "slug": "jugarxjugar",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Avinguda de Gaudí 39, 08025 Barcelona",
+      "description": "Espacio y tienda emblemática de Barcelona junto a la Sagrada Familia, pioneros en divulgación lúdica y asesoramiento de juegos de mesa.",
+      "logoUrl": null,
+      "websiteUrl": "https://jugarxjugar.com",
+      "affiliateCode": "LDKJXJ",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://jugarxjugar.com", "title": "Web oficial JugarXJugar" },
+        { "platform": "YouTube", "url": "https://youtube.com/@jugarxjugar", "handle": "@jugarxjugar", "title": "JugarXJugar" },
+        { "platform": "Instagram", "url": "https://instagram.com/jugarxjugar", "handle": "@jugarxjugar", "title": "Instagram JugarXJugar" }
+      ]
+    },
+    {
+      "name": "Generación X",
+      "slug": "generacion-x",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle de la Puebla 15 (y múltiples sedes en Madrid y España)",
+      "description": "Histórica cadena de tiendas especializadas con presencia nacional, organizadora de torneos, ludotecas y venta especializada.",
+      "logoUrl": null,
+      "websiteUrl": "https://generacionx.es",
+      "affiliateCode": "LDKGENX",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://generacionx.es", "title": "Web oficial Generación X" },
+        { "platform": "YouTube", "url": "https://youtube.com/@generacionx", "handle": "@generacionx", "title": "Generación X" },
+        { "platform": "Instagram", "url": "https://instagram.com/generacionx_tiendas", "handle": "@generacionx_tiendas", "title": "Instagram Generación X" }
+      ]
+    },
+    {
+      "name": "Mathom",
+      "slug": "mathom",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Carrer de Roger de Flor 294, 08025 Barcelona",
+      "description": "Tienda física y online de referencia en novedades, eurogames avanzados, preventas y juegos de importación.",
+      "logoUrl": null,
+      "websiteUrl": "https://mathom.es",
+      "affiliateCode": "LDKMTH",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://mathom.es", "title": "Web oficial Mathom" },
+        { "platform": "Instagram", "url": "https://instagram.com/mathom_es", "handle": "@mathom_es", "title": "Instagram Mathom" }
+      ]
+    },
+    {
+      "name": "Tablerum",
+      "slug": "tablerum",
+      "type": "OnlineOnly",
+      "country": "España",
+      "city": "Madrid",
+      "address": null,
+      "description": "Tienda online destacada por su velocidad de envío, catálogo de juegos familiares y de autor y atención al cliente.",
+      "logoUrl": null,
+      "websiteUrl": "https://tablerum.com",
+      "affiliateCode": "LDKTBL",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tablerum.com", "title": "Web oficial Tablerum" },
+        { "platform": "Instagram", "url": "https://instagram.com/tablerum", "handle": "@tablerum", "title": "Instagram Tablerum" }
+      ]
+    },
+    {
+      "name": "Dracotienda",
+      "slug": "dracotienda",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Granada",
+      "address": "Calle Recogidas 35, 18005 Granada",
+      "description": "Uno de los comercios pioneros y con mayor solera de España en juegos de mesa, rol, wargames y miniaturas.",
+      "logoUrl": null,
+      "websiteUrl": "https://dracotienda.com",
+      "affiliateCode": "LDKDRACO",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://dracotienda.com", "title": "Web oficial Dracotienda" },
+        { "platform": "Instagram", "url": "https://instagram.com/dracotienda", "handle": "@dracotienda", "title": "Instagram Dracotienda" },
+        { "platform": "Twitter", "url": "https://twitter.com/Dracotienda", "handle": "@Dracotienda", "title": "Twitter Dracotienda" }
+      ]
+    },
+    {
+      "name": "GoblinTrader (GTS)",
+      "slug": "goblintrader",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle del Marqués de Lema 7 (y tiendas en Barcelona, Valencia, Zaragoza, Mallorca)",
+      "description": "La mayor cadena nacional especializada en juegos con miniaturas, wargames, modelismo y juegos de tablero.",
+      "logoUrl": null,
+      "websiteUrl": "https://goblintrader.es",
+      "affiliateCode": "LDKGTS",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://goblintrader.es", "title": "Web oficial GoblinTrader" },
+        { "platform": "YouTube", "url": "https://youtube.com/@GoblinTraderOficial", "handle": "@GoblinTraderOficial", "title": "GoblinTrader Oficial" },
+        { "platform": "Instagram", "url": "https://instagram.com/goblintrader", "handle": "@goblintrader", "title": "Instagram GoblinTrader" }
+      ]
+    },
+    {
+      "name": "Kaburi",
+      "slug": "kaburi",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Passeig de Sant Joan 11, 08010 Barcelona",
+      "description": "Emblemática tienda y cafetería lúdica del 'triángulo friki' de Barcelona, con zona de mesas para probar juegos.",
+      "logoUrl": null,
+      "websiteUrl": "https://kaburi.es",
+      "affiliateCode": "LDKKAB",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://kaburi.es", "title": "Web oficial Kaburi" },
+        { "platform": "Instagram", "url": "https://instagram.com/kaburibcn", "handle": "@kaburibcn", "title": "Instagram Kaburi" }
+      ]
+    },
+    {
+      "name": "Crash Comics",
+      "slug": "crash-comics",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Córdoba",
+      "address": "Calle Duque de Fernán Núñez 2, 14003 Córdoba",
+      "description": "Referente lúdico de Andalucía galardonado por su dinamismo cultural, torneos y extenso fondo de catálogo.",
+      "logoUrl": null,
+      "websiteUrl": "https://crashcomics.es",
+      "affiliateCode": "LDKCRASH",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://crashcomics.es", "title": "Web oficial Crash Comics" },
+        { "platform": "Instagram", "url": "https://instagram.com/crashcomics", "handle": "@crashcomics", "title": "Instagram Crash Comics" }
+      ]
+    },
+    {
+      "name": "Júpiter Juegos",
+      "slug": "jupiter-juegos",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle Manuel Silvela 8, 28010 Madrid",
+      "description": "Tienda especializada en juegos de cartas coleccionables, juegos de mesa modernos y eventos semanales.",
+      "logoUrl": null,
+      "websiteUrl": "https://jupiterjuegos.com",
+      "affiliateCode": "LDKJUP",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://jupiterjuegos.com", "title": "Web oficial Júpiter Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/jupiterjuegos", "handle": "@jupiterjuegos", "title": "Instagram Júpiter Juegos" }
+      ]
+    },
+    {
+      "name": "Atlántica Juegos",
+      "slug": "atlantica-juegos",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle de la Luna 6, 28004 Madrid",
+      "description": "Clásico indiscutible del centro de Madrid para los amantes de los wargames, miniaturas históricas y juegos de tablero.",
+      "logoUrl": null,
+      "websiteUrl": "https://atlanticajuegos.com",
+      "affiliateCode": "LDKATL",
+      "hasLoyaltyProgram": false,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://atlanticajuegos.com", "title": "Web oficial Atlántica Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/atlanticajuegos", "handle": "@atlanticajuegos", "title": "Instagram Atlántica Juegos" }
+      ]
+    },
+    {
+      "name": "Padis",
+      "slug": "padis",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle del General Díaz Porlier 58, 28006 Madrid",
+      "description": "Tienda especializada del barrio de Salamanca en Madrid con décadas al servicio de los aficionados al juego de mesa y cartas.",
+      "logoUrl": null,
+      "websiteUrl": "https://padis.es",
+      "affiliateCode": "LDKPADIS",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://padis.es", "title": "Web oficial Padis" },
+        { "platform": "Instagram", "url": "https://instagram.com/padismadrid", "handle": "@padismadrid", "title": "Instagram Padis" }
+      ]
+    },
+    {
+      "name": "D10 Juegos",
+      "slug": "d10-juegos",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle de Blasco de Garay 43, 28015 Madrid",
+      "description": "Tienda cercana en el barrio de Chamberí con cuidada selección de novedades, fillers y eurogames.",
+      "logoUrl": null,
+      "websiteUrl": "https://d10juegos.com",
+      "affiliateCode": "LDKD10",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://d10juegos.com", "title": "Web oficial D10 Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/d10juegos", "handle": "@d10juegos", "title": "Instagram D10 Juegos" }
+      ]
+    },
+    {
+      "name": "Juegos de la Mesa Redonda",
+      "slug": "juegos-de-la-mesa-redonda",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Alicante",
+      "address": "Calle San Juan Bosco 12, 03005 Alicante",
+      "description": "Tienda referente en la Comunidad Valenciana y online con amplísimo catálogo, ofertas constantes y preventas.",
+      "logoUrl": null,
+      "websiteUrl": "https://juegosdelamesaredonda.com",
+      "affiliateCode": "LDKJMR",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://juegosdelamesaredonda.com", "title": "Web oficial Juegos de la Mesa Redonda" },
+        { "platform": "Instagram", "url": "https://instagram.com/juegosdelamesaredonda", "handle": "@juegosdelamesaredonda", "title": "Instagram JMR" }
+      ]
+    },
+    {
+      "name": "Comic Stores",
+      "slug": "comic-stores",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Málaga",
+      "address": "Paseo de los Tilos 30 (tiendas en Málaga, Granada, Fuengirola y Ronda)",
+      "description": "Red de tiendas líder en Andalucía combinando cómic, juegos de mesa, coleccionismo y espacio para partidas.",
+      "logoUrl": null,
+      "websiteUrl": "https://comicstores.es",
+      "affiliateCode": "LDKCS",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://comicstores.es", "title": "Web oficial Comic Stores" },
+        { "platform": "Instagram", "url": "https://instagram.com/comicstores", "handle": "@comicstores", "title": "Instagram Comic Stores" }
+      ]
+    },
+    {
+      "name": "Gigamesh",
+      "slug": "gigamesh",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Carrer de Bailèn 8, 08010 Barcelona",
+      "description": "Templo de la literatura fantástica, la ciencia ficción y los juegos de mesa en Barcelona con un espacio icónico.",
+      "logoUrl": null,
+      "websiteUrl": "https://gigamesh.com",
+      "affiliateCode": "LDKGIGA",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://gigamesh.com", "title": "Web oficial Gigamesh" },
+        { "platform": "Instagram", "url": "https://instagram.com/libreriagigamesh", "handle": "@libreriagigamesh", "title": "Instagram Gigamesh" }
+      ]
+    },
+    {
+      "name": "4Dados",
+      "slug": "4dados",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barcelona",
+      "address": "Carrer de Bailèn 21, 08010 Barcelona",
+      "description": "Especialistas en juegos de importación, novedades de la feria de Essen, asesoramiento técnico y club de juego.",
+      "logoUrl": null,
+      "websiteUrl": "https://4dados.es",
+      "affiliateCode": "LDK4D",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://4dados.es", "title": "Web oficial 4Dados" },
+        { "platform": "Instagram", "url": "https://instagram.com/4dados", "handle": "@4dados", "title": "Instagram 4Dados" }
+      ]
+    },
+    {
+      "name": "Homoludicus Valencia",
+      "slug": "homoludicus-valencia",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Valencia",
+      "address": "Carrer de la Creu Roja 1, 46014 Valencia",
+      "description": "Punto de encuentro lúdico referente en Valencia con tienda física, talleres de iniciación y amplia ludoteca.",
+      "logoUrl": null,
+      "websiteUrl": "https://homoludicusvalencia.com",
+      "affiliateCode": "LDKHLV",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://homoludicusvalencia.com", "title": "Web oficial Homoludicus Valencia" },
+        { "platform": "Instagram", "url": "https://instagram.com/homoludicusvlc", "handle": "@homoludicusvlc", "title": "Instagram Homoludicus Valencia" }
+      ]
+    },
+    {
+      "name": "Ludus Belli",
+      "slug": "ludus-belli",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Móstoles (Madrid)",
+      "address": "Calle Río Llobregat 9, 28935 Móstoles, Madrid",
+      "description": "Una de las mayores superficies dedicadas al hobby en la zona sur de Madrid, con mesas de juego y gran comunidad.",
+      "logoUrl": null,
+      "websiteUrl": "https://ludusbelli.com",
+      "affiliateCode": "LDKLB",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://ludusbelli.com", "title": "Web oficial Ludus Belli" },
+        { "platform": "Instagram", "url": "https://instagram.com/ludusbelli", "handle": "@ludusbelli", "title": "Instagram Ludus Belli" }
+      ]
+    },
+    {
+      "name": "Dados Fuera",
+      "slug": "dados-fuera",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Madrid",
+      "address": "Calle de Cartagena 126, 28002 Madrid",
+      "description": "Tienda cercana en el barrio de Prosperidad de Madrid, especializada en juegos infantiles, familiares y eurogames.",
+      "logoUrl": null,
+      "websiteUrl": "https://dadosfuera.com",
+      "affiliateCode": "LDKDF",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://dadosfuera.com", "title": "Web oficial Dados Fuera" },
+        { "platform": "Instagram", "url": "https://instagram.com/dadosfuera", "handle": "@dadosfuera", "title": "Instagram Dados Fuera" }
+      ]
+    },
+    {
+      "name": "Tesoros y Dragones",
+      "slug": "tesoros-y-dragones",
+      "type": "OnlineOnly",
+      "country": "España",
+      "city": "Madrid",
+      "address": null,
+      "description": "Tienda online centrada en juegos de rol clásicos, juegos de mesa de fantasía, dados y accesorios para jugadores.",
+      "logoUrl": null,
+      "websiteUrl": "https://tesorosydragones.com",
+      "affiliateCode": "LDKTYD",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://tesorosydragones.com", "title": "Web oficial Tesoros y Dragones" },
+        { "platform": "Instagram", "url": "https://instagram.com/tesorosydragones", "handle": "@tesorosydragones", "title": "Instagram Tesoros y Dragones" }
+      ]
+    },
+    {
+      "name": "MiJuegoBonito",
+      "slug": "mijuegobonito",
+      "type": "OnlineOnly",
+      "country": "España",
+      "city": "Valencia",
+      "address": null,
+      "description": "Tienda online especializada en juegos familiares visualmente atractivos, juegos infantiles seleccionados y accesorios de madera.",
+      "logoUrl": null,
+      "websiteUrl": "https://mijuegobonito.com",
+      "affiliateCode": "LDKMJB",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://mijuegobonito.com", "title": "Web oficial MiJuegoBonito" },
+        { "platform": "Instagram", "url": "https://instagram.com/mijuegobonito", "handle": "@mijuegobonito", "title": "Instagram MiJuegoBonito" }
+      ]
+    },
+    {
+      "name": "Identidad Friki",
+      "slug": "identidad-friki",
+      "type": "OnlineOnly",
+      "country": "España",
+      "city": "Zaragoza",
+      "address": null,
+      "description": "Tienda online de juegos de mesa, merchan y cultura pop con atención cercana y promociones especiales.",
+      "logoUrl": null,
+      "websiteUrl": "https://identidadfriki.com",
+      "affiliateCode": "LDKIDF",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://identidadfriki.com", "title": "Web oficial Identidad Friki" },
+        { "platform": "Instagram", "url": "https://instagram.com/identidadfriki", "handle": "@identidadfriki", "title": "Instagram Identidad Friki" }
+      ]
+    },
+    {
+      "name": "Metrópolis Cómics",
+      "slug": "metropolis-comics",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "A Coruña",
+      "address": "Calle Real 62, 15003 A Coruña (y tienda en Ferrol)",
+      "description": "Referente del cómic y los juegos de mesa en Galicia, con amplio fondo de catálogo y asesoramiento.",
+      "logoUrl": null,
+      "websiteUrl": "https://metropoliscomics.net",
+      "affiliateCode": "LDKMET",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://metropoliscomics.net", "title": "Web oficial Metrópolis Cómics" },
+        { "platform": "Instagram", "url": "https://instagram.com/metropoliscoruna", "handle": "@metropoliscoruna", "title": "Instagram Metrópolis" }
+      ]
+    },
+    {
+      "name": "Minas de Tirith",
+      "slug": "minas-de-tirith",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Santander",
+      "address": "Calle Cisneros 14, 39007 Santander",
+      "description": "Tienda histórica y punto neurálgico de la comunidad de juegos de mesa y wargames en Cantabria.",
+      "logoUrl": null,
+      "websiteUrl": "https://minasdetirith.com",
+      "affiliateCode": "LDKMDT",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://minasdetirith.com", "title": "Web oficial Minas de Tirith" },
+        { "platform": "Instagram", "url": "https://instagram.com/minasdetirith", "handle": "@minasdetirith", "title": "Instagram Minas de Tirith" }
+      ]
+    },
+    {
+      "name": "Nostromo Cómics",
+      "slug": "nostromo-comics",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Sevilla",
+      "address": "Calle Zaragoza 11, 41001 Sevilla",
+      "description": "Premiada internacionalmente (Premio Eisner 2020), tienda emblemática sevillana de cómic y juegos de mesa.",
+      "logoUrl": null,
+      "websiteUrl": "https://nostromocomic.com",
+      "affiliateCode": "LDKNOS",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://nostromocomic.com", "title": "Web oficial Nostromo Cómics" },
+        { "platform": "Instagram", "url": "https://instagram.com/nostromosevilla", "handle": "@nostromosevilla", "title": "Instagram Nostromo" }
+      ]
+    },
+    {
+      "name": "Shinigami Cómics",
+      "slug": "shinigami-comics",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Ponferrada (León)",
+      "address": "Calle Ancha 3, 24401 Ponferrada, León",
+      "description": "Espacio cultural y tienda especializada del Bierzo con juegos de mesa, cómic y actividades comunitarias.",
+      "logoUrl": null,
+      "websiteUrl": "https://shinigamicomics.com",
+      "affiliateCode": "LDKSHIN",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://shinigamicomics.com", "title": "Web oficial Shinigami Cómics" },
+        { "platform": "Instagram", "url": "https://instagram.com/shinigamicomics", "handle": "@shinigamicomics", "title": "Instagram Shinigami" }
+      ]
+    },
+    {
+      "name": "Manasur",
+      "slug": "manasur",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Málaga",
+      "address": "Calle Mármoles 54, 29007 Málaga",
+      "description": "Tienda malagueña especializada en Magic: The Gathering, torneos, cartas coleccionables y juegos de tablero.",
+      "logoUrl": null,
+      "websiteUrl": "https://manasur.es",
+      "affiliateCode": "LDKMAN",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://manasur.es", "title": "Web oficial Manasur" },
+        { "platform": "Instagram", "url": "https://instagram.com/manasur_juegos", "handle": "@manasur_juegos", "title": "Instagram Manasur" }
+      ]
+    },
+    {
+      "name": "Distrito Zero",
+      "slug": "distrito-zero",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Vigo",
+      "address": "Rúa de Venezuela 37, 36203 Vigo, Pontevedra",
+      "description": "Gran tienda física en Vigo con amplio espacio de juego, torneos y catálogo diverso de juegos de autor.",
+      "logoUrl": null,
+      "websiteUrl": "https://distritozero.es",
+      "affiliateCode": "LDKDZ",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://distritozero.es", "title": "Web oficial Distrito Zero" },
+        { "platform": "Instagram", "url": "https://instagram.com/distritozero", "handle": "@distritozero", "title": "Instagram Distrito Zero" }
+      ]
+    },
+    {
+      "name": "Play Barakaldo",
+      "slug": "play-barakaldo",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Barakaldo (Bizkaia)",
+      "address": "Calle San Juan 20, 48901 Barakaldo, Bizkaia",
+      "description": "Tienda referente en Bizkaia con asesoramiento experto, torneos oficiales y amplia ludoteca.",
+      "logoUrl": null,
+      "websiteUrl": "https://playbarakaldo.es",
+      "affiliateCode": "LDKPB",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://playbarakaldo.es", "title": "Web oficial Play Barakaldo" },
+        { "platform": "Instagram", "url": "https://instagram.com/playbarakaldo", "handle": "@playbarakaldo", "title": "Instagram Play Barakaldo" }
+      ]
+    },
+    {
+      "name": "Starship Games",
+      "slug": "starship-games",
+      "type": "OnlineOnly",
+      "country": "España",
+      "city": "Barcelona",
+      "address": null,
+      "description": "Tienda online española especializada en preventas, juegos de cartas coleccionables y novedades de tablero.",
+      "logoUrl": null,
+      "websiteUrl": "https://starshipgames.es",
+      "affiliateCode": "LDKSTAR",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://starshipgames.es", "title": "Web oficial Starship Games" },
+        { "platform": "Instagram", "url": "https://instagram.com/starshipgames", "handle": "@starshipgames", "title": "Instagram Starship Games" }
+      ]
+    },
+    {
+      "name": "Planetongames",
+      "slug": "planetongames",
+      "type": "Hybrid",
+      "country": "España",
+      "city": "Almería",
+      "address": "Avenida de la Estación 32, 04005 Almería",
+      "description": "Tienda decana con más de 15 años de trayectoria y un catálogo exhaustivo de miles de títulos de mesa y accesorios.",
+      "logoUrl": null,
+      "websiteUrl": "https://planetongames.com",
+      "affiliateCode": "LDKPLN",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["España"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://planetongames.com", "title": "Web oficial Planetongames" },
+        { "platform": "Instagram", "url": "https://instagram.com/planetongames", "handle": "@planetongames", "title": "Instagram Planetongames" }
+      ]
+    },
+    {
+      "name": "Jugando Ando",
+      "slug": "jugando-ando",
+      "type": "Hybrid",
+      "country": "México",
+      "city": "Ciudad de México",
+      "address": "Av. Insurgentes Sur 300, Roma Norte, CDMX",
+      "description": "Tienda mexicana de referencia especializada en juegos de mesa modernos, torneos comunitarios y catálogo latinoamericano.",
+      "logoUrl": null,
+      "websiteUrl": "https://jugandoando.mx",
+      "affiliateCode": "LDKJAMX",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["México"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://jugandoando.mx", "title": "Web oficial Jugando Ando" },
+        { "platform": "YouTube", "url": "https://youtube.com/@jugandoandomx", "handle": "@jugandoandomx", "title": "Jugando Ando México" }
+      ]
+    },
+    {
+      "name": "El Ogro Alegre",
+      "slug": "el-ogro-alegre",
+      "type": "Hybrid",
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "address": "Av. Corrientes 1500, CABA, Buenos Aires",
+      "description": "Tienda de referencia en Argentina con amplia selección de editoriales locales y juegos de importación.",
+      "logoUrl": null,
+      "websiteUrl": "https://elogroalegre.com.ar",
+      "affiliateCode": "LDKARG",
+      "hasLoyaltyProgram": true,
+      "shippingCountries": ["Argentina"],
+      "socialLinks": [
+        { "platform": "Website", "url": "https://elogroalegre.com.ar", "title": "Web oficial El Ogro Alegre" }
+      ]
+    }
+  ],
+  "creators": [
+    {
+      "name": "Análisis Parálisis",
+      "slug": "analisis-paralisis",
+      "nationality": "España",
+      "bio": "El canal decano y referente absoluto en España de divulgación de juegos de mesa, dirigido por Sergio Vaquero: reseñas minuciosas, directos comunitarios y noticias del hobby.",
+      "avatarUrl": "/images/creators/analisis-paralisis.png",
+      "websiteUrl": "https://analisisparalisis.es",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@AnalisisParalisis", "handle": "@AnalisisParalisis", "title": "Análisis Parálisis en YouTube" },
+        { "platform": "Instagram", "url": "https://instagram.com/analisisparalisis", "handle": "@analisisparalisis", "title": "Instagram Análisis Parálisis" },
+        { "platform": "Twitter", "url": "https://twitter.com/AParalisis", "handle": "@AParalisis", "title": "Twitter / X Análisis Parálisis" }
+      ]
+    },
+    {
+      "name": "Meepletopía",
+      "slug": "meepletopia",
+      "nationality": "España",
+      "bio": "Tutoriales impecables explicados paso a paso, partidas completas a diferentes números de jugadores y análisis sosegados de las novedades del tablero.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@meepletopia", "handle": "@meepletopia", "title": "Meepletopía en YouTube" },
+        { "platform": "Instagram", "url": "https://instagram.com/meepletopia", "handle": "@meepletopia", "title": "Instagram Meepletopía" },
+        { "platform": "Twitter", "url": "https://twitter.com/meepletopia", "handle": "@meepletopia", "title": "Twitter Meepletopía" }
+      ]
+    },
+    {
+      "name": "El Agujero de Hobbit",
+      "slug": "el-agujero-de-hobbit",
+      "nationality": "España",
+      "bio": "Explicaciones de reglas rigurosas, estructuradas y con una claridad didáctica extraordinaria para aprender a jugar a los mejores juegos de mesa sin rodeos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@elagujerodehobbit", "handle": "@elagujerodehobbit", "title": "El Agujero de Hobbit" },
+        { "platform": "Instagram", "url": "https://instagram.com/elagujerodehobbit", "handle": "@elagujerodehobbit", "title": "Instagram El Agujero de Hobbit" },
+        { "platform": "Twitter", "url": "https://twitter.com/agujerodehobbit", "handle": "@agujerodehobbit", "title": "Twitter El Agujero de Hobbit" }
+      ]
+    },
+    {
+      "name": "Mesa de Guerra",
+      "slug": "mesa-de-guerra",
+      "nationality": "España",
+      "bio": "Especialistas en wargames, eurogames de peso medio y pesado, partidas tácticas, análisis históricos y tutoriales profundos para jugadores exigentes.",
+      "avatarUrl": null,
+      "websiteUrl": "https://mesadeguerra.com",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@mesadeguerra", "handle": "@mesadeguerra", "title": "Mesa de Guerra" },
+        { "platform": "Website", "url": "https://mesadeguerra.com", "title": "Blog Mesa de Guerra" },
+        { "platform": "Twitter", "url": "https://twitter.com/mesadeguerra", "handle": "@mesadeguerra", "title": "Twitter Mesa de Guerra" }
+      ]
+    },
+    {
+      "name": "Pareja de Ases",
+      "slug": "pareja-de-ases",
+      "nationality": "España",
+      "bio": "Canal enfocado en partidas, reseñas y recomendaciones de juegos de mesa ideales para jugar a 2 personas, parejas y grupos reducidos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@parejadeases", "handle": "@parejadeases", "title": "Pareja de Ases" },
+        { "platform": "Instagram", "url": "https://instagram.com/parejadeasesjuegos", "handle": "@parejadeasesjuegos", "title": "Instagram Pareja de Ases" }
+      ]
+    },
+    {
+      "name": "Sentido Antihorario",
+      "slug": "sentido-antihorario",
+      "nationality": "España",
+      "bio": "Canal lúdico con enfoque de club, directos multitudinarios, tutoriales, risas y análisis honestos de las últimas novedades del mercado.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@SentidoAntihorario", "handle": "@SentidoAntihorario", "title": "Sentido Antihorario" },
+        { "platform": "Instagram", "url": "https://instagram.com/sentidoantihorario", "handle": "@sentidoantihorario", "title": "Instagram Sentido Antihorario" },
+        { "platform": "Twitter", "url": "https://twitter.com/antihorario", "handle": "@antihorario", "title": "Twitter Sentido Antihorario" }
+      ]
+    },
+    {
+      "name": "Jugador Inicial",
+      "slug": "jugador-inicial",
+      "nationality": "España",
+      "bio": "Divulgación cercana, tutoriales, partidas en mesa y opinión honesta con gran ritmo narrativo y calidez comunitaria.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@jugadorinicial", "handle": "@jugadorinicial", "title": "Jugador Inicial" },
+        { "platform": "Instagram", "url": "https://instagram.com/jugadorinicial", "handle": "@jugadorinicial", "title": "Instagram Jugador Inicial" },
+        { "platform": "Twitter", "url": "https://twitter.com/jugadorinicial", "handle": "@jugadorinicial", "title": "Twitter Jugador Inicial" }
+      ]
+    },
+    {
+      "name": "La Mazmorra de Pacheco",
+      "slug": "la-mazmorra-de-pacheco",
+      "nationality": "España",
+      "bio": "Pionero indiscutible de los tutoriales de juegos de mesa en YouTube: explicaciones dinámicas y divertidas para aprender a jugar en familia.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@LaMazmorradePacheco", "handle": "@LaMazmorradePacheco", "title": "La Mazmorra de Pacheco" },
+        { "platform": "Instagram", "url": "https://instagram.com/lamazmorradepacheco", "handle": "@lamazmorradepacheco", "title": "Instagram Mazmorra de Pacheco" },
+        { "platform": "Twitter", "url": "https://twitter.com/MazmorraPacheco", "handle": "@MazmorraPacheco", "title": "Twitter Mazmorra Pacheco" }
+      ]
+    },
+    {
+      "name": "Consola y Tablero",
+      "slug": "consola-y-tablero",
+      "nationality": "España",
+      "bio": "Guías visuales, tutoriales rápidos, infografías y noticias del sector del juego de mesa y los videojuegos.",
+      "avatarUrl": null,
+      "websiteUrl": "https://consolaytablero.com",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@consolaytablero", "handle": "@consolaytablero", "title": "Consola y Tablero" },
+        { "platform": "Website", "url": "https://consolaytablero.com", "title": "Web Consola y Tablero" },
+        { "platform": "Instagram", "url": "https://instagram.com/consolaytablero", "handle": "@consolaytablero", "title": "Instagram Consola y Tablero" },
+        { "platform": "Twitter", "url": "https://twitter.com/consolaytablero", "handle": "@consolaytablero", "title": "Twitter Consola y Tablero" }
+      ]
+    },
+    {
+      "name": "Océano de Juegos",
+      "slug": "oceano-de-juegos",
+      "nationality": "España",
+      "bio": "Reseñas sosegadas, análisis en profundidad y partidas completas de juegos de mesa familiares y temáticos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@oceanodejuegos", "handle": "@oceanodejuegos", "title": "Océano de Juegos" },
+        { "platform": "Instagram", "url": "https://instagram.com/oceanodejuegos", "handle": "@oceanodejuegos", "title": "Instagram Océano de Juegos" },
+        { "platform": "Twitter", "url": "https://twitter.com/oceanodejuegos", "handle": "@oceanodejuegos", "title": "Twitter Océano de Juegos" }
+      ]
+    },
+    {
+      "name": "La Taberna de Dam",
+      "slug": "la-taberna-de-dam",
+      "nationality": "España",
+      "bio": "Divulgación lúdica con un tono personal inconfundible, tops temáticos, reflexiones del hobby y partidas en mesa.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@LaTabernadeDam", "handle": "@LaTabernadeDam", "title": "La Taberna de Dam" },
+        { "platform": "Instagram", "url": "https://instagram.com/latabernadedam", "handle": "@latabernadedam", "title": "Instagram La Taberna de Dam" },
+        { "platform": "Twitter", "url": "https://twitter.com/LaTabernadeDam", "handle": "@LaTabernadeDam", "title": "Twitter La Taberna de Dam" }
+      ]
+    },
+    {
+      "name": "Rincón de Juguitos",
+      "slug": "rincon-de-juguitos",
+      "nationality": "España",
+      "bio": "Reseñas rápidas, tutoriales 'cómo jugar' en pocos minutos y recomendaciones de juegos familiares y fillers.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@rincondejugetes", "handle": "@rincondejugetes", "title": "Rincón de Juguitos" },
+        { "platform": "Instagram", "url": "https://instagram.com/rincondejugetes", "handle": "@rincondejugetes", "title": "Instagram Rincón de Juguitos" }
+      ]
+    },
+    {
+      "name": "Fase de Mantenimiento",
+      "slug": "fase-de-mantenimiento",
+      "nationality": "España",
+      "bio": "Uno de los podcasts y canales más veteranos y prestigiosos del panorama español, con debates profundos, tertulias y reseñas rigurosas.",
+      "avatarUrl": null,
+      "websiteUrl": "https://fasedemantenimiento.com",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@fasedemantenimiento", "handle": "@fasedemantenimiento", "title": "Fase de Mantenimiento" },
+        { "platform": "Website", "url": "https://fasedemantenimiento.com", "title": "Web Fase de Mantenimiento" },
+        { "platform": "Instagram", "url": "https://instagram.com/fasedemantenimiento", "handle": "@fasedemantenimiento", "title": "Instagram Fase de Mantenimiento" },
+        { "platform": "Twitter", "url": "https://twitter.com/FaseMantenimien", "handle": "@FaseMantenimien", "title": "Twitter Fase de Mantenimiento" }
+      ]
+    },
+    {
+      "name": "El Dado Único",
+      "slug": "el-dado-unico",
+      "nationality": "España",
+      "bio": "Divulgación especializada en juegos en solitario, cooperativos, reseñas temáticas y partidas completas bien explicadas.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@eldadounico", "handle": "@eldadounico", "title": "El Dado Único" },
+        { "platform": "Instagram", "url": "https://instagram.com/eldadounico", "handle": "@eldadounico", "title": "Instagram El Dado Único" },
+        { "platform": "Twitter", "url": "https://twitter.com/eldadounico", "handle": "@eldadounico", "title": "Twitter El Dado Único" }
+      ]
+    },
+    {
+      "name": "Club Dante",
+      "slug": "club-dante",
+      "nationality": "España",
+      "bio": "Portal y canal referente de reseñas críticas de juegos de mesa, entrevistas a autores, actualidad de crowdfunding y artículos especializados.",
+      "avatarUrl": null,
+      "websiteUrl": "https://clubdante.es",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@ClubDante", "handle": "@ClubDante", "title": "Club Dante" },
+        { "platform": "Website", "url": "https://clubdante.es", "title": "Portal Club Dante" },
+        { "platform": "Instagram", "url": "https://instagram.com/clubdante.es", "handle": "@clubdante.es", "title": "Instagram Club Dante" },
+        { "platform": "Twitter", "url": "https://twitter.com/ClubDanteES", "handle": "@ClubDanteES", "title": "Twitter Club Dante" }
+      ]
+    },
+    {
+      "name": "Doctor Meeple",
+      "slug": "doctor-meeple",
+      "nationality": "España",
+      "bio": "Divulgación lúdica con recetas, reseñas con enfoque familiar y eurogame, tutoriales visuales y pasión por los juegos de mesa.",
+      "avatarUrl": null,
+      "websiteUrl": "https://doctormeeple.com",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@DoctorMeeple", "handle": "@DoctorMeeple", "title": "Doctor Meeple" },
+        { "platform": "Website", "url": "https://doctormeeple.com", "title": "Web Doctor Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/doctormeeple", "handle": "@doctormeeple", "title": "Instagram Doctor Meeple" },
+        { "platform": "Twitter", "url": "https://twitter.com/DoctorMeeple", "handle": "@DoctorMeeple", "title": "Twitter Doctor Meeple" }
+      ]
+    },
+    {
+      "name": "Juegorrinos",
+      "slug": "juegorrinos",
+      "nationality": "España",
+      "bio": "Canal de reseñas desenfadadas, partidas en directo y buen humor alrededor de los juegos de mesa modernos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@juegorrinos", "handle": "@juegorrinos", "title": "Juegorrinos" },
+        { "platform": "Instagram", "url": "https://instagram.com/juegorrinos", "handle": "@juegorrinos", "title": "Instagram Juegorrinos" },
+        { "platform": "Twitter", "url": "https://twitter.com/juegorrinos", "handle": "@juegorrinos", "title": "Twitter Juegorrinos" }
+      ]
+    },
+    {
+      "name": "Sulker",
+      "slug": "sulker",
+      "nationality": "España",
+      "bio": "Canal especializado en tutoriales minuciosos y explicaciones de alta calidad técnica para aprender a jugar a los mejores juegos de mesa.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@sulker", "handle": "@sulker", "title": "Sulker" },
+        { "platform": "Instagram", "url": "https://instagram.com/sulker_juegos", "handle": "@sulker_juegos", "title": "Instagram Sulker" },
+        { "platform": "Twitter", "url": "https://twitter.com/sulker", "handle": "@sulker", "title": "Twitter Sulker" }
+      ]
+    },
+    {
+      "name": "Misut Meeple",
+      "slug": "misut-meeple",
+      "nationality": "España",
+      "bio": "Referente indiscutible de la crítica escrita de juegos de mesa en español: miles de tochorreseñas exhaustivas analizando el diseño, rejugabilidad y sensaciones.",
+      "avatarUrl": null,
+      "websiteUrl": "https://misutmeeple.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://misutmeeple.com", "title": "Blog Misut Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/misutmeeple", "handle": "@misutmeeple", "title": "Instagram Misut Meeple" },
+        { "platform": "Twitter", "url": "https://twitter.com/MisutMeeple", "handle": "@MisutMeeple", "title": "Twitter Misut Meeple" }
+      ]
+    },
+    {
+      "name": "Glirp",
+      "slug": "glirp",
+      "nationality": "España",
+      "bio": "Canal de tutoriales concisos y partidas completas de juegos de mesa familiares, cooperativos y novedades del sector.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@glirp", "handle": "@glirp", "title": "Glirp" },
+        { "platform": "Instagram", "url": "https://instagram.com/glirpgames", "handle": "@glirpgames", "title": "Instagram Glirp" },
+        { "platform": "Twitter", "url": "https://twitter.com/glirpgames", "handle": "@glirpgames", "title": "Twitter Glirp" }
+      ]
+    },
+    {
+      "name": "Hard Meeple",
+      "slug": "hard-meeple",
+      "nationality": "España",
+      "bio": "Canal enfocado en eurogames de peso medio y duro, novedades de ferias internacionales y partidas detalladas.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@HardMeeple", "handle": "@HardMeeple", "title": "Hard Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/hardmeeple", "handle": "@hardmeeple", "title": "Instagram Hard Meeple" },
+        { "platform": "Twitter", "url": "https://twitter.com/HardMeeple", "handle": "@HardMeeple", "title": "Twitter Hard Meeple" }
+      ]
+    },
+    {
+      "name": "Rincón del Meeple",
+      "slug": "rincon-del-meeple",
+      "nationality": "España",
+      "bio": "Reseñas, unboxings, partidas y recomendaciones de juegos familiares y party games para todo tipo de público.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@RincondelMeeple", "handle": "@RincondelMeeple", "title": "Rincón del Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/rincondelmeeple", "handle": "@rincondelmeeple", "title": "Instagram Rincón del Meeple" },
+        { "platform": "Twitter", "url": "https://twitter.com/RincondelMeeple", "handle": "@RincondelMeeple", "title": "Twitter Rincón del Meeple" }
+      ]
+    },
+    {
+      "name": "Frikiguías",
+      "slug": "frikiguias",
+      "nationality": "España",
+      "bio": "Uno de los canales más prolíficos y constantes de España en explicaciones paso a paso de reglas y partidas completas de novedades.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@frikiguias", "handle": "@frikiguias", "title": "Frikiguías" },
+        { "platform": "Instagram", "url": "https://instagram.com/frikiguias", "handle": "@frikiguias", "title": "Instagram Frikiguías" },
+        { "platform": "Twitter", "url": "https://twitter.com/frikiguias", "handle": "@frikiguias", "title": "Twitter Frikiguías" }
+      ]
+    },
+    {
+      "name": "Viciados de Mesa",
+      "slug": "viciados-de-mesa",
+      "nationality": "España",
+      "bio": "Reseñas desenfadadas, unboxings, partidas y opiniones sinceras de títulos temáticos, familiares y novedades lúdicas.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@viciadosdemesa", "handle": "@viciadosdemesa", "title": "Viciados de Mesa" },
+        { "platform": "Instagram", "url": "https://instagram.com/viciadosdemesa", "handle": "@viciadosdemesa", "title": "Instagram Viciados de Mesa" },
+        { "platform": "Twitter", "url": "https://twitter.com/viciadosdemesa", "handle": "@viciadosdemesa", "title": "Twitter Viciados de Mesa" }
+      ]
+    },
+    {
+      "name": "Tierras Quebradas",
+      "slug": "tierras-quebradas",
+      "nationality": "España",
+      "bio": "Divulgación especializada en juegos de rol de mesa, narrativa, ambientaciones y juegos de tablero temáticos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@tierrasquebradas", "handle": "@tierrasquebradas", "title": "Tierras Quebradas" },
+        { "platform": "Instagram", "url": "https://instagram.com/tierrasquebradas", "handle": "@tierrasquebradas", "title": "Instagram Tierras Quebradas" }
+      ]
+    },
+    {
+      "name": "Mi Cabeza Para un Dado",
+      "slug": "mi-cabeza-para-un-dado",
+      "nationality": "España",
+      "bio": "Reseñas pausadas y análisis de mecánicas con gran foco en juegos temáticos, wargames y títulos de colocación de dados.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@micabezaparaundado", "handle": "@micabezaparaundado", "title": "Mi Cabeza Para un Dado" },
+        { "platform": "Twitter", "url": "https://twitter.com/CabezaParaDado", "handle": "@CabezaParaDado", "title": "Twitter Mi Cabeza Para un Dado" }
+      ]
+    },
+    {
+      "name": "Meeple Foundry",
+      "slug": "meeple-foundry",
+      "nationality": "España",
+      "bio": "Canal centrado en diseño gráfico, componentes, unboxings cuidados y análisis de juegos de mesa modernos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@MeepleFoundry", "handle": "@MeepleFoundry", "title": "Meeple Foundry" },
+        { "platform": "Instagram", "url": "https://instagram.com/meeplefoundry", "handle": "@meeplefoundry", "title": "Instagram Meeple Foundry" }
+      ]
+    },
+    {
+      "name": "Punto de Victoria",
+      "slug": "punto-de-victoria",
+      "nationality": "España",
+      "bio": "Podcast y canal lúdico especializado en wargames históricos, juegos de simulación y eurogames densos.",
+      "avatarUrl": null,
+      "websiteUrl": "https://puntodevictoria.com",
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@puntodevictoria", "handle": "@puntodevictoria", "title": "Punto de Victoria" },
+        { "platform": "Website", "url": "https://puntodevictoria.com", "title": "Web Punto de Victoria" },
+        { "platform": "Twitter", "url": "https://twitter.com/PuntoVictoria", "handle": "@PuntoVictoria", "title": "Twitter Punto de Victoria" }
+      ]
+    },
+    {
+      "name": "Tablerockers",
+      "slug": "tablerockers",
+      "nationality": "España",
+      "bio": "Canal de partidas en directo, tutoriales con ritmo y reseñas de juegos de mesa familiares y estratégicos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@tablerockers", "handle": "@tablerockers", "title": "Tablerockers" },
+        { "platform": "Instagram", "url": "https://instagram.com/tablerockers", "handle": "@tablerockers", "title": "Instagram Tablerockers" }
+      ]
+    },
+    {
+      "name": "Gaceta de los Tableros",
+      "slug": "gaceta-de-los-tableros",
+      "nationality": "España",
+      "bio": "Actualidad informativa del mundo de los juegos de mesa, entrevistas a creadores y novedades del sector.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@GacetadelosTableros", "handle": "@GacetadelosTableros", "title": "Gaceta de los Tableros" },
+        { "platform": "Twitter", "url": "https://twitter.com/gacetatableros", "handle": "@gacetatableros", "title": "Twitter Gaceta de los Tableros" }
+      ]
+    },
+    {
+      "name": "Baúl de Meeple",
+      "slug": "baul-de-meeple",
+      "nationality": "España",
+      "bio": "Canal dedicado a partidas completas, cómo jugar y tutoriales paso a paso de novedades del catálogo nacional e internacional.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@bauldemeeple", "handle": "@bauldemeeple", "title": "Baúl de Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/bauldemeeple", "handle": "@bauldemeeple", "title": "Instagram Baúl de Meeple" }
+      ]
+    },
+    {
+      "name": "Círculo de Isengard",
+      "slug": "circulo-de-isengard",
+      "nationality": "España",
+      "bio": "Asociación lúdica y divulgadores de juegos de mesa con torneos, jornadas, reseñas y fomento del juego como cultura.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@circulodeisengard", "handle": "@circulodeisengard", "title": "Círculo de Isengard" },
+        { "platform": "Instagram", "url": "https://instagram.com/circulodeisengard", "handle": "@circulodeisengard", "title": "Instagram Círculo de Isengard" }
+      ]
+    },
+    {
+      "name": "Don Meeple",
+      "slug": "don-meeple",
+      "nationality": "España",
+      "bio": "Portal especializado de reseñas y guías de compra de juegos de mesa, tops temáticos y artículos de divulgación lúdica.",
+      "avatarUrl": null,
+      "websiteUrl": "https://donmeeple.com",
+      "socialLinks": [
+        { "platform": "Website", "url": "https://donmeeple.com", "title": "Portal Don Meeple" },
+        { "platform": "Instagram", "url": "https://instagram.com/donmeeple", "handle": "@donmeeple", "title": "Instagram Don Meeple" },
+        { "platform": "Twitter", "url": "https://twitter.com/DonMeeple", "handle": "@DonMeeple", "title": "Twitter Don Meeple" }
+      ]
+    },
+    {
+      "name": "Tableronautas",
+      "slug": "tableronautas",
+      "nationality": "España",
+      "bio": "Canal de viajes lúdicos, partidas en directo, tutoriales y coberturas de festivales de juegos de mesa.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@tableronautas", "handle": "@tableronautas", "title": "Tableronautas" },
+        { "platform": "Instagram", "url": "https://instagram.com/tableronautas", "handle": "@tableronautas", "title": "Instagram Tableronautas" }
+      ]
+    },
+    {
+      "name": "El Dado Dorado",
+      "slug": "el-dado-dorado",
+      "nationality": "España",
+      "bio": "Reseñas visuales, tops temáticos y cómo jugar a juegos de mesa para toda la familia y partidas con amigos.",
+      "avatarUrl": null,
+      "websiteUrl": null,
+      "socialLinks": [
+        { "platform": "YouTube", "url": "https://youtube.com/@eldadodorado", "handle": "@eldadodorado", "title": "El Dado Dorado" },
+        { "platform": "Instagram", "url": "https://instagram.com/eldadodorado", "handle": "@eldadodorado", "title": "Instagram El Dado Dorado" }
+      ]
+    }
+  ]
+}

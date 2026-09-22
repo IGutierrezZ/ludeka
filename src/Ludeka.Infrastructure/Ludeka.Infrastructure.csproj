@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Seeding\seed-games.json" />
+    <EmbeddedResource Include="Seeding\seed-directory.json" />
   </ItemGroup>
 
   <ItemGroup>
