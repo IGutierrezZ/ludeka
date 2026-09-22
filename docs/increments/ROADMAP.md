@@ -67,7 +67,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-51** | Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43 | ⏳ Planificado | [inc-51-huecos-cobertura-archivado.md](inc-51-huecos-cobertura-archivado.md) |
 | **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 | **INC-53** | Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual | ✅ Archivado | [inc-53-ingesta-masiva-autonoma-bgg.md](archive/inc-53-ingesta-masiva-autonoma-bgg.md) |
-| **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ⏳ En progreso | [inc-54-directorio-exhaustivo.md](inc-54-directorio-exhaustivo.md) |
+| **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -84,6 +84,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
+*(INC-54 entregó su PR #98, verificada con 1.622 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-22. Incorpora el padrón exhaustivo nacional de 46 editoriales de España, 37 tiendas y 35 creadores de contenido en seed-directory.json, con motor de siembra aditivo e idempotente, runner seed-directory en Ludeka.Jobs y panel de sincronización interactiva en administración y directorios).*
+
 *(INC-53 entregó su cadena de 3 PRs apilados, verificada con 1.604 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-21. Automatiza la ingesta de ~8.000 títulos de BGG en staging mediante streaming continuo HTTP desde mirror público diario con fallback resiliente de 5 días, botón en admin con permisos CanEditGames, runner seed-staging en Ludeka.Jobs y auto-siembra nocturna en Fase 3 de nightly-cataloging).*
 
 *(INC-52 entregó su cadena de 8 PRs (#77–#84), toda mergeada a `main` el 2026-09-21, y quedó archivado ese mismo día. **Puerta del primer despliegue real.** Resolvió cinco defectos bloqueantes: `UseForwardedHeaders` no existía (B1, `redirect_uri` OAuth en `http` tras proxy), el pipeline no inyectaba credenciales de autenticación (B2, cero botones de acceso), el correo del administrador fundador se fijaba irreversiblemente en el primer arranque (B3, maintainer fuera de su panel), ningún registro advertía cuando cero proveedores estaban operativos (B4, logs silenciosos), y el ROADMAP mentía sobre el PR #60 abierto (B5, falsedad documental). Verificación: `pass_with_warnings`, 1.593 pruebas unitarias + 10 de integración verdes. **Nota:** la advertencia sobre el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0 sigue vigente: antes de configurar `GCP_PROJECT_ID` y `GCP_SA_KEY`, sigue ese orden o el primer despliegue dejará producción sin ejecutor de trabajos.*
@@ -97,7 +99,6 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
 - **INC-50 Área de Cuenta** — worktree `C:\repos\ludeka-wt\area-de-cuenta`, rama `inc/area-de-cuenta`. Nace de un agujero destapado en el smoke test de INC-49: se puede iniciar sesión, pero **no hay ninguna puerta a la cuenta**. El único enlace a `/cuenta/conexiones` vive dentro del aviso que solo se muestra a cuentas sin correo verificado, no existe ningún enlace a `/login` en toda la interfaz, y la cabecera no consulta la sesión. El incremento añade el botón de persona en la cabecera y agrupa la ludoteca y los ajustes de usuario en un área de cuenta. **Arrastra pendiente el smoke test de INC-49 (tarea 4.5), que quedó en el paso 2 de 7.**
-- **INC-54 Padrón Exhaustivo del Directorio Lúdico** — worktree `C:\repos\ludeka-wt\directorio-exhaustivo`, rama `inc/directorio-exhaustivo`. Incorpora el censo íntegro de prácticamente todas las editoriales de España (>45), el top 35 de tiendas especializadas y el top 35 de creadores de contenido referentes con datos completos (webs, redes, logotipos), junto al mecanismo de siembra desatendido por CLI (`Ludeka.Jobs` con runner `seed-directory`) y botón en panel de administración.
 
 
 

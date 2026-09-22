@@ -492,6 +492,19 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 54: Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español
+- **Identificador SDD:** `change-54-directorio-exhaustivo`
+- **Objetivo Principal:** Incorporar el padrón nacional exhaustivo de la industria de juegos de mesa en España y mecanismos autónomos de siembra e idempotencia sin requerir inserción manual:
+  1. **Dataset Canónico Embebido (`seed-directory.json`):** 46 editoriales de España, 37 tiendas especializadas (35 en España + 2 internacionales) y 35 creadores de contenido audiovisual en español, con webs oficiales, logos en alta resolución y redes sociales vinculadas (`SocialNetworkLink`).
+  2. **Motor de Siembra Aditiva e Idempotencia (`DirectorySeeder` / `DirectorySeederService`):** Deserialización del recurso embebido con fallback a disco, enriquecimiento de campos nulos/vacíos sin sobrescribir ediciones manuales previas y preservación de la purga de diseñadores legados (INC-31). Desacoplado con `IDbContextFactory` para concurrencia segura en Blazor Server.
+  3. **Mecanismo de Ejecución CLI (`Ludeka.Jobs`):** Runner `SeedDirectoryJobRunner` registrado como `seed-directory`, gobernado por `IJobExecutionCoordinator` y con inicialización defensiva de SQLite en entornos locales.
+  4. **Mecanismo de Ejecución Web:** Botón y panel interactivo "Sincronizar Padrón Completo" en `/admin/cola-catalogacion` (`CatalogQueueAdmin.razor`) y botones directos en `/editoriales`, `/tiendas` y `/creadores` con control de permisos fundadores.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-22 (PR #98 mergeado, suite completa 1.622 unitarias + 10 de integración en verde al 100%, 0 fallos).
+- **Documento:** [`inc-54-directorio-exhaustivo.md`](archive/inc-54-directorio-exhaustivo.md).
+- **Módulos del Sistema:** [`13-directorio-editoriales-creadores-tiendas.md`](sistema/13-directorio-editoriales-creadores-tiendas.md) y [`34-trabajos-en-segundo-plano-cloud-run.md`](sistema/34-trabajos-en-segundo-plano-cloud-run.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
