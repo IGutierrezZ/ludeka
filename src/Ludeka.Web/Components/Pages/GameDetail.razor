@@ -8,6 +8,7 @@
 @inject ICurrentUserService CurrentUserService
 @inject IExpansionService ExpansionService
 @inject NavigationManager Navigation
+@inject ILogger<GameDetail> Logger
 
 <PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Inteligente | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
 
@@ -562,49 +563,88 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        _isLoading = true;
-        Game = await CatalogService.GetGameBySlugAsync(Slug);
-        if (Game != null)
+        try
         {
-            await LoadUserDataAsync();
+            _isLoading = true;
+            Game = await CatalogService.GetGameBySlugAsync(Slug);
+            if (Game != null)
+            {
+                await LoadUserDataAsync();
+            }
         }
-        _isLoading = false;
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar la ficha del juego {Slug}", Slug);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadUserDataAsync()
     {
         if (Game == null) return;
-        _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
-        _activeLoan = await LibraryService.GetActiveLoanAsync(Game.Id);
-        _userReview = await LibraryService.GetUserReviewAsync(Game.Id);
-        await RefreshPlaysCountAsync();
 
-        _foundingVerdict = await FoundingService.GetVerdictByGameIdAsync(Game.Id);
-        if (_foundingVerdict == null)
+        try
         {
-            _aiSummary = await FoundingService.GetAiSummaryForGameAsync(Game.Id);
+            _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
+            _activeLoan = await LibraryService.GetActiveLoanAsync(Game.Id);
+            _userReview = await LibraryService.GetUserReviewAsync(Game.Id);
+            await RefreshPlaysCountAsync();
         }
-        else
+        catch (Exception ex)
         {
-            _aiSummary = null;
+            Logger.LogWarning(ex, "Error al cargar datos de biblioteca de usuario para el juego {GameId}", Game.Id);
         }
 
-        _mediaHub = await MediaService.GetGameMediaAsync(Game.Id);
-
-        // Carga de datos de expansiones
-        if (Game.IsExpansion)
+        try
         {
-            _parentGame = Game.BaseGame ?? (Game.BaseGameId.HasValue ? await ExpansionService.GetParentGameForExpansionAsync(Game.Id) : null);
-            if (Game.BaseGameId.HasValue)
+            _foundingVerdict = await FoundingService.GetVerdictByGameIdAsync(Game.Id);
+            if (_foundingVerdict == null)
             {
-                var allSisters = await ExpansionService.GetExpansionsForBaseGameAsync(Game.BaseGameId.Value);
-                _sisterExpansions = allSisters.Where(s => s.Id != Game.Id).ToList();
-                _sisterSynergies = await ExpansionService.GetSynergiesForExpansionAsync(Game.Id);
+                _aiSummary = await FoundingService.GetAiSummaryForGameAsync(Game.Id);
+            }
+            else
+            {
+                _aiSummary = null;
             }
         }
-        else
+        catch (Exception ex)
         {
-            _expansions = await ExpansionService.GetExpansionsForBaseGameAsync(Game.Id);
+            Logger.LogWarning(ex, "Error al cargar veredicto o resumen IA para el juego {GameId}", Game.Id);
+        }
+
+        try
+        {
+            _mediaHub = await MediaService.GetGameMediaAsync(Game.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error al cargar multimedia para el juego {GameId}", Game.Id);
+        }
+
+        try
+        {
+            // Carga de datos de expansiones
+            if (Game.IsExpansion)
+            {
+                _parentGame = Game.BaseGame ?? (Game.BaseGameId.HasValue ? await ExpansionService.GetParentGameForExpansionAsync(Game.Id) : null);
+                if (Game.BaseGameId.HasValue)
+                {
+                    var allSisters = await ExpansionService.GetExpansionsForBaseGameAsync(Game.BaseGameId.Value);
+                    _sisterExpansions = allSisters.Where(s => s.Id != Game.Id).ToList();
+                    _sisterSynergies = await ExpansionService.GetSynergiesForExpansionAsync(Game.Id);
+                }
+            }
+            else
+            {
+                _expansions = await ExpansionService.GetExpansionsForBaseGameAsync(Game.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error al cargar ecosistema de expansiones para el juego {GameId}", Game.Id);
         }
     }
 

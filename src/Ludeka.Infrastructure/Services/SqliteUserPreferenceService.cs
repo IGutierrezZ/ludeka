@@ -10,15 +10,16 @@ using Microsoft.EntityFrameworkCore;
 namespace Ludeka.Infrastructure.Services;
 
 /// <summary>
-/// Implementación de persistencia para las preferencias de usuario basada en SQLite y EF Core.
+/// Implementación de persistencia para las preferencias de usuario basada en EF Core y ámbitos efímeros.
 /// </summary>
-public class SqliteUserPreferenceService : IUserPreferenceService
+public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPreferenceService
 {
-    private readonly LudekaDbContext _db;
-
-    public SqliteUserPreferenceService(LudekaDbContext db)
+    public SqliteUserPreferenceService(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _db = db ?? throw new ArgumentNullException(nameof(db));
+    }
+
+    internal SqliteUserPreferenceService(LudekaDbContext db) : base(db)
+    {
     }
 
     public async Task<string> GetUserThemeAsync(string userId, CancellationToken ct = default)
@@ -28,7 +29,8 @@ public class SqliteUserPreferenceService : IUserPreferenceService
             return "charcoal";
         }
 
-        var pref = await _db.UserPreferences
+        await using var scope = await CreateScopeAsync(ct);
+        var pref = await scope.Context.UserPreferences
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId.Trim(), ct);
 
@@ -39,26 +41,28 @@ public class SqliteUserPreferenceService : IUserPreferenceService
     {
         // Invariante de anonimia: la preferencia exige sesión; nunca se escribe con identidad vacía.
         string cleanUserId = SessionIdentity.Require(userId);
-        var existing = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
 
         if (existing == null)
         {
             var newPref = new UserPreference(cleanUserId, theme);
-            _db.UserPreferences.Add(newPref);
+            scope.Context.UserPreferences.Add(newPref);
         }
         else
         {
             existing.SetTheme(theme);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task<UserPreferenceDto> GetUserPreferenceAsync(string userId, CancellationToken ct = default)
     {
         string cleanUserId = string.IsNullOrWhiteSpace(userId) ? "default" : userId.Trim();
 
-        var pref = await _db.UserPreferences
+        await using var scope = await CreateScopeAsync(ct);
+        var pref = await scope.Context.UserPreferences
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
 
@@ -75,7 +79,8 @@ public class SqliteUserPreferenceService : IUserPreferenceService
         if (string.IsNullOrWhiteSpace(userId))
             return null;
 
-        var pref = await _db.UserPreferences
+        await using var scope = await CreateScopeAsync(ct);
+        var pref = await scope.Context.UserPreferences
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId.Trim(), ct);
 
@@ -86,18 +91,19 @@ public class SqliteUserPreferenceService : IUserPreferenceService
     {
         // Invariante de anonimia: la preferencia exige sesión; nunca se escribe con identidad vacía.
         string cleanUserId = SessionIdentity.Require(userId);
-        var existing = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
 
         if (existing == null)
         {
             var newPref = new UserPreference(cleanUserId, "charcoal", country);
-            _db.UserPreferences.Add(newPref);
+            scope.Context.UserPreferences.Add(newPref);
         }
         else
         {
             existing.SetCountry(country);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 }

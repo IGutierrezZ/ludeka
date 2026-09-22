@@ -11,20 +11,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Repositories;
 
-public class SqliteInstagramPostDraftRepository : IInstagramPostDraftRepository
+public class SqliteInstagramPostDraftRepository : DbContextRepositoryBase, IInstagramPostDraftRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteInstagramPostDraftRepository(LudekaDbContext context)
+    public SqliteInstagramPostDraftRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteInstagramPostDraftRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<InstagramPostDraft>> GetDraftsAsync(
         InstagramPostDraftStatus? status = null,
         CancellationToken ct = default)
     {
-        IQueryable<InstagramPostDraft> query = _context.InstagramPostDrafts.AsNoTracking();
+        await using var scope = await CreateScopeAsync(ct);
+        IQueryable<InstagramPostDraft> query = scope.Context.InstagramPostDrafts.AsNoTracking();
 
         if (status.HasValue)
         {
@@ -42,7 +44,8 @@ public class SqliteInstagramPostDraftRepository : IInstagramPostDraftRepository
 
     public async Task<InstagramPostDraft?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.InstagramPostDrafts
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.InstagramPostDrafts
             .FirstOrDefaultAsync(d => d.Id == id, ct);
     }
 
@@ -51,7 +54,8 @@ public class SqliteInstagramPostDraftRepository : IInstagramPostDraftRepository
         string sourceId,
         CancellationToken ct = default)
     {
-        return await _context.InstagramPostDrafts
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.InstagramPostDrafts
             .FirstOrDefaultAsync(d => d.SourceType == sourceType && d.SourceId == sourceId, ct);
     }
 
@@ -59,25 +63,28 @@ public class SqliteInstagramPostDraftRepository : IInstagramPostDraftRepository
     {
         ArgumentNullException.ThrowIfNull(draft);
 
-        await _context.InstagramPostDrafts.AddAsync(draft, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.InstagramPostDrafts.AddAsync(draft, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(InstagramPostDraft draft, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(draft);
 
-        _context.InstagramPostDrafts.Update(draft);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.InstagramPostDrafts.Update(draft);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var draft = await _context.InstagramPostDrafts.FindAsync(new object[] { id }, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var draft = await scope.Context.InstagramPostDrafts.FindAsync(new object[] { id }, ct);
         if (draft != null)
         {
-            _context.InstagramPostDrafts.Remove(draft);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.InstagramPostDrafts.Remove(draft);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 }

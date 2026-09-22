@@ -10,13 +10,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Data;
 
-public class SqliteMonitoredAccountRepository : IMonitoredAccountRepository
+public class SqliteMonitoredAccountRepository : DbContextRepositoryBase, IMonitoredAccountRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteMonitoredAccountRepository(LudekaDbContext context)
+    public SqliteMonitoredAccountRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteMonitoredAccountRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async Task<IReadOnlyList<MonitoredSocialAccount>> GetAllAsync(
@@ -25,7 +26,8 @@ public class SqliteMonitoredAccountRepository : IMonitoredAccountRepository
         bool? onlyEnabled = null,
         CancellationToken ct = default)
     {
-        var query = _context.MonitoredSocialAccounts.AsQueryable();
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.MonitoredSocialAccounts.AsNoTracking().AsQueryable();
 
         if (platform.HasValue)
         {
@@ -48,32 +50,37 @@ public class SqliteMonitoredAccountRepository : IMonitoredAccountRepository
 
     public async Task<MonitoredSocialAccount?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.MonitoredSocialAccounts
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.MonitoredSocialAccounts
+            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == id, ct);
     }
 
     public async Task<MonitoredSocialAccount> AddAsync(MonitoredSocialAccount account, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(account);
-        await _context.MonitoredSocialAccounts.AddAsync(account, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.MonitoredSocialAccounts.AddAsync(account, ct);
+        await scope.Context.SaveChangesAsync(ct);
         return account;
     }
 
     public async Task UpdateAsync(MonitoredSocialAccount account, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(account);
-        _context.MonitoredSocialAccounts.Update(account);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.MonitoredSocialAccounts.Update(account);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var account = await GetByIdAsync(id, ct);
+        await using var scope = await CreateScopeAsync(ct);
+        var account = await scope.Context.MonitoredSocialAccounts.FirstOrDefaultAsync(a => a.Id == id, ct);
         if (account != null)
         {
-            _context.MonitoredSocialAccounts.Remove(account);
-            await _context.SaveChangesAsync(ct);
+            scope.Context.MonitoredSocialAccounts.Remove(account);
+            await scope.Context.SaveChangesAsync(ct);
         }
     }
 
@@ -83,7 +90,9 @@ public class SqliteMonitoredAccountRepository : IMonitoredAccountRepository
             return false;
 
         var clean = handleOrChannelId.Trim().ToLowerInvariant();
-        var accounts = await _context.MonitoredSocialAccounts
+        await using var scope = await CreateScopeAsync(ct);
+        var accounts = await scope.Context.MonitoredSocialAccounts
+            .AsNoTracking()
             .Where(a => a.Platform == platform)
             .ToListAsync(ct);
 

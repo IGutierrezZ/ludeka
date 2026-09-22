@@ -12,24 +12,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ludeka.Infrastructure.Repositories;
 
-public class SqliteGameIssueReportRepository : IGameIssueReportRepository
+public class SqliteGameIssueReportRepository : DbContextRepositoryBase, IGameIssueReportRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public SqliteGameIssueReportRepository(LudekaDbContext context)
+    public SqliteGameIssueReportRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    internal SqliteGameIssueReportRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     public async ValueTask<GameIssueReport?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.IssueReports
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.IssueReports
             .FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
     public async ValueTask<IReadOnlyList<GameIssueReport>> GetAllAsync(GameReportFilter filter, CancellationToken ct = default)
     {
-        var query = _context.IssueReports.AsNoTracking().AsQueryable();
+        await using var scope = await CreateScopeAsync(ct);
+        var query = scope.Context.IssueReports.AsNoTracking().AsQueryable();
 
         if (filter.Status.HasValue)
         {
@@ -76,7 +79,8 @@ public class SqliteGameIssueReportRepository : IGameIssueReportRepository
 
     public async ValueTask<GameIssueReportSummaryDto> GetSummaryAsync(CancellationToken ct = default)
     {
-        var counts = await _context.IssueReports
+        await using var scope = await CreateScopeAsync(ct);
+        var counts = await scope.Context.IssueReports
             .AsNoTracking()
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -100,14 +104,16 @@ public class SqliteGameIssueReportRepository : IGameIssueReportRepository
     public async ValueTask AddAsync(GameIssueReport report, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(report);
-        await _context.IssueReports.AddAsync(report, ct);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        await scope.Context.IssueReports.AddAsync(report, ct);
+        await scope.Context.SaveChangesAsync(ct);
     }
 
     public async ValueTask UpdateAsync(GameIssueReport report, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(report);
-        _context.IssueReports.Update(report);
-        await _context.SaveChangesAsync(ct);
+        await using var scope = await CreateScopeAsync(ct);
+        scope.Context.IssueReports.Update(report);
+        await scope.Context.SaveChangesAsync(ct);
     }
 }

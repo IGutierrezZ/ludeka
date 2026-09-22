@@ -10,19 +10,21 @@ using Microsoft.EntityFrameworkCore;
 namespace Ludeka.Infrastructure.Data;
 
 /// <inheritdoc />
-public class ExternalLoginRepository : IExternalLoginRepository
+public class ExternalLoginRepository : DbContextRepositoryBase, IExternalLoginRepository
 {
-    private readonly LudekaDbContext _context;
-
-    public ExternalLoginRepository(LudekaDbContext context)
+    public ExternalLoginRepository(IDbContextFactory<LudekaDbContext> factory) : base(factory)
     {
-        _context = context;
+    }
+
+    internal ExternalLoginRepository(LudekaDbContext context) : base(context)
+    {
     }
 
     /// <inheritdoc />
     public async Task<ExternalLogin?> GetByProviderKeyAsync(string provider, string providerKey, CancellationToken cancellationToken = default)
     {
-        return await _context.ExternalLogins
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        return await scope.Context.ExternalLogins
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Provider == provider && l.ProviderKey == providerKey, cancellationToken);
     }
@@ -30,11 +32,12 @@ public class ExternalLoginRepository : IExternalLoginRepository
     /// <inheritdoc />
     public async Task AddAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
     {
-        await _context.ExternalLogins.AddAsync(externalLogin, cancellationToken);
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        await scope.Context.ExternalLogins.AddAsync(externalLogin, cancellationToken);
 
         try
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            await scope.Context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex)
         {
@@ -50,7 +53,8 @@ public class ExternalLoginRepository : IExternalLoginRepository
     /// <inheritdoc />
     public async Task<IReadOnlyList<ExternalLogin>> ListByUserIdAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await _context.ExternalLogins
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        return await scope.Context.ExternalLogins
             .AsNoTracking()
             .Where(l => l.UserId == userId)
             .ToListAsync(cancellationToken);
@@ -63,10 +67,11 @@ public class ExternalLoginRepository : IExternalLoginRepository
         // -por ejemplo, tras un AddAsync anterior en el mismo DbContext, el caso real de LinkAsync
         // seguido de UnlinkAsync sobre el mismo ámbito- se elimina esa instancia rastreada. Adjuntar
         // una segunda instancia con la misma clave lanzaría un conflicto de identidad en el ChangeTracker.
-        var tracked = _context.ChangeTracker.Entries<ExternalLogin>()
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        var tracked = scope.Context.ChangeTracker.Entries<ExternalLogin>()
             .FirstOrDefault(e => e.Entity.Id == externalLogin.Id)?.Entity;
 
-        _context.ExternalLogins.Remove(tracked ?? externalLogin);
-        await _context.SaveChangesAsync(cancellationToken);
+        scope.Context.ExternalLogins.Remove(tracked ?? externalLogin);
+        await scope.Context.SaveChangesAsync(cancellationToken);
     }
 }
