@@ -1,6 +1,7 @@
 @page "/admin/cola-catalogacion"
 @attribute [Authorize(Policy = AuthorizationPolicies.PermisoEditarFichas)]
 @rendermode InteractiveServer
+@implements IDisposable
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
@@ -9,6 +10,7 @@
 @inject IBggMassIngestionService MassIngestionService
 @inject IBggDiscoveryService DiscoveryService
 @inject ICurrentUserService CurrentUserService
+@inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Navigation
 
 <PageTitle>Cola de Catalogación & Batch Nocturno — Ludeka</PageTitle>
@@ -245,7 +247,7 @@
 
                     <button type="button"
                             @onclick="ExecuteStagingDrainAsync"
-                            disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging)"
+                            disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isDrainingStaging)
                         {
@@ -255,9 +257,29 @@
                         else
                         {
                             <Icon Name="play" Size="14" class="text-[var(--brand-primary)]" />
-                            <span>Drenar Ciclo de Staging Ahora</span>
+                            <span>Drenar 1 Ciclo</span>
                         }
                     </button>
+
+                    @if (!_isContinuousDrainActive)
+                    {
+                        <button type="button"
+                                @onclick="StartContinuousDrain"
+                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging)"
+                                class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                            <Icon Name="play" Size="14" />
+                            <span>Drenaje Continuo (Segundo Plano)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="StopContinuousDrain"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Detener Drenaje Continuo</span>
+                        </button>
+                    }
 
                     @if ((_stagingMetrics?.AiQuotaExceededCount ?? 0) > 0)
                     {
@@ -354,6 +376,34 @@
                         <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Promovidos</span>
                         <div class="text-xl font-black text-emerald-600 dark:text-emerald-400">@_stagingMetrics.PromotedCount</div>
                     </div>
+                </div>
+            }
+
+            @if (_isContinuousDrainActive)
+            {
+                <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+                    <div class="flex items-center gap-2.5">
+                        <span class="animate-spin inline-block text-emerald-400"><Icon Name="loader" Size="18" /></span>
+                        <div>
+                            <span class="font-bold text-emerald-400 text-sm">Drenaje Continuo en Segundo Plano Activo</span>
+                            <p class="text-[var(--text-secondary)] text-[0.75rem] mt-0.5">
+                                @(_continuousDrainMessage ?? "Procesando títulos BGG y síntesis IA con pausas de cortesía...")
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="StopContinuousDrain"
+                            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
+                        Detener Drenaje
+                    </button>
+                </div>
+            }
+
+            @if (!_isContinuousDrainActive && !string.IsNullOrEmpty(_continuousDrainMessage))
+            {
+                <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-emerald-500 mr-1.5" /> @_continuousDrainMessage</span>
+                    <button type="button" @onclick="() => _continuousDrainMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
 
@@ -617,6 +667,12 @@
 </div>
 
 @code {
+    private static CancellationTokenSource? _continuousDrainCts;
+    private static bool _isContinuousDrainActive => _continuousDrainCts != null && !_continuousDrainCts.IsCancellationRequested;
+    private static string? _continuousDrainMessage;
+    private PeriodicTimer? _pollTimer;
+    private Task? _pollTask;
+
     private bool _isLoading = true;
     private bool _isProcessing = false;
     private bool _isDrainingStaging = false;
@@ -651,6 +707,10 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
+        if (_isContinuousDrainActive)
+        {
+            StartPollingTimer();
+        }
     }
 
     private async Task LoadDataAsync()
@@ -813,6 +873,87 @@
         {
             _isProcessing = false;
         }
+    }
+
+    private void StartContinuousDrain()
+    {
+        if (_isContinuousDrainActive || !CanManageQueue) return;
+
+        _continuousDrainCts = new CancellationTokenSource();
+        _continuousDrainMessage = "Drenaje continuo iniciado en segundo plano. Procesando BGG y Gemini por lotes...";
+
+        var token = _continuousDrainCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var massService = scope.ServiceProvider.GetRequiredService<IBggMassIngestionService>();
+
+                var result = await massService.RunScheduledContinuousDrainAsync(maxItems: 4000, ct: token);
+                _continuousDrainMessage = result.Message;
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousDrainMessage = "Drenaje continuo detenido por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousDrainMessage = $"Error durante el drenaje continuo: {ex.Message}";
+            }
+            finally
+            {
+                _continuousDrainCts?.Dispose();
+                _continuousDrainCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
+    private void StopContinuousDrain()
+    {
+        if (_continuousDrainCts != null && !_continuousDrainCts.IsCancellationRequested)
+        {
+            _continuousDrainMessage = "Deteniendo drenaje continuo...";
+            _continuousDrainCts.Cancel();
+        }
+    }
+
+    private void StartPollingTimer()
+    {
+        _pollTimer?.Dispose();
+        _pollTimer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+        _pollTask = Task.Run(async () =>
+        {
+            try
+            {
+                while (_pollTimer != null && await _pollTimer.WaitForNextTickAsync())
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await LoadDataAsync();
+                        StateHasChanged();
+                    });
+
+                    if (!_isContinuousDrainActive)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignorar cancelaciones o cierres de timer
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+        _pollTimer = null;
     }
 
     private static string GetStatusColor(string? status) => status switch

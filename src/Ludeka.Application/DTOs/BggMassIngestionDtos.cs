@@ -107,6 +107,16 @@ public class BggMassIngestionOptions
     public bool Simulate { get; set; } = false;
 
     /// <summary>
+    /// Retardo de cortesía en milisegundos entre llamadas individuales a BGG Thing XMLAPI2 (por defecto 1000 ms = 1 segundo).
+    /// </summary>
+    public int DelayBetweenBggCallsMs { get; set; } = 1000;
+
+    /// <summary>
+    /// Retardo en milisegundos entre llamadas consecutivas en lote a Gemini Flash para respetar el límite de 15 RPM del Free Tier (por defecto 4000 ms = 4 segundos).
+    /// </summary>
+    public int DelayBetweenGeminiBatchesMs { get; set; } = 4000;
+
+    /// <summary>
     /// Plantilla URL para descargar el volcado CSV de ranks de BGG. Formato string con marcador {0:yyyy-MM-dd}.
     /// Por defecto apunta al mirror diario público en GitHub Raw / Fastly CDN.
     /// </summary>
@@ -118,3 +128,17 @@ public class BggMassIngestionOptions
     /// </summary>
     public int MaxFallbackDays { get; set; } = 5;
 }
+
+/// <summary>
+/// Resultado acumulado de la ejecución de drenaje masivo continuo de staging en segundo plano.
+/// </summary>
+public record BggMassIngestionContinuousDrainResultDto(
+    int CyclesExecuted,
+    int TotalDetailsFetched,
+    int TotalImagesProcessed,
+    int TotalAiSummariesGenerated,
+    int TotalPromotedToCatalog,
+    bool StoppedDueToAiQuota,
+    bool CompletedAllStaging,
+    string Message
+);

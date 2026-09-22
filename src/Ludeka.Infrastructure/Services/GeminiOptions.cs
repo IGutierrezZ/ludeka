@@ -8,7 +8,7 @@ namespace Ludeka.Infrastructure.Services;
 public class GeminiOptions
 {
     public const string SectionName = "Gemini";
-    public const string DefaultModel = "gemini-3.8-flash";
+    public const string DefaultModel = "gemini-3.6-flash";
 
     /// <summary>
     /// Clave de API de Google Gemini (Google AI Studio).
@@ -16,8 +16,9 @@ public class GeminiOptions
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Modelo de Gemini a emplear. Por defecto "gemini-3.8-flash".
+    /// Modelo de Gemini a emplear. Por defecto "gemini-3.6-flash".
     /// Si se deja vacío o se especifica "auto", el sistema autoselecciona automáticamente el modelo recomendado.
+    /// Puede ser sobreescrito en cualquier momento por la variable de entorno Gemini__Model.
     /// </summary>
     public string Model { get; set; } = DefaultModel;
 
@@ -37,10 +38,18 @@ public class GeminiOptions
     public bool ShouldSimulate => Simulate || string.IsNullOrWhiteSpace(ApiKey);
 
     /// <summary>
-    /// Obtiene el modelo efectivo a utilizar, autoseleccionando el predeterminado si es nulo, vacío o "auto".
+    /// Obtiene el modelo efectivo a utilizar.
+    /// Prioriza la variable de entorno Gemini__Model para permitir cambios dinámicos en producción sin re-despliegue de código.
+    /// Si no existe, emplea la propiedad configurada (o DefaultModel si es "auto" o vacía).
     /// </summary>
     public string GetEffectiveModel()
     {
+        var envModel = Environment.GetEnvironmentVariable("Gemini__Model");
+        if (!string.IsNullOrWhiteSpace(envModel))
+        {
+            return envModel.Trim();
+        }
+
         if (string.IsNullOrWhiteSpace(Model) || Model.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
             return DefaultModel;

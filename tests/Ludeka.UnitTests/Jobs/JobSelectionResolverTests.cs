@@ -26,6 +26,7 @@ public class JobSelectionResolverTests
     [InlineData(JobNames.SocialCollector)]
     [InlineData(JobNames.NotificationOutbox)]
     [InlineData(JobNames.SeedStaging)]
+    [InlineData(JobNames.DrainStaging)]
     public void Resolve_ConArgumentoPosicionalValido_DevuelveEseTrabajo(string jobName)
     {
         var result = JobSelectionResolver.Resolve([jobName], EmptyConfiguration());
