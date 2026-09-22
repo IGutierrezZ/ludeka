@@ -84,6 +84,7 @@ public class DbContextFactoryConcurrencyTests : IDisposable
         services.AddScoped<IBoardGameEventRepository, SqliteBoardGameEventRepository>();
         services.AddScoped<IExpansionRepository, Ludeka.Infrastructure.Repositories.SqliteExpansionRepository>();
         services.AddScoped<IGamePriceRepository, SqliteGamePriceRepository>();
+        services.AddScoped<IBggCatalogStagingRepository, SqliteBggCatalogStagingRepository>();
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -105,6 +106,7 @@ public class DbContextFactoryConcurrencyTests : IDisposable
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<IBoardGameEventRepository>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<IExpansionRepository>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<IGamePriceRepository>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IBggCatalogStagingRepository>());
     }
 
     public void Dispose()

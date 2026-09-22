@@ -82,9 +82,15 @@ public class BggMassIngestionService : IBggMassIngestionService
 
         int totalIngested = 0;
         var batch = new List<BggCatalogStagingItem>();
+        var seenBggIds = new HashSet<int>();
 
         await foreach (var row in BggDumpParser.ParseRanksDumpAsync(dumpStream, minUsersRated, ct))
         {
+            if (!seenBggIds.Add(row.BggId))
+            {
+                continue;
+            }
+
             var item = new BggCatalogStagingItem(
                 bggId: row.BggId,
                 originalTitle: row.Title,

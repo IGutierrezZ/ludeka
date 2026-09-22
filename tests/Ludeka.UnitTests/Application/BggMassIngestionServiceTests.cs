@@ -65,6 +65,48 @@ public class BggMassIngestionServiceTests
     }
 
     [Fact]
+    public async Task IngestRanksDumpAsync_WithDuplicateBggIdsInStream_DeduplicatesAndInsertsOnce()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var bggClient = new FakeBggClient();
+        var geekDo = new FakeGeekDoClient();
+        var images = new FakeImageStorageService();
+        var ai = new FakeAiSummaryService();
+        var gameRepo = new FakeGameRepo();
+        using var httpClient = new HttpClient();
+        var options = Options.Create(new BggMassIngestionOptions { MinUsersRated = 30 });
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            geekDo,
+            images,
+            ai,
+            gameRepo,
+            httpClient,
+            options,
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        string csv = """
+            id,name,yearpublished,rank,bayesaverage,average,usersrated
+            174430,"Gloomhaven",2017,1,8.42,8.61,62000
+            174430,"Gloomhaven Duplicado",2017,1,8.42,8.61,62000
+            224517,"Brass: Birmingham",2018,2,8.41,8.60,48000
+            """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+
+        // Act
+        int count = await service.IngestRanksDumpAsync(stream, minUsersRated: 30);
+
+        // Assert: solo 2 items insertados
+        Assert.Equal(2, count);
+        Assert.Equal(2, stagingRepo.Items.Count);
+    }
+
+    [Fact]
     public async Task ProcessPendingDetailsBatchAsync_FetchesFromBggAndMarksFetched()
     {
         // Arrange
