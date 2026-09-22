@@ -14,6 +14,7 @@ public static class JobNames
     public const string SocialCollector = "social-collector";
     public const string NotificationOutbox = "notification-outbox";
     public const string SeedStaging = "seed-staging";
+    public const string SeedDirectory = "seed-directory";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -23,6 +24,7 @@ public static class JobNames
         PriceRadar,
         SocialCollector,
         NotificationOutbox,
-        SeedStaging
+        SeedStaging,
+        SeedDirectory
     ];
 }

@@ -13,6 +13,18 @@ public record SocialNetworkLinkDto(
     string? PlatformName = null
 );
 
+public record DirectorySeedResultDto(
+    int PublishersAdded,
+    int PublishersUpdated,
+    int StoresAdded,
+    int StoresUpdated,
+    int CreatorsAdded,
+    int CreatorsUpdated,
+    int TotalPublishers,
+    int TotalStores,
+    int TotalCreators
+);
+
 // --- 1. Editoriales (Publishers) ---
 public record PublisherDto(
     Guid Id,

@@ -4,6 +4,7 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Web.Components.Shared
 @inject IPublisherService PublisherService
+@inject IDirectorySeederService DirectorySeederService
 @inject ICurrentUserService CurrentUserService
 
 <PageTitle>Directorio de Editoriales de Juegos de Mesa — Ludeka</PageTitle>
@@ -24,6 +25,24 @@
         </div>
 
         <div class="flex items-center gap-3">
+            @if (CurrentUserService.IsFoundingTeam)
+            {
+                <button type="button"
+                        @onclick="SyncDirectoryAsync"
+                        disabled="@_isSyncing"
+                        class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                    @if (_isSyncing)
+                    {
+                        <span class="animate-spin inline-block"><Icon Name="loader" Size="12" /></span>
+                        <span>Sincronizando...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="refresh-cw" Size="12" />
+                        <span>Sincronizar Padrón</span>
+                    }
+                </button>
+            }
             @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers)))
             {
                 <button type="button"
@@ -156,6 +175,7 @@
 
 @code {
     private bool _loading = true;
+    private bool _isSyncing = false;
     private string _searchTerm = string.Empty;
     private IReadOnlyList<PublisherDto> _publishers = [];
     private bool _isModalOpen = false;
@@ -183,6 +203,25 @@
     private async Task FilterPublishers()
     {
         _publishers = await PublisherService.GetAllAsync(_searchTerm);
+    }
+
+    private async Task SyncDirectoryAsync()
+    {
+        if (_isSyncing) return;
+        _isSyncing = true;
+        try
+        {
+            await DirectorySeederService.SeedDirectoryAsync();
+            await LoadPublishersAsync();
+        }
+        catch (Exception)
+        {
+            // Salvaguarda
+        }
+        finally
+        {
+            _isSyncing = false;
+        }
     }
 
     private void OpenCreateModal()

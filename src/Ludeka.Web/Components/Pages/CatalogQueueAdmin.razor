@@ -8,6 +8,7 @@
 @inject IBggCatalogQueueService QueueService
 @inject IBggMassIngestionService MassIngestionService
 @inject IBggDiscoveryService DiscoveryService
+@inject IDirectorySeederService DirectorySeederService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -374,6 +375,52 @@
             }
         </div>
 
+        @* Tarjeta INC-54: Padrón Exhaustivo del Directorio Lúdico Español *@
+        <div class="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[0.7rem] font-bold">
+                        <Icon Name="building-2" Size="12" /> Padrón Nacional Exhaustivo (INC-54)
+                    </div>
+                    <h2 class="text-base font-bold text-[var(--text-primary)]">
+                        Directorio Lúdico de España
+                    </h2>
+                    <p class="text-xs text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+                        Sincroniza y enriquece el censo oficial de editoriales de España (&gt;45), tiendas especializadas (Top 35) y creadores de contenido (Top 35) desde el dataset canónico sin duplicados.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            @onclick="ExecuteSeedDirectoryAsync"
+                            disabled="@_isSeedingDirectory"
+                            class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                        @if (_isSeedingDirectory)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Sincronizando Directorio...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="refresh-cw" Size="14" />
+                            <span>Sincronizar Padrón Completo</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (_directorySeedResult != null)
+            {
+                <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-400 flex items-center justify-between">
+                    <span>
+                        <Icon Name="circle-check" Size="14" class="inline text-emerald-400 mr-1.5" />
+                        Padrón sincronizado con éxito: <strong>@_directorySeedResult.TotalPublishers</strong> editoriales (@_directorySeedResult.PublishersAdded nuevas, @_directorySeedResult.PublishersUpdated actualizadas), <strong>@_directorySeedResult.TotalStores</strong> tiendas (@_directorySeedResult.StoresAdded nuevas, @_directorySeedResult.StoresUpdated actualizadas) y <strong>@_directorySeedResult.TotalCreators</strong> creadores activos (@_directorySeedResult.CreatorsAdded nuevos).
+                    </span>
+                    <button type="button" @onclick="() => _directorySeedResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                </div>
+            }
+        </div>
+
         @* Sección 1: Cola de Auto-Catalogación *@
         <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
@@ -636,6 +683,8 @@
     private BggStagingMetricsDto? _stagingMetrics;
     private BggMassIngestionCycleResultDto? _drainCycleResult;
     private string? _stagingSeedResult;
+    private bool _isSeedingDirectory = false;
+    private DirectorySeedResultDto? _directorySeedResult;
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
     private IReadOnlyList<NightlyCatalogingExecutionLogDto> _history = [];
 
@@ -785,6 +834,29 @@
         finally
         {
             _isClearingStaging = false;
+        }
+    }
+
+    private async Task ExecuteSeedDirectoryAsync()
+    {
+        if (!CanManageQueue || _isSeedingDirectory) return;
+
+        _isSeedingDirectory = true;
+        _directorySeedResult = null;
+        StateHasChanged();
+
+        try
+        {
+            _directorySeedResult = await DirectorySeederService.SeedDirectoryAsync();
+        }
+        catch (Exception)
+        {
+            _directorySeedResult = new DirectorySeedResultDto(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+        finally
+        {
+            _isSeedingDirectory = false;
+            StateHasChanged();
         }
     }
 
