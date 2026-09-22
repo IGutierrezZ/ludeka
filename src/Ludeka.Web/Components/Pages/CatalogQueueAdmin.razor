@@ -259,6 +259,25 @@
                         }
                     </button>
 
+                    @if ((_stagingMetrics?.AiQuotaExceededCount ?? 0) > 0)
+                    {
+                        <button type="button"
+                                @onclick="ExecuteResetAiQuotaAsync"
+                                disabled="@(_isResettingAiQuota || _isDrainingStaging)"
+                                class="px-3.5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-xs font-bold text-purple-400 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                            @if (_isResettingAiQuota)
+                            {
+                                <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                                <span>Reanudando...</span>
+                            }
+                            else
+                            {
+                                <Icon Name="refresh-cw" Size="14" class="text-purple-400" />
+                                <span>Reanudar IA en Pausa (@_stagingMetrics!.AiQuotaExceededCount)</span>
+                            }
+                        </button>
+                    }
+
                     @if (!_confirmClearStaging)
                     {
                         <button type="button"
@@ -319,6 +338,12 @@
                         @if (_stagingMetrics.AiQuotaExceededCount > 0)
                         {
                             <span class="text-[0.65rem] text-rose-500 font-bold block">@_stagingMetrics.AiQuotaExceededCount en pausa</span>
+                            <button type="button"
+                                    @onclick="ExecuteResetAiQuotaAsync"
+                                    disabled="@(_isResettingAiQuota || _isDrainingStaging)"
+                                    class="mt-1 px-2 py-0.5 text-[0.65rem] font-bold rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 transition-all">
+                                Reanudar
+                            </button>
                         }
                     </div>
                     <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
@@ -597,6 +622,7 @@
     private bool _isDrainingStaging = false;
     private bool _isSeedingStaging = false;
     private bool _isClearingStaging = false;
+    private bool _isResettingAiQuota = false;
     private bool _confirmClearStaging = false;
     private bool _isDiscoveringBgg = false;
     private int _totalQueueCount = 0;
@@ -692,6 +718,26 @@
         finally
         {
             _isDrainingStaging = false;
+        }
+    }
+
+    private async Task ExecuteResetAiQuotaAsync()
+    {
+        if (_isResettingAiQuota || _isDrainingStaging) return;
+
+        _isResettingAiQuota = true;
+        try
+        {
+            await MassIngestionService.ResetQuotaExceededStatusAsync();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _drainCycleResult = new BggMassIngestionCycleResultDto(0, 0, 0, 0, false, $"Error al reanudar IA: {ex.Message}");
+        }
+        finally
+        {
+            _isResettingAiQuota = false;
         }
     }
 

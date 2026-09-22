@@ -395,15 +395,18 @@ public class GeminiGameSummaryService : IAiGameSummaryService
 
         if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
-            return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "HTTP 429 Too Many Requests");
+            string errorBody = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Google Gemini API ({Model}) respondió con código HTTP 429 Too Many Requests: {ErrorBody}", effectiveModel, errorBody);
+            return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"HTTP 429 Too Many Requests: {errorBody}");
         }
 
         if (!response.IsSuccessStatusCode)
         {
             string errorBody = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Google Gemini API ({Model}) respondió con código {StatusCode}: {ErrorBody}", effectiveModel, response.StatusCode, errorBody);
             if (errorBody.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase))
             {
-                return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "RESOURCE_EXHAUSTED");
+                return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"RESOURCE_EXHAUSTED: {errorBody}");
             }
 
             return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"HTTP {response.StatusCode}: {errorBody}");

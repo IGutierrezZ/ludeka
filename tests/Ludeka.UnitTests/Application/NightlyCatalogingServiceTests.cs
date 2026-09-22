@@ -504,5 +504,6 @@ public class NightlyCatalogingServiceTests
         public Task<int> PromoteReadyToCatalogBatchAsync(int batchSize = 50, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task ClearStagingAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 }

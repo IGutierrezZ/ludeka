@@ -124,7 +124,8 @@ public class SqliteBggCatalogStagingRepository : DbContextRepositoryBase, IBggCa
                         s.ImagesStatus != StagingImagesStatus.Pending &&
                         s.ImagesStatus != StagingImagesStatus.InProgress &&
                         s.AiStatus != StagingAiStatus.Pending &&
-                        s.AiStatus != StagingAiStatus.InProgress)
+                        s.AiStatus != StagingAiStatus.InProgress &&
+                        s.AiStatus != StagingAiStatus.QuotaExceeded)
             .OrderByDescending(s => s.UsersRated)
             .Take(batchSize)
             .ToListAsync(ct);

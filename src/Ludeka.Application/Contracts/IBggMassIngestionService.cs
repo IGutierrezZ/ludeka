@@ -67,6 +67,12 @@ public interface IBggMassIngestionService
     /// Exige sesión y permiso de edición de fichas (INC-46, W1).
     /// </summary>
     Task ClearStagingAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Restablece el estado de los juegos pausados por cuota de IA a pendiente para permitir su reintento.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
+    /// </summary>
+    Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default);
 }
 
 /// <summary>

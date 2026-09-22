@@ -548,6 +548,16 @@ public class BggMassIngestionService : IBggMassIngestionService
         await _stagingRepo.ClearStagingAsync(ct);
     }
 
+    /// <inheritdoc />
+    public async Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        _logger.LogInformation("Restableciendo el estado de títulos en QuotaExceeded para reanudar la síntesis IA.");
+        await _stagingRepo.ResetQuotaExceededStatusAsync(ct);
+        var metrics = await _stagingRepo.GetMetricsAsync(ct);
+        return metrics.PendingAiCount;
+    }
+
     private async Task<int> ExecuteDownloadAndIngestAsync(int? minUsersRated, CancellationToken ct)
     {
         int threshold = minUsersRated.HasValue && minUsersRated.Value > 0 ? minUsersRated.Value : _options.MinUsersRated;
