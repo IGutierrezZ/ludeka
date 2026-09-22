@@ -12,8 +12,8 @@ public class GeminiOptionsTests
 
         Assert.True(options.Simulate);
         Assert.True(options.ShouldSimulate);
-        Assert.Equal("gemini-3.6-flash", options.Model);
-        Assert.Equal("gemini-3.6-flash", options.GetEffectiveModel());
+        Assert.Equal("gemini-3.8-flash", options.Model);
+        Assert.Equal("gemini-3.8-flash", options.GetEffectiveModel());
         Assert.Equal("https://generativelanguage.googleapis.com/v1beta/", options.BaseUrl);
         Assert.Null(options.ApiKey);
     }

@@ -109,7 +109,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
             "Ideal: 2 jugadores",
             "14+ años",
             "Monstruo de mesa",
-            "Google Gemini (gemini-3.6-flash)",
+            "Google Gemini (gemini-3.8-flash)",
             DateTime.UtcNow
         );
         game.SetAiSummary(persistedVo);
@@ -121,7 +121,7 @@ public class FoundingVerdictServiceTests : IAsyncLifetime
         Assert.Equal(game.Id, aiSummary.GameId);
         Assert.Equal("Ark Nova", aiSummary.GameTitle);
         Assert.Equal("Veredicto persistido de prueba", aiSummary.GeneralVerdict);
-        Assert.Equal("Google Gemini (gemini-3.6-flash)", aiSummary.Model);
+        Assert.Equal("Google Gemini (gemini-3.8-flash)", aiSummary.Model);
     }
 
     [Fact]

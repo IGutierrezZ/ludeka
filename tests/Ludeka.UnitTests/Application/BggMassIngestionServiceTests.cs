@@ -257,6 +257,36 @@ public class BggMassIngestionServiceTests
         Assert.NotNull(gameRepo.Games[0].AiSummary);
     }
 
+    [Fact]
+    public async Task ResetQuotaExceededStatusAsync_WhenCalled_ResetsPausedItemsToPending()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var item = new BggCatalogStagingItem(123, "Test Game", 2020, 10, 1500, 7.5, 7.8, "Test Game");
+        item.MarkFetched("xml", "Test Game", "Author", "Pub", "Desc", 2, 4, 60, 10, 2.5);
+        item.MarkAiQuotaExceeded();
+        stagingRepo.Items.Add(item);
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            new FakeBggClient(),
+            new FakeGeekDoClient(),
+            new FakeImageStorageService(),
+            new FakeAiSummaryService(),
+            new FakeGameRepo(),
+            new HttpClient(),
+            Options.Create(new BggMassIngestionOptions()),
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Act
+        int pendingAiCount = await service.ResetQuotaExceededStatusAsync();
+
+        // Assert
+        Assert.Equal(StagingAiStatus.Pending, item.AiStatus);
+        Assert.Equal(1, pendingAiCount);
+    }
+
     // --- FAKES ---
 
     private class FakeStagingRepo : IBggCatalogStagingRepository
@@ -318,7 +348,14 @@ public class BggMassIngestionServiceTests
         public Task<BggCatalogStagingItem?> GetByBggIdAsync(int bggId, CancellationToken ct = default)
             => Task.FromResult(Items.FirstOrDefault(i => i.BggId == bggId));
 
-        public Task ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public Task ResetQuotaExceededStatusAsync(CancellationToken ct = default)
+        {
+            foreach (var item in Items.Where(i => i.AiStatus == StagingAiStatus.QuotaExceeded))
+            {
+                item.ResetAiQuotaToPending();
+            }
+            return Task.CompletedTask;
+        }
 
         public Task<int> GetTotalCountAsync(CancellationToken ct = default) => Task.FromResult(Items.Count);
 

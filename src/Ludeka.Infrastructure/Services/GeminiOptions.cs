@@ -8,7 +8,7 @@ namespace Ludeka.Infrastructure.Services;
 public class GeminiOptions
 {
     public const string SectionName = "Gemini";
-    public const string DefaultModel = "gemini-3.6-flash";
+    public const string DefaultModel = "gemini-3.8-flash";
 
     /// <summary>
     /// Clave de API de Google Gemini (Google AI Studio).
@@ -16,7 +16,7 @@ public class GeminiOptions
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Modelo de Gemini a emplear. Por defecto "gemini-3.6-flash".
+    /// Modelo de Gemini a emplear. Por defecto "gemini-3.8-flash".
     /// Si se deja vacío o se especifica "auto", el sistema autoselecciona automáticamente el modelo recomendado.
     /// </summary>
     public string Model { get; set; } = DefaultModel;

@@ -116,7 +116,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         {
             Simulate = false,
             ApiKey = "AIzaSyRealSimulatedKey",
-            Model = "gemini-3.6-flash"
+            Model = "gemini-3.8-flash"
         });
 
         string geminiResponseJson = """
@@ -137,7 +137,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
 
         var fakeHandler = new FakeHttpMessageHandler((req, ct) =>
         {
-            Assert.Contains("models/gemini-3.6-flash:generateContent", req.RequestUri?.ToString());
+            Assert.Contains("models/gemini-3.8-flash:generateContent", req.RequestUri?.ToString());
             Assert.Contains("key=AIzaSyRealSimulatedKey", req.RequestUri?.ToString());
 
             var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -158,7 +158,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         var result = await service.GenerateSummaryAsync(game);
 
         Assert.NotNull(result);
-        Assert.Equal("Google Gemini (gemini-3.6-flash)", result.Model);
+        Assert.Equal("Google Gemini (gemini-3.8-flash)", result.Model);
         Assert.Equal("Catán es el clásico indispensable de negociación territorial.", result.GeneralVerdict);
         Assert.Equal("Brilla exactamente a 4 jugadores donde el mapa se estrecha.", result.ScalabilitySummary);
         Assert.Equal("Accesible desde los 8 años en partidas guiadas en familia.", result.AgeSummary);
@@ -173,7 +173,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         {
             Simulate = false,
             ApiKey = "AIzaSyKey",
-            Model = "gemini-2.5-flash" // Modelo descontinuado que devolverá 404
+            Model = "gemini-1.5-flash" // Modelo que devolverá 404 para forzar autorrecuperación
         });
 
         string geminiResponseJson = """
@@ -183,7 +183,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
               "content": {
                 "parts": [
                   {
-                    "text": "{\n  \"generalVerdict\": \"Respuesta recuperada con 3.6 flash.\",\n  \"scalabilitySummary\": \"Ideal 4.\",\n  \"ageSummary\": \"8+ años.\",\n  \"footprintSummary\": \"Mesa estándar.\"\n}"
+                    "text": "{\n  \"generalVerdict\": \"Respuesta recuperada con 3.8 flash.\",\n  \"scalabilitySummary\": \"Ideal 4.\",\n  \"ageSummary\": \"8+ años.\",\n  \"footprintSummary\": \"Mesa estándar.\"\n}"
                   }
                 ]
               }
@@ -196,7 +196,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         var fakeHandler = new FakeHttpMessageHandler((req, ct) =>
         {
             callCount++;
-            if (req.RequestUri?.ToString().Contains("models/gemini-2.5-flash") == true)
+            if (req.RequestUri?.ToString().Contains("models/gemini-1.5-flash") == true)
             {
                 // El modelo antiguo devuelve 404
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)
@@ -205,8 +205,8 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
                 });
             }
 
-            // El reintento con gemini-3.6-flash funciona
-            Assert.Contains("models/gemini-3.6-flash", req.RequestUri?.ToString());
+            // El reintento con gemini-3.8-flash funciona
+            Assert.Contains("models/gemini-3.8-flash", req.RequestUri?.ToString());
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(geminiResponseJson, System.Text.Encoding.UTF8, "application/json")
@@ -225,8 +225,8 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
-        Assert.Equal("Google Gemini (gemini-3.6-flash)", result.Model);
-        Assert.Equal("Respuesta recuperada con 3.6 flash.", result.GeneralVerdict);
+        Assert.Equal("Google Gemini (gemini-3.8-flash)", result.Model);
+        Assert.Equal("Respuesta recuperada con 3.8 flash.", result.GeneralVerdict);
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         {
             Simulate = false,
             ApiKey = "AIzaSyErrorKey",
-            Model = "gemini-3.6-flash"
+            Model = "gemini-3.8-flash"
         });
 
         var fakeHandler = new FakeHttpMessageHandler((req, ct) =>
@@ -323,7 +323,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
             ScalabilitySummary: "Ideal a 4.",
             AgeSummary: "Desde 10 años.",
             FootprintSummary: "Mesa estándar.",
-            Model: "Google Gemini (gemini-3.6-flash)",
+            Model: "Google Gemini (gemini-3.8-flash)",
             GeneratedAt: DateTime.UtcNow.AddDays(-1)
         );
         game.SetAiSummary(existingVo);
@@ -342,7 +342,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         var result = await service.EnsureSummaryForGameAsync(game.Id);
 
         Assert.Equal("Veredicto previo ya persistido.", result.GeneralVerdict);
-        Assert.Equal("Google Gemini (gemini-3.6-flash)", result.Model);
+        Assert.Equal("Google Gemini (gemini-3.8-flash)", result.Model);
         Assert.Equal(existingVo.GeneratedAt, result.GeneratedAt);
     }
 

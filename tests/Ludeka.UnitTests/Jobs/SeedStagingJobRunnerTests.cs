@@ -61,6 +61,7 @@ public class SeedStagingJobRunnerTests
         public Task<BggMassIngestionCycleResultDto> RunDrainCycleAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<BggMassIngestionCycleResultDto> RunScheduledDrainCycleAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task ClearStagingAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 
     [Fact]
