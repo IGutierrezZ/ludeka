@@ -183,7 +183,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
               "content": {
                 "parts": [
                   {
-                    "text": "{\n  \"generalVerdict\": \"Respuesta recuperada con 3.8 flash.\",\n  \"scalabilitySummary\": \"Ideal 4.\",\n  \"ageSummary\": \"8+ años.\",\n  \"footprintSummary\": \"Mesa estándar.\"\n}"
+                    "text": "{\n  \"generalVerdict\": \"Respuesta recuperada con 3.6 flash.\",\n  \"scalabilitySummary\": \"Ideal 4.\",\n  \"ageSummary\": \"8+ años.\",\n  \"footprintSummary\": \"Mesa estándar.\"\n}"
                   }
                 ]
               }
@@ -205,8 +205,8 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
                 });
             }
 
-            // El reintento con gemini-3.8-flash funciona
-            Assert.Contains("models/gemini-3.8-flash", req.RequestUri?.ToString());
+            // El reintento con gemini-3.6-flash funciona
+            Assert.Contains("models/gemini-3.6-flash", req.RequestUri?.ToString());
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(geminiResponseJson, System.Text.Encoding.UTF8, "application/json")
@@ -225,8 +225,8 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
-        Assert.Equal("Google Gemini (gemini-3.8-flash)", result.Model);
-        Assert.Equal("Respuesta recuperada con 3.8 flash.", result.GeneralVerdict);
+        Assert.Equal("Google Gemini (gemini-3.6-flash)", result.Model);
+        Assert.Equal("Respuesta recuperada con 3.6 flash.", result.GeneralVerdict);
     }
 
     [Fact]

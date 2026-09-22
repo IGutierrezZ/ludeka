@@ -12,10 +12,29 @@ public class GeminiOptionsTests
 
         Assert.True(options.Simulate);
         Assert.True(options.ShouldSimulate);
-        Assert.Equal("gemini-3.8-flash", options.Model);
-        Assert.Equal("gemini-3.8-flash", options.GetEffectiveModel());
+        Assert.Equal("gemini-3.6-flash", options.Model);
+        Assert.Equal("gemini-3.6-flash", options.GetEffectiveModel());
         Assert.Equal("https://generativelanguage.googleapis.com/v1beta/", options.BaseUrl);
         Assert.Null(options.ApiKey);
+    }
+
+    [Fact]
+    public void GetEffectiveModel_WhenEnvironmentVariableIsSet_TakesPrecedence()
+    {
+        try
+        {
+            Environment.SetEnvironmentVariable("Gemini__Model", "gemini-test-env");
+            var options = new GeminiOptions
+            {
+                Model = "gemini-from-config"
+            };
+
+            Assert.Equal("gemini-test-env", options.GetEffectiveModel());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("Gemini__Model", null);
+        }
     }
 
     [Theory]

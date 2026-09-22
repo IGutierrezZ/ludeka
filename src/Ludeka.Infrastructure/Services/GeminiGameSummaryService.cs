@@ -29,6 +29,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private readonly IGameRepository _gameRepository;
     private readonly ILogger<GeminiGameSummaryService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private string? _lastApiError;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -91,7 +92,11 @@ public class GeminiGameSummaryService : IAiGameSummaryService
             throw new HttpRequestException($"Error al invocar Google Gemini API para '{game.SpanishTitle}': {ex.Message}", ex);
         }
 
-        throw new InvalidOperationException($"Google Gemini API devolvió una respuesta vacía o no estructurada para '{game.SpanishTitle}'.");
+        string failureReason = !string.IsNullOrWhiteSpace(_lastApiError)
+            ? _lastApiError
+            : "Google Gemini API devolvió una respuesta vacía o no estructurada";
+
+        throw new InvalidOperationException($"No se pudo generar la síntesis para '{game.SpanishTitle}': {failureReason}");
     }
 
     public async Task<AiGameSummaryDto> EnsureSummaryForGameAsync(Guid gameId, CancellationToken ct = default)
@@ -230,12 +235,25 @@ public class GeminiGameSummaryService : IAiGameSummaryService
             return result;
         }
 
-        // Autorrecuperación: si el modelo configurado no era el predeterminado y falló (ej. 404 por modelo descontinuado),
+        // Autorrecuperación: si el modelo configurado no era el predeterminado y falló (ej. 404 o 503),
         // reintentar automáticamente con el modelo canónico recomendado
         if (!effectiveModel.Equals(GeminiOptions.DefaultModel, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation("Reintentando llamada a Gemini con el modelo predeterminado {DefaultModel}", GeminiOptions.DefaultModel);
-            return await TryGenerateWithModelAsync(game, prompt, GeminiOptions.DefaultModel, ct);
+            var defaultResult = await TryGenerateWithModelAsync(game, prompt, GeminiOptions.DefaultModel, ct);
+            if (defaultResult != null)
+            {
+                return defaultResult;
+            }
+        }
+
+        // Fallback de segundo nivel ante posible sobrecarga (HTTP 503) del modelo principal
+        const string fallbackStableModel = "gemini-2.5-flash";
+        if (!effectiveModel.Equals(fallbackStableModel, StringComparison.OrdinalIgnoreCase) &&
+            !GeminiOptions.DefaultModel.Equals(fallbackStableModel, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Reintentando llamada a Gemini con el modelo de respaldo {FallbackModel}", fallbackStableModel);
+            return await TryGenerateWithModelAsync(game, prompt, fallbackStableModel, ct);
         }
 
         return null;
@@ -271,6 +289,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         if (!response.IsSuccessStatusCode)
         {
             string errorBody = await response.Content.ReadAsStringAsync(ct);
+            _lastApiError = ExtractErrorMessage(errorBody, response.StatusCode, model);
             _logger.LogWarning("Google Gemini API ({Model}) respondió con código {StatusCode}: {Error}", model, response.StatusCode, errorBody);
             return null;
         }
@@ -315,6 +334,30 @@ public class GeminiGameSummaryService : IAiGameSummaryService
             Model: $"Google Gemini ({model})",
             GeneratedAt: DateTime.UtcNow
         );
+    }
+
+    private static string ExtractErrorMessage(string errorBody, System.Net.HttpStatusCode statusCode, string model)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(errorBody);
+            if (doc.RootElement.TryGetProperty("error", out var errorEl) &&
+                errorEl.TryGetProperty("message", out var msgEl))
+            {
+                var msg = msgEl.GetString();
+                if (!string.IsNullOrWhiteSpace(msg))
+                {
+                    return $"Google Gemini ({model}) HTTP {(int)statusCode}: {msg.Trim()}";
+                }
+            }
+        }
+        catch
+        {
+            // Ignorar y caer al formato por defecto
+        }
+
+        string snippet = errorBody.Length > 200 ? errorBody[..200] + "..." : errorBody;
+        return $"Google Gemini ({model}) HTTP {(int)statusCode}: {snippet}";
     }
 
     private static string BuildPrompt(Game game)
