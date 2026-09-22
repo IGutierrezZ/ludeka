@@ -19,6 +19,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, SocialCollectorJobRunner>();
         services.AddScoped<IJobRunner, NotificationOutboxJobRunner>();
         services.AddScoped<IJobRunner, SeedStagingJobRunner>();
+        services.AddScoped<IJobRunner, DrainStagingJobRunner>();
         services.AddScoped<IJobRunner, SeedDirectoryJobRunner>();
         return services;
     }

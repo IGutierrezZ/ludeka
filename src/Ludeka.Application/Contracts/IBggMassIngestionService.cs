@@ -73,6 +73,17 @@ public interface IBggMassIngestionService
     /// Exige sesión y permiso de edición de fichas (INC-46, W1).
     /// </summary>
     Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Ejecuta el drenaje continuo de staging iterando ciclos progresivos en segundo plano hasta completar o alcanzar el límite.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
+    /// </summary>
+    Task<BggMassIngestionContinuousDrainResultDto> RunContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema del drenaje continuo para ejecutores en segundo plano (Ludeka.Jobs).
+    /// </summary>
+    Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default);
 }
 
 /// <summary>

@@ -174,6 +174,11 @@ public class BggMassIngestionService : IBggMassIngestionService
                 _logger.LogWarning(ex, "Error al obtener detalles Thing para #{BggId} ('{Title}'): {Message}", item.BggId, item.OriginalTitle, ex.Message);
                 item.MarkStageFailed("fetch", ex.Message);
             }
+
+            if (_options.DelayBetweenBggCallsMs > 0 && !ct.IsCancellationRequested)
+            {
+                await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
+            }
         }
 
         await _stagingRepo.UpdateBatchAsync(pendingItems, ct);
@@ -355,6 +360,11 @@ public class BggMassIngestionService : IBggMassIngestionService
 
             totalProcessed += pendingItems.Count;
             await _stagingRepo.UpdateBatchAsync(pendingItems, ct);
+
+            if (b < maxBatches - 1 && _options.DelayBetweenGeminiBatchesMs > 0 && !ct.IsCancellationRequested)
+            {
+                await Task.Delay(_options.DelayBetweenGeminiBatchesMs, ct);
+            }
         }
 
         return new AiBatchProcessingResultDto(
@@ -556,6 +566,78 @@ public class BggMassIngestionService : IBggMassIngestionService
         await _stagingRepo.ResetQuotaExceededStatusAsync(ct);
         var metrics = await _stagingRepo.GetMetricsAsync(ct);
         return metrics.PendingAiCount;
+    }
+
+    /// <inheritdoc />
+    public async Task<BggMassIngestionContinuousDrainResultDto> RunContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await ExecuteContinuousDrainAsync(maxItems, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+    {
+        return ExecuteContinuousDrainAsync(maxItems, ct);
+    }
+
+    private async Task<BggMassIngestionContinuousDrainResultDto> ExecuteContinuousDrainAsync(int maxItems, CancellationToken ct)
+    {
+        if (maxItems <= 0) maxItems = 4000;
+
+        _logger.LogInformation("Iniciando drenaje masivo continuo de staging (límite máximo: {MaxItems} juegos)...", maxItems);
+
+        int cyclesExecuted = 0;
+        int totalDetails = 0;
+        int totalImages = 0;
+        int totalAi = 0;
+        int totalPromoted = 0;
+        bool stoppedDueToAiQuota = false;
+        bool completedAll = false;
+
+        while (!ct.IsCancellationRequested && totalPromoted < maxItems)
+        {
+            var cycle = await RunScheduledDrainCycleAsync(ct);
+            cyclesExecuted++;
+
+            totalDetails += cycle.DetailsFetchedCount;
+            totalImages += cycle.ImagesProcessedCount;
+            totalAi += cycle.AiProcessedCount;
+            totalPromoted += cycle.PromotedToCatalogCount;
+
+            if (cycle.AiQuotaExhausted)
+            {
+                _logger.LogWarning("Drenaje masivo continuo pausado: cuota de Gemini agotada tras {Cycles} ciclos.", cyclesExecuted);
+                stoppedDueToAiQuota = true;
+                break;
+            }
+
+            // Si un ciclo no realizó ningún progreso en ninguna fase, comprobar si staging está completado
+            if (cycle.DetailsFetchedCount == 0 && cycle.ImagesProcessedCount == 0 && cycle.AiProcessedCount == 0 && cycle.PromotedToCatalogCount == 0)
+            {
+                var metrics = await GetMetricsAsync(ct);
+                if (metrics.PendingFetchCount == 0 && metrics.PendingImagesCount == 0 && metrics.PendingAiCount == 0 && metrics.PendingPromotionCount == 0)
+                {
+                    _logger.LogInformation("Drenaje masivo continuo completado: todos los títulos en staging han sido procesados.");
+                    completedAll = true;
+                }
+                break;
+            }
+        }
+
+        string summary = $"Drenaje continuo finalizado: {cyclesExecuted} ciclos ejecutados, {totalDetails} detalles BGG, {totalImages} imágenes, {totalAi} síntesis IA, {totalPromoted} promovidos al catálogo.";
+        _logger.LogInformation(summary);
+
+        return new BggMassIngestionContinuousDrainResultDto(
+            CyclesExecuted: cyclesExecuted,
+            TotalDetailsFetched: totalDetails,
+            TotalImagesProcessed: totalImages,
+            TotalAiSummariesGenerated: totalAi,
+            TotalPromotedToCatalog: totalPromoted,
+            StoppedDueToAiQuota: stoppedDueToAiQuota,
+            CompletedAllStaging: completedAll,
+            Message: summary
+        );
     }
 
     private async Task<int> ExecuteDownloadAndIngestAsync(int? minUsersRated, CancellationToken ct)

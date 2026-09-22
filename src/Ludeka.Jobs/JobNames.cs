@@ -14,6 +14,7 @@ public static class JobNames
     public const string SocialCollector = "social-collector";
     public const string NotificationOutbox = "notification-outbox";
     public const string SeedStaging = "seed-staging";
+    public const string DrainStaging = "drain-staging";
     public const string SeedDirectory = "seed-directory";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
@@ -25,6 +26,7 @@ public static class JobNames
         SocialCollector,
         NotificationOutbox,
         SeedStaging,
+        DrainStaging,
         SeedDirectory
     ];
 }

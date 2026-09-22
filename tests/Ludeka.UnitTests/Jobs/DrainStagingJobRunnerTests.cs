@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Ludeka.UnitTests.Jobs;
 
-public class SeedStagingJobRunnerTests
+public class DrainStagingJobRunnerTests
 {
     private class FakeCoordinator : IJobExecutionCoordinator
     {
@@ -42,16 +42,26 @@ public class SeedStagingJobRunnerTests
     private class FakeMassIngestionService : IBggMassIngestionService
     {
         public int RunScheduledCallCount { get; private set; }
-        public int? CapturedMinVotes { get; private set; }
+        public int CapturedMaxItems { get; private set; }
 
-        public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default)
+        public Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default)
         {
             RunScheduledCallCount++;
-            CapturedMinVotes = minUsersRated;
-            return Task.FromResult(7850);
+            CapturedMaxItems = maxItems;
+            return Task.FromResult(new BggMassIngestionContinuousDrainResultDto(
+                CyclesExecuted: 5,
+                TotalDetailsFetched: 20,
+                TotalImagesProcessed: 10,
+                TotalAiSummariesGenerated: 16,
+                TotalPromotedToCatalog: 16,
+                StoppedDueToAiQuota: false,
+                CompletedAllStaging: false,
+                Message: "5 ciclos completados"
+            ));
         }
 
         public Task<int> DownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> IngestRanksDumpAsync(System.IO.Stream dumpStream, int minUsersRated = 1000, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> ProcessPendingDetailsBatchAsync(int batchSize = 20, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> ProcessPendingImagesBatchAsync(int batchSize = 10, CancellationToken ct = default) => throw new NotImplementedException();
@@ -63,30 +73,28 @@ public class SeedStagingJobRunnerTests
         public Task ClearStagingAsync(CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.FromResult(0);
         public Task<BggMassIngestionContinuousDrainResultDto> RunContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     [Fact]
-    public async Task RunAsync_InvokesServiceWithConfiguredMinVotes_AndReturnsCompletedOutcome()
+    public async Task RunAsync_InvokesServiceWithConfiguredMaxItems_AndReturnsCompletedOutcome()
     {
         // Arrange
         var coordinator = new FakeCoordinator();
         var massIngestion = new FakeMassIngestionService();
-        var options = Options.Create(new BggMassIngestionOptions { MinUsersRated = 35 });
 
-        var runner = new SeedStagingJobRunner(coordinator, massIngestion, options);
+        var runner = new DrainStagingJobRunner(coordinator, massIngestion);
 
         // Act
         var outcome = await runner.RunAsync(CancellationToken.None);
 
         // Assert
-        Assert.Equal(JobNames.SeedStaging, runner.Name);
+        Assert.Equal(JobNames.DrainStaging, runner.Name);
         Assert.True(coordinator.ExecuteCalled);
-        Assert.Equal(JobNames.SeedStaging, coordinator.CapturedJobName);
+        Assert.Equal(JobNames.DrainStaging, coordinator.CapturedJobName);
         Assert.NotNull(coordinator.CapturedWindowKey);
 
         Assert.Equal(1, massIngestion.RunScheduledCallCount);
-        Assert.Equal(35, massIngestion.CapturedMinVotes);
+        Assert.Equal(4000, massIngestion.CapturedMaxItems);
 
         Assert.Equal(JobLeaseOutcome.Completed, outcome);
     }
