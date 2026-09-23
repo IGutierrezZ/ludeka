@@ -125,7 +125,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-50 entregó la puerta de acceso en la cabecera en MainLayout.razor, el hub centralizado /cuenta con inventario de secciones, la ruta canónica /cuenta/ludoteca con alias permanente /mi-ludoteca, la navegación compartida AccountSectionNav y la preservación interactiva de ReturnUrl con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23.)*
 
-*(INC-55 entregó la retirada del antiguo claim informal con marcas ajenas de todas las superficies vivas y la adopción del nuevo lema oficial («Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.»), verificado con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 tras el merge del PR #102).*
+*(INC-55 entregó la retirada del claim ajeno y la adopción del lema oficial «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.» en UI, PWA, prompts, User-Agent y especificaciones activas con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 en el PR #102).*
 
 *(INC-56 entregó la visibilidad de los canales de comunidad Discord y Telegram y la vía de mecenazgo voluntario en Ko-fi en MainLayout.razor y Transparency.razor, junto con el soporte oficial de Amazon en AffiliateOptions y appsettings.json, verificado con 1.646 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23).*
 

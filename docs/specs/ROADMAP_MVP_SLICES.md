@@ -520,9 +520,10 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ## Incremento 55: Retirada del Tagline de Marca y Unificación de la Identidad
 - **Identificador SDD:** `change-55-tagline-identidad-marca`
-- **Objetivo Principal:** Retirar de todas las superficies vivas el claim de marca disperso en 44 menciones (config, docs, manifest, CSS, UI y prompt de Gemini), consolidando el lema oficial de Ludeka: «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.».
-- **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (PR #102 mergeado, commit `a38d455`).
-- **Documento:** [`inc-55-tagline-identidad-marca.md`](file:///c:/repos/Ludeka/docs/increments/inc-55-tagline-identidad-marca.md).
+- **Objetivo Principal:** Retirar de todas las superficies vivas el claim de marca disperso en 44 menciones (config, docs, manifest, CSS, UI y prompt de Gemini) y adoptar el nuevo lema oficial: «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.».
+- **Estado:** ✅ **Completado y Archivado** (PR #102, 2026-09-23; 1.639 pruebas unitarias + 10 de integración en verde al 100%).
+- **Documento:** [`inc-55-tagline-identidad-marca.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-55-tagline-identidad-marca.md).
+- **Módulos del Sistema:** [`15-dashboard-inicio-editorial.md`](file:///c:/repos/Ludeka/docs/specs/sistema/15-dashboard-inicio-editorial.md) y [`22-portada-y-directorio-creadores.md`](file:///c:/repos/Ludeka/docs/specs/sistema/22-portada-y-directorio-creadores.md).
 
 ---
 
