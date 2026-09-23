@@ -542,7 +542,7 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 57: Diagnóstico y Optimización de Imágenes del Catálogo
 - **Identificador SDD:** `change-57-imagenes-catalogo`
 - **Objetivo Principal:** Medir antes de cortar: diagnóstico fino de pesos y tiempos del pipeline R2 + SkiaSharp + WebP (ya operativo desde INC-40), y solo después aplicar `<picture>` sistemático, dimensiones intrínsecas y revisión de la caché `immutable`.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B).
+- **Estado:** ⏳ En progreso (iniciado 2026-09-23, Fase B).
 - **Documento:** [`inc-57-imagenes-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/inc-57-imagenes-catalogo.md).
 
 ---
@@ -632,7 +632,6 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 - **Objetivo Principal:** Clasificaciones de jugadores con opt-in explícito, seudónimo no derivado de la cuenta y ventana temporal, separadas del ranking de juegos (§3.2 del spec), con anti-trampas básico. Último del backlog por su riesgo de privacidad.
 - **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
 - **Documento:** [`inc-68-clasificaciones-y-anonimato.md`](file:///c:/repos/Ludeka/docs/increments/inc-68-clasificaciones-y-anonimato.md).
->>>>>>> origin/main
 
 ---
 

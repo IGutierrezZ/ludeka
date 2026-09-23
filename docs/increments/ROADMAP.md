@@ -70,7 +70,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
 | **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ✅ Archivado | [inc-55-tagline-identidad-marca.md](archive/inc-55-tagline-identidad-marca.md) |
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
-| **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ⏳ Planificado | [inc-57-imagenes-catalogo.md](inc-57-imagenes-catalogo.md) |
+| **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ⏳ En progreso | [inc-57-imagenes-catalogo.md](inc-57-imagenes-catalogo.md) |
 | **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ Planificado | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
 | **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ⏳ Planificado | [inc-59-filtros-y-tamano-mesa.md](inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ⏳ Planificado | [inc-60-navegacion-movil.md](inc-60-navegacion-movil.md) |

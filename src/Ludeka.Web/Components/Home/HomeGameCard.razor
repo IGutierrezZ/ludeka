@@ -12,8 +12,11 @@
     <div class="rail-cover rail-cover--square">
         @{
             var placeholder = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+            var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
+                ? Game.ThumbnailUrl
+                : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : placeholder);
         }
-        <img src="@(!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : placeholder)"
+        <img src="@effectiveImageUrl"
              alt="Carátula de @Game.SpanishTitle"
              loading="lazy"
              decoding="async"
