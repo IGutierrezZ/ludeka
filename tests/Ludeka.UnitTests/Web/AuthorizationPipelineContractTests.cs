@@ -116,7 +116,19 @@ public class AuthorizationPipelineContractTests
 
         var redirect = ReadSource("src/Ludeka.Web/Components/Shared/RedirectToLogin.razor");
         Assert.Contains("RendererInfo.IsInteractive", redirect, StringComparison.Ordinal);
-        Assert.Contains("ExternalAuthenticationSchemes.LoginPath", redirect, StringComparison.Ordinal);
+        Assert.Contains("ToLogin(", redirect, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RedirectToLogin_ShouldPreserveReturnUrlWithLoginRedirectSemantics()
+    {
+        // INC-50, diseño D2: el camino interactivo reutiliza LoginRedirect.ToLogin (escape +
+        // guard ResolveReturnUrl) en lugar de construir la navegación a mano, de modo que la
+        // ReturnUrl se preserva con el mismo formato que el desafío del middleware en SSR.
+        var marcadorViejo = "NavigateTo(ExternalAuthenticationSchemes.LoginPath";
+        var redirect = ReadSource("src/Ludeka.Web/Components/Shared/RedirectToLogin.razor");
+        Assert.Contains("ToLogin(", redirect, StringComparison.Ordinal);
+        Assert.DoesNotContain(marcadorViejo, redirect, StringComparison.Ordinal);
     }
 
     [Fact]

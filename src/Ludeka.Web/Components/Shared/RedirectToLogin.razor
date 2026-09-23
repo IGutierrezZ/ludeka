@@ -4,7 +4,9 @@
     Redirección al inicio de sesión de la vista NotAuthorized.
     En render estático (SSR) las facilidades de navegación de Blazor no operan y la protección
     real la ejerce el middleware de autorización, que responde con un desafío a LoginPath; por eso
-    la navegación forzada solo se dispara cuando el renderer es interactivo.
+    la navegación forzada solo se dispara cuando el renderer es interactivo. El camino interactivo
+    reutiliza LoginRedirect.ToLogin (INC-50, §D2) para preservar la ReturnUrl con la misma
+    semántica que el desafío del middleware, incluido el guard anti-bucle de ResolveReturnUrl.
 *@
 
 @code {
@@ -12,7 +14,7 @@
     {
         if (RendererInfo.IsInteractive)
         {
-            Navigation.NavigateTo(ExternalAuthenticationSchemes.LoginPath, forceLoad: true);
+            Navigation.ToLogin();
         }
     }
 }

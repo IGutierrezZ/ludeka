@@ -1,0 +1,93 @@
+@page "/cuenta"
+@attribute [Authorize]
+
+@*
+    Hub del área de cuenta (INC-50, diseño §D1/§D4.1). Razor puro, sin @code: el inventario
+    son enlaces estáticos y [Authorize] lo resuelve el pipeline. SSR-friendly de fábrica.
+    Tema y País comparten el deep-link ?seccion=apariencia hacia la pestaña Apariencia de
+    MyLibrary — una sola superficie de verdad por ajuste.
+*@
+
+<PageTitle>Mi Cuenta — Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 max-w-3xl mx-auto space-y-8">
+    <header class="border-b border-[var(--border-subtle)] pb-6">
+        <div class="badge-pill mb-2 px-3 py-1 text-xs font-bold">
+            <Icon Name="user" Size="14" />
+            <span>Mi Cuenta</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+            Área de Cuenta
+        </h1>
+        <p class="text-sm text-[var(--text-secondary)] mt-1">
+            Todo lo que se configura a nivel de usuario, en un solo lugar.
+        </p>
+    </header>
+
+    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list">
+        <li>
+            <a href="/cuenta/ludoteca"
+               class="group block p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--brand-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="p-2 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                        <Icon Name="library" Size="18" />
+                    </span>
+                    <h2 class="text-base font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors">
+                        Ludoteca
+                    </h2>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)]">
+                    Tus copias, partidas, préstamos y preferencias visuales.
+                </p>
+            </a>
+        </li>
+        <li>
+            <a href="/cuenta/conexiones"
+               class="group block p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--brand-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="p-2 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                        <Icon Name="link" Size="18" />
+                    </span>
+                    <h2 class="text-base font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors">
+                        Conexiones
+                    </h2>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)]">
+                    Vincula o desvincula proveedores de acceso (Google, Discord…).
+                </p>
+            </a>
+        </li>
+        <li>
+            <a href="/cuenta/ludoteca?seccion=apariencia"
+               class="group block p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--brand-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="p-2 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                        <Icon Name="palette" Size="18" />
+                    </span>
+                    <h2 class="text-base font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors">
+                        Tema
+                    </h2>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)]">
+                    Elige el tema visual de tu espacio lúdico.
+                </p>
+            </a>
+        </li>
+        <li>
+            <a href="/cuenta/ludoteca?seccion=apariencia"
+               class="group block p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--brand-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="p-2 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                        <Icon Name="globe" Size="18" />
+                    </span>
+                    <h2 class="text-base font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors">
+                        País
+                    </h2>
+                </div>
+                <p class="text-xs text-[var(--text-secondary)]">
+                    Configura tu país o territorio para tiendas, eventos y sorteos.
+                </p>
+            </a>
+        </li>
+    </ul>
+</div>
