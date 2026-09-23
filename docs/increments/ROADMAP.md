@@ -68,7 +68,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 | **INC-53** | Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual | ✅ Archivado | [inc-53-ingesta-masiva-autonoma-bgg.md](archive/inc-53-ingesta-masiva-autonoma-bgg.md) |
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
-| **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ⏳ En progreso | [inc-55-tagline-identidad-marca.md](inc-55-tagline-identidad-marca.md) |
+| **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ✅ Archivado | [inc-55-tagline-identidad-marca.md](archive/inc-55-tagline-identidad-marca.md) |
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ⏳ Planificado | [inc-56-comunidad-mecenazgo.md](inc-56-comunidad-mecenazgo.md) |
 | **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ⏳ Planificado | [inc-57-imagenes-catalogo.md](inc-57-imagenes-catalogo.md) |
 | **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ Planificado | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
@@ -125,7 +125,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-50 entregó la puerta de acceso en la cabecera en MainLayout.razor, el hub centralizado /cuenta con inventario de secciones, la ruta canónica /cuenta/ludoteca con alias permanente /mi-ludoteca, la navegación compartida AccountSectionNav y la preservación interactiva de ReturnUrl con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23.)*
 
-- **INC-55 Retirada del Tagline de Marca y Unificación de la Identidad** — worktree `C:\repos\ludeka-wt\tagline-identidad-marca`, rama `inc/tagline-identidad-marca`. Erradica el antiguo claim informal con marcas ajenas de todas las superficies vivas (UI, PWA, prompts de Gemini, User-Agent BGG y documentación activa), consolidando el lema oficial de Ludeka: «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.».
+*(INC-55 entregó la retirada del claim ajeno y la adopción del lema oficial «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.» en UI, PWA, prompts, User-Agent y especificaciones activas con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 en el PR #102).*
 
 
 
