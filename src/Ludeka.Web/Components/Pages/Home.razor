@@ -1,6 +1,8 @@
 @page "/catalogo"
 @rendermode InteractiveServer
+@implements IDisposable
 @using Ludeka.Core.Enums
+@using Microsoft.AspNetCore.Components.Routing
 @inject ICatalogService CatalogService
 @inject NavigationManager Navigation
 
@@ -42,7 +44,53 @@
         </button>
     </div>
 
-    @* Listado de tarjetas de juegos *@
+    @* Barra de estado de resultados y selector conmutable de modo de vista *@
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-[var(--border-subtle)] text-xs">
+        <div class="text-[var(--text-muted)] flex items-center gap-2">
+            @if (_isLoading)
+            {
+                <span class="flex items-center gap-1.5 font-medium">
+                    <span class="inline-block animate-spin"><Icon Name="dices" Size="14" /></span>
+                    <span>Buscando en el catálogo...</span>
+                </span>
+            }
+            else if (_totalCount > 0)
+            {
+                var startItem = ((_currentPage - 1) * _pageSize) + 1;
+                var endItem = Math.Min(_currentPage * _pageSize, _totalCount);
+                <span>
+                    Mostrando <strong class="text-[var(--text-primary)]">@startItem–@endItem</strong> de <strong class="text-[var(--text-primary)]">@_totalCount</strong> títulos
+                </span>
+            }
+            else
+            {
+                <span>0 títulos encontrados</span>
+            }
+        </div>
+
+        @* Selector de vista: Cuadrícula ↔ Lista *@
+        <div class="flex items-center gap-1.5 self-end sm:self-auto" role="group" aria-label="Modo de visualización">
+            <span class="text-[var(--text-muted)] mr-1 hidden sm:inline">Vista:</span>
+            <button type="button"
+                    class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_viewMode == "grid" ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                    @onclick='() => SetViewMode("grid")'
+                    aria-label="Vista en cuadrícula"
+                    aria-pressed="@(_viewMode == "grid" ? "true" : "false")">
+                <Icon Name="layout-grid" Size="13" />
+                <span class="hidden sm:inline">Cuadrícula</span>
+            </button>
+            <button type="button"
+                    class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_viewMode == "list" ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                    @onclick='() => SetViewMode("list")'
+                    aria-label="Vista en lista"
+                    aria-pressed="@(_viewMode == "list" ? "true" : "false")">
+                <Icon Name="list" Size="13" />
+                <span class="hidden sm:inline">Lista</span>
+            </button>
+        </div>
+    </div>
+
+    @* Listado de juegos: según el modo de vista *@
     @if (_isLoading)
     {
         <div class="py-16 text-center text-[var(--text-secondary)]">
@@ -63,13 +111,50 @@
             </button>
         </div>
     }
+    else if (_viewMode == "list")
+    {
+        <div class="space-y-3">
+            @foreach (var game in _games)
+            {
+                <GameListItem Game="@game" />
+            }
+        </div>
+    }
     else
     {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             @foreach (var game in _games)
             {
                 <GameCard Game="@game" />
             }
+        </div>
+    }
+
+    @* Controles de paginación inferior *@
+    @if (!_isLoading && _totalPages > 1)
+    {
+        <div class="flex items-center justify-between pt-8 mt-6 border-t border-[var(--border-subtle)] text-xs">
+            <button type="button"
+                    @onclick="PreviousPage"
+                    disabled="@(_currentPage <= 1)"
+                    class="px-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+                    aria-label="Página anterior">
+                <Icon Name="chevron-left" Size="14" />
+                <span>Anterior</span>
+            </button>
+
+            <span class="text-xs font-semibold text-[var(--text-muted)]">
+                Página <strong class="text-[var(--text-primary)]">@_currentPage</strong> de <strong class="text-[var(--text-primary)]">@_totalPages</strong>
+            </span>
+
+            <button type="button"
+                    @onclick="NextPage"
+                    disabled="@(_currentPage >= _totalPages)"
+                    class="px-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+                    aria-label="Página siguiente">
+                <span>Siguiente</span>
+                <Icon Name="chevron-right" Size="14" />
+            </button>
         </div>
     }
 </div>
@@ -81,17 +166,61 @@
     private string _searchTerm = string.Empty;
     private bool _isLoading = true;
     private int _totalCount = 0;
+    private int _totalPages = 0;
+    private int _currentPage = 1;
+    private const int _pageSize = 24;
+    private string _viewMode = "grid";
+    private bool _isInternalNavigation = false;
     private IReadOnlyList<GameSummaryDto> _games = [];
 
     protected override async Task OnInitializedAsync()
     {
-        // Leer query params si vienen de navegación externa
+        Navigation.LocationChanged += OnLocationChanged;
+        ReadQueryParameters();
+        await LoadCatalogAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (_isInternalNavigation) return;
+
+        _ = InvokeAsync(async () =>
+        {
+            ReadQueryParameters();
+            await LoadCatalogAsync();
+        });
+    }
+
+    private void ReadQueryParameters()
+    {
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
         if (query.TryGetValue("q", out var qVal) && !string.IsNullOrWhiteSpace(qVal))
         {
             _searchTerm = qVal.ToString();
+        }
+        else
+        {
+            _searchTerm = string.Empty;
+        }
+
+        if (query.TryGetValue("page", out var pVal) && int.TryParse(pVal, out var pageNum) && pageNum >= 1)
+        {
+            _currentPage = pageNum;
+        }
+        else
+        {
+            _currentPage = 1;
+        }
+
+        if (query.TryGetValue("view", out var vVal) && string.Equals(vVal.ToString(), "list", StringComparison.OrdinalIgnoreCase))
+        {
+            _viewMode = "list";
+        }
+        else
+        {
+            _viewMode = "grid";
         }
 
         if (query.ContainsKey("parejas"))
@@ -106,26 +235,143 @@
         {
             _activePreset = Preset.Expansiones;
         }
+        else if (query.ContainsKey("solo"))
+        {
+            _activePreset = Preset.SoloTop;
+        }
+        else if (query.ContainsKey("rapidas"))
+        {
+            _activePreset = Preset.PartidasRapidas;
+        }
+        else if (query.TryGetValue("tipo", out var tipoVal) && string.Equals(tipoVal.ToString(), "base", StringComparison.OrdinalIgnoreCase))
+        {
+            _activePreset = Preset.JuegosBase;
+        }
+        else if (query.TryGetValue("preset", out var presetVal))
+        {
+            _activePreset = presetVal.ToString() switch
+            {
+                "parejas" => Preset.EspecialParejas,
+                "familiar" => Preset.MesaFamiliar,
+                "expansiones" => Preset.Expansiones,
+                "base" => Preset.JuegosBase,
+                "solo" => Preset.SoloTop,
+                "rapidas" => Preset.PartidasRapidas,
+                _ => Preset.Todos
+            };
+        }
+        else
+        {
+            _activePreset = Preset.Todos;
+        }
+    }
 
-        await LoadCatalogAsync();
+    private void SyncUrl()
+    {
+        var queryParams = new Dictionary<string, string?>();
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            queryParams["q"] = _searchTerm;
+        }
+
+        if (_currentPage > 1)
+        {
+            queryParams["page"] = _currentPage.ToString();
+        }
+
+        if (_viewMode == "list")
+        {
+            queryParams["view"] = "list";
+        }
+
+        switch (_activePreset)
+        {
+            case Preset.EspecialParejas:
+                queryParams["parejas"] = "1";
+                break;
+            case Preset.MesaFamiliar:
+                queryParams["familiar"] = "1";
+                break;
+            case Preset.Expansiones:
+                queryParams["expansiones"] = "1";
+                break;
+            case Preset.JuegosBase:
+                queryParams["tipo"] = "base";
+                break;
+            case Preset.SoloTop:
+                queryParams["solo"] = "1";
+                break;
+            case Preset.PartidasRapidas:
+                queryParams["rapidas"] = "1";
+                break;
+        }
+
+        var targetUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/catalogo", queryParams);
+
+        try
+        {
+            _isInternalNavigation = true;
+            Navigation.NavigateTo(targetUrl, replace: true);
+        }
+        finally
+        {
+            _isInternalNavigation = false;
+        }
     }
 
     private async Task OnSearchChanged(string term)
     {
         _searchTerm = term;
+        _currentPage = 1;
+        SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task SetPreset(Preset preset)
     {
         _activePreset = preset;
+        _currentPage = 1;
+        SyncUrl();
         await LoadCatalogAsync();
+    }
+
+    private void SetViewMode(string mode)
+    {
+        var normalized = mode == "list" ? "list" : "grid";
+        if (_viewMode == normalized) return;
+
+        _viewMode = normalized;
+        SyncUrl();
+        StateHasChanged();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            SyncUrl();
+            await LoadCatalogAsync();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (_currentPage < _totalPages)
+        {
+            _currentPage++;
+            SyncUrl();
+            await LoadCatalogAsync();
+        }
     }
 
     private async Task ResetFilters()
     {
         _activePreset = Preset.Todos;
         _searchTerm = string.Empty;
+        _currentPage = 1;
+        SyncUrl();
         await LoadCatalogAsync();
     }
 
@@ -150,10 +396,27 @@
             TypeFilter: typeFilter
         );
 
-        var result = await CatalogService.GetCatalogAsync(criteria, page: 1, pageSize: 50);
+        var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize);
         _games = result.Games;
         _totalCount = result.TotalCount;
+        _totalPages = result.TotalPages;
+
+        if (_totalPages > 0 && _currentPage > _totalPages)
+        {
+            _currentPage = _totalPages;
+            SyncUrl();
+            result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize);
+            _games = result.Games;
+            _totalCount = result.TotalCount;
+            _totalPages = result.TotalPages;
+        }
+
         _isLoading = false;
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

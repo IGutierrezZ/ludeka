@@ -1,0 +1,146 @@
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+
+@if (Game != null)
+{
+    <a href="/juegos/@Game.Slug"
+       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] hover:shadow-md transition-all group select-none text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+       aria-label="Ver ficha de @Game.SpanishTitle">
+        
+        @* Bloque izquierdo: Miniatura y detalles principales *@
+        <div class="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+            <div class="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] relative border border-[var(--border-subtle)]">
+                @{
+                    var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                    var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
+                        ? Game.ThumbnailUrl
+                        : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : null);
+                }
+                @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
+                {
+                    <img src="@effectiveImageUrl"
+                         alt="Carátula oficial de @Game.SpanishTitle"
+                         loading="lazy"
+                         decoding="async"
+                         width="64"
+                         height="64"
+                         onerror="this.onerror=null; this.src='@placeholderUrl';"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                }
+                else
+                {
+                    <img src="@placeholderUrl"
+                         alt="Carátula de @Game.SpanishTitle no disponible"
+                         loading="lazy"
+                         decoding="async"
+                         width="64"
+                         height="64"
+                         class="w-full h-full object-cover opacity-85" />
+                }
+
+                @if (Game.IsExpansion)
+                {
+                    <div class="absolute top-1 left-1 px-1 py-0.2 rounded bg-purple-950/90 text-[0.55rem] font-black text-purple-200 shadow" title="Expansión">
+                        <Icon Name="puzzle" Size="9" />
+                    </div>
+                }
+            </div>
+
+            <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <h3 class="font-extrabold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">
+                        @Game.SpanishTitle
+                    </h3>
+                    @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <span class="text-xs text-[var(--text-muted)] italic line-clamp-1">
+                            (@Game.OriginalTitle)
+                        </span>
+                    }
+                </div>
+
+                <div class="text-[0.72rem] text-[var(--text-secondary)] line-clamp-1">
+                    @Game.Designer &bull; @Game.Publisher &bull; <span class="font-semibold text-[var(--brand-primary)]">@Game.YearPublished</span>
+                </div>
+
+                @* Badges comparativos compactos en móvil / fila en desktop *@
+                <div class="flex items-center gap-1.5 flex-wrap pt-0.5 text-[0.68rem] text-[var(--text-muted)]">
+                    @if (!string.IsNullOrWhiteSpace(Game.IdealPlayerCountText))
+                    {
+                        <span class="px-2 py-0.5 rounded-full font-bold bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)] flex items-center gap-1">
+                            <Icon Name="users" Size="11" /> @Game.IdealPlayerCountText
+                        </span>
+                    }
+
+                    @if (Game.EstimatedPerPlayerMinutes > 0)
+                    {
+                        <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
+                            <Icon Name="timer" Size="11" /> ~@(Game.EstimatedPerPlayerMinutes) min/J
+                        </span>
+                    }
+
+                    @switch (Game.Footprint)
+                    {
+                        case TableFootprint.SmallTable:
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Mesa Pequeña / Cafetería">
+                                <Icon Name="coffee" Size="11" /> Mesa pequeña
+                            </span>
+                            break;
+                        case TableFootprint.TableMonster:
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Monstruo de Mesa">
+                                <Icon Name="castle" Size="11" /> Mesa grande
+                            </span>
+                            break;
+                        default:
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Mesa Estándar">
+                                <Icon Name="utensils" Size="11" /> Mesa estándar
+                            </span>
+                            break;
+                    }
+
+                    @switch (Game.Style)
+                    {
+                        case GameStyle.Eurogame:
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="settings" Size="11" /> Euro</span>
+                            break;
+                        case GameStyle.Ameritrash:
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="dices" Size="11" /> Temático</span>
+                            break;
+                        case GameStyle.PartyGame:
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="party-popper" Size="11" /> Party</span>
+                            break;
+                        case GameStyle.FillerAbstract:
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="puzzle" Size="11" /> Filler</span>
+                            break;
+                        default:
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="book-open" Size="11" /> Narrativo</span>
+                            break;
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Bloque derecho: Puntuación y acción *@
+        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-subtle)]">
+            <div class="text-left sm:text-right">
+                <div class="flex items-center sm:justify-end gap-1 font-extrabold text-sm text-[var(--text-primary)]">
+                    <span class="text-amber-400">★</span>
+                    <span>@Game.BggRating.ToString("0.0")</span>
+                </div>
+                @if (Game.BggRank.HasValue && Game.BggRank.Value > 0)
+                {
+                    <div class="text-[0.65rem] text-[var(--text-muted)] font-medium">BGG #@Game.BggRank.Value</div>
+                }
+            </div>
+
+            <span class="text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] group-hover:translate-x-0.5 transition-all p-1">
+                <Icon Name="chevron-right" Size="16" />
+            </span>
+        </div>
+    </a>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public GameSummaryDto Game { get; set; } = null!;
+}

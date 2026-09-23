@@ -71,7 +71,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ✅ Archivado | [inc-55-tagline-identidad-marca.md](archive/inc-55-tagline-identidad-marca.md) |
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
 | **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ✅ Archivado | [inc-57-imagenes-catalogo.md](archive/inc-57-imagenes-catalogo.md) |
-| **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ Planificado | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
+| **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ En progreso | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
 | **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ⏳ Planificado | [inc-59-filtros-y-tamano-mesa.md](inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ⏳ Planificado | [inc-60-navegacion-movil.md](inc-60-navegacion-movil.md) |
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ⏳ Planificado | [inc-61-menu-de-cuenta.md](inc-61-menu-de-cuenta.md) |
@@ -108,6 +108,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+*(INC-58 se encuentra en curso en el worktree `C:\repos\ludeka-wt\paginacion-catalogo`, rama `inc/paginacion-catalogo`. Implementa la paginación real del catálogo con navegación de páginas y preservación de URL, controles de modo de vista cuadrícula ↔ lista, indicador de total de títulos y diseño responsivo accesible WCAG 2.2 AA).*
 
 *(INC-54 entregó su PR #98, verificada con 1.622 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-22. Incorpora el padrón exhaustivo nacional de 46 editoriales de España, 37 tiendas y 35 creadores de contenido en seed-directory.json, con motor de siembra aditivo e idempotente, runner seed-directory en Ludeka.Jobs y panel de sincronización interactiva en administración y directorios).*
 

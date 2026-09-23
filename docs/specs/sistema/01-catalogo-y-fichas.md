@@ -42,7 +42,7 @@ Ubicación: [`src/Ludeka.Core/Entities/Game.cs`](file:///c:/repos/Ludeka/src/Lud
 - **Servicio y Caché:**
   - [`CatalogService`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Catalog/CatalogService.cs)
   - [`CachedCatalogService`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Catalog/CachedCatalogService.cs): Decorador sobre `ICatalogService` con `IMemoryCache` (TTL de 10 minutos e invalidación reactiva por slug).
-- **DTOs:** [`GameSummaryDto`](file:///c:/repos/Ludeka/src/Ludeka.Application/DTOs/GameSummaryDto.cs), [`GameDetailDto`](file:///c:/repos/Ludeka/src/Ludeka.Application/DTOs/GameDetailDto.cs).
+- **DTOs y Resultados:** [`GameSummaryDto`](file:///c:/repos/Ludeka/src/Ludeka.Application/DTOs/GameSummaryDto.cs), [`GameDetailDto`](file:///c:/repos/Ludeka/src/Ludeka.Application/DTOs/GameDetailDto.cs), [`CatalogResult`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Catalog/ICatalogService.cs) (con propiedad calculada `TotalPages`).
 
 ---
 
@@ -60,7 +60,8 @@ Ubicación: [`src/Ludeka.Core/Entities/Game.cs`](file:///c:/repos/Ludeka/src/Lud
 
 ## 5. Componentes de Interfaz (`Ludeka.Web`)
 
-- [`Home.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor): Buscador reactivo, filtros por estilo y comensales, carrusel de destacados. INC-36: cabecera editorial compartida (`PageHeaderEditorial`), búsqueda en bloque propio y tira de filtros con `scrollbar-none` (ver [módulo 24](file:///c:/repos/Ludeka/docs/specs/sistema/24-fundaciones-editoriales-y-componentes.md)).
+- [`Home.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor): Buscador reactivo, filtros por estilo y comensales, carrusel de destacados. INC-36: cabecera editorial compartida (`PageHeaderEditorial`), búsqueda en bloque propio y tira de filtros con `scrollbar-none`. INC-58: paginación real completa (24 títulos por página), selector conmutable de modo de vista (Cuadrícula ↔ Lista), contador de títulos y sincronización bidireccional de parámetros en URL (`page`, `view`, `q`, presets) con soporte de historial (`LocationChanged`).
 - [`GameDetail.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor): Ficha inteligente completa. INC-36: tokenización editorial (estados con `--state-*`, botones de marca con `--on-brand`), back-bar con `flex-wrap` y acciones de moderación agrupadas, `<PageTitle>` «Ludeka» (corrige la errata «Ludeca») y estado «juego no encontrado» legible en los 5 temas (ver [módulo 24](file:///c:/repos/Ludeka/docs/specs/sistema/24-fundaciones-editoriales-y-componentes.md)).
-- [`GameCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameCard.razor): Tarjeta de catálogo con badge de 3 segundos, portada con aspect ratio fijo y selector de estado.
+- [`GameCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameCard.razor): Tarjeta de catálogo para vista en cuadrícula con badge de 3 segundos, portada WebP optimizada (INC-57) y selector de estado.
+- [`GameListItem.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameListItem.razor): Fila editorial para vista en lista (INC-58) con miniatura WebP 64x64px anti-CLS, metadatos comparativos (jugadores idóneos, duración, huella de mesa), puntuación BGG/Ludeka y enlace accesible WCAG 2.2 AA.
 - [`PurchaseLinksSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/PurchaseLinksSection.razor): Enlaces de compra contextuales con código de afiliado y enlace a transparencia.
