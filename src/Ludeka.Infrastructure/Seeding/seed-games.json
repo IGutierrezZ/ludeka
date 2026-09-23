@@ -2,13 +2,13 @@
   {
     "BggId": 13,
     "OriginalTitle": "Catan",
-    "SpanishTitle": "Catán",
+    "SpanishTitle": "Cat\u00E1n",
     "Designer": "Klaus Teuber",
     "Publisher": "Devir",
     "YearPublished": 1995,
     "CoverImageUrl": "/images/games/catan.png",
-    "ThumbnailUrl": "/images/games/catan.png",
-    "Description": "El clásico revolucionario de comercio, colonización y gestión de recursos en la isla de Catán.",
+    "ThumbnailUrl": "/images/games/catan.webp",
+    "Description": "El cl\u00E1sico revolucionario de comercio, colonizaci\u00F3n y gesti\u00F3n de recursos en la isla de Cat\u00E1n.",
     "BggRating": 7.14,
     "BggRank": 450,
     "LudistRating": 7.3,
@@ -46,9 +46,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/catan.html?ref=ludeka",
         "Price": 42.00,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -57,12 +57,12 @@
     "BggId": 822,
     "OriginalTitle": "Carcassonne",
     "SpanishTitle": "Carcassonne",
-    "Designer": "Klaus-Jürgen Wrede",
+    "Designer": "Klaus-J\u00FCrgen Wrede",
     "Publisher": "Devir",
     "YearPublished": 2000,
     "CoverImageUrl": "/images/games/carcassonne.png",
-    "ThumbnailUrl": "/images/games/carcassonne.png",
-    "Description": "Obra maestra de colocación de losetas donde creas el paisaje medieval del sur de Francia.",
+    "ThumbnailUrl": "/images/games/carcassonne.webp",
+    "Description": "Obra maestra de colocaci\u00F3n de losetas donde creas el paisaje medieval del sur de Francia.",
     "BggRating": 7.42,
     "BggRank": 210,
     "LudistRating": 7.9,
@@ -116,7 +116,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/carcassonne?ref=ludeka",
         "Price": 27.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -131,8 +131,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2019,
     "CoverImageUrl": "/images/games/wingspan.png",
-    "ThumbnailUrl": "/images/games/wingspan.png",
-    "Description": "Juego competitivo de construcción de motores impulsado por cartas ornitológicas con una producción excelsa.",
+    "ThumbnailUrl": "/images/games/wingspan.webp",
+    "Description": "Juego competitivo de construcci\u00F3n de motores impulsado por cartas ornitol\u00F3gicas con una producci\u00F3n excelsa.",
     "BggRating": 8.05,
     "BggRank": 28,
     "LudistRating": 8.4,
@@ -202,9 +202,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/wingspan.html?ref=ludeka",
         "Price": 49.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -217,8 +217,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2016,
     "CoverImageUrl": "/images/games/terraforming-mars.png",
-    "ThumbnailUrl": "/images/games/terraforming-mars.png",
-    "Description": "Gigantescas corporaciones compiten por transformar el planeta rojo haciéndolo habitable.",
+    "ThumbnailUrl": "/images/games/terraforming-mars.webp",
+    "Description": "Gigantescas corporaciones compiten por transformar el planeta rojo haci\u00E9ndolo habitable.",
     "BggRating": 8.38,
     "BggRank": 7,
     "LudistRating": 8.8,
@@ -288,9 +288,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/terraforming-mars.html?ref=ludeka",
         "Price": 62.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -303,7 +303,7 @@
     "Publisher": "Repos Production",
     "YearPublished": 2015,
     "CoverImageUrl": "/images/games/7-wonders-duel.png",
-    "ThumbnailUrl": "/images/games/7-wonders-duel.png",
+    "ThumbnailUrl": "/images/games/7-wonders-duel.webp",
     "Description": "Uno de los mejores juegos exclusivos para 2 personas: draft piramidal de cartas con 3 condiciones de victoria.",
     "BggRating": 8.11,
     "BggRank": 19,
@@ -342,7 +342,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/7-wonders-duel?ref=ludeka",
         "Price": 24.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -357,8 +357,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2021,
     "CoverImageUrl": "/images/games/ark-nova.png",
-    "ThumbnailUrl": "/images/games/ark-nova.png",
-    "Description": "Planifica y construye un zoológico moderno gestionando recintos, programas de conservación y patrocinadores.",
+    "ThumbnailUrl": "/images/games/ark-nova.webp",
+    "Description": "Planifica y construye un zool\u00F3gico moderno gestionando recintos, programas de conservaci\u00F3n y patrocinadores.",
     "BggRating": 8.51,
     "BggRank": 4,
     "LudistRating": 8.9,
@@ -420,9 +420,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/ark-nova.html?ref=ludeka",
         "Price": 67.50,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -435,8 +435,8 @@
     "Publisher": "Asmodee",
     "YearPublished": 2017,
     "CoverImageUrl": "/images/games/azul.png",
-    "ThumbnailUrl": "/images/games/azul.png",
-    "Description": "Emula a los artesanos moriscos vistiendo los muros del Palacio Real de Évora con azulejos portugueses.",
+    "ThumbnailUrl": "/images/games/azul.webp",
+    "Description": "Emula a los artesanos moriscos vistiendo los muros del Palacio Real de \u00C9vora con azulejos portugueses.",
     "BggRating": 7.75,
     "BggRank": 72,
     "LudistRating": 8,
@@ -482,9 +482,9 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/azul?ref=ludeka",
         "Price": 39.99,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Rápido",
+        "Badge": "Env\u00EDo R\u00E1pido",
         "AffiliateTag": "Direct"
       }
     ]
@@ -497,8 +497,8 @@
     "Publisher": "Delirium Games",
     "YearPublished": 2021,
     "CoverImageUrl": "/images/games/cascadia.png",
-    "ThumbnailUrl": "/images/games/cascadia.png",
-    "Description": "Juego relajante y táctico de colocación de hábitats y patrones de fauna salvaje del Pacífico Noroeste.",
+    "ThumbnailUrl": "/images/games/cascadia.webp",
+    "Description": "Juego relajante y t\u00E1ctico de colocaci\u00F3n de h\u00E1bitats y patrones de fauna salvaje del Pac\u00EDfico Noroeste.",
     "BggRating": 7.96,
     "BggRank": 45,
     "LudistRating": 8.3,
@@ -560,9 +560,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/cascadia.html?ref=ludeka",
         "Price": 37.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -575,8 +575,8 @@
     "Publisher": "Dire Wolf",
     "YearPublished": 2020,
     "CoverImageUrl": "/images/games/dune-imperium.png",
-    "ThumbnailUrl": "/images/games/dune-imperium.png",
-    "Description": "Construcción de mazos, colocación de trabajadores e intriga política y militar en el planeta Arrakis.",
+    "ThumbnailUrl": "/images/games/dune-imperium.webp",
+    "Description": "Construcci\u00F3n de mazos, colocaci\u00F3n de trabajadores e intriga pol\u00EDtica y militar en el planeta Arrakis.",
     "BggRating": 8.36,
     "BggRank": 12,
     "LudistRating": 8.7,
@@ -645,9 +645,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/dune-imperium.html?ref=ludeka",
         "Price": 49.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -660,8 +660,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2018,
     "CoverImageUrl": "/images/games/everdell.png",
-    "ThumbnailUrl": "/images/games/everdell.png",
-    "Description": "Construye una encantadora ciudad de animalitos del bosque bajo las ramas del gran Árbol Perenne.",
+    "ThumbnailUrl": "/images/games/everdell.webp",
+    "Description": "Construye una encantadora ciudad de animalitos del bosque bajo las ramas del gran \u00C1rbol Perenne.",
     "BggRating": 8.06,
     "BggRank": 35,
     "LudistRating": 8.3,
@@ -730,9 +730,9 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/everdell?ref=ludeka",
         "Price": 59.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Rápido",
+        "Badge": "Env\u00EDo R\u00E1pido",
         "AffiliateTag": "Direct"
       }
     ]
@@ -745,8 +745,8 @@
     "Publisher": "Cephalofair Games",
     "YearPublished": 2017,
     "CoverImageUrl": "/images/games/gloomhaven.png",
-    "ThumbnailUrl": "/images/games/gloomhaven.png",
-    "Description": "Monstruosa campaña cooperativa de combate táctico eurogame en un mundo oscuro en constante evolución.",
+    "ThumbnailUrl": "/images/games/gloomhaven.webp",
+    "Description": "Monstruosa campa\u00F1a cooperativa de combate t\u00E1ctico eurogame en un mundo oscuro en constante evoluci\u00F3n.",
     "BggRating": 8.61,
     "BggRank": 3,
     "LudistRating": 8.9,
@@ -815,9 +815,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/gloomhaven.html?ref=ludeka",
         "Price": 139.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Gratis",
+        "Badge": "Env\u00EDo Gratis",
         "AffiliateTag": "Direct"
       }
     ]
@@ -830,8 +830,8 @@
     "Publisher": "Days of Wonder",
     "YearPublished": 2022,
     "CoverImageUrl": "/images/games/heat.png",
-    "ThumbnailUrl": "/images/games/heat.png",
-    "Description": "Emocionantes carreras de bólidos de los años 60 donde gestionas el calor del motor y entras derrapando a las curvas.",
+    "ThumbnailUrl": "/images/games/heat.webp",
+    "Description": "Emocionantes carreras de b\u00F3lidos de los a\u00F1os 60 donde gestionas el calor del motor y entras derrapando a las curvas.",
     "BggRating": 8.12,
     "BggRank": 38,
     "LudistRating": 8.5,
@@ -909,9 +909,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/heat.html?ref=ludeka",
         "Price": 64.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -924,8 +924,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2016,
     "CoverImageUrl": "/images/games/scythe.png",
-    "ThumbnailUrl": "/images/games/scythe.png",
-    "Description": "Ucronía dieselpunk europea de los años 20: mecanoides agrícolas y militares en una tensa carrera por la prosperidad.",
+    "ThumbnailUrl": "/images/games/scythe.webp",
+    "Description": "Ucron\u00EDa dieselpunk europea de los a\u00F1os 20: mecanoides agr\u00EDcolas y militares en una tensa carrera por la prosperidad.",
     "BggRating": 8.17,
     "BggRank": 16,
     "LudistRating": 8.4,
@@ -1002,9 +1002,9 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/scythe?ref=ludeka",
         "Price": 79.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Rápido",
+        "Badge": "Env\u00EDo R\u00E1pido",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1017,8 +1017,8 @@
     "Publisher": "Arrakis Games",
     "YearPublished": 2017,
     "CoverImageUrl": "/images/games/spirit-island.png",
-    "ThumbnailUrl": "/images/games/spirit-island.png",
-    "Description": "Defiende una isla mágica poniéndote en la piel de espíritus ancestrales y expulsando a los invasores colonizadores.",
+    "ThumbnailUrl": "/images/games/spirit-island.webp",
+    "Description": "Defiende una isla m\u00E1gica poni\u00E9ndote en la piel de esp\u00EDritus ancestrales y expulsando a los invasores colonizadores.",
     "BggRating": 8.34,
     "BggRank": 11,
     "LudistRating": 8.8,
@@ -1087,9 +1087,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/spirit-island.html?ref=ludeka",
         "Price": 74.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1098,11 +1098,11 @@
     "BggId": 148228,
     "OriginalTitle": "Splendor",
     "SpanishTitle": "Splendor",
-    "Designer": "Marc André",
+    "Designer": "Marc Andr\u00E9",
     "Publisher": "Space Cowboys",
     "YearPublished": 2014,
     "CoverImageUrl": "/images/games/splendor.png",
-    "ThumbnailUrl": "/images/games/splendor.png",
+    "ThumbnailUrl": "/images/games/splendor.webp",
     "Description": "Elegante juego de gemas donde mercaderes renacentistas adquieren minas, rutas y la visita de nobles ilustres.",
     "BggRating": 7.42,
     "BggRank": 195,
@@ -1157,7 +1157,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/splendor?ref=ludeka",
         "Price": 32.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -1167,13 +1167,13 @@
   {
     "BggId": 324856,
     "OriginalTitle": "The Crew: Mission Deep Sea",
-    "SpanishTitle": "La Tripulación: Misión Mar Profundo",
+    "SpanishTitle": "La Tripulaci\u00F3n: Misi\u00F3n Mar Profundo",
     "Designer": "Thomas Sing",
     "Publisher": "Devir",
     "YearPublished": 2021,
     "CoverImageUrl": "/images/games/the-crew.png",
-    "ThumbnailUrl": "/images/games/the-crew.png",
-    "Description": "Juego cooperativo de bazas con comunicación limitada en una inmersión abisal inolvidable.",
+    "ThumbnailUrl": "/images/games/the-crew.webp",
+    "Description": "Juego cooperativo de bazas con comunicaci\u00F3n limitada en una inmersi\u00F3n abisal inolvidable.",
     "BggRating": 8.19,
     "BggRank": 36,
     "LudistRating": 8.4,
@@ -1234,9 +1234,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/la-tripulacion-mision-mar-profundo.html?ref=ludeka",
         "Price": 15.00,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1249,8 +1249,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2018,
     "CoverImageUrl": "/images/games/brass-birmingham.png",
-    "ThumbnailUrl": "/images/games/brass-birmingham.png",
-    "Description": "La cúspide de la estrategia económica industrial en Inglaterra: canales, ferrocarriles, carbón, hierro y cerveza.",
+    "ThumbnailUrl": "/images/games/brass-birmingham.webp",
+    "Description": "La c\u00FAspide de la estrategia econ\u00F3mica industrial en Inglaterra: canales, ferrocarriles, carb\u00F3n, hierro y cerveza.",
     "BggRating": 8.6,
     "BggRank": 1,
     "LudistRating": 9.1,
@@ -1304,9 +1304,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/brass-birmingham.html?ref=ludeka",
         "Price": 79.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Gratis",
+        "Badge": "Env\u00EDo Gratis",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1319,8 +1319,8 @@
     "Publisher": "Devir",
     "YearPublished": 2016,
     "CoverImageUrl": "/images/games/clank.png",
-    "ThumbnailUrl": "/images/games/clank.png",
-    "Description": "Saquea la mazmorra subterránea del dragón en una divertida carrera de construcción de mazos sin hacer ruido.",
+    "ThumbnailUrl": "/images/games/clank.webp",
+    "Description": "Saquea la mazmorra subterr\u00E1nea del drag\u00F3n en una divertida carrera de construcci\u00F3n de mazos sin hacer ruido.",
     "BggRating": 7.75,
     "BggRank": 78,
     "LudistRating": 8.1,
@@ -1374,9 +1374,9 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/clank?ref=ludeka",
         "Price": 54.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Rápido",
+        "Badge": "Env\u00EDo R\u00E1pido",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1389,7 +1389,7 @@
     "Publisher": "Z-Man Games",
     "YearPublished": 2008,
     "CoverImageUrl": "/images/games/pandemic.png",
-    "ThumbnailUrl": "/images/games/pandemic.png",
+    "ThumbnailUrl": "/images/games/pandemic.webp",
     "Description": "Coopera como equipo de especialistas de salud para contener y erradicar cuatro plagas globales mortales.",
     "BggRating": 7.53,
     "BggRank": 130,
@@ -1444,9 +1444,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/pandemic.html?ref=ludeka",
         "Price": 39.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1459,8 +1459,8 @@
     "Publisher": "2 Tomatoes Games",
     "YearPublished": 2018,
     "CoverImageUrl": "/images/games/root.png",
-    "ThumbnailUrl": "/images/games/root.png",
-    "Description": "Juego asimétrico de poder y guerra en el bosque: marqueses felinos, dinastías de aves y el astuto vagabundo.",
+    "ThumbnailUrl": "/images/games/root.webp",
+    "Description": "Juego asim\u00E9trico de poder y guerra en el bosque: marqueses felinos, dinast\u00EDas de aves y el astuto vagabundo.",
     "BggRating": 8.07,
     "BggRank": 30,
     "LudistRating": 8.6,
@@ -1506,9 +1506,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/root.html?ref=ludeka",
         "Price": 59.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1521,7 +1521,7 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2014,
     "CoverImageUrl": "/images/games/patchwork.png",
-    "ThumbnailUrl": "/images/games/patchwork.png",
+    "ThumbnailUrl": "/images/games/patchwork.webp",
     "Description": "El rey de los duelos de retales: encaja piezas de tipo tetris y optimiza botones y tiempo en tu colcha.",
     "BggRating": 7.61,
     "BggRank": 105,
@@ -1552,7 +1552,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/patchwork?ref=ludeka",
         "Price": 22.50,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -1562,13 +1562,13 @@
   {
     "BggId": 9209,
     "OriginalTitle": "Ticket to Ride",
-    "SpanishTitle": "¡Aventureros al Tren!",
+    "SpanishTitle": "\u00A1Aventureros al Tren!",
     "Designer": "Alan R. Moon",
     "Publisher": "Days of Wonder",
     "YearPublished": 2004,
     "CoverImageUrl": "/images/games/ticket-to-ride.png",
-    "ThumbnailUrl": "/images/games/ticket-to-ride.png",
-    "Description": "Reclama rutas ferroviarias conectando ciudades icónicas en una carrera familiar repleta de emoción.",
+    "ThumbnailUrl": "/images/games/ticket-to-ride.webp",
+    "Description": "Reclama rutas ferroviarias conectando ciudades ic\u00F3nicas en una carrera familiar repleta de emoci\u00F3n.",
     "BggRating": 7.4,
     "BggRank": 230,
     "LudistRating": 7.5,
@@ -1630,9 +1630,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/aventureros-al-tren.html?ref=ludeka",
         "Price": 44.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1645,8 +1645,8 @@
     "Publisher": "Ediciones MasQueOca",
     "YearPublished": 2013,
     "CoverImageUrl": "/images/games/concordia.png",
-    "ThumbnailUrl": "/images/games/concordia.png",
-    "Description": "Elegante juego económico de cartas de acción y comercio pacífico en las provincias del Imperio Romano.",
+    "ThumbnailUrl": "/images/games/concordia.webp",
+    "Description": "Elegante juego econ\u00F3mico de cartas de acci\u00F3n y comercio pac\u00EDfico en las provincias del Imperio Romano.",
     "BggRating": 8.11,
     "BggRank": 22,
     "LudistRating": 8.6,
@@ -1708,7 +1708,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/concordia?ref=ludeka",
         "Price": 59.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -1723,8 +1723,8 @@
     "Publisher": "Z-Man Games",
     "YearPublished": 2012,
     "CoverImageUrl": "/images/games/love-letter.png",
-    "ThumbnailUrl": "/images/games/love-letter.png",
-    "Description": "Roba una carta, juega una carta. Deducción y faroleo condensados en apenas 16 cartas en la corte de Tempest.",
+    "ThumbnailUrl": "/images/games/love-letter.webp",
+    "Description": "Roba una carta, juega una carta. Deducci\u00F3n y faroleo condensados en apenas 16 cartas en la corte de Tempest.",
     "BggRating": 7.21,
     "BggRank": 350,
     "LudistRating": 7.4,
@@ -1770,9 +1770,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/love-letter.html?ref=ludeka",
         "Price": 12.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1785,8 +1785,8 @@
     "Publisher": "Maldito Games",
     "YearPublished": 2015,
     "CoverImageUrl": "/images/games/viticulture.png",
-    "ThumbnailUrl": "/images/games/viticulture.png",
-    "Description": "Crea y gestiona tu propio viñedo en la Toscana cultivando vides, envejeciendo vino y atendiendo visitantes.",
+    "ThumbnailUrl": "/images/games/viticulture.webp",
+    "Description": "Crea y gestiona tu propio vi\u00F1edo en la Toscana cultivando vides, envejeciendo vino y atendiendo visitantes.",
     "BggRating": 8.03,
     "BggRank": 40,
     "LudistRating": 8.4,
@@ -1863,9 +1863,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/viticulture-essential.html?ref=ludeka",
         "Price": 59.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1873,13 +1873,13 @@
   {
     "BggId": 31260,
     "OriginalTitle": "Agricola",
-    "SpanishTitle": "Agrícola",
+    "SpanishTitle": "Agr\u00EDcola",
     "Designer": "Uwe Rosenberg",
     "Publisher": "Homoludicus / Lookout",
     "YearPublished": 2007,
     "CoverImageUrl": "/images/games/agricola.png",
-    "ThumbnailUrl": "/images/games/agricola.png",
-    "Description": "El clásico absoluto de colocación de trabajadores: gestiona tu granja familiar del siglo XVII y alimenta a los tuyos.",
+    "ThumbnailUrl": "/images/games/agricola.webp",
+    "Description": "El cl\u00E1sico absoluto de colocaci\u00F3n de trabajadores: gestiona tu granja familiar del siglo XVII y alimenta a los tuyos.",
     "BggRating": 7.92,
     "BggRank": 42,
     "LudistRating": 8.5,
@@ -1941,9 +1941,9 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/agricola?ref=ludeka",
         "Price": 54.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío Rápido",
+        "Badge": "Env\u00EDo R\u00E1pido",
         "AffiliateTag": "Direct"
       }
     ]
@@ -1952,12 +1952,12 @@
     "BggId": 312484,
     "OriginalTitle": "Lost Ruins of Arnak",
     "SpanishTitle": "Las Ruinas Perdidas de Arnak",
-    "Designer": "Min & Elwen",
+    "Designer": "Min \u0026 Elwen",
     "Publisher": "Devir",
     "YearPublished": 2020,
     "CoverImageUrl": "/images/games/arnak.png",
-    "ThumbnailUrl": "/images/games/arnak.png",
-    "Description": "Exploración de templos antiguos combinando colocación de trabajadores, construcción de mazos y gestión de recursos.",
+    "ThumbnailUrl": "/images/games/arnak.webp",
+    "Description": "Exploraci\u00F3n de templos antiguos combinando colocaci\u00F3n de trabajadores, construcci\u00F3n de mazos y gesti\u00F3n de recursos.",
     "BggRating": 8.13,
     "BggRank": 29,
     "LudistRating": 8.5,
@@ -2019,9 +2019,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/las-ruinas-perdidas-de-arnak.html?ref=ludeka",
         "Price": 54.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -2034,8 +2034,8 @@
     "Publisher": "Libellud",
     "YearPublished": 2008,
     "CoverImageUrl": "/images/games/dixit.png",
-    "ThumbnailUrl": "/images/games/dixit.png",
-    "Description": "Juego familiar y social de pistas poéticas y votación secreta con cartas de ilustración onírica.",
+    "ThumbnailUrl": "/images/games/dixit.webp",
+    "Description": "Juego familiar y social de pistas po\u00E9ticas y votaci\u00F3n secreta con cartas de ilustraci\u00F3n on\u00EDrica.",
     "BggRating": 7.21,
     "BggRank": 380,
     "LudistRating": 7.3,
@@ -2089,7 +2089,7 @@
         "StoreName": "Cuarto de Juegos",
         "AffiliateUrl": "https://cuartodejuegos.es/dixit?ref=ludeka",
         "Price": 32.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
         "Badge": "Stock Real",
         "AffiliateTag": "Direct"
@@ -2099,13 +2099,13 @@
   {
     "BggId": 178900,
     "OriginalTitle": "Codenames",
-    "SpanishTitle": "Código Secreto",
-    "Designer": "Vlaada Chvátil",
+    "SpanishTitle": "C\u00F3digo Secreto",
+    "Designer": "Vlaada Chv\u00E1til",
     "Publisher": "Devir",
     "YearPublished": 2015,
     "CoverImageUrl": "/images/games/codigo-secreto.png",
-    "ThumbnailUrl": "/images/games/codigo-secreto.png",
-    "Description": "Dos jefes de espías rivales conocen la identidad secreta de 25 agentes y dan pistas de una sola palabra.",
+    "ThumbnailUrl": "/images/games/codigo-secreto.webp",
+    "Description": "Dos jefes de esp\u00EDas rivales conocen la identidad secreta de 25 agentes y dan pistas de una sola palabra.",
     "BggRating": 7.56,
     "BggRank": 125,
     "LudistRating": 7.8,
@@ -2138,7 +2138,7 @@
       },
       {
         "PlayerCount": 8,
-        "DisplayCount": "8J+",
+        "DisplayCount": "8J\u002B",
         "Status": "MustPlay",
         "BestVotes": 980,
         "RecommendedVotes": 240,
@@ -2159,9 +2159,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/codigo-secreto.html?ref=ludeka",
         "Price": 22.00,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -2174,7 +2174,7 @@
     "Publisher": "Ediciones MasQueOca",
     "YearPublished": 2016,
     "CoverImageUrl": "/images/games/great-western-trail.png",
-    "ThumbnailUrl": "/images/games/great-western-trail.png",
+    "ThumbnailUrl": "/images/games/great-western-trail.webp",
     "Description": "Conduce tu ganado de Texas a Kansas City mejorando tu mazo de reses, contratando vaqueros y construyendo paradas.",
     "BggRating": 8.27,
     "BggRank": 15,
@@ -2229,9 +2229,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/great-western-trail.html?ref=ludeka",
         "Price": 59.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]
@@ -2239,13 +2239,13 @@
   {
     "BggId": 271629,
     "OriginalTitle": "The Castles of Burgundy",
-    "SpanishTitle": "Los Castillos de Borgoña",
+    "SpanishTitle": "Los Castillos de Borgo\u00F1a",
     "Designer": "Stefan Feld",
     "Publisher": "alea / Ravensburger",
     "YearPublished": 2019,
     "CoverImageUrl": "/images/games/castles-of-burgundy.png",
-    "ThumbnailUrl": "/images/games/castles-of-burgundy.png",
-    "Description": "El clásico de draft de dados de Stefan Feld: construye y expande tu principado en el valle del Loira del siglo XV con comercio y ganadería.",
+    "ThumbnailUrl": "/images/games/castles-of-burgundy.webp",
+    "Description": "El cl\u00E1sico de draft de dados de Stefan Feld: construye y expande tu principado en el valle del Loira del siglo XV con comercio y ganader\u00EDa.",
     "BggRating": 8.12,
     "BggRank": 17,
     "LudistRating": 8.6,
@@ -2291,9 +2291,9 @@
         "StoreName": "Zacatrus",
         "AffiliateUrl": "https://zacatrus.es/los-castillos-de-borgona.html?ref=ludeka",
         "Price": 49.95,
-        "Currency": "€",
+        "Currency": "\u20AC",
         "InStock": true,
-        "Badge": "Envío 24h",
+        "Badge": "Env\u00EDo 24h",
         "AffiliateTag": "Direct"
       }
     ]

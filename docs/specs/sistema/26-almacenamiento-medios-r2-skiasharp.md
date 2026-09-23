@@ -83,7 +83,21 @@ Define las tipologías canónicas de imágenes asociadas a juegos y comunidad:
 
 ---
 
-## 5. Pruebas y Verificación
+## 5. Optimización de Renderizado en Catálogo y Portada (INC-57)
+
+A raíz del diagnóstico empírico documentado en [`docs/specs/diagnostico-imagenes-catalogo.md`](file:///c:/repos/Ludeka/docs/specs/diagnostico-imagenes-catalogo.md), se identificaron e implantaron las siguientes mejoras en la capa de interfaz:
+- **Priorización de `ThumbnailUrl` (400px WebP):**
+  - Componentes [`GameCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameCard.razor) y [`HomeGameCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Home/HomeGameCard.razor) priorizan la variante `ThumbnailUrl` sobre la carátula completa (`CoverImageUrl`), reduciendo el payload descargado en listados en más de un 81%.
+- **Erradicación de CLS (Cumulative Layout Shift):**
+  - Incorporación sistemática de dimensiones intrínsecas (`width` y `height`) en [`HomeGiveawayCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Home/HomeGiveawayCard.razor) y [`HomeReleaseCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Home/HomeReleaseCard.razor) (`width="320" height="180"`), así como en [`ExpansionSisterList.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor) (`56x56`) y [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor) (`64x64`).
+  - Atributos `loading="lazy"` y `decoding="async"` universales en recursos fuera del viewport inicial.
+- **Optimización de Assets Estáticos:**
+  - Reducción drástica del asset no comprimido `patchwork.png` (de 1,9 MB a 323 KB en PNG y 49 KB en WebP).
+  - Generación de miniaturas WebP a 400px para la totalidad de los 31 juegos base de semilla en `seed-games.json`.
+
+---
+
+## 6. Pruebas y Verificación
 
 - **`SkiaSharpImageOptimizationTests`:**
   - Verificación de redimensionado proporcional a 1000px en imágenes de 1600x1200.
@@ -95,4 +109,8 @@ Define las tipologías canónicas de imágenes asociadas a juegos y comunidad:
   - Sanitización de URLs con barras diagonales.
 - **`SimulatedImageStorageServiceTests`:**
   - Validación del ciclo de subida, almacenamiento en memoria y eliminación.
-- **Suite completa de pruebas:** 906 pruebas unitarias y de integración pasando al 100% en verde.
+- **`CatalogImageOptimizationContractTests` (INC-57):**
+  - Verificación de selección de `ThumbnailUrl` en `GameCard` y `HomeGameCard`.
+  - Verificación de dimensiones intrínsecas anti-CLS en tarjetas de carril y expansión.
+  - Verificación de pesos inferiores a 100 KB en miniaturas WebP y compresión de `patchwork.png`.
+- **Suite completa de pruebas:** 1.663 pruebas automatizadas (1.653 unitarias + 10 de integración) pasando al 100% en verde.

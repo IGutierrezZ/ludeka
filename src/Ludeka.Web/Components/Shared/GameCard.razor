@@ -7,10 +7,13 @@
         <div class="cover-wrapper">
             @{
                 var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
+                    ? Game.ThumbnailUrl
+                    : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : null);
             }
-            @if (!string.IsNullOrWhiteSpace(Game.CoverImageUrl))
+            @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
             {
-                <img src="@Game.CoverImageUrl"
+                <img src="@effectiveImageUrl"
                      alt="Carátula oficial de @Game.SpanishTitle"
                      loading="lazy"
                      decoding="async"

@@ -59,6 +59,10 @@ else if (Expansions != null && Expansions.Count > 0)
                                 {
                                     <img src="@exp.CoverImageUrl"
                                          alt="Carátula de @exp.SpanishTitle"
+                                         width="64"
+                                         height="64"
+                                         loading="lazy"
+                                         decoding="async"
                                          class="w-full h-full object-cover"
                                          onerror="this.onerror=null; this.src='/images/expansion-placeholder.svg';" />
                                 }
@@ -66,6 +70,10 @@ else if (Expansions != null && Expansions.Count > 0)
                                 {
                                     <img src="/images/expansion-placeholder.svg"
                                          alt="Carátula de @exp.SpanishTitle no disponible"
+                                         width="64"
+                                         height="64"
+                                         loading="lazy"
+                                         decoding="async"
                                          class="w-full h-full object-cover opacity-90" />
                                 }
                                 <div class="absolute top-1 left-1 px-1 py-0.5 rounded bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-purple-200 shadow-sm leading-none">
