@@ -5,7 +5,7 @@
 > **Nota (INC-36):** el catálogo (`/catalogo`) adopta la cabecera editorial compartida `PageHeaderEditorial`, el buscador en bloque propio (`max-w-xl`) y la tira de filtros con la clase real `scrollbar-none`; el detalle transversal de tokens y componentes está en el [módulo 24](file:///c:/repos/Ludeka/docs/specs/sistema/24-fundaciones-editoriales-y-componentes.md).
 
 ## 1. Visión General y Propósito
-El módulo de **Dashboard de Inicio Editorial** transforma la experiencia de bienvenida en la ruta raíz (`/`) de Ludeka en una portada viva inspirada en los referentes editoriales de la cultura y el streaming (Letterboxd, Netflix lúdico).
+El módulo de **Dashboard de Inicio Editorial** transforma la experiencia de bienvenida en la ruta raíz (`/`) de Ludeka en una portada viva inspirada en los mejores referentes editoriales de la cultura lúdica contemporánea.
 
 Sus cuatro pilares fundamentales son:
 1. **Página de Inicio Multi-Carril (`/`):** Sustituye la vista tabular/grid monolítica por cuatro carriles horizontales temáticos con deslizamiento táctil *mobile-first* (*snap-x snap-mandatory*), diseñados para enganchar al jugador en los primeros 3 segundos.

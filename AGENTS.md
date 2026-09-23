@@ -1,6 +1,6 @@
 # Ludeka / Ludist — Reglas Maestras del Monorepo y Guía de Agentes
 
-> **Proyecto:** Ludist / Ludeka ("El Letterboxd de los juegos de mesa en español")  
+> **Proyecto:** Ludist / Ludeka ("Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.")  
 > **Arquitectura:** .NET 10 (C# 13), Blazor Web App (SSR + Interactivo), Clean Architecture / Vertical Slices, Tailwind CSS + Componentes Editoriales, Engram Persistent Memory.
 
 ---

@@ -15,7 +15,7 @@ Permite generar plantillas gráficas vectoriales (1:1 cuadrada para Instagram) y
   - Título principal en español y año de publicación.
   - Píldora de ADN Lúdico / Dinámica (ej. "⚔️ Eurogame Competitivo").
   - Semáforo de escalabilidad o Sello Fundador si aplica.
-  - Pie de marca inferior: *"Ludeka • El Letterboxd de los juegos de mesa"*.
+  - Pie de marca inferior: *"Ludeka • Bienvenido a tu mesa"*.
 
 ### REQ-SCG-02: Generación de Copy y Hashtags para Instagram
 - El servicio **DEBE** generar un texto listo para pegar que incluya:
