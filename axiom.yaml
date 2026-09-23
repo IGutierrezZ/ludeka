@@ -36,7 +36,7 @@ governance:
   language: "es"
   shared_memory: "engram"
   context: |
-    Ludist / Ludeka — "El Letterboxd de los juegos de mesa en español".
+    Ludist / Ludeka — "Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.".
     Arquitectura: .NET 10 (C# 13), Blazor Web App (SSR + Interactivo), Clean Architecture / Vertical Slices.
     Memoria persistente: Engram MCP. UI: Tailwind CSS + componentes propios/Lucide Icons.
     IDIOMA OBLIGATORIO: Todos los artefactos de SDD, propuestas, especificaciones, tareas y comunicaciones deben estar redactados en español (castellano).
