@@ -1,11 +1,12 @@
 # INC-57: Diagnóstico y Optimización de Imágenes del Catálogo
 
-> **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B)
-> **Fecha de Inicio:** pendiente
+> **Estado:** ✅ Completado y Archivado (PR #104, 2026-09-23)
+> **Fecha de Inicio:** 2026-09-23
+> **Fecha de Cierre:** 2026-09-23
 > **Rama de Trabajo:** `inc/imagenes-catalogo`
 > **Worktree:** `C:\repos\ludeka-wt\imagenes-catalogo`
 > **Dependencias:** —
-> **Especificación Viva:** [23. Almacenamiento y Optimización de Medios](file:///c:/repos/Ludeka/docs/specs/sistema/23-almacenamiento-y-optimizacion-de-medios.md) · [26. Pipeline de Medios e Imágenes](file:///c:/repos/Ludeka/docs/specs/sistema/26-pipeline-de-medios-e-imagenes.md) · [27. Ingesta Masiva BGG y Galería GeekDo](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md)
+> **Especificación Viva:** [26. Almacenamiento y Optimización de Medios (R2 + SkiaSharp)](file:///c:/repos/Ludeka/docs/specs/sistema/26-almacenamiento-medios-r2-skiasharp.md)
 
 ---
 
