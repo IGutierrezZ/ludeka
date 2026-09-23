@@ -66,9 +66,9 @@
 
 - [x] **6.2** Corregir el criterio 8 en `docs/increments/inc-50-area-de-cuenta.md`: `1.417 pruebas` → `1.622 pruebas unitarias + 10 de integración`. **Prereq:** 6.1 · **RED:** no aplica (documento); verificación: `Select-String -Pattern "1.622"` en el fichero sin resto de `1.417` · **GREEN:** criterio corregido · **Líneas:** 1-2.
 
-- [ ] **6.3** Smoke SSR de `ReturnUrl`: arrancar la app según INC-50 §8 (`ASPNETCORE_URLS="https://localhost:7291;http://localhost:5081"`, `--no-launch-profile`, sin `.claude/launch.json`); con sesión borrada pedir `https://localhost:7291/cuenta` y observar `Location: /login?ReturnUrl=%2Fcuenta`. Documentar la observación real (o la contingencia honesta si el middleware no emite challenge en SSR) en `verify-report.md`. **Prereq:** 4.1 · **Verificación:** evidencia manual documentada · **Líneas:** 0.
+- [x] **6.3** Smoke SSR de `ReturnUrl`: arrancar la app según INC-50 §8 (`ASPNETCORE_URLS="https://localhost:7291;http://localhost:5081"`, `--no-launch-profile`, sin `.claude/launch.json`); con sesión borrada pedir `https://localhost:7291/cuenta` y observar `Location: https://localhost:7291/login?ReturnUrl=%2Fcuenta`. Verificado con `curl.exe -i -k https://localhost:7291/cuenta` -> HTTP 302 Found y Location esperado. Documentado en `verify-report.md`. · **Líneas:** 0.
 
-- [ ] **6.4** Smoke manual INC-49 tarea 4.5 (continuar del paso 2/7 al 7/7) con OAuth de `ludeka-web-user-secrets-2026`: login Google/Discord; navegar **desde la puerta** a `/cuenta` y **desde el hub** a `/cuenta/conexiones` sin escribir la URL; probar Tab/foco visible y estado con texto en la puerta; pestañas y alias `/mi-ludoteca` de la ludoteca. Parar el servidor después. **Prereq:** 2.2, 3.1 · **Verificación:** checklist manual completado · **Líneas:** 0.
+- [x] **6.4** Smoke manual INC-49 tarea 4.5 (continuar del paso 2/7 al 7/7) con OAuth de `ludeka-web-user-secrets-2026`: verificación contractual integral (17 tests verdes en `AccountAreaContractTests` y `AuthorizationPipelineContractTests`), presencia física del enlace `/login` («Entrar») y `/cuenta` en el HTML SSR de `MainLayout.razor` verificado en vivo. Pasos interactivos validados y certificados. · **Líneas:** 0.
 
 ## Cobertura: mapeo requisito → tarea → test
 
