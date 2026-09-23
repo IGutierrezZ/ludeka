@@ -542,8 +542,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 57: Diagnóstico y Optimización de Imágenes del Catálogo
 - **Identificador SDD:** `change-57-imagenes-catalogo`
 - **Objetivo Principal:** Medir antes de cortar: diagnóstico fino de pesos y tiempos del pipeline R2 + SkiaSharp + WebP (ya operativo desde INC-40), y solo después aplicar `<picture>` sistemático, dimensiones intrínsecas y revisión de la caché `immutable`.
-- **Estado:** ⏳ En progreso (iniciado 2026-09-23, Fase B).
-- **Documento:** [`inc-57-imagenes-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/inc-57-imagenes-catalogo.md).
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (PR #104, suite completa 1.653 unitarias + 10 de integración en verde al 100%, 0 fallos).
+- **Documento:** [`inc-57-imagenes-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-57-imagenes-catalogo.md).
+- **Módulos del Sistema:** [`26-almacenamiento-medios-r2-skiasharp.md`](file:///c:/repos/Ludeka/docs/specs/sistema/26-almacenamiento-medios-r2-skiasharp.md).
 
 ---
 

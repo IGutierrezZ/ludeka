@@ -70,7 +70,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
 | **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ✅ Archivado | [inc-55-tagline-identidad-marca.md](archive/inc-55-tagline-identidad-marca.md) |
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
-| **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ⏳ En progreso | [inc-57-imagenes-catalogo.md](inc-57-imagenes-catalogo.md) |
+| **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ✅ Archivado | [inc-57-imagenes-catalogo.md](archive/inc-57-imagenes-catalogo.md) |
 | **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ Planificado | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
 | **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ⏳ Planificado | [inc-59-filtros-y-tamano-mesa.md](inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ⏳ Planificado | [inc-60-navegacion-movil.md](inc-60-navegacion-movil.md) |
@@ -128,6 +128,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 *(INC-55 entregó la retirada del claim ajeno y la adopción del lema oficial «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.» en UI, PWA, prompts, User-Agent y especificaciones activas con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 en el PR #102).*
 
 *(INC-56 entregó la visibilidad de los canales de comunidad Discord y Telegram y la vía de mecenazgo voluntario en Ko-fi en MainLayout.razor y Transparency.razor, junto con el soporte oficial de Amazon en AffiliateOptions y appsettings.json, verificado con 1.646 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23).*
+
+*(INC-57 entregó el diagnóstico empírico de imágenes del catálogo (docs/specs/diagnostico-imagenes-catalogo.md), optimización masiva de miniaturas WebP a 400px en seed-games.json (reducción del payload de 4,8 MB a ~908 KB), dimensiones intrínsecas width/height en tarjetas de carril anti-CLS, decoding="async" y loading="lazy", verificado con 1.653 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 en el PR #104).*
 
 
 
