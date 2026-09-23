@@ -363,7 +363,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private static string BuildPrompt(Game game)
     {
         return $"""
-            Eres un crítico y analista experto de juegos de mesa para Ludeka ("El Letterboxd de los juegos de mesa en español").
+            Eres un crítico y analista experto de juegos de mesa para Ludeka («Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa»).
             Genera un resumen editorial objetivo, conciso y fundamentado en español neutro para la ficha del juego:
 
             DATOS TÉCNICOS:
@@ -514,7 +514,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private static string BuildBatchPrompt(IReadOnlyList<AiGameBatchInputDto> games)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Eres un crítico y analista experto de juegos de mesa para Ludeka (\"El Letterboxd de los juegos de mesa en español\").");
+        sb.AppendLine("Eres un crítico y analista experto de juegos de mesa para Ludeka («Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa»).");
         sb.AppendLine("Genera un resumen editorial objetivo, conciso y fundamentado en español neutro para cada uno de los siguientes juegos:");
         sb.AppendLine();
 

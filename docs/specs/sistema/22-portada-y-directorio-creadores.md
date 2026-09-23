@@ -9,7 +9,7 @@
 
 ## 1. Propósito y Filosofía
 
-Este módulo corrige de rumbo el producto sobre las bases de INC-19 (directorio) e INC-21 (dashboard de portada). La portada era un dashboard editorial saturado —con un titular que anunciaba la marca ajena "El Letterboxd…"— y el directorio "Autores" estaba sesgado a **diseñadores de juegos**, cuando la visión real de Ludeka es un directorio de **creadores de contenido** con redes sociales.
+Este módulo corrige de rumbo el producto sobre las bases de INC-19 (directorio) e INC-21 (dashboard de portada). La portada era un dashboard editorial saturado —con un titular que anunciaba una marca ajena— y el directorio "Autores" estaba sesgado a **diseñadores de juegos**, cuando la visión real de Ludeka es un directorio de **creadores de contenido** con redes sociales.
 
 Se implementa bajo los siguientes pilares:
 
@@ -24,7 +24,7 @@ Se implementa bajo los siguientes pilares:
 ## 2. Alcance Funcional
 
 ### 2.1 Hero Minimalista (`HomeDashboard.razor`)
-- Se eliminan el badge decorativo ("PORTADA EDITORIAL") y el titular visible que anunciaba "El Letterboxd de los juegos de mesa en español".
+- Se eliminan el badge decorativo ("PORTADA EDITORIAL") y el titular visible que anunciaba una marca ajena de terceros.
 - El documento de portada conserva un único `h1`, visualmente oculto (`sr-only`), con el texto exacto `Ludeka — Juegos de mesa en español` (em dash U+2014 y ñ U+00F1 verificados por code points en render real).
 - El párrafo introductorio y el buscador rápido (`form` → `HandleQuickSearch` → `/catalogo?q={término}`; con término vacío redirige a `/catalogo`) quedan intactos.
 

@@ -10,7 +10,7 @@
 ## 1. Visión del Producto, Identidad y Posicionamiento
 
 ### 1.1 Misión y Propuesta de Valor
-Convertirse en la plataforma web de referencia ágil, contemporánea y visual para la comunidad hispanohablante de juegos de mesa (*"el Letterboxd de los juegos de mesa en español"*).
+Convertirse en la plataforma web de referencia ágil, contemporánea y visual para la comunidad hispanohablante de juegos de mesa (*"Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa."*).
 
 * **Problemas reales que resuelve:**
   * **Dispersión:** Tutoriales, partidas y reseñas en español están fragmentados en YouTube e Instagram sin indexar por juego ni formato.

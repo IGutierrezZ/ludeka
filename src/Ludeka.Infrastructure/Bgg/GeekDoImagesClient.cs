@@ -57,7 +57,7 @@ public class GeekDoImagesClient : IGeekDoImagesClient
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("User-Agent", "Ludeka/1.0 (El Letterboxd de los juegos de mesa; contacto@ludeka.com)");
+            request.Headers.Add("User-Agent", "Ludeka/1.0 (Bienvenido a tu mesa; contacto@ludeka.com)");
             request.Headers.Add("Accept", "application/json");
 
             using var response = await _httpClient.SendAsync(request, ct);

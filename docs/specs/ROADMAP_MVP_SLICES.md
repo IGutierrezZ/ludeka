@@ -505,6 +505,27 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## 📦 Backlog 2026-09-22: Marca, Catálogo, Móvil, Cuenta y Gamificación
+
+Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con orden lógico sugerido y dependencias documentadas en cada `inc-NN-*.md` de [`docs/increments/`](file:///c:/repos/Ludeka/docs/increments/):
+
+1. **Fase A — Marca y Comunidad:** INC-55, INC-56.
+2. **Fase B — Catálogo:** INC-57, INC-59, INC-58.
+3. **Fase C — Móvil:** INC-60.
+4. **Fase D — Cuenta (tras INC-50):** INC-61, INC-62, INC-63, INC-64.
+5. **Fase E — Comunidad y Compra:** INC-65, INC-66.
+6. **Fase F — Gamificación:** INC-67, INC-68.
+
+---
+
+## Incremento 55: Retirada del Tagline de Marca y Unificación de la Identidad
+- **Identificador SDD:** `change-55-tagline-identidad-marca`
+- **Objetivo Principal:** Retirar de todas las superficies vivas el claim de marca disperso en 44 menciones (config, docs, manifest, CSS, UI y prompt de Gemini), consolidando el lema oficial de Ludeka: «Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.».
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (PR #102 mergeado, commit `a38d455`).
+- **Documento:** [`inc-55-tagline-identidad-marca.md`](file:///c:/repos/Ludeka/docs/increments/inc-55-tagline-identidad-marca.md).
+
+---
+
 ## Incremento 56: Comunidad, Mecenazgo y Enlaces de Apoyo
 - **Identificador SDD:** `change-56-comunidad-mecenazgo`
 - **Objetivo Principal:** Visibilidad de canales de comunidad, vías de mecenazgo y consolidación del motor de afiliados:
@@ -514,6 +535,103 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 - **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (suite completa 1.646 unitarias + 10 de integración en verde al 100%, 0 fallos).
 - **Documento:** [`inc-56-comunidad-mecenazgo.md`](../increments/archive/inc-56-comunidad-mecenazgo.md).
 - **Módulos del Sistema:** [`08-notificaciones-y-webhooks.md`](sistema/08-notificaciones-y-webhooks.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
+
+---
+
+## Incremento 57: Diagnóstico y Optimización de Imágenes del Catálogo
+- **Identificador SDD:** `change-57-imagenes-catalogo`
+- **Objetivo Principal:** Medir antes de cortar: diagnóstico fino de pesos y tiempos del pipeline R2 + SkiaSharp + WebP (ya operativo desde INC-40), y solo después aplicar `<picture>` sistemático, dimensiones intrínsecas y revisión de la caché `immutable`.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B).
+- **Documento:** [`inc-57-imagenes-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/inc-57-imagenes-catalogo.md).
+
+---
+
+## Incremento 58: Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista)
+- **Identificador SDD:** `change-58-paginacion-catalogo`
+- **Objetivo Principal:** Cerrar la contradicción entre el backend (que ya pagina con `Skip`/`Take` y devuelve `TotalCount`) y la UI (que muestra «solo un puñado»): paginación visible, filtros+página en URL, patrón reutilizado de `AuditLogViewer.razor` y modo de vista conmutable cuadrícula ↔ lista.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B).
+- **Documento:** [`inc-58-paginacion-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/inc-58-paginacion-catalogo.md).
+
+---
+
+## Incremento 59: Filtros del Catálogo y Tamaño en Mesa
+- **Identificador SDD:** `change-59-filtros-y-tamano-mesa`
+- **Objetivo Principal:** Auditar filtro a filtro `GameFilterCriteria` (conectado en UI vs roto) y exponer `TableFootprint` (ya en el dominio) junto a jugadores y `PlayingTimeMinutes`, para responder «¿me cabe en la mesa?».
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B).
+- **Documento:** [`inc-59-filtros-y-tamano-mesa.md`](file:///c:/repos/Ludeka/docs/increments/inc-59-filtros-y-tamano-mesa.md).
+
+---
+
+## Incremento 60: Navegación Móvil — Barra Inferior y Safe-Area
+- **Identificador SDD:** `change-60-navegacion-movil`
+- **Objetivo Principal:** Construir la navegación móvil que hoy no existe (cero matches de `BottomNav`/`safe-area`): barra inferior al alcance del pulgar con acceso a las acciones de colección, respetando `env(safe-area-inset-*)` y sin duplicar el header en escritorio.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase C).
+- **Documento:** [`inc-60-navegacion-movil.md`](file:///c:/repos/Ludeka/docs/increments/inc-60-navegacion-movil.md).
+
+---
+
+## Incremento 61: Menú de Cuenta y Estado de Sesión en la Cabecera
+- **Identificador SDD:** `change-61-menu-de-cuenta`
+- **Objetivo Principal:** Que la cabecera reconozca al usuario: menú de cuenta (perfil, preferencias, conexiones, ludoteca, salir) colgando del hub de INC-50, con puerta clara a `/login` para invitados (hoy solo existe `AccountEmailNotice` como componente consciente de sesión).
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Documento:** [`inc-61-menu-de-cuenta.md`](file:///c:/repos/Ludeka/docs/increments/inc-61-menu-de-cuenta.md).
+
+---
+
+## Incremento 62: Preferencias de Usuario — Tema y País
+- **Identificador SDD:** `change-62-preferencias-usuario`
+- **Objetivo Principal:** Exponer `UserPreference` (tema vía `NormalizeTheme` y país vía `CountryCatalog`) en una pantalla estable del área de cuenta, hoy solo accesible por `LocationSelectorModal`, sin FOUC al aplicar el tema.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Documento:** [`inc-62-preferencias-usuario.md`](file:///c:/repos/Ludeka/docs/increments/inc-62-preferencias-usuario.md).
+
+---
+
+## Incremento 63: Conexiones OAuth — Múltiples Proveedores sin Cuentas Duplicadas
+- **Identificador SDD:** `change-63-conexiones-oauth`
+- **Objetivo Principal:** Garantizar multi-proveedor → misma cuenta (Google + Discord, entrar con cualquiera sin duplicar cuentas) y endurecer la vinculación heredada de INC-49: política de última cuenta en `UnlinkAsync`, destino real de `ProviderEmailVerifiedAt` (hoy campo huérfano), tests de `ExternalLoginCollisionException` y alcance de la pantalla de conexiones desde el menú.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Documento:** [`inc-63-conexiones-oauth.md`](file:///c:/repos/Ludeka/docs/increments/inc-63-conexiones-oauth.md).
+
+---
+
+## Incremento 64: Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba)
+- **Identificador SDD:** `change-64-acceso-por-correo`
+- **Objetivo Principal:** Valorar (puerta de decisión del maintainer) el login por email con verificación de buzón y, si se aprueba, implantarlo —con la bifurcación abierta contraseña vs magic link— cerrando la contradicción con la promesa de `Login.razor:15`, sin dejar ninguna combinación de estado sin puerta de acceso.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Documento:** [`inc-64-acceso-por-correo.md`](file:///c:/repos/Ludeka/docs/increments/inc-64-acceso-por-correo.md).
+
+---
+
+## Incremento 65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos
+- **Identificador SDD:** `change-65-likes-comunidad`
+- **Objetivo Principal:** Añadir el «me gusta» de usuario (solo logueados) sobre editoriales, tiendas, creadores y vídeos multimedia —el único `LikesCount` actual es de posts Instagram—, con like idempotente, conteo, ordenación de listados y vídeos por me gusta y frontera nominal explícita con `MediaItem.LikesCount`.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase E).
+- **Documento:** [`inc-65-likes-comunidad.md`](file:///c:/repos/Ludeka/docs/increments/inc-65-likes-comunidad.md).
+
+---
+
+## Incremento 66: Fundas de Cartas — Calidad de Datos y Enlaces de Compra
+- **Identificador SDD:** `change-66-fundas-cartas`
+- **Objetivo Principal:** Acreditar la calidad del dato `boardgamecardsleeve` de BGG sobre el catálogo ingestado, validar medidas en `SleeveItem`, testear `SleeveStoreUrlResolver` por tienda y decidir Amazon con tag de afiliado (alineado con INC-56), sin fabricar medidas cuando no haya dato.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase E).
+- **Documento:** [`inc-66-fundas-cartas.md`](file:///c:/repos/Ludeka/docs/increments/inc-66-fundas-cartas.md).
+
+---
+
+## Incremento 67: Gamificación — Hitos y Logros del Jugador
+- **Identificador SDD:** `change-67-hitos-y-logros`
+- **Objetivo Principal:** Sistema de hitos del jugador (colección, diario, comunidad) con desbloqueo idempotente y fechado, en coherencia declarada con `ComputePlayerBadge` de INC-15 y sin comparación entre usuarios (frontera con INC-68).
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
+- **Documento:** [`inc-67-hitos-y-logros.md`](file:///c:/repos/Ludeka/docs/increments/inc-67-hitos-y-logros.md).
+
+---
+
+## Incremento 68: Gamificación — Clasificaciones Públicas y Anonimato
+- **Identificador SDD:** `change-68-clasificaciones-y-anonimato`
+- **Objetivo Principal:** Clasificaciones de jugadores con opt-in explícito, seudónimo no derivado de la cuenta y ventana temporal, separadas del ranking de juegos (§3.2 del spec), con anti-trampas básico. Último del backlog por su riesgo de privacidad.
+- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
+- **Documento:** [`inc-68-clasificaciones-y-anonimato.md`](file:///c:/repos/Ludeka/docs/increments/inc-68-clasificaciones-y-anonimato.md).
+>>>>>>> origin/main
 
 ---
 

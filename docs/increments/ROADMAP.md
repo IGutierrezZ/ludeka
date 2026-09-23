@@ -68,7 +68,31 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 | **INC-53** | Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual | ✅ Archivado | [inc-53-ingesta-masiva-autonoma-bgg.md](archive/inc-53-ingesta-masiva-autonoma-bgg.md) |
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
+| **INC-55** | Retirada del Tagline de Marca y Unificación de la Identidad | ✅ Archivado | [inc-55-tagline-identidad-marca.md](archive/inc-55-tagline-identidad-marca.md) |
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
+| **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ⏳ Planificado | [inc-57-imagenes-catalogo.md](inc-57-imagenes-catalogo.md) |
+| **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ⏳ Planificado | [inc-58-paginacion-catalogo.md](inc-58-paginacion-catalogo.md) |
+| **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ⏳ Planificado | [inc-59-filtros-y-tamano-mesa.md](inc-59-filtros-y-tamano-mesa.md) |
+| **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ⏳ Planificado | [inc-60-navegacion-movil.md](inc-60-navegacion-movil.md) |
+| **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ⏳ Planificado | [inc-61-menu-de-cuenta.md](inc-61-menu-de-cuenta.md) |
+| **INC-62** | Preferencias de Usuario: Tema y País | ⏳ Planificado | [inc-62-preferencias-usuario.md](inc-62-preferencias-usuario.md) |
+| **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ⏳ Planificado | [inc-63-conexiones-oauth.md](inc-63-conexiones-oauth.md) |
+| **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ Planificado | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
+| **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |
+| **INC-66** | Fundas de Cartas: Calidad de Datos y Enlaces de Compra | ⏳ Planificado | [inc-66-fundas-cartas.md](inc-66-fundas-cartas.md) |
+| **INC-67** | Gamificación: Hitos y Logros del Jugador | ⏳ Planificado | [inc-67-hitos-y-logros.md](inc-67-hitos-y-logros.md) |
+| **INC-68** | Gamificación: Clasificaciones Públicas y Anonimato | ⏳ Planificado | [inc-68-clasificaciones-y-anonimato.md](inc-68-clasificaciones-y-anonimato.md) |
+
+### 🧭 Orden lógico sugerido para INC-55…INC-68
+
+Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de numeración; entre fases, respetar dependencias documentadas en cada `inc-NN-*.md`:
+
+1. **Fase A — Marca y Comunidad:** INC-55 (tagline/identidad) y INC-56 (comunidad y mecenazgo). Sin dependencias; hacerlos primero porque fijan el tono y la transparencia del resto.
+2. **Fase B — Catálogo:** INC-57 (imágenes, con diagnóstico antes de tocar nada), luego INC-58 (paginación y modos de vista) y después INC-59 (filtros avanzados y tamaño en mesa), que se apoya en la paginación y comparte el estado de URL.
+3. **Fase C — Móvil:** INC-60 (barra inferior y safe-area). Requiere decidir destinos con INC-61 en el horizonte.
+4. **Fase D — Cuenta (tras INC-50):** INC-61 (menú de cabecera), INC-62 (preferencias), INC-63 (conexiones OAuth) e INC-64 (acceso por correo). INC-61 cuelga del hub de INC-50; INC-63/64 deben resolverse juntas para fijar la frontera correo vs OAuth.
+5. **Fase E — Comunidad y Compra:** INC-65 («me gusta») y INC-66 (fundas). INC-66 alinea su afiliación con lo decidido en INC-56.
+6. **Fase F — Gamificación:** INC-67 (hitos) y, al final del backlog, INC-68 (clasificaciones y anonimato). INC-68 consume las señales de INC-65/67 y debe ser el último por su riesgo de privacidad.
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -100,6 +124,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
 *(INC-50 entregó la puerta de acceso en la cabecera en MainLayout.razor, el hub centralizado /cuenta con inventario de secciones, la ruta canónica /cuenta/ludoteca con alias permanente /mi-ludoteca, la navegación compartida AccountSectionNav y la preservación interactiva de ReturnUrl con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23.)*
+
+*(INC-55 entregó la retirada del antiguo claim informal con marcas ajenas de todas las superficies vivas y la adopción del nuevo lema oficial («Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.»), verificado con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23 tras el merge del PR #102).*
 
 *(INC-56 entregó la visibilidad de los canales de comunidad Discord y Telegram y la vía de mecenazgo voluntario en Ko-fi en MainLayout.razor y Transparency.razor, junto con el soporte oficial de Amazon en AffiliateOptions y appsettings.json, verificado con 1.646 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23).*
 
