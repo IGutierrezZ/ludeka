@@ -1,3 +1,4 @@
+@page "/cuenta/ludoteca"
 @page "/mi-ludoteca"
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
@@ -16,6 +17,8 @@
 <PageTitle>Mi Ludoteca Personal — Ludeka</PageTitle>
 
 <div class="container-ludeka py-8 space-y-8">
+    <AccountSectionNav Active="ludoteca" />
+
     @* Cabecera de la sección *@
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
         <div>
@@ -959,6 +962,14 @@
     private IReadOnlyList<PriceDropAlertDto>? _wantToBuyAlerts;
     private Dictionary<Guid, PriceDropAlertDto> _alertsByGameId = new();
 
+    /// <summary>
+    /// Deep-link de código cerrado desde el hub /cuenta (INC-50, diseño §D1): `?seccion=apariencia`
+    /// abre la pestaña Apariencia &amp; País. Cualquier otro valor o ausencia conserva el
+    /// comportamiento actual (pestaña por defecto).
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "seccion")]
+    public string? Seccion { get; set; }
+
     /// <summary>Indica si hay sesión iniciada: la ludoteca y sus preferencias la exigen (INC-46 F4).</summary>
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 
@@ -977,6 +988,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Deep-link del hub: ?seccion=apariencia ⇒ pestaña Apariencia & País (INC-50, §D1).
+        if (string.Equals(Seccion, "apariencia", StringComparison.OrdinalIgnoreCase))
+        {
+            _activeTab = TabType.Appearance;
+        }
+
         await LoadSummaryAsync();
         try
         {
