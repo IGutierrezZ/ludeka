@@ -31,7 +31,9 @@ services:
       - CommunityNotifications__TelegramBotToken=${CommunityNotifications__TelegramBotToken}
       - CommunityNotifications__TelegramChatId=${CommunityNotifications__TelegramChatId}
       - CommunityNotifications__TelegramChannelUrl=${CommunityNotifications__TelegramChannelUrl:-https://t.me/ludeka}
+      - CommunityNotifications__KofiUrl=${CommunityNotifications__KofiUrl:-https://ko-fi.com/ludeka}
       - Affiliates__Enabled=true
+      - Affiliates__Stores__Amazon__AffiliateTag=${Affiliates__Stores__Amazon__AffiliateTag:-ludeka-21}
     volumes:
       - app_logs:/app/logs
     healthcheck:

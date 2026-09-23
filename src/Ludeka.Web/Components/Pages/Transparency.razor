@@ -1,4 +1,5 @@
 @page "/transparencia"
+@inject Microsoft.Extensions.Options.IOptions<Ludeka.Application.Options.CommunityNotificationOptions> CommunityOptions
 
 <PageTitle>Manifiesto de Transparencia de Fondos — Ludeka</PageTitle>
 
@@ -81,31 +82,50 @@
         </div>
     </div>
 
-    @* Bloque de Apoyo y Discord *@
+    @* Bloque de Apoyo y Canales Comunitarios *@
     <div class="p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
         <div class="space-y-2 text-center sm:text-left">
             <h3 class="text-xl font-bold text-[var(--text-primary)]">
                 ¿Quieres apoyar el proyecto?
             </h3>
             <p class="text-xs sm:text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
-                Puedes colaborar como mecenas en Ko-fi (obtendrás la insignia dorada de <strong class="text-amber-500 font-bold">Mecenas</strong>) o unirte a nuestro Discord para debatir reglas, partidas y sugerir mejoras.
+                Puedes colaborar como mecenas en Ko-fi (obtendrás la insignia dorada de <strong class="text-amber-500 font-bold">Mecenas</strong>) o unirte a nuestros canales de Discord y Telegram para debatir reglas, partidas y sugerir mejoras.
             </p>
         </div>
 
-        <div class="flex items-center gap-3 shrink-0">
-            <a href="https://ko-fi.com"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors flex items-center gap-2 shadow-sm">
-                <Icon Name="coffee" Size="14" /> Apoyar en Ko-fi
-            </a>
+        <div class="flex items-center gap-3 shrink-0 flex-wrap justify-center sm:justify-start">
+            @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
+            {
+                <a href="@CommunityOptions.Value.KofiUrl"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   title="Apoyar el proyecto en Ko-fi"
+                   class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                    <Icon Name="coffee" Size="14" /> Apoyar en Ko-fi
+                </a>
+            }
 
-            <a href="https://discord.com"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-sm">
-                <Icon Name="message-circle" Size="14" /> Discord Oficial
-            </a>
+            @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.DiscordInviteUrl))
+            {
+                <a href="@CommunityOptions.Value.DiscordInviteUrl"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   title="Unirse al servidor oficial de Discord de Ludeka"
+                   class="px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
+                    <Icon Name="message-circle" Size="14" /> Discord Oficial
+                </a>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.TelegramChannelUrl))
+            {
+                <a href="@CommunityOptions.Value.TelegramChannelUrl"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   title="Unirse al canal oficial de Telegram de Ludeka"
+                   class="px-4 py-2.5 rounded-xl bg-[#229ED9] hover:bg-[#1e8dbf] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
+                    <Icon Name="send" Size="14" /> Canal Telegram
+                </a>
+            }
         </div>
     </div>
 </div>

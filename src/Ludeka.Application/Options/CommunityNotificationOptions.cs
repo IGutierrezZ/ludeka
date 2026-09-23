@@ -18,6 +18,9 @@ public class CommunityNotificationOptions
     public bool TelegramEnabled { get; set; } = true;
     public string TelegramChannelUrl { get; set; } = "https://t.me/ludeka";
 
+    // Ko-fi / Mecenazgo
+    public string KofiUrl { get; set; } = "https://ko-fi.com/ludeka";
+
     public bool IsDiscordConfigured => !string.IsNullOrWhiteSpace(DiscordWebhookUrl);
     public bool IsTelegramConfigured => !string.IsNullOrWhiteSpace(TelegramBotToken) && !string.IsNullOrWhiteSpace(TelegramChatId);
 }

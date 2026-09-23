@@ -53,6 +53,12 @@ public class AffiliateOptions
                 ParamName = "partner",
                 AffiliateTag = "ludeka",
                 DomainMatch = "tablerum.es"
+            },
+            ["Amazon"] = new()
+            {
+                ParamName = "tag",
+                AffiliateTag = "ludeka-21",
+                DomainMatch = "amazon.es"
             }
         };
     }
