@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.DTOs;
 
 namespace Ludeka.Application.Features.Catalog;
 
-public record CatalogResult(IReadOnlyList<GameSummaryDto> Games, int TotalCount, int Page, int PageSize);
+public record CatalogResult(IReadOnlyList<GameSummaryDto> Games, int TotalCount, int Page, int PageSize)
+{
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+}
 
 public interface ICatalogService
 {

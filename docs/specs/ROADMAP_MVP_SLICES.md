@@ -551,7 +551,7 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 58: Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista)
 - **Identificador SDD:** `change-58-paginacion-catalogo`
 - **Objetivo Principal:** Cerrar la contradicción entre el backend (que ya pagina con `Skip`/`Take` y devuelve `TotalCount`) y la UI (que muestra «solo un puñado»): paginación visible, filtros+página en URL, patrón reutilizado de `AuditLogViewer.razor` y modo de vista conmutable cuadrícula ↔ lista.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase B).
+- **Estado:** ⏳ En progreso (iniciado el 2026-09-23 en modo ODD/SDD, worktree `paginacion-catalogo`, rama `inc/paginacion-catalogo`).
 - **Documento:** [`inc-58-paginacion-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/inc-58-paginacion-catalogo.md).
 
 ---
