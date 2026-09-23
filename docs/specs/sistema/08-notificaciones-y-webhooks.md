@@ -33,3 +33,13 @@ Ubicación: [`src/Ludeka.Core/Entities/CommunityNotificationLog.cs`](file:///c:/
 2. **Boletín de Lanzamientos de Viernes:** Difusión matinal de novedades que llegan a las tiendas especializadas.
 3. **Nuevo Veredicto Fundador:** Publicación inmediata cuando la mesa fundadora califica un juego como *Imprescindible* o *Recomendado*.
 4. **Regla de Juego Aclarada:** Difusión cuando una pregunta en el consultorio Q&A recibe una respuesta oficial aceptada.
+
+---
+
+## 5. Canales Comunitarios y Vías de Apoyo (`CommunityNotificationOptions`)
+
+Además de los webhooks de salida automatizados, `CommunityNotificationOptions` centraliza las URLs públicas de presencia comunitaria y mecenazgo consumidas por la interfaz (`MainLayout.razor` y `Transparency.razor`):
+- `DiscordInviteUrl`: Invitación al servidor oficial de Discord.
+- `TelegramChannelUrl`: Enlace al canal oficial de Telegram.
+- `KofiUrl`: Enlace de mecenazgo voluntario en Ko-fi (`https://ko-fi.com/ludeka` por defecto, configurable mediante `CommunityNotifications__KofiUrl` en `docker-compose.prod.yml` o `appsettings.json`).
+

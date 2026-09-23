@@ -100,4 +100,21 @@ public class AffiliateUrlResolverTests
         var result = _resolver.ResolveAffiliateUrl("https://tiendadesconocida.com/juego.html", "Desconocida");
         Assert.Equal("https://tiendadesconocida.com/juego.html", result);
     }
+
+    [Fact]
+    public void ResolveAffiliateUrl_WhenAmazonUrlUsingDefaultRules_AppendsTagParam()
+    {
+        // INC-56: Amazon incluido por defecto en CreateDefaultRules con tag=ludeka-21
+        var defaultResolver = new AffiliateUrlResolver(Options.Create(new AffiliateOptions()));
+        var result = defaultResolver.ResolveAffiliateUrl("https://www.amazon.es/dp/B07MZT757D");
+        Assert.Equal("https://www.amazon.es/dp/B07MZT757D?tag=ludeka-21", result);
+    }
+
+    [Fact]
+    public void ResolveAffiliateUrl_WhenAmazonUrlWithQueryParamsAndHash_InjectsTagCorrectly()
+    {
+        var defaultResolver = new AffiliateUrlResolver(Options.Create(new AffiliateOptions()));
+        var result = defaultResolver.ResolveAffiliateUrl("https://www.amazon.es/dp/B07MZT757D?th=1&psc=1#customerReviews");
+        Assert.Equal("https://www.amazon.es/dp/B07MZT757D?th=1&psc=1&tag=ludeka-21#customerReviews", result);
+    }
 }

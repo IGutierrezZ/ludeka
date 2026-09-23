@@ -529,9 +529,13 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ## Incremento 56: Comunidad, Mecenazgo y Enlaces de Apoyo
 - **Identificador SDD:** `change-56-comunidad-mecenazgo`
-- **Objetivo Principal:** Hacer visibles y honestos los enlaces de comunidad (Discord/Telegram, configurados en `docker-compose.prod.yml` pero sin renderizar verificado) y el mecenazgo Ko-fi, y fijar el tag de afiliado fuera de los tests.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase A).
-- **Documento:** [`inc-56-comunidad-mecenazgo.md`](file:///c:/repos/Ludeka/docs/increments/inc-56-comunidad-mecenazgo.md).
+- **Objetivo Principal:** Visibilidad de canales de comunidad, vías de mecenazgo y consolidación del motor de afiliados:
+  1. **Vía de Mecenazgo Ko-fi:** Propiedad tipada `KofiUrl` en `CommunityNotificationOptions` (`https://ko-fi.com/ludeka` por defecto, configurable por variable de entorno `CommunityNotifications__KofiUrl`).
+  2. **Interfaz Accesible:** Botón accesible de Ko-fi en el pie de página de `MainLayout.razor` junto a Discord y Telegram; consumo reactivo de URLs dinámicas en `Transparency.razor` eliminando enlaces genéricos hardcodeados.
+  3. **Afiliación Amazon Oficial:** Soporte nativo de `Amazon` en `AffiliateOptions.CreateDefaultRules()` (`tag=ludeka-21`, dominio `amazon.es`) y en `appsettings.json` / `docker-compose.prod.yml`.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (suite completa 1.646 unitarias + 10 de integración en verde al 100%, 0 fallos).
+- **Documento:** [`inc-56-comunidad-mecenazgo.md`](../increments/archive/inc-56-comunidad-mecenazgo.md).
+- **Módulos del Sistema:** [`08-notificaciones-y-webhooks.md`](sistema/08-notificaciones-y-webhooks.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
 
 ---
 
@@ -628,6 +632,7 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 - **Objetivo Principal:** Clasificaciones de jugadores con opt-in explícito, seudónimo no derivado de la cuenta y ventana temporal, separadas del ranking de juegos (§3.2 del spec), con anti-trampas básico. Último del backlog por su riesgo de privacidad.
 - **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
 - **Documento:** [`inc-68-clasificaciones-y-anonimato.md`](file:///c:/repos/Ludeka/docs/increments/inc-68-clasificaciones-y-anonimato.md).
+>>>>>>> origin/main
 
 ---
 
