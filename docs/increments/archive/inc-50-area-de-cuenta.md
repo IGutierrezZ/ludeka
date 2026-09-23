@@ -1,7 +1,7 @@
 # INC-50: Área de Cuenta — Puerta de Acceso en la Cabecera y Hub del Usuario
 
-> **Estado:** ⏳ Planificado (detectado el 2026-09-18 durante el smoke test de INC-49)
-> **Fecha de Inicio:** pendiente
+> **Estado:** ✅ Archivado (completado y verificado el 2026-09-23)
+> **Fecha de Finalización:** 2026-09-23
 > **Rama de Trabajo:** `inc/area-de-cuenta`
 > **Worktree:** `C:\repos\ludeka-wt\area-de-cuenta`
 > **Dependencias:** INC-46 (Autenticación Real, archivado), INC-49 (Vinculación de Cuentas, archivado)
