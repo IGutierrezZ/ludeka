@@ -505,6 +505,18 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 56: Comunidad, Mecenazgo y Enlaces de Apoyo
+- **Identificador SDD:** `change-56-comunidad-mecenazgo`
+- **Objetivo Principal:** Visibilidad de canales de comunidad, vías de mecenazgo y consolidación del motor de afiliados:
+  1. **Vía de Mecenazgo Ko-fi:** Propiedad tipada `KofiUrl` en `CommunityNotificationOptions` (`https://ko-fi.com/ludeka` por defecto, configurable por variable de entorno `CommunityNotifications__KofiUrl`).
+  2. **Interfaz Accesible:** Botón accesible de Ko-fi en el pie de página de `MainLayout.razor` junto a Discord y Telegram; consumo reactivo de URLs dinámicas en `Transparency.razor` eliminando enlaces genéricos hardcodeados.
+  3. **Afiliación Amazon Oficial:** Soporte nativo de `Amazon` en `AffiliateOptions.CreateDefaultRules()` (`tag=ludeka-21`, dominio `amazon.es`) y en `appsettings.json` / `docker-compose.prod.yml`.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-23 (suite completa 1.646 unitarias + 10 de integración en verde al 100%, 0 fallos).
+- **Documento:** [`inc-56-comunidad-mecenazgo.md`](../increments/archive/inc-56-comunidad-mecenazgo.md).
+- **Módulos del Sistema:** [`08-notificaciones-y-webhooks.md`](sistema/08-notificaciones-y-webhooks.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

@@ -68,6 +68,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 | **INC-53** | Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual | ✅ Archivado | [inc-53-ingesta-masiva-autonoma-bgg.md](archive/inc-53-ingesta-masiva-autonoma-bgg.md) |
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
+| **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
 
 ## 🚨 Bloqueo de Salida a Producción
 
@@ -99,6 +100,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 *(El 2026-09-18, PR #32, se cerró el residuo de archivado SDD: `openspec/changes/` conservaba INC-40 a INC-45 sin archivar aunque ya estaban entregados y mergeados, así que el almacén canónico había dejado de ser fuente de verdad sobre qué está en curso. Los seis quedaron archivados y `gentle-ai sdd-status` devuelve `archived` para todos. La verificación contra el código real destapó tres huecos de trabajo que nunca se hizo, registrados en **INC-51**.)*
 
 *(INC-50 entregó la puerta de acceso en la cabecera en MainLayout.razor, el hub centralizado /cuenta con inventario de secciones, la ruta canónica /cuenta/ludoteca con alias permanente /mi-ludoteca, la navegación compartida AccountSectionNav y la preservación interactiva de ReturnUrl con 1.639 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23.)*
+
+*(INC-56 entregó la visibilidad de los canales de comunidad Discord y Telegram y la vía de mecenazgo voluntario en Ko-fi en MainLayout.razor y Transparency.razor, junto con el soporte oficial de Amazon en AffiliateOptions y appsettings.json, verificado con 1.646 pruebas unitarias + 10 de integración en verde, y quedó archivado el 2026-09-23).*
 
 
 

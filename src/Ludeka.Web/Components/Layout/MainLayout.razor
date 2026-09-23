@@ -267,15 +267,26 @@
                     </p>
                 </div>
 
-                @* Canales de Comunidad (Discord y Telegram) *@
+                @* Canales de Comunidad (Ko-fi, Discord y Telegram) *@
                 <div class="flex items-center gap-2.5 flex-wrap">
+                    @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
+                    {
+                        <a href="@CommunityOptions.Value.KofiUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Apoyar el proyecto en Ko-fi"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-amber-500/10 border border-[var(--border-subtle)] hover:border-amber-500/40 text-amber-500 font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                            <Icon Name="coffee" Size="14" />
+                            <span>Apoyar en Ko-fi</span>
+                        </a>
+                    }
                     @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.DiscordInviteUrl))
                     {
                         <a href="@CommunityOptions.Value.DiscordInviteUrl"
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Unirse al servidor oficial de Discord de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#5865F2]/10 border border-[var(--border-subtle)] hover:border-[#5865F2]/40 text-[#5865F2] font-bold text-xs transition-all shadow-sm">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#5865F2]/10 border border-[var(--border-subtle)] hover:border-[#5865F2]/40 text-[#5865F2] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
                             <Icon Name="message-circle" Size="14" />
                             <span>Comunidad Discord</span>
                         </a>
@@ -286,7 +297,7 @@
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Unirse al canal oficial de Telegram de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#229ED9]/10 border border-[var(--border-subtle)] hover:border-[#229ED9]/40 text-[#229ED9] font-bold text-xs transition-all shadow-sm">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#229ED9]/10 border border-[var(--border-subtle)] hover:border-[#229ED9]/40 text-[#229ED9] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
                             <Icon Name="send" Size="14" />
                             <span>Canal Telegram</span>
                         </a>

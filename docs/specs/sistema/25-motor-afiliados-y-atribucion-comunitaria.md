@@ -1,8 +1,8 @@
 # 25. Motor de Afiliados, Atribución BGG, Comunidad y Modo Producción de APIs
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`)  
-> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs` (866 pruebas en verde en la suite global).
+> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`) e INC-56 (`comunidad-mecenazgo`)  
+> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs` (1.646 pruebas unitarias + 10 de integración en verde en la suite global).
 
 ---
 
@@ -10,8 +10,8 @@
 
 El objetivo primordial de este módulo es preparar a Ludeka para su salida a producción en entorno real (Docker sobre Google Cloud con base de datos en Supabase), garantizando:
 1. **Veracidad y Cero Datos Inventados:** En modo producción (`Simulate = false`), los servicios externos (BoardGameGeek, Google Gemini y YouTube) nunca deben generar texto simulado ni datasets falsos si la API falla o la clave no está configurada; deben fallar de forma controlada y registrable en la cola de incidencias/moderación.
-2. **Atribución Legal y Comunitaria:** Cumplimiento de los términos de servicio de BGG mediante el sello oficial *"Powered by BoardGameGeek"* en el pie de página global, junto con canales directos a las comunidades oficiales de Discord y Telegram.
-3. **Monetización Ética y Privada de Afiliados:** Un motor centralizado que inyecta los tags de afiliación de tiendas colaboradoras de forma totalmente transparente para el usuario pero desacoplada de la base de datos y de los formularios de edición.
+2. **Atribución Legal y Comunitaria:** Cumplimiento de los términos de servicio de BGG mediante el sello oficial *"Powered by BoardGameGeek"* en el pie de página global, junto con canales directos a las comunidades oficiales de Discord y Telegram, y vías de mecenazgo voluntario en Ko-fi.
+3. **Monetización Ética y Privada de Afiliados:** Un motor centralizado que inyecta los tags de afiliación de tiendas colaboradoras y Amazon de forma totalmente transparente para el usuario pero desacoplada de la base de datos y de los formularios de edición.
 
 ---
 
@@ -19,7 +19,7 @@ El objetivo primordial de este módulo es preparar a Ludeka para su salida a pro
 
 ### 2.1 Principio de Privacidad y Desacople
 Los enlaces de tiendas en Ludeka (tanto para compra de juegos como para fundas/sleeves) se almacenan o resuelven como URLs limpias del producto o dominio (ej. `https://zacatrus.es/juegos-de-mesa/catan.html`).
-Los códigos de afiliado, identificadores de campaña o parámetros (`id_affiliate`, `ref`, etc.) **nunca** se introducen manualmente en cada juego ni se exponen en formularios de administración. El backend inyecta los parámetros de afiliación de forma centralizada en el momento de renderizar o resolver el enlace.
+Los códigos de afiliado, identificadores de campaña o parámetros (`id_affiliate`, `ref`, `tag`, etc.) **nunca** se introducen manualmente en cada juego ni se exponen en formularios de administración. El backend inyecta los parámetros de afiliación de forma centralizada en el momento de renderizar o resolver el enlace.
 
 ### 2.2 Contrato e Implementación
 - **Interfaz:** `Ludeka.Application.Contracts.IAffiliateUrlResolver`
@@ -42,6 +42,7 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
     - **Dungeon Marvels:** Host `dungeonmarvels.com`, Parámetros: `affiliate`
     - **Cuarto de Juegos:** Host `cuartodejuegos.es`, Parámetros: `ref`
     - **Tablerum:** Host `tablerum.es`, Parámetros: `partner`
+    - **Amazon:** Host `amazon.es`, Parámetro: `tag` (tag oficial `ludeka-21`, INC-56)
 - **Etiquetado HTML Seguro:**
   - Los componentes visuales (`StoreOffersCard.razor`, `SleeveStoreUrlResolver`) añaden siempre el atributo obligatorio:
     `rel="noopener noreferrer sponsored"`
@@ -73,15 +74,18 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
   - Insignia con icono Lucide `database` y texto:  
     *"Datos lúdicos y referencias cruzadas suministradas por BoardGameGeek bajo sus términos de uso de API."* con enlace canónico externo `rel="noopener noreferrer"`.
 
-### 4.2 Enlaces Comunitarios
+### 4.2 Enlaces Comunitarios y Vía de Mecenazgo (INC-56)
 - Propiedades en `CommunityNotificationOptions`:
   - `DiscordInviteUrl`: Enlace de invitación al servidor oficial de Discord.
   - `TelegramChannelUrl`: Enlace al canal o grupo oficial de Telegram.
-- Renderizados con iconos Lucide (`gamepad-2` para Discord, `send` para Telegram), estilos accesibles con microinteracciones de marca y apertura en pestaña segura (`target="_blank" rel="noopener noreferrer"`).
+  - `KofiUrl`: Enlace directo de apoyo voluntario en Ko-fi (`https://ko-fi.com/ludeka`).
+- Renderizados en el pie de página de `MainLayout.razor` con iconos Lucide (`coffee` en ámbar para Ko-fi, `message-circle` para Discord, `send` para Telegram), estilos accesibles con microinteracciones de marca, anillos de foco visibles (`focus-visible:ring-2`) y apertura en pestaña segura (`target="_blank" rel="noopener noreferrer"`).
+- Consumo centralizado en [`Transparency.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Transparency.razor), eliminando enlaces estáticos hardcodeados en favor de las opciones tipadas del sistema.
 
-### 4.3 Transparencia de Afiliados
+### 4.3 Transparencia de Afiliados y Mecenazgo
 - Microtexto informativo en el footer:
-  *"Algunos enlaces a tiendas lúdicas contienen códigos de afiliación que ayudan a mantener los servidores de Ludeka sin coste adicional para ti."*
+  *"Participamos en programas de afiliación de tiendas especializadas sin coste adicional para ti."*
+- Página pública de manifiesto ético en `/transparencia`, detallando los 3 pilares de reinversión (infraestructura, copias de mesa real y sorteos) y ofreciendo botones accesibles de mecenazgo y canales comunitarios.
 
 ---
 
