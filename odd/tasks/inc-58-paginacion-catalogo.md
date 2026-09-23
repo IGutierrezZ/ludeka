@@ -84,11 +84,11 @@ Hacer navegable la totalidad del catálogo lúdico de Ludeka (~8.000 títulos) m
 - [x] **ODD-4 — Pruebas de Contrato y Verificación de No-Regresión**
   - [x] 4.1 Crear `tests/Ludeka.UnitTests/Web/CatalogPaginationContractTests.cs` (15 pruebas de contrato superadas).
   - [x] 4.2 Ejecutar suite completa `dotnet test Ludeka.sln` y verificar 100% verde (1.678 pruebas totales: 1.668 unitarias + 10 de integración).
-- [ ] **ODD-5 — Especificación Viva, SDD y PR**
+- [x] **ODD-5 — Especificación Viva, SDD y PR**
   - [x] 5.1 Actualizar módulos de la especificación viva `01-catalogo-y-fichas.md` y `README.md`.
   - [x] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-  - [x] 5.3 Generar artefactos SDD en `openspec/changes/change-58-paginacion-catalogo/`.
-  - [ ] 5.4 Abrir PR a `main` con `scripts/sdd-worktree.ps1 pr paginacion-catalogo`.
+  - [x] 5.3 Generar artefactos SDD en `openspec/changes/change-58-paginacion-catalogo/` y archivar en `archive/2026-09-24-change-58-paginacion-catalogo/`.
+  - [x] 5.4 Abrir y mergear PR #106 hacia `main` (`scripts/sdd-worktree.ps1 pr paginacion-catalogo`).
 
 ---
 

@@ -1,7 +1,8 @@
 # INC-58: Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista)
 
-> **Estado:** ⏳ En progreso (iniciado el 2026-09-23 en modo ODD)
+> **Estado:** ✅ Completado y Archivado (PR #106, 2026-09-24)
 > **Fecha de Inicio:** 2026-09-23
+> **Fecha de Cierre:** 2026-09-24
 > **Rama de Trabajo:** `inc/paginacion-catalogo`
 > **Worktree:** `C:\repos\ludeka-wt\paginacion-catalogo`
 > **Dependencias:** ninguna fuerte (coordinar el estado de URL con INC-59)
