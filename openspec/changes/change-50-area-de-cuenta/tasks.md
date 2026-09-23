@@ -41,30 +41,30 @@
 
 ## Fase 3 — Puerta en cabecera (paso D4.3.3)
 
-- [ ] **3.1** Modificar `src/Ludeka.Web/Components/Layout/MainLayout.razor`: (a) botón de persona en la zona de utilidades (líneas 54-97): con sesión `href="/cuenta"` + texto `UserName`, sin sesión `href="/login"` (sin `ReturnUrl`) + texto «Entrar»; clases WCAG `sr-only sm:not-sr-only`, `focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2`, `min-h-[24px] min-w-[24px]` (D3.2-D3.4); (b) `private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);` en el `@code` existente; (c) píldora línea 94: `href="/mi-ludoteca"` → `href="/cuenta/ludoteca"`.
+- [x] **3.1** Modificar `src/Ludeka.Web/Components/Layout/MainLayout.razor`: (a) botón de persona en la zona de utilidades (líneas 54-97): con sesión `href="/cuenta"` + texto `UserName`, sin sesión `href="/login"` (sin `ReturnUrl`) + texto «Entrar»; clases WCAG `sr-only sm:not-sr-only`, `focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2`, `min-h-[24px] min-w-[24px]` (D3.2-D3.4); (b) `private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);` en el `@code` existente; (c) píldora línea 94: `href="/mi-ludoteca"` → `href="/cuenta/ludoteca"`.
   - **Ficheros:** modificar `MainLayout.razor` · **Prereq:** 2.2 (el destino `/cuenta` debe existir antes que la puerta).
   - **RED:** `dotnet test Ludeka.sln` → `HeaderGate_ShouldDistinguishSessionStatesAndLinkLogin` y `HeaderGate_ShouldMeetWcagFocusAndTargetSizeMarkers` rojos.
   - **GREEN:** markup condicional sobre la inyección ya presente `@inject ICurrentUserService CurrentUserService`; **sin tocar `ICurrentUserService`** · **Verificación:** `dotnet test Ludeka.sln --filter "FullyQualifiedName~HeaderGate_Should"` + regresión de cabecera · **Líneas:** 40-70.
 
 ## Fase 4 — ReturnUrl (paso D4.3.4)
 
-- [ ] **4.1** Modificar `src/Ludeka.Web/Components/Shared/RedirectToLogin.razor`: línea 15 → `Navigation.ToLogin();` (dentro de `if (RendererInfo.IsInteractive)`) + comentario de propósito actualizado. Reutiliza `LoginRedirect.ToLogin` (escape + guard `ResolveReturnUrl`); no se cambia la visibilidad de `ResolveReturnUrl`.
+- [x] **4.1** Modificar `src/Ludeka.Web/Components/Shared/RedirectToLogin.razor`: línea 15 → `Navigation.ToLogin();` (dentro de `if (RendererInfo.IsInteractive)`) + comentario de propósito actualizado. Reutiliza `LoginRedirect.ToLogin` (escape + guard `ResolveReturnUrl`); no se cambia la visibilidad de `ResolveReturnUrl`.
   - **Ficheros:** modificar `RedirectToLogin.razor` · **Prereq:** 1.2.
   - **RED:** `dotnet test Ludeka.sln` → `Routes_ShouldUseAuthorizeRouteViewWithRedirectToLogin` (marcador ya actualizado en 1.2) y `RedirectToLogin_ShouldPreserveReturnUrlWithLoginRedirectSemantics` en rojo.
   - **GREEN:** sustituir `NavigateTo(ExternalAuthenticationSchemes.LoginPath, forceLoad: true)` por `Navigation.ToLogin()` · **Verificación:** `dotnet test Ludeka.sln --filter "FullyQualifiedName~Routes_ShouldUseAuthorizeRouteView|FullyQualifiedName~RedirectToLogin_Should"` · **Líneas:** 5-12. **Excluido:** plumbing de `ReturnUrl` en `Login.razor`/`Program.cs` (Open Question, fuera de alcance).
 
 ## Fase 5 — Reescrituras selectivas (paso D4.3.5)
 
-- [ ] **5.1** Reescribir `href="/mi-ludoteca"` → `href="/cuenta/ludoteca"` en `src/Ludeka.Web/Components/Pages/GameDetail.razor:45` y `Radar.razor:41`. **No modificar** `PublicProfile.razor`, `manifest.webmanifest` ni `offline.html` (pines `Contains("/mi-ludoteca")` ya en verde).
+- [x] **5.1** Reescribir `href="/mi-ludoteca"` → `href="/cuenta/ludoteca"` en `src/Ludeka.Web/Components/Pages/GameDetail.razor:45` y `Radar.razor:41`. **No modificar** `PublicProfile.razor`, `manifest.webmanifest` ni `offline.html` (pines `Contains("/mi-ludoteca")` ya en verde).
   - **Ficheros:** modificar `GameDetail.razor`, `Radar.razor` · **Prereq:** 2.3.
   - **RED:** `dotnet test Ludeka.sln` → `RewrittenLinks_ShouldTargetTheAccountArea` rojo.
   - **GREEN:** dos `href` · **Verificación:** `dotnet test Ludeka.sln --filter "FullyQualifiedName~RewrittenLinks_Should|FullyQualifiedName~OutOfScopeFiles_Should"` · **Líneas:** 2-4.
 
 ## Fase 6 — GREEN global + verificación (paso D4.3.6)
 
-- [ ] **6.1** GREEN global: `dotnet test Ludeka.sln` completo ≥ **1.622 unitarias + 10 de integración** (nunca por debajo de la línea base); parar antes el servidor si quedó arrancado (`MSB3027` bloquea `bin/Debug`, INC-50 §8). Refactor solo si mantiene la suite en verde. **Prereq:** 1.1-5.1 · **Verificación:** suite completa · **Líneas:** 0.
+- [x] **6.1** GREEN global: `dotnet test Ludeka.sln` completo ≥ **1.622 unitarias + 10 de integración** (nunca por debajo de la línea base); parar antes el servidor si quedó arrancado (`MSB3027` bloquea `bin/Debug`, INC-50 §8). Refactor solo si mantiene la suite en verde. **Prereq:** 1.1-5.1 · **Verificación:** suite completa · **Líneas:** 0.
 
-- [ ] **6.2** Corregir el criterio 8 en `docs/increments/inc-50-area-de-cuenta.md`: `1.417 pruebas` → `1.622 pruebas unitarias + 10 de integración`. **Prereq:** 6.1 · **RED:** no aplica (documento); verificación: `Select-String -Pattern "1.622"` en el fichero sin resto de `1.417` · **GREEN:** criterio corregido · **Líneas:** 1-2.
+- [x] **6.2** Corregir el criterio 8 en `docs/increments/inc-50-area-de-cuenta.md`: `1.417 pruebas` → `1.622 pruebas unitarias + 10 de integración`. **Prereq:** 6.1 · **RED:** no aplica (documento); verificación: `Select-String -Pattern "1.622"` en el fichero sin resto de `1.417` · **GREEN:** criterio corregido · **Líneas:** 1-2.
 
 - [ ] **6.3** Smoke SSR de `ReturnUrl`: arrancar la app según INC-50 §8 (`ASPNETCORE_URLS="https://localhost:7291;http://localhost:5081"`, `--no-launch-profile`, sin `.claude/launch.json`); con sesión borrada pedir `https://localhost:7291/cuenta` y observar `Location: /login?ReturnUrl=%2Fcuenta`. Documentar la observación real (o la contingencia honesta si el middleware no emite challenge en SSR) en `verify-report.md`. **Prereq:** 4.1 · **Verificación:** evidencia manual documentada · **Líneas:** 0.
 

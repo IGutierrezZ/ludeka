@@ -96,7 +96,7 @@ Este documento **no** decide el diseño. Son decisiones para las fases de explor
 5. «Mi ludoteca» se alcanza desde el área de cuenta como sección.
 6. **Ninguna URL que hoy funcione deja de funcionar**, `/mi-ludoteca` incluida.
 7. WCAG 2.2 AA: el punto de entrada es accesible por teclado con foco visible, y su estado (con sesión / sin sesión) no se comunica solo por color o solo por icono.
-8. Suite completa en verde con `dotnet test Ludeka.sln`. Línea base al abrir este incremento: **1.417 pruebas**.
+8. Suite completa en verde con `dotnet test Ludeka.sln`. Línea base al abrir este incremento: **1.622 pruebas unitarias + 10 de integración**.
 
 ## 7. Riesgos
 
