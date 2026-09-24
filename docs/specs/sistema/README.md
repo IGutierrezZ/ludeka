@@ -24,14 +24,14 @@ graph TD
 - **`src/Ludeka.Infrastructure`:** Persistencia dual (SQLite con auto-migración en local / PostgreSQL Npgsql en Supabase para producción), cliente HTTP BGG XMLAPI2, webhooks de Discord/Telegram y semillado controlado.
 - **`src/Ludeka.Web`:** Interfaz Blazor Web App interactiva con Tailwind CSS, renderizado híbrido (SSR + InteractiveServer), Output Caching y componentes accesibles WCAG 2.2 AA.
 - **`src/Ludeka.Jobs`:** Host independiente de consola para Cloud Run Jobs, con resolución de trabajos por nombre, ejecución de unidades de trabajo de vida corta, observabilidad y reversión.
-- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (1.668 pruebas pasando al 100%).
-- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (10 pruebas pasando al 100%). Total verificado: 1.678 pruebas.
+- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (1.677 pruebas pasando al 100%).
+- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (10 pruebas pasando al 100%). Total verificado: 1.687 pruebas.
 
 ---
 
 ## 📂 Módulos de la Especificación del Sistema
 
-1. [**01. Catálogo y Ficha Inteligente**](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md): Agregado `Game`, ADN Lúdico, Semáforo de Escalabilidad, Guía de Fundas, Enlaces de Compra, Paginación Real (24 títulos), Modos de Vista Cuadrícula ↔ Lista y Caché de 2 Niveles (INC-58).
+1. [**01. Catálogo y Ficha Inteligente**](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md): Agregado `Game`, ADN Lúdico, Semáforo de Escalabilidad, Guía de Fundas, Enlaces de Compra, Paginación Real (24 títulos), Modos de Vista Cuadrícula ↔ Lista, Filtros Facetados (Mesa, Comensales, Duración), Chip de Espacio en Tarjeta y Caché de 2 Niveles (INC-59).
 2. [**02. Ludoteca Personal y Préstamos**](file:///c:/repos/Ludeka/docs/specs/sistema/02-ludoteca-y-prestamos.md): Colección en 4 estados, Módulo de Préstamos, Formulario de Valoración Rápida y Votación por Comensales.
 3. [**03. Mesa Fundadora y Veredictos**](file:///c:/repos/Ludeka/docs/specs/sistema/03-mesa-fundadora.md): Análisis oficial de la casa, Foco en parejas y niños, Galería de fotos reales de mesa y Sellos editoriales.
 4. [**04. Hub Multimedia**](file:///c:/repos/Ludeka/docs/specs/sistema/04-hub-multimedia.md): 4 formatos segregados (Vistazo Rápido, Tutoriales, Partidas, Redes y Reseñas), Reproductor accesible, Categorización editorial asistida por heurística semántica, Moderación directa desde la ficha y Reasignación asistida.

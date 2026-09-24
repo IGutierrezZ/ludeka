@@ -159,4 +159,42 @@ public class CachedCatalogServiceTests
         Assert.Single(res2);
         Assert.Equal(1, inner.GetQuickSearchCallCount);
     }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentFootprint_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaSmall = new GameFilterCriteria(Footprint: Ludeka.Core.Enums.TableFootprint.SmallTable);
+        var criteriaMonster = new GameFilterCriteria(Footprint: Ludeka.Core.Enums.TableFootprint.TableMonster);
+
+        // Act
+        await service.GetCatalogAsync(criteriaSmall, 1, 20);
+        await service.GetCatalogAsync(criteriaMonster, 1, 20);
+
+        // Assert: 2 distinct inner calls because footprint produces distinct cache keys
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentTypeFilter_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaBase = new GameFilterCriteria(TypeFilter: Ludeka.Core.Enums.GameType.BaseGame);
+        var criteriaExpansion = new GameFilterCriteria(TypeFilter: Ludeka.Core.Enums.GameType.Expansion);
+
+        // Act
+        await service.GetCatalogAsync(criteriaBase, 1, 20);
+        await service.GetCatalogAsync(criteriaExpansion, 1, 20);
+
+        // Assert: 2 distinct inner calls because TypeFilter produces distinct cache keys
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
 }

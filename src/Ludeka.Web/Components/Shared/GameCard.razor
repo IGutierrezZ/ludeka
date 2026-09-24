@@ -108,6 +108,25 @@
                 {
                     <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="baby" Size="12" /> @Game.CommunityAge+</span>
                 }
+
+                @switch (Game.Footprint)
+                {
+                    case TableFootprint.SmallTable:
+                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Mesa pequeña / cafetería">
+                            <Icon Name="armchair" Size="12" /> Mesa pequeña
+                        </span>
+                        break;
+                    case TableFootprint.TableMonster:
+                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Monstruo de mesa / despliegue masivo">
+                            <Icon Name="castle" Size="12" /> Mesa grande
+                        </span>
+                        break;
+                    default:
+                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Mesa de comedor estándar">
+                            <Icon Name="utensils" Size="12" /> Mesa estándar
+                        </span>
+                        break;
+                }
             </div>
         </div>
     </a>

@@ -76,7 +76,7 @@ public class CachedCatalogService : ICatalogService
 
     private static string ComputeCriteriaHash(GameFilterCriteria c)
     {
-        var raw = $"{c.SearchTerm?.Trim().ToLowerInvariant()}|{c.PlayerCount}|{c.Style}|{c.Confrontation}|{c.MaxDurationMinutes}|{c.EspecialParejas}|{c.MesaFamiliar}|{c.SoloTop}";
+        var raw = $"{c.SearchTerm?.Trim().ToLowerInvariant()}|{c.PlayerCount}|{c.Style}|{c.Confrontation}|{c.MaxDurationMinutes}|{c.EspecialParejas}|{c.MesaFamiliar}|{c.SoloTop}|{c.TypeFilter}|{c.Footprint}";
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)))[..12];
     }
 }

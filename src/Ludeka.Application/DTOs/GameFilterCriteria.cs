@@ -11,5 +11,6 @@ public record GameFilterCriteria(
     bool EspecialParejas = false,
     bool MesaFamiliar = false,
     bool SoloTop = false,
-    GameType? TypeFilter = null
+    GameType? TypeFilter = null,
+    TableFootprint? Footprint = null
 );

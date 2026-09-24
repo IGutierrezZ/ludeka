@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Ludeka.Application.DTOs;
@@ -94,6 +94,71 @@ public class SqliteGameRepositoryTests : IDisposable
         // Assert
         Assert.True(total >= 1);
         Assert.Contains(items, g => g.Slug == "los-castillos-de-borgona");
+    }
+
+    [Fact]
+    public async Task SearchAsync_Footprint_SmallTable_ShouldReturnOnlySmallTableGames()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act
+        var criteria = new GameFilterCriteria(Footprint: TableFootprint.SmallTable);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.Equal(TableFootprint.SmallTable, g.Footprint));
+    }
+
+    [Fact]
+    public async Task SearchAsync_Footprint_TableMonster_ShouldReturnOnlyTableMonsterGames()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act
+        var criteria = new GameFilterCriteria(Footprint: TableFootprint.TableMonster);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.Equal(TableFootprint.TableMonster, g.Footprint));
+    }
+
+    [Fact]
+    public async Task SearchAsync_PlayerCount_ShouldReturnGamesSupportingSpecifiedCount()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (Filtrar a 4 jugadores)
+        var criteria = new GameFilterCriteria(PlayerCount: 4);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        foreach (var game in items)
+        {
+            var match = game.Scalability.FirstOrDefault(s => s.PlayerCount == 4);
+            Assert.NotNull(match);
+            Assert.NotEqual(ScalabilityStatus.NotRecommended, match.Status);
+        }
+    }
+
+    [Fact]
+    public async Task SearchAsync_MaxDurationMinutes_ShouldReturnGamesWithinDurationLimit()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (<= 45 minutos)
+        var criteria = new GameFilterCriteria(MaxDurationMinutes: 45);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.True(g.Duration.MaxMinutes <= 45));
     }
 
     public void Dispose()
