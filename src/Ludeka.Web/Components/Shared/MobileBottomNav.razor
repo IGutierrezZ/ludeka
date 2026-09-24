@@ -1,0 +1,138 @@
+@implements IDisposable
+@using Ludeka.Application.Contracts
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
+@inject ICurrentUserService CurrentUserService
+
+@*
+    Barra de Navegación Inferior Móvil (INC-60: Mobile-First Radical).
+    Proporciona 5 destinos de primer nivel accesibles con el pulgar en resoluciones
+    móviles y tabletas (<1024px, lg:hidden).
+    Cumple con WCAG 2.2 AA (landmark nav, aria-label, aria-current, tamaño táctil >=48px)
+    y respeta env(safe-area-inset-bottom) en dispositivos con barra de inicio gestual.
+*@
+
+<nav aria-label="Navegación principal móvil"
+     class="fixed bottom-0 inset-x-0 z-40 bg-[var(--bg-nav)] backdrop-blur-md border-t border-[var(--border-subtle)] mobile-safe-bottom lg:hidden shadow-lg transition-colors select-none">
+    <div class="grid grid-cols-5 h-16 items-center px-1 max-w-lg mx-auto">
+        @* 1. Inicio *@
+        <a href="/"
+           aria-current="@(IsHomeActive ? "page" : null)"
+           title="Inicio"
+           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsHomeActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+            <Icon Name="house" Size="18" />
+            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Inicio</span>
+        </a>
+
+        @* 2. Catálogo *@
+        <a href="/catalogo"
+           aria-current="@(IsCatalogActive ? "page" : null)"
+           title="Catálogo"
+           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsCatalogActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+            <Icon Name="dices" Size="18" />
+            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Catálogo</span>
+        </a>
+
+        @* 3. Mi Ludoteca *@
+        <a href="/cuenta/ludoteca"
+           aria-current="@(IsLibraryActive ? "page" : null)"
+           title="Mi Ludoteca"
+           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsLibraryActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+            <Icon Name="library" Size="18" />
+            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Ludoteca</span>
+        </a>
+
+        @* 4. Sorteos *@
+        <a href="/sorteos"
+           aria-current="@(IsDrawsActive ? "page" : null)"
+           title="Sorteos"
+           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsDrawsActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+            <Icon Name="gift" Size="18" />
+            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Sorteos</span>
+        </a>
+
+        @* 5. Mi Cuenta / Acceso *@
+        @if (HasSession)
+        {
+            <a href="/cuenta"
+               aria-current="@(IsAccountActive ? "page" : null)"
+               title="Mi Cuenta"
+               class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsAccountActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+                <Icon Name="user" Size="18" />
+                <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Cuenta</span>
+            </a>
+        }
+        else
+        {
+            <a href="/login"
+               aria-current="@(IsAccountActive ? "page" : null)"
+               title="Iniciar sesión"
+               class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsAccountActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+                <Icon Name="user" Size="18" />
+                <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Entrar</span>
+            </a>
+        }
+    </div>
+</nav>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= HandleLocationChanged;
+    }
+
+    private string CurrentRelativePath
+    {
+        get
+        {
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+            var queryIndex = relative.IndexOf('?');
+            if (queryIndex >= 0)
+            {
+                relative = relative.Substring(0, queryIndex);
+            }
+            return relative.Trim('/');
+        }
+    }
+
+    public bool IsHomeActive => string.IsNullOrEmpty(CurrentRelativePath);
+
+    public bool IsCatalogActive =>
+        CurrentRelativePath.Equals("catalogo", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("catalogo/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("juegos", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsLibraryActive =>
+        CurrentRelativePath.Equals("cuenta/ludoteca", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("cuenta/ludoteca/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("mi-ludoteca", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("mi-ludoteca/", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsDrawsActive =>
+        CurrentRelativePath.Equals("sorteos", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("sorteos/", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsAccountActive
+    {
+        get
+        {
+            if (IsLibraryActive) return false;
+            return CurrentRelativePath.Equals("cuenta", StringComparison.OrdinalIgnoreCase) ||
+                   CurrentRelativePath.StartsWith("cuenta/", StringComparison.OrdinalIgnoreCase) ||
+                   CurrentRelativePath.Equals("login", StringComparison.OrdinalIgnoreCase) ||
+                   CurrentRelativePath.StartsWith("login/", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    public bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+}

@@ -569,8 +569,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 60: Navegación Móvil — Barra Inferior y Safe-Area
 - **Identificador SDD:** `change-60-navegacion-movil`
 - **Objetivo Principal:** Construir la navegación móvil que hoy no existe (cero matches de `BottomNav`/`safe-area`): barra inferior al alcance del pulgar con acceso a las acciones de colección, respetando `env(safe-area-inset-*)` y sin duplicar el header en escritorio.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase C).
-- **Documento:** [`inc-60-navegacion-movil.md`](file:///c:/repos/Ludeka/docs/increments/inc-60-navegacion-movil.md).
+- **Estado:** ✅ Archivado (entregado el 2026-09-24, 1.695 pruebas al 100% en verde).
+- **Documento:** [`inc-60-navegacion-movil.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-60-navegacion-movil.md).
+- **Módulos del Sistema:** [`38-navegacion-movil-y-safe-area.md`](file:///c:/repos/Ludeka/docs/specs/sistema/38-navegacion-movil-y-safe-area.md).
 
 ---
 
