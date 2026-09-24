@@ -107,6 +107,12 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             query = query.Where(g => g.Type == criteria.TypeFilter.Value);
         }
 
+        // Filtro por espacio / tamaño en mesa (INC-59)
+        if (criteria.Footprint.HasValue)
+        {
+            query = query.Where(g => g.Footprint == criteria.Footprint.Value);
+        }
+
         // Para filtros que evalúan elementos de colecciones JSON complejas en SQLite
         var list = await query.ToListAsync(ct);
 

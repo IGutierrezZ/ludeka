@@ -44,6 +44,130 @@
         </button>
     </div>
 
+    @* Barra de refinamiento facetado: Espacio en mesa, Comensales y Duración (INC-59) *@
+    <div class="mb-6 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3.5 text-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-2.5">
+            <span class="font-extrabold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Icon Name="sparkles" Size="14" />
+                <span>Refinar por mesa y partida</span>
+            </span>
+
+            @if (HasActiveRefinements)
+            {
+                <button type="button"
+                        @onclick="ResetFilters"
+                        class="text-xs font-semibold text-[var(--brand-primary)] hover:underline flex items-center gap-1 self-start sm:self-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] rounded px-1.5 py-0.5"
+                        aria-label="Restablecer todos los filtros">
+                    <Icon Name="x" Size="13" />
+                    <span>Limpiar filtros</span>
+                </button>
+            }
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @* 1. Espacio en mesa (TableFootprint) *@
+            <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por tamaño en mesa">
+                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Icon Name="armchair" Size="13" />
+                    <span>Tamaño en mesa</span>
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button"
+                            class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprint == null ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetFootprint(null)"
+                            aria-label="Cualquier tamaño en mesa"
+                            aria-pressed="@(_selectedFootprint == null ? "true" : "false")">
+                        Cualquiera
+                    </button>
+                    <button type="button"
+                            class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprint == TableFootprint.SmallTable ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetFootprint(TableFootprint.SmallTable)"
+                            aria-label="Mesa pequeña o cafetería"
+                            aria-pressed="@(_selectedFootprint == TableFootprint.SmallTable ? "true" : "false")"
+                            title="Despliegue compacto sin tableros masivos">
+                        <Icon Name="armchair" Size="12" />
+                        <span>Mesa pequeña</span>
+                    </button>
+                    <button type="button"
+                            class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprint == TableFootprint.StandardTable ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetFootprint(TableFootprint.StandardTable)"
+                            aria-label="Mesa de comedor estándar"
+                            aria-pressed="@(_selectedFootprint == TableFootprint.StandardTable ? "true" : "false")"
+                            title="Espacio suficiente para tablero central y personales">
+                        <Icon Name="utensils" Size="12" />
+                        <span>Estándar</span>
+                    </button>
+                    <button type="button"
+                            class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprint == TableFootprint.TableMonster ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetFootprint(TableFootprint.TableMonster)"
+                            aria-label="Monstruo de mesa o despliegue masivo"
+                            aria-pressed="@(_selectedFootprint == TableFootprint.TableMonster ? "true" : "false")"
+                            title="Requiere mesa amplia para reservas, mercados y áreas masivas">
+                        <Icon Name="castle" Size="12" />
+                        <span>Mesa grande</span>
+                    </button>
+                </div>
+            </div>
+
+            @* 2. Número de comensales (PlayerCount) *@
+            <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por número de jugadores">
+                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Icon Name="users" Size="13" />
+                    <span>Jugadores en mesa</span>
+                </span>
+                <div class="flex items-center gap-1 flex-wrap">
+                    <button type="button"
+                            class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedPlayerCount == null ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetPlayerCount(null)"
+                            aria-label="Cualquier número de jugadores"
+                            aria-pressed="@(_selectedPlayerCount == null ? "true" : "false")">
+                        Todos
+                    </button>
+                    @foreach (var count in new[] { 1, 2, 3, 4, 5, 6, 7 })
+                    {
+                        var c = count;
+                        var label = c >= 7 ? "7+" : c.ToString();
+                        <button type="button"
+                                class="w-8 py-1.5 rounded-lg border text-xs font-semibold text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedPlayerCount == c ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetPlayerCount(c)"
+                                aria-label="@(c >= 7 ? "7 o más jugadores" : $"{c} jugadores")"
+                                aria-pressed="@(_selectedPlayerCount == c ? "true" : "false")">
+                            @label
+                        </button>
+                    }
+                </div>
+            </div>
+
+            @* 3. Duración máxima (MaxDurationMinutes) *@
+            <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por duración máxima">
+                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Icon Name="timer" Size="13" />
+                    <span>Duración máxima</span>
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button"
+                            class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedMaxDuration == null ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                            @onclick="() => SetMaxDuration(null)"
+                            aria-label="Cualquier duración de partida"
+                            aria-pressed="@(_selectedMaxDuration == null ? "true" : "false")">
+                        Cualquiera
+                    </button>
+                    @foreach (var dur in new[] { 30, 45, 60, 90, 120 })
+                    {
+                        var d = dur;
+                        <button type="button"
+                                class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedMaxDuration == d ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetMaxDuration(d)"
+                                aria-label="Hasta @d minutos"
+                                aria-pressed="@(_selectedMaxDuration == d ? "true" : "false")">
+                            &le; @(d)'
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
     @* Barra de estado de resultados y selector conmutable de modo de vista *@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-[var(--border-subtle)] text-xs">
         <div class="text-[var(--text-muted)] flex items-center gap-2">
@@ -163,6 +287,9 @@
     private enum Preset { Todos, JuegosBase, Expansiones, EspecialParejas, MesaFamiliar, SoloTop, PartidasRapidas }
 
     private Preset _activePreset = Preset.Todos;
+    private TableFootprint? _selectedFootprint = null;
+    private int? _selectedPlayerCount = null;
+    private int? _selectedMaxDuration = null;
     private string _searchTerm = string.Empty;
     private bool _isLoading = true;
     private int _totalCount = 0;
@@ -172,6 +299,13 @@
     private string _viewMode = "grid";
     private bool _isInternalNavigation = false;
     private IReadOnlyList<GameSummaryDto> _games = [];
+
+    private bool HasActiveRefinements =>
+        _selectedFootprint.HasValue ||
+        _selectedPlayerCount.HasValue ||
+        _selectedMaxDuration.HasValue ||
+        _activePreset != Preset.Todos ||
+        !string.IsNullOrWhiteSpace(_searchTerm);
 
     protected override async Task OnInitializedAsync()
     {
@@ -264,6 +398,47 @@
         {
             _activePreset = Preset.Todos;
         }
+
+        if (query.TryGetValue("mesa", out var mesaVal))
+        {
+            _selectedFootprint = mesaVal.ToString().ToLowerInvariant() switch
+            {
+                "pequena" or "small" => TableFootprint.SmallTable,
+                "estandar" or "standard" => TableFootprint.StandardTable,
+                "monstruo" or "monster" or "grande" => TableFootprint.TableMonster,
+                _ => null
+            };
+        }
+        else
+        {
+            _selectedFootprint = null;
+        }
+
+        if (query.TryGetValue("jugadores", out var jVal) && int.TryParse(jVal, out var jNum) && jNum >= 1)
+        {
+            _selectedPlayerCount = jNum;
+        }
+        else if (query.TryGetValue("players", out var pCountVal) && int.TryParse(pCountVal, out var pCountNum) && pCountNum >= 1)
+        {
+            _selectedPlayerCount = pCountNum;
+        }
+        else
+        {
+            _selectedPlayerCount = null;
+        }
+
+        if (query.TryGetValue("duracion", out var dVal) && int.TryParse(dVal, out var dNum) && dNum > 0)
+        {
+            _selectedMaxDuration = dNum;
+        }
+        else if (query.TryGetValue("duration", out var durVal2) && int.TryParse(durVal2, out var durNum2) && durNum2 > 0)
+        {
+            _selectedMaxDuration = durNum2;
+        }
+        else
+        {
+            _selectedMaxDuration = null;
+        }
     }
 
     private void SyncUrl()
@@ -305,6 +480,26 @@
             case Preset.PartidasRapidas:
                 queryParams["rapidas"] = "1";
                 break;
+        }
+
+        if (_selectedFootprint.HasValue)
+        {
+            queryParams["mesa"] = _selectedFootprint.Value switch
+            {
+                TableFootprint.SmallTable => "pequena",
+                TableFootprint.TableMonster => "monstruo",
+                _ => "estandar"
+            };
+        }
+
+        if (_selectedPlayerCount.HasValue)
+        {
+            queryParams["jugadores"] = _selectedPlayerCount.Value.ToString();
+        }
+
+        if (_selectedMaxDuration.HasValue)
+        {
+            queryParams["duracion"] = _selectedMaxDuration.Value.ToString();
         }
 
         var targetUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/catalogo", queryParams);
@@ -366,9 +561,39 @@
         }
     }
 
+    private async Task SetFootprint(TableFootprint? footprint)
+    {
+        if (_selectedFootprint == footprint) return;
+        _selectedFootprint = footprint;
+        _currentPage = 1;
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
+    private async Task SetPlayerCount(int? count)
+    {
+        if (_selectedPlayerCount == count) return;
+        _selectedPlayerCount = count;
+        _currentPage = 1;
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
+    private async Task SetMaxDuration(int? minutes)
+    {
+        if (_selectedMaxDuration == minutes) return;
+        _selectedMaxDuration = minutes;
+        _currentPage = 1;
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
     private async Task ResetFilters()
     {
         _activePreset = Preset.Todos;
+        _selectedFootprint = null;
+        _selectedPlayerCount = null;
+        _selectedMaxDuration = null;
         _searchTerm = string.Empty;
         _currentPage = 1;
         SyncUrl();
@@ -389,10 +614,12 @@
 
         var criteria = new GameFilterCriteria(
             SearchTerm: _searchTerm,
+            PlayerCount: _selectedPlayerCount,
+            Footprint: _selectedFootprint,
+            MaxDurationMinutes: _selectedMaxDuration ?? (_activePreset == Preset.PartidasRapidas ? 45 : null),
             EspecialParejas: _activePreset == Preset.EspecialParejas,
             MesaFamiliar: _activePreset == Preset.MesaFamiliar,
             SoloTop: _activePreset == Preset.SoloTop,
-            MaxDurationMinutes: _activePreset == Preset.PartidasRapidas ? 45 : null,
             TypeFilter: typeFilter
         );
 
