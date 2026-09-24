@@ -99,7 +99,7 @@ Tras auditar exhaustivamente `GameFilterCriteria`, `SqliteGameRepository`, `Cach
 - [x] **ODD-5 — Especificación Viva, SDD y PR**
   - [x] 5.1 Actualizar especificación viva `01-catalogo-y-fichas.md` y `README.md`.
   - [x] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-  - [ ] 5.3 Abrir PR hacia `main` (`scripts/sdd-worktree.ps1 pr filtros-y-tamano-mesa`).
+  - [x] 5.3 Abrir y fusionar PR #108 hacia `main` (commit c53b9d1) y archivar incremento.
 
 ---
 

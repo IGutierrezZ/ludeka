@@ -560,8 +560,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 59: Filtros del Catálogo y Tamaño en Mesa
 - **Identificador SDD:** `change-59-filtros-y-tamano-mesa`
 - **Objetivo Principal:** Auditar filtro a filtro `GameFilterCriteria` (conectado en UI vs roto) y exponer `TableFootprint` (ya en el dominio) junto a jugadores y `PlayingTimeMinutes`, para responder «¿me cabe en la mesa?».
-- **Estado:** ⏳ En progreso (backlog 2026-09-22, Fase B).
-- **Documento:** [`inc-59-filtros-y-tamano-mesa.md`](file:///c:/repos/Ludeka/docs/increments/inc-59-filtros-y-tamano-mesa.md).
+- **Estado:** ✅ Archivado (entregado el 2026-09-24, PR #108, 1.687 pruebas).
+- **Documento:** [`inc-59-filtros-y-tamano-mesa.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-59-filtros-y-tamano-mesa.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md).
 
 ---
 
