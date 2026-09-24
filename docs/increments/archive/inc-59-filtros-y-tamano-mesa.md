@@ -1,11 +1,11 @@
 # INC-59: Filtros del Catálogo y Tamaño en Mesa
 
-> **Estado:** ⏳ En progreso (backlog 2026-09-22, Fase B)
-> **Fecha de Inicio:** 2026-09-24
+> **Estado:** ✅ Archivado (entregado el 2026-09-24, PR #108, 1.687 pruebas al 100% en verde)
+> **Fecha de Inicio:** 2026-09-24 · **Fecha de Cierre:** 2026-09-24
 > **Rama de Trabajo:** `inc/filtros-y-tamano-mesa`
 > **Worktree:** `C:\repos\ludeka-wt\filtros-y-tamano-mesa`
 > **Dependencias:** ninguna fuerte (coordinar el estado de URL con INC-58)
-> **Especificación Viva:** [01. Catálogo y Fichas](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md) · [09. Filtros y Exploración](file:///c:/repos/Ludeka/docs/specs/sistema/09-filtros-y-exploracion.md)
+> **Especificación Viva:** [01. Catálogo y Fichas](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md)
 
 ---
 

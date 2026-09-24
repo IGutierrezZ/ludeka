@@ -72,7 +72,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-56** | Comunidad, Mecenazgo y Enlaces de Apoyo | ✅ Archivado | [inc-56-comunidad-mecenazgo.md](archive/inc-56-comunidad-mecenazgo.md) |
 | **INC-57** | Diagnóstico y Optimización de Imágenes del Catálogo | ✅ Archivado | [inc-57-imagenes-catalogo.md](archive/inc-57-imagenes-catalogo.md) |
 | **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ✅ Archivado | [inc-58-paginacion-catalogo.md](archive/inc-58-paginacion-catalogo.md) |
-| **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ⏳ En progreso | [inc-59-filtros-y-tamano-mesa.md](inc-59-filtros-y-tamano-mesa.md) |
+| **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ✅ Archivado | [inc-59-filtros-y-tamano-mesa.md](archive/inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ⏳ Planificado | [inc-60-navegacion-movil.md](inc-60-navegacion-movil.md) |
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ⏳ Planificado | [inc-61-menu-de-cuenta.md](inc-61-menu-de-cuenta.md) |
 | **INC-62** | Preferencias de Usuario: Tema y País | ⏳ Planificado | [inc-62-preferencias-usuario.md](inc-62-preferencias-usuario.md) |
