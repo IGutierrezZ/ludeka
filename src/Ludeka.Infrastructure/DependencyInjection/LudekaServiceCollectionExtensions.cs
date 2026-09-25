@@ -95,6 +95,11 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IExternalLoginService, ExternalLoginService>();
         services.AddScoped<IAccountConnectionsService, AccountConnectionsService>();
 
+        // Incremento 64: acceso por correo mediante Magic Link.
+        services.Configure<MagicLinkOptions>(configuration.GetSection(MagicLinkOptions.SectionName));
+        services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
+        services.AddScoped<IEmailSender, DevelopmentEmailSender>();
+
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
         // Caché Nivel 1 (Aplicación en Memoria) y Decorador del Catálogo

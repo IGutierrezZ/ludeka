@@ -996,6 +996,27 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("DataProtectionKeys");
             }
+
+            // 29. Crear tabla MagicLinkTokens si no existe (INC-64: Acceso por Correo con Magic Link)
+            if (!existingTables.Contains("MagicLinkTokens"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "MagicLinkTokens" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_MagicLinkTokens" PRIMARY KEY,
+                        "Email" TEXT NOT NULL,
+                        "TokenHash" TEXT NOT NULL,
+                        "CreatedAt" TEXT NOT NULL,
+                        "ExpiresAt" TEXT NOT NULL,
+                        "ConsumedAt" TEXT NULL,
+                        "TargetUserId" TEXT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_MagicLinkTokens_TokenHash" ON "MagicLinkTokens" ("TokenHash");
+                    CREATE INDEX IF NOT EXISTS "IX_MagicLinkTokens_Email_CreatedAt" ON "MagicLinkTokens" ("Email", "CreatedAt");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("MagicLinkTokens");
+            }
         }
         finally
         {
