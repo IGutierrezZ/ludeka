@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,4 +13,5 @@ public interface IUserReviewRepository
     Task<double?> GetAverageScoreByGameIdAsync(Guid gameId, CancellationToken cancellationToken = default);
     Task AddAsync(UserGameReview review, CancellationToken cancellationToken = default);
     Task UpdateAsync(UserGameReview review, CancellationToken cancellationToken = default);
+    Task<int> GetCountByUserIdAsync(string userId, CancellationToken cancellationToken = default);
 }

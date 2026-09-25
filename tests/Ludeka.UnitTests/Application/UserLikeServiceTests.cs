@@ -49,6 +49,9 @@ public class UserLikeServiceTests
             return Task.FromResult(liked);
         }
 
+        public Task<int> GetLikesGivenCountByUserAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult(_likes.Count(l => l.UserId == userId));
+
         public Task<bool> ToggleLikeAsync(Guid userId, LikeTargetType targetType, Guid targetId, CancellationToken ct = default)
         {
             var key = (userId, targetType, targetId);

@@ -80,12 +80,12 @@ Reconocer el progreso y la vivencia lúdica del jugador en Ludeka mediante un si
   - [x] 2.3 Implementar `SqliteUserMilestoneRepository` y configurar entidad en `LudekaDbContext`.
   - [x] 2.4 Actualizar `SqliteSchemaMigrator.cs` y `supabase_schema.sql` con la creación de la tabla `UserMilestones` y sus índices.
   - [x] 2.5 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.833 pruebas unitarias verdes.
-- [ ] **ODD-3 — Lógica de Aplicación (`Ludeka.Application`): Evaluación e Idempotencia**
-  - [ ] 3.1 Tests en `MilestoneServiceTests.cs` (RED): evaluación de condiciones de desbloqueo, preservación de fecha original en llamadas sucesivas, retorno de progreso ordenado.
-  - [ ] 3.2 DTOs de transporte (`MilestoneDto`, `UserMilestoneProgressDto`) e interfaz `IMilestoneService`.
-  - [ ] 3.3 Implementar `MilestoneService`: evaluar reglas cruzando `IUserCollectionRepository`, `IGamePlayLogRepository`, `IUserReviewRepository`, `IUserLikeRepository`, `IGameLoanRepository`.
-  - [ ] 3.4 Convivencia armoniosa con `UserLibraryStatsService` y DI en `DependencyInjection.cs`.
-  - [ ] 3.5 Verificación en verde (GREEN) y refactorización (REFACTOR).
+- [x] **ODD-3 — Lógica de Aplicación (`Ludeka.Application`): Evaluación e Idempotencia**
+  - [x] 3.1 Tests en `MilestoneServiceTests.cs` (RED): evaluación de condiciones de desbloqueo, preservación de fecha original en llamadas sucesivas, retorno de progreso ordenado.
+  - [x] 3.2 DTOs de transporte (`MilestoneDto`, `UserMilestoneProgressDto`) e interfaz `IMilestoneService`.
+  - [x] 3.3 Implementar `MilestoneService`: evaluar reglas cruzando `IUserCollectionRepository`, `IGamePlayLogRepository`, `IUserReviewRepository`, `IUserLikeRepository`, `IGameLoanRepository`.
+  - [x] 3.4 Convivencia armoniosa con `UserLibraryStatsService` y DI en `DependencyInjection.cs`.
+  - [x] 3.5 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.839 pruebas unitarias verdes.
 - [ ] **ODD-4 — Presentación Editorial (`Ludeka.Web`): Vitrina de Hitos y Logros**
   - [ ] 4.1 Tests en `MilestonesCardTests.cs` (RED): renderizado de hitos desbloqueados con fecha, hitos pendientes con silueta/bloqueo accesible y porcentaje de progreso.
   - [ ] 4.2 Crear componente `MilestonesCard.razor` con estilo editorial hogareño de Ludeka (WCAG 2.2 AA).

@@ -65,4 +65,11 @@ public class SqliteUserReviewRepository : DbContextRepositoryBase, IUserReviewRe
         scope.Context.Reviews.Update(review);
         await scope.Context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<int> GetCountByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return 0;
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        return await scope.Context.Reviews.CountAsync(r => r.UserId == userId.Trim(), cancellationToken);
+    }
 }
