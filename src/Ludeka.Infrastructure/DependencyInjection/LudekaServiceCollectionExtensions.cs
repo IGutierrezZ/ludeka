@@ -99,6 +99,7 @@ public static class LudekaServiceCollectionExtensions
         services.Configure<MagicLinkOptions>(configuration.GetSection(MagicLinkOptions.SectionName));
         services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
         services.AddScoped<IEmailSender, DevelopmentEmailSender>();
+        services.AddScoped<IMagicLinkService, MagicLinkService>();
 
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
