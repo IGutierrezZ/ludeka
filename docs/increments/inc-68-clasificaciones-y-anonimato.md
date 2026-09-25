@@ -58,6 +58,6 @@ Recompensas a los primeros puestos, clasificaciones por país/torneos, y pondera
 - [x] **Tarea 2 (Contratos y DTOs)**: DTOs `LeaderboardEntryDto`, `MonthlyLeaderboardDto`, `LeaderboardParticipationDto` y contrato `ILeaderboardService` en `Ludeka.Application`.
 - [x] **Tarea 3 (Servicio de Clasificación y Repositorio)**: Implementar `LeaderboardService` con filtrado estricto por opt-in, cálculo mensual por `GamePlayLog`, condecoración de hitos INC-67, anonimización rigurosa, soporte en `SqliteUserPreferenceService` y suite de pruebas unitarias.
 - [x] **Tarea 4 (Persistencia EF Core)**: Migración `AddLeaderboardPreferences`, snapshot del modelo y sincronización de migración defensiva para SQLite/PostgreSQL.
-- [ ] **Tarea 5 (UI de Ajustes de Privacidad)**: Integrar controles de opt-in, anonimato y seudónimo en `AccountPrivacy.razor` con pruebas bUnit.
+- [x] **Tarea 5 (UI de Ajustes de Privacidad)**: Integrar controles de opt-in, anonimato y seudónimo en `AccountPrivacy.razor` con pruebas bUnit / de contrato.
 - [ ] **Tarea 6 (UI de Clasificación Pública)**: Crear página `/clasificaciones` (`Leaderboards.razor`) con navegación mensual, podio editorial, tabla accesible y transparencia de privacidad, con pruebas bUnit y enlace en comunidad.
 - [ ] **Tarea 7 (Cierre y Documentación Viva)**: Verificación completa de suite, redacción de `docs/specs/sistema/43-clasificaciones-y-anonimato.md`, archivo del incremento y preparación de PR.
