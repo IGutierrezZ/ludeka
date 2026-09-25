@@ -45,4 +45,9 @@ public interface IUserPreferenceService
     /// Establece si el perfil público del usuario está oculto o visible.
     /// </summary>
     Task SetPublicProfileHiddenAsync(string userId, bool hide, CancellationToken ct = default);
+
+    /// <summary>
+    /// Guarda o actualiza las preferencias de participación y anonimato en clasificaciones públicas.
+    /// </summary>
+    Task SetLeaderboardPreferencesAsync(string userId, bool optIn, bool anonymous, string? pseudonym = null, CancellationToken ct = default);
 }

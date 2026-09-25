@@ -55,7 +55,7 @@ Recompensas a los primeros puestos, clasificaciones por país/torneos, y pondera
 ## 8. Plan de Tareas ODD (Work Units)
 
 - [x] **Tarea 1 (Dominio)**: Extender `UserPreference` con `LeaderboardOptIn`, `LeaderboardAnonymous`, `LeaderboardPseudonym` y crear generador determinista no reversible `PseudonymGenerator` con validaciones anti-PII y pruebas unitarias.
-- [ ] **Tarea 2 (Contratos y DTOs)**: DTOs `LeaderboardEntryDto`, `MonthlyLeaderboardDto`, `LeaderboardParticipationDto` y contrato `ILeaderboardService` en `Ludeka.Application`.
+- [x] **Tarea 2 (Contratos y DTOs)**: DTOs `LeaderboardEntryDto`, `MonthlyLeaderboardDto`, `LeaderboardParticipationDto` y contrato `ILeaderboardService` en `Ludeka.Application`.
 - [ ] **Tarea 3 (Servicio de Clasificación y Repositorio)**: Implementar `LeaderboardService` con filtrado estricto por opt-in, cálculo mensual por `GamePlayLog`, condecoración de hitos INC-67, anonimización rigurosa, soporte en `SqliteUserPreferenceService` y suite de pruebas unitarias.
 - [ ] **Tarea 4 (Persistencia EF Core)**: Migración `AddLeaderboardPreferences`, snapshot del modelo y sincronización de migración defensiva para SQLite/PostgreSQL.
 - [ ] **Tarea 5 (UI de Ajustes de Privacidad)**: Integrar controles de opt-in, anonimato y seudónimo en `AccountPrivacy.razor` con pruebas bUnit.
