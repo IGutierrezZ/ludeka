@@ -1,0 +1,250 @@
+@page "/cuenta/apariencia"
+@attribute [Authorize]
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.Entities
+@inject IUserPreferenceService PreferenceService
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Apariencia y Estilo Visual | Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 max-w-3xl mx-auto space-y-6">
+    <AccountSectionNav Active="apariencia" />
+
+    <header class="space-y-2 border-b border-[var(--border-subtle)] pb-6">
+        <div class="badge-pill mb-2 px-3 py-1 text-xs font-bold">
+            <Icon Name="palette" Size="14" />
+            <span>Ajustes de Cuenta</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-2.5">
+            <Icon Name="palette" Size="28" />
+            <span>Apariencia & Estilo Visual</span>
+        </h1>
+        <p class="text-sm text-[var(--text-secondary)]">
+            Personaliza los colores de Ludeka para tu usuario (<strong class="text-[var(--text-primary)]">@CurrentUserService.UserName</strong>). Tu selección se aplica al instante y se conserva en todos tus dispositivos.
+        </p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_saveMessage))
+    {
+        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-3 text-xs shadow-sm animate-fade-in" role="status">
+            <Icon Name="circle-check" Size="16" />
+            <span>@_saveMessage</span>
+        </div>
+    }
+
+    <div class="space-y-4">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] px-1">
+            Paletas de Color Disponibles
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @* 1. Papel & Tinta *@
+            <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_currentTheme == "editorial" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")"
+                 @onclick='() => SelectThemeAsync("editorial")'>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="book-open" Size="18" />
+                            <h3 class="text-sm font-black text-[var(--text-primary)]">Papel & Tinta</h3>
+                        </div>
+                        @if (_currentTheme == "editorial")
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Editorial Claro. Inspirado en libros, reglamentos impresos y fanzines. Fondo blanco roto de máxima legibilidad y tinta oscura.
+                    </p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #F8F7F4;" title="Fondo Papel (#F8F7F4)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #FFFFFF;" title="Superficie (#FFFFFF)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #B8432F;" title="Tinta Roja (#B8432F)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #121417;" title="Texto (#121417)"></span>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_currentTheme == "editorial" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
+                        @(_currentTheme == "editorial" ? "En uso" : "Aplicar")
+                    </button>
+                </div>
+            </div>
+
+            @* 2. Madera Clara *@
+            <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_currentTheme == "wood" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")"
+                 @onclick='() => SelectThemeAsync("wood")'>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="tree-pine" Size="18" />
+                            <h3 class="text-sm font-black text-[var(--text-primary)]">Madera Clara</h3>
+                        </div>
+                        @if (_currentTheme == "wood")
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Arce & Haya Lúdica. Inspirado en mesas nórdicas de juego y componentes de madera noble clara. Cálido, luminoso y acogedor.
+                    </p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #F5EFEB;" title="Fondo Madera Clara (#F5EFEB)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #FAF6F1;" title="Superficie (#FAF6F1)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #B85323;" title="Acento Ámbar Tostado (#B85323)"></span>
+                        <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #2D2118;" title="Texto Nogal Oscuro (#2D2118)"></span>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_currentTheme == "wood" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
+                        @(_currentTheme == "wood" ? "En uso" : "Aplicar")
+                    </button>
+                </div>
+            </div>
+
+            @* 3. Mesa Cálida *@
+            <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_currentTheme == "tabletop" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")"
+                 @onclick='() => SelectThemeAsync("tabletop")'>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="dices" Size="18" />
+                            <h3 class="text-sm font-black text-[var(--text-primary)]">Mesa Cálida</h3>
+                        </div>
+                        @if (_currentTheme == "tabletop")
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Madera Espresso & Tapete. Tono de mesa nocturna en club de juegos. Marrones chocolate profundo y texto pergamino cálido.
+                    </p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #1A1412;" title="Fondo Espresso (#1A1412)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #28201B;" title="Superficie (#28201B)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #D97736;" title="Acento Caramelo (#D97736)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #F7EFE6;" title="Texto Crema (#F7EFE6)"></span>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_currentTheme == "tabletop" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
+                        @(_currentTheme == "tabletop" ? "En uso" : "Aplicar")
+                    </button>
+                </div>
+            </div>
+
+            @* 4. Azul Medianoche *@
+            <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_currentTheme == "midnight" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")"
+                 @onclick='() => SelectThemeAsync("midnight")'>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="moon-star" Size="18" />
+                            <h3 class="text-sm font-black text-[var(--text-primary)]">Azul Medianoche</h3>
+                        </div>
+                        @if (_currentTheme == "midnight")
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Cian & Lima Digital. Alto contraste sobre azul espacial profundo. Ideal para sesiones nocturnas con aire contemporáneo.
+                    </p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #090E1A;" title="Fondo Marino (#090E1A)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #121C34;" title="Superficie (#121C34)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #06B6D4;" title="Acento Cian (#06B6D4)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #F1F5F9;" title="Texto Blanco Hielo (#F1F5F9)"></span>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_currentTheme == "midnight" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
+                        @(_currentTheme == "midnight" ? "En uso" : "Aplicar")
+                    </button>
+                </div>
+            </div>
+
+            @* 5. Carbón Oscuro *@
+            <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_currentTheme == "charcoal" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")"
+                 @onclick='() => SelectThemeAsync("charcoal")'>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="moon" Size="18" />
+                            <h3 class="text-sm font-black text-[var(--text-primary)]">Carbón Oscuro</h3>
+                        </div>
+                        @if (_currentTheme == "charcoal")
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Terracota & Pizarra. La estética insignia de Ludeka. Sobriedad, elegancia y acento naranja cálido.
+                    </p>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #14181C;" title="Fondo Carbón (#14181C)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #1F262D;" title="Superficie (#1F262D)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #E05A38;" title="Acento Terracota (#E05A38)"></span>
+                        <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #FFFFFF;" title="Texto Blanco (#FFFFFF)"></span>
+                    </div>
+                    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_currentTheme == "charcoal" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
+                        @(_currentTheme == "charcoal" ? "En uso" : "Aplicar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _currentTheme = "charcoal";
+    private string? _saveMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _currentTheme = await PreferenceService.GetUserThemeAsync(CurrentUserService.UserId);
+        }
+        catch
+        {
+            _currentTheme = "charcoal";
+        }
+    }
+
+    private async Task SelectThemeAsync(string rawTheme)
+    {
+        string theme = UserPreference.NormalizeTheme(rawTheme);
+        _currentTheme = theme;
+        _saveMessage = null;
+
+        try
+        {
+            await JS.InvokeVoidAsync("setLudekaTheme", theme, CurrentUserService.UserId);
+            await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
+            _saveMessage = $"Tema '{GetThemeDisplayName(theme)}' guardado correctamente.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _saveMessage = $"Tema aplicado localmente: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private static string GetThemeDisplayName(string theme) => theme switch
+    {
+        "editorial" => "Papel & Tinta",
+        "wood" => "Madera Clara",
+        "tabletop" => "Mesa Cálida",
+        "midnight" => "Azul Medianoche",
+        _ => "Carbón Oscuro"
+    };
+}
