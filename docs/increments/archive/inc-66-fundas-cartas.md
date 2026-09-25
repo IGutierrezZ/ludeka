@@ -1,11 +1,12 @@
 # INC-66: Fundas de Cartas — Calidad de Datos y Enlaces de Compra
 
-> **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase E)
-> **Fecha de Inicio:** pendiente
-> **Rama de Trabajo:** `inc/fundas-cartas`
-> **Worktree:** `C:\repos\ludeka-wt\fundas-cartas`
-> **Dependencias:** INC-26 (Especificación de Fundas, archivado), INC-56 (afiliación/transparencia)
-> **Especificación Viva:** [25. Fundas (Sleeves) y Enlaces de Compra](file:///c:/repos/Ludeka/docs/specs/sistema/25-fundas-sleeves-y-enlaces-de-compra.md) · [20. Tiendas y Enlaces de Compra](file:///c:/repos/Ludeka/docs/specs/sistema/20-tiendas-y-enlaces-de-compra.md)
+> **Estado:** ✅ Archivado (entregado el 2026-09-25)  
+> **Fecha de Inicio:** 2026-09-25 · **Fecha de Cierre:** 2026-09-25  
+> **Rama de Trabajo:** `inc/fundas-cartas`  
+> **Worktree:** `C:\repos\ludeka-wt\fundas-cartas`  
+> **Pruebas Automatizadas:** 58 pruebas dedicadas de fundas (1.817 pruebas unitarias en verde en total)  
+> **Dependencias:** INC-26 (Especificación de Fundas, archivado), INC-56 (afiliación/transparencia)  
+> **Especificación Viva:** [19. Especificación de Fundas (Sleeves) y Enlaces de Compra](file:///c:/repos/Ludeka/docs/specs/sistema/19-especificacion-fundas-y-enlaces-tiendas.md)  
 
 ---
 

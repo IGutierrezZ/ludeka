@@ -623,8 +623,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 66: Fundas de Cartas — Calidad de Datos y Enlaces de Compra
 - **Identificador SDD:** `change-66-fundas-cartas`
 - **Objetivo Principal:** Acreditar la calidad del dato `boardgamecardsleeve` de BGG sobre el catálogo ingestado, validar medidas en `SleeveItem`, testear `SleeveStoreUrlResolver` por tienda y decidir Amazon con tag de afiliado (alineado con INC-56), sin fabricar medidas cuando no haya dato.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase E).
-- **Documento:** [`inc-66-fundas-cartas.md`](file:///c:/repos/Ludeka/docs/increments/inc-66-fundas-cartas.md).
+- **Estado:** ✅ Archivado (entregado el 2026-09-25, 1.817 pruebas unitarias en verde).
+- **Documento:** [`inc-66-fundas-cartas.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-66-fundas-cartas.md).
 
 ---
 

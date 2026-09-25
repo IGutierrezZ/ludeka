@@ -83,10 +83,10 @@ Acreditar y garantizar la calidad de los datos de fundas de cartas (*sleeves*) y
 - [x] **ODD-4 — UI Editorial y Estado Honesto sin Datos (`Ludeka.Web`)**
   - [x] 4.1 Tests en `Ludeka.UnitTests/Web/SleeveGuideCardTests.cs` (RED): verificar que un juego sin fundas registradas no renderiza el mensaje engañoso de "no contiene cartas" y manejo de recuento no especificado.
   - [x] 4.2 Actualizar `SleeveGuideCard.razor`: renderizar estado honesto ("Sin especificación registrada de fundas") con botón de acción al editor editorial y soporte para `HasNoCards`.
-  - [x] 4.3 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo (1.817 pruebas unitarias verdes).
-- [ ] **ODD-5 — Verificación Global, Documentación y Cierre**
-  - [ ] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test` 100% verde).
-  - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` (INC-66 pasa a completado/archivado).
-  - [ ] 5.3 Volcado a la especificación viva `docs/specs/sistema/19-especificacion-fundas-y-enlaces-tiendas.md` y actualización del índice `docs/specs/sistema/README.md`.
-  - [ ] 5.4 Mover `docs/increments/inc-66-fundas-cartas.md` a `docs/increments/archive/inc-66-fundas-cartas.md`.
-  - [ ] 5.5 Commit de cierre y resumen en Engram.
+  - [x] 4.3 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit: `a066364` (1.817 pruebas unitarias verdes).
+- [x] **ODD-5 — Verificación Global, Documentación y Cierre**
+  - [x] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test`: 1.817 superadas, 0 fallos).
+  - [x] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` (INC-66 pasa a completado/archivado).
+  - [x] 5.3 Volcado a la especificación viva `docs/specs/sistema/19-especificacion-fundas-y-enlaces-tiendas.md` y actualización del índice `docs/specs/sistema/README.md`.
+  - [x] 5.4 Mover `docs/increments/inc-66-fundas-cartas.md` a `docs/increments/archive/inc-66-fundas-cartas.md`.
+  - [x] 5.5 Commit de cierre y resumen en Engram.
