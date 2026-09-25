@@ -1,7 +1,7 @@
 # 32. Autenticación Social, Autorización por Permisos y Política de Anonimia
 
-> **Estado:** Implementado y Verificado (1.345 pruebas unitarias en verde, 0 errores, 0 omitidas)
-> **Incremento:** INC-46 (`change-46-autenticacion-real`)
+> **Estado:** Implementado y Verificado (1.701 pruebas automatizadas en verde: 1.691 unitarias + 10 de integración, 0 errores, 0 omitidas)
+> **Incremento:** INC-46 (`change-46-autenticacion-real`), INC-49 (`change-49-vinculacion-cuentas`) e INC-61 (`change-61-menu-de-cuenta`)
 > **Módulos relacionados:** [09. Arquitectura y Despliegue](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md) · [33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md)
 
 ## 1. Visión General y Propósito
@@ -49,6 +49,20 @@ Variables: `Authentication__Providers__{Google|Discord}__{Enabled|ClientId|Clien
 ```
 
 El endpoint `POST /login/external` valida antiforgery antes de leer el formulario (sin token → 400). `/healthz` y `/ready` conservan `.AllowAnonymous()`.
+
+### 2.4 Menú de Cuenta en Cabecera y Puerta de Identidad (INC-61)
+
+INC-61 sustituye el enlace plano de cabecera por el componente interactivo accesible `AccountMenu.razor` (`src/Ludeka.Web/Components/Shared/AccountMenu.razor`), satisfaciendo las directivas WCAG 2.2 AA y la composición armónica con la barra móvil (`MobileBottomNav` de INC-60):
+- **Estado con sesión:** Botón de identidad con avatar editorial (inicial en mayúscula del `UserName`), nombre visible en `sm:`, chevron indicador de menú (`chevron-down`), e indicador sutil de alerta (punto ámbar) si el correo no está verificado en `IAccountConnectionsService`.
+- **Desplegable de 6 destinos canónicos:**
+  1. Perfil Público (`/u/{UserId}`).
+  2. Área de Cuenta / Hub central (`/cuenta`, INC-50).
+  3. Mi Ludoteca (`/cuenta/ludoteca`).
+  4. Apariencia & Tema (`/cuenta/ludoteca?seccion=apariencia`).
+  5. Conexiones OAuth (`/cuenta/conexiones`), con punto de atención si el correo requiere verificación.
+  6. Cerrar Sesión (`/logout`), revocando la cookie de sesión de forma segura y reiniciando el circuito anónimo sin estado residual.
+- **Estado invitado (sin sesión):** Botón accesible a `/login` con icono `user` y etiqueta "Entrar".
+- **Interacción y accesibilidad:** Descarte con tecla `Escape` (`@onkeydown`), telón de fondo para clics exteriores, cierre automático ante cambios de ruta (`NavigationManager.LocationChanged`), y atributos semánticos `aria-expanded`, `aria-haspopup="menu"`, `role="menu"` y `role="menuitem"`.
 
 ---
 

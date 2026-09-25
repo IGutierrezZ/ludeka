@@ -90,28 +90,8 @@
                     <span class="hidden sm:inline">@(string.IsNullOrWhiteSpace(_activeCountry) ? "Global" : _activeCountry)</span>
                 </button>
 
-                @* Puerta de acceso al área de cuenta (INC-50, §D3.2-D3.4): con sesión → /cuenta
-                   con el nombre visible; sin sesión → /login (sin ReturnUrl: no hay destino
-                   privado). `sr-only sm:not-sr-only` mantiene el nombre accesible en móvil
-                   (un `hidden` lo eliminaría del árbol de accesibilidad). *@
-                @if (HasSession)
-                {
-                    <a href="/cuenta"
-                       title="Mi cuenta"
-                       class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
-                        <Icon Name="user" Size="14" />
-                        <span class="sr-only sm:not-sr-only truncate max-w-[8rem]">@CurrentUserService.UserName</span>
-                    </a>
-                }
-                else
-                {
-                    <a href="/login"
-                       title="Entrar"
-                       class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
-                        <Icon Name="user" Size="14" />
-                        <span class="sr-only sm:not-sr-only">Entrar</span>
-                    </a>
-                }
+                @* Menú de cuenta y estado de sesión en cabecera (INC-61) *@
+                <AccountMenu />
 
                 @* Acceso Mi Ludoteca *@
                 <a href="/cuenta/ludoteca" class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0">

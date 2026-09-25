@@ -48,6 +48,7 @@ else
 - **Doble estado:** Con sesión redirige al hub `/cuenta` y exhibe el nombre del usuario (`UserName`); sin sesión redirige a `/login` con el rótulo «Entrar».
 - **Sin `ReturnUrl` en la puerta pública:** Pulsar el botón de login desde la navegación pública no inyecta ningún destino privado artificial.
 - **Accesibilidad visual y semántica:** Empleo de `sr-only sm:not-sr-only` para que lectores de pantalla reciban el texto en cualquier resolución sin ocultarlo del árbol DOM, foco accesible con anillo (`focus-visible:ring-2`) y área táctil mínima de 24×24 px CSS.
+- **Evolución en INC-61 (`AccountMenu.razor`):** La puerta plana de cabecera evoluciona en el incremento INC-61 hacia un menú desplegable accesible con avatar tipográfico, indicador sutil de verificación de correo y acceso directo a los 6 destinos principales (Perfil, Hub de cuenta, Mi Ludoteca, Apariencia, Conexiones y Cerrar Sesión con invalidación segura de cookie).
 
 ---
 
