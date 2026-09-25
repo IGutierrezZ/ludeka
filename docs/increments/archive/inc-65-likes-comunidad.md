@@ -1,11 +1,12 @@
 # INC-65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos
 
-> **Estado:** ⏳ En progreso (backlog 2026-09-22, Fase E)
+> **Estado:** ✅ Archivado (1.781 tests unitarios superados al 100%)
 > **Fecha de Inicio:** 2026-09-25
+> **Fecha de Finalización:** 2026-09-25
 > **Rama de Trabajo:** `inc/likes-comunidad`
 > **Worktree:** `C:\repos\ludeka-wt\likes-comunidad`
 > **Dependencias:** INC-46 (Autenticación Real, archivado), INC-61 (menú de cuenta)
-> **Especificación Viva:** [02. Ludoteca y Préstamos](file:///c:/repos/Ludeka/docs/specs/sistema/02-ludoteca-y-prestamos.md) · [04. Hub Multimedia](file:///c:/repos/Ludeka/docs/specs/sistema/04-hub-multimedia.md)
+> **Especificación Viva:** [41. Sistema de «Me gusta» Comunitario en Directorios y Vídeos](file:///c:/repos/Ludeka/docs/specs/sistema/41-sistema-de-me-gusta-comunidad.md)
 
 ---
 
