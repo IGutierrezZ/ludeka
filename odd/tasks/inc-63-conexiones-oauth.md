@@ -81,9 +81,9 @@ Garantizar de forma verificable la vinculación multi-proveedor a una misma cuen
   - [x] 3.2 Test: Alta Discord ➔ Vincular Google ➔ Desvincular Discord ➔ ResolveAsync Google mantiene acceso.
   - [x] 3.3 Test: Prevención de duplicados cuando un proveedor ya está en uso por otra cuenta.
   - [x] 3.4 Test: Intentos de re-vinculación idempotentes.
-- [ ] **ODD-4 — Pruebas de Contrato y Regresión en Web**
+- [x] **ODD-4 — Pruebas de Contrato y Regresión en Web**
   - [x] 4.1 Actualizar `AccountConnectionsPageContractTests` con los nuevos datos visuales y botón deshabilitado.
-  - [ ] 4.2 Verificar que el manejo de errores de colisión y última cuenta sigue intacto.
+  - [x] 4.2 Verificar que el manejo de errores de colisión y última cuenta sigue intacto.
 - [ ] **ODD-5 — Sincronización Documental y Verificación Final**
   - [ ] 5.1 Suite completa de pruebas unitarias en verde (`dotnet test`).
   - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` con INC-63 en progreso.
