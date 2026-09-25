@@ -29,6 +29,26 @@ public class UserPreferenceTests
         Assert.Equal("usuario-1", pref.UserId);
         Assert.Equal("España", pref.Country);
         Assert.True(pref.HidePublicProfile);
+        Assert.False(pref.LeaderboardOptIn);
+        Assert.False(pref.LeaderboardAnonymous);
+        Assert.Null(pref.LeaderboardPseudonym);
+    }
+
+    [Fact]
+    public void SetLeaderboardPreferences_ShouldUpdateFlagsAndTimestamp()
+    {
+        // Arrange
+        var pref = new UserPreference("usuario-1", "charcoal");
+        var originalTime = pref.UpdatedAt;
+
+        // Act
+        pref.SetLeaderboardPreferences(optIn: true, anonymous: true, pseudonym: "Estratega");
+
+        // Assert
+        Assert.True(pref.LeaderboardOptIn);
+        Assert.True(pref.LeaderboardAnonymous);
+        Assert.Equal("Estratega", pref.LeaderboardPseudonym);
+        Assert.True(pref.UpdatedAt >= originalTime);
     }
 
     [Fact]
