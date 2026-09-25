@@ -40,7 +40,15 @@
         "NotRecommendedVotes": 25
       }
     ],
-    "Sleeves": [],
+    "Sleeves": [
+      {
+        "FormatName": "Mini Euro",
+        "WidthMm": 44.0,
+        "HeightMm": 68.0,
+        "CardCount": 120,
+        "AffiliateUrl": null
+      }
+    ],
     "PurchaseLinks": [
       {
         "StoreName": "Zacatrus",
@@ -2077,9 +2085,9 @@
     ],
     "Sleeves": [
       {
-        "FormatName": "Tarot",
-        "WidthMm": 70,
-        "HeightMm": 120,
+        "FormatName": "Magnum / Dixit",
+        "WidthMm": 80.0,
+        "HeightMm": 120.0,
         "CardCount": 84,
         "AffiliateUrl": null
       }

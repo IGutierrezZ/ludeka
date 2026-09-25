@@ -69,12 +69,12 @@ Acreditar y garantizar la calidad de los datos de fundas de cartas (*sleeves*) y
   - [x] 1.1 Tests en `CardSleeveDomainTests.cs` (RED): rechazo de medidas `<= 0`, medidas desproporcionadas (`> 250 mm`), `CardCount < 0` y normalización de orientación.
   - [x] 1.2 Validación en constructor de `SleeveItem` lanzando `ArgumentOutOfRangeException` / `ArgumentException`.
   - [x] 1.3 Normalización de dimensiones y coincidencia apaisada en `StandardSleeveCatalog.Matches`.
-  - [x] 1.4 Verificación en verde (GREEN) y refactorización limpia (REFACTOR). Commit de unidad de trabajo.
-- [ ] **ODD-2 — Parser BGG y Calidad de Semilla (`Ludeka.Infrastructure`)**
-  - [ ] 2.1 Tests en `BggSleeveParserTests.cs` (RED): sin cantidad inventada (`CardCount` nulo/cero o rechazo si no hay datos), rechazo de pulgadas/medidas fuera de rango.
-  - [ ] 2.2 Eliminar `count = 50` por defecto en `BggSleeveParser.cs` y validar plausibilidad de dimensiones.
-  - [ ] 2.3 Actualizar `seed-games.json`: añadir fundas de Catán (Mini Euro 44x68 mm) y corregir dimensiones de Dixit.
-  - [ ] 2.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo.
+  - [x] 1.4 Verificación en verde (GREEN) y refactorización limpia (REFACTOR). Commit: `5c00c49` (1.803 pruebas unitarias verdes).
+- [x] **ODD-2 — Parser BGG y Calidad de Semilla (`Ludeka.Infrastructure`)**
+  - [x] 2.1 Tests en `BggSleeveParserTests.cs` (RED): sin cantidad inventada (`CardCount` nulo/cero o rechazo si no hay datos), rechazo de pulgadas/medidas fuera de rango.
+  - [x] 2.2 Eliminar `count = 50` por defecto en `BggSleeveParser.cs` y validar plausibilidad de dimensiones.
+  - [x] 2.3 Actualizar `seed-games.json`: añadir fundas de Catán (Mini Euro 44x68 mm) y corregir dimensiones de Dixit.
+  - [x] 2.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo.
 - [ ] **ODD-3 — Tiendas, Amazon y Afiliación en Aplicación (`Ludeka.Application`)**
   - [ ] 3.1 Tests en `SleeveStoreUrlResolverTests.cs` (RED): resolución de Amazon con `tag=ludeka-21`, presencia de Cuarto de Juegos y Tablerum con sus parámetros correctos (`partner` / `ref`).
   - [ ] 3.2 Implementar soporte de Amazon en `SleeveStoreUrlResolver.cs`.
