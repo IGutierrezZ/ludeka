@@ -1017,6 +1017,25 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("MagicLinkTokens");
             }
+
+            // 30. Crear tabla UserLikes si no existe (INC-65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos)
+            if (!existingTables.Contains("UserLikes"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "UserLikes" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_UserLikes" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "TargetType" INTEGER NOT NULL,
+                        "TargetId" TEXT NOT NULL,
+                        "CreatedAt" TEXT NOT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserLikes_UserId_TargetType_TargetId" ON "UserLikes" ("UserId", "TargetType", "TargetId");
+                    CREATE INDEX IF NOT EXISTS "IX_UserLikes_TargetType_TargetId" ON "UserLikes" ("TargetType", "TargetId");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("UserLikes");
+            }
         }
         finally
         {

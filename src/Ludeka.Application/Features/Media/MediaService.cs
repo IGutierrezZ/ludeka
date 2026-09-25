@@ -21,6 +21,7 @@ public class MediaService : IMediaService
     private readonly ICurrentUserService? _currentUserService;
     private readonly IAuditService? _auditService;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IUserLikeRepository? _userLikeRepository;
 
     public MediaService(
         IMediaRepository mediaRepository,
@@ -28,7 +29,8 @@ public class MediaService : IMediaService
         IBrokenLinkCheckerService brokenLinkChecker,
         ICurrentUserService? currentUserService = null,
         IAuditService? auditService = null,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IUserLikeRepository? userLikeRepository = null)
     {
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
@@ -36,6 +38,7 @@ public class MediaService : IMediaService
         _currentUserService = currentUserService;
         _auditService = auditService;
         _permissionGuard = permissionGuard;
+        _userLikeRepository = userLikeRepository;
     }
 
     public async Task<GameMediaHubDto> GetGameMediaAsync(Guid gameId, CancellationToken ct = default)
@@ -43,41 +46,37 @@ public class MediaService : IMediaService
         var items = await _mediaRepository.GetApprovedByGameIdAsync(gameId, ct);
         var activeItems = items.Where(x => !x.IsBroken).ToList();
 
-        var quickOverviews = activeItems
-            .Where(x => x.Category == MediaCategory.QuickOverview || (x.Category == 0 && x.Type == MediaType.QuickOverview))
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        var likesCounts = _userLikeRepository != null && activeItems.Count > 0
+            ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.MediaItem, activeItems.Select(x => x.Id).ToList(), ct)
+            : new Dictionary<Guid, int>();
 
-        var tutorials = activeItems
-            .Where(x => x.Category == MediaCategory.Tutorial || (x.Category == 0 && x.Type == MediaType.Tutorial))
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        List<MediaItemDto> MapAndOrder(IEnumerable<MediaItem> source)
+        {
+            return source
+                .Select(x => MediaItemDto.FromDomain(x, userLikesCount: likesCounts.GetValueOrDefault(x.Id, 0)))
+                .OrderByDescending(x => x.UserLikesCount)
+                .ThenByDescending(x => x.PublishedAt)
+                .ThenBy(x => x.Title)
+                .ToList();
+        }
 
-        var playthroughs = activeItems
-            .Where(x => x.Category == MediaCategory.Gameplay || (x.Category == 0 && x.Type == MediaType.Playthrough))
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        var quickOverviews = MapAndOrder(activeItems
+            .Where(x => x.Category == MediaCategory.QuickOverview || (x.Category == 0 && x.Type == MediaType.QuickOverview)));
 
-        var instagramPosts = activeItems
-            .Where(x => x.Type == MediaType.InstagramPost)
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        var tutorials = MapAndOrder(activeItems
+            .Where(x => x.Category == MediaCategory.Tutorial || (x.Category == 0 && x.Type == MediaType.Tutorial)));
 
-        var shortReels = activeItems
-            .Where(x => x.Type == MediaType.ShortReel)
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        var playthroughs = MapAndOrder(activeItems
+            .Where(x => x.Category == MediaCategory.Gameplay || (x.Category == 0 && x.Type == MediaType.Playthrough)));
 
-        var reviewsAndOpinions = activeItems
-            .Where(x => x.Category == MediaCategory.ReviewOpinion && x.Type != MediaType.InstagramPost && x.Type != MediaType.ShortReel)
-            .OrderByDescending(x => x.PublishedAt)
-            .Select(x => MediaItemDto.FromDomain(x))
-            .ToList();
+        var instagramPosts = MapAndOrder(activeItems
+            .Where(x => x.Type == MediaType.InstagramPost));
+
+        var shortReels = MapAndOrder(activeItems
+            .Where(x => x.Type == MediaType.ShortReel));
+
+        var reviewsAndOpinions = MapAndOrder(activeItems
+            .Where(x => x.Category == MediaCategory.ReviewOpinion && x.Type != MediaType.InstagramPost && x.Type != MediaType.ShortReel));
 
         return new GameMediaHubDto(gameId, tutorials, playthroughs, instagramPosts, shortReels, quickOverviews, reviewsAndOpinions);
     }
@@ -348,6 +347,10 @@ public class MediaService : IMediaService
     private async Task<IReadOnlyList<MediaItemDto>> MapWithGameTitlesAsync(IReadOnlyList<MediaItem> items, CancellationToken ct)
     {
         var result = new List<MediaItemDto>(items.Count);
+        var likesCounts = _userLikeRepository != null && items.Count > 0
+            ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.MediaItem, items.Select(x => x.Id).ToList(), ct)
+            : new Dictionary<Guid, int>();
+
         foreach (var item in items)
         {
             string? gameTitle = null;
@@ -356,7 +359,7 @@ public class MediaService : IMediaService
                 var game = await _gameRepository.GetByIdAsync(item.GameId.Value, ct);
                 gameTitle = game?.SpanishTitle;
             }
-            result.Add(MediaItemDto.FromDomain(item, gameTitle));
+            result.Add(MediaItemDto.FromDomain(item, gameTitle, userLikesCount: likesCounts.GetValueOrDefault(item.Id, 0)));
         }
         return result;
     }

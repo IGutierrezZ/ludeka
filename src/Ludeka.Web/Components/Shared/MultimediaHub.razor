@@ -145,9 +145,12 @@
 
                             <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
                                 <div>
-                                    <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] block mb-0.5">
-                                        @video.AuthorChannel
-                                    </span>
+                                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                                            @video.AuthorChannel
+                                        </span>
+                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@video.Id" InitialLikesCount="@video.UserLikesCount" Compact="true" />
+                                    </div>
                                     <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
                                         @video.Title
                                     </h3>
@@ -224,9 +227,12 @@
 
                             <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
                                 <div>
-                                    <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] block mb-0.5">
-                                        @tutorial.AuthorChannel
-                                    </span>
+                                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                                            @tutorial.AuthorChannel
+                                        </span>
+                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@tutorial.Id" InitialLikesCount="@tutorial.UserLikesCount" Compact="true" />
+                                    </div>
                                     <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
                                         @tutorial.Title
                                     </h3>
@@ -313,9 +319,12 @@
 
                             <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
                                 <div>
-                                    <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] block mb-0.5">
-                                        @play.AuthorChannel
-                                    </span>
+                                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                                            @play.AuthorChannel
+                                        </span>
+                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@play.Id" InitialLikesCount="@play.UserLikesCount" Compact="true" />
+                                    </div>
                                     <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
                                         @play.Title
                                     </h3>
@@ -408,9 +417,12 @@
 
                                 <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
                                     <div>
-                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] block mb-0.5">
-                                            @review.AuthorChannel
-                                        </span>
+                                        <div class="flex items-center justify-between gap-2 mb-0.5">
+                                            <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                                                @review.AuthorChannel
+                                            </span>
+                                            <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@review.Id" InitialLikesCount="@review.UserLikesCount" Compact="true" />
+                                        </div>
                                         <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
                                             @review.Title
                                         </h3>

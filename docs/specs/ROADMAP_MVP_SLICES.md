@@ -614,8 +614,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos
 - **Identificador SDD:** `change-65-likes-comunidad`
 - **Objetivo Principal:** Añadir el «me gusta» de usuario (solo logueados) sobre editoriales, tiendas, creadores y vídeos multimedia —el único `LikesCount` actual es de posts Instagram—, con like idempotente, conteo, ordenación de listados y vídeos por me gusta y frontera nominal explícita con `MediaItem.LikesCount`.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase E).
-- **Documento:** [`inc-65-likes-comunidad.md`](file:///c:/repos/Ludeka/docs/increments/inc-65-likes-comunidad.md).
+- **Estado:** ✅ **Completado y Archivado** (1.781 tests unitarios en verde al 100%).
+- **Documento:** [`inc-65-likes-comunidad.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-65-likes-comunidad.md).
+- **Módulos del Sistema:** [`41-sistema-de-me-gusta-comunidad.md`](file:///c:/repos/Ludeka/docs/specs/sistema/41-sistema-de-me-gusta-comunidad.md).
 
 ---
 

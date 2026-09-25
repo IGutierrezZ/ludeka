@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
 @using Ludeka.Web.Components.Shared
 @inject ICreatorService CreatorService
 @inject IDirectorySeederService DirectorySeederService
@@ -122,6 +123,8 @@
                                     }
                                 </div>
                             </div>
+
+                            <LikeButton TargetType="LikeTargetType.Creator" TargetId="@creator.Id" InitialLikesCount="@creator.LikesCount" Compact="true" />
                         </div>
 
                         @if (!string.IsNullOrWhiteSpace(creator.Bio))

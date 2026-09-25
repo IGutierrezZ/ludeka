@@ -101,6 +101,10 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IEmailSender, DevelopmentEmailSender>();
         services.AddScoped<IMagicLinkService, MagicLinkService>();
 
+        // Incremento 65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos
+        services.AddScoped<IUserLikeRepository, SqliteUserLikeRepository>();
+        services.AddScoped<IUserLikeService, UserLikeService>();
+
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
         // Caché Nivel 1 (Aplicación en Memoria) y Decorador del Catálogo

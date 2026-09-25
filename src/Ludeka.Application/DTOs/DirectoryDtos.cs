@@ -37,7 +37,8 @@ public record PublisherDto(
     string? WebsiteUrl,
     int GamesCount,
     IReadOnlyList<SocialNetworkLinkDto> SocialLinks,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    int LikesCount = 0
 );
 
 public record PublisherDetailDto(
@@ -52,7 +53,8 @@ public record PublisherDetailDto(
     IReadOnlyList<SocialNetworkLinkDto> SocialLinks,
     IReadOnlyList<GameSummaryDto> Games,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    int LikesCount = 0
 );
 
 public record CreatePublisherDto(
@@ -87,7 +89,8 @@ public record CreatorDto(
     int? BggPersonId,
     string? WebsiteUrl,
     IReadOnlyList<SocialNetworkLinkDto> SocialLinks,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    int LikesCount = 0
 );
 
 public record CreatorDetailDto(
@@ -101,7 +104,8 @@ public record CreatorDetailDto(
     string? WebsiteUrl,
     IReadOnlyList<SocialNetworkLinkDto> SocialLinks,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    int LikesCount = 0
 );
 
 public record CreateCreatorDto(
@@ -142,7 +146,8 @@ public record StoreDto(
     int ActiveOffersCount,
     IReadOnlyList<SocialNetworkLinkDto> SocialLinks,
     DateTimeOffset CreatedAt,
-    IReadOnlyList<string>? ShippingCountries = null
+    IReadOnlyList<string>? ShippingCountries = null,
+    int LikesCount = 0
 );
 
 public record StoreDetailDto(
@@ -162,7 +167,8 @@ public record StoreDetailDto(
     IReadOnlyList<StoreGameOfferDto> Offers,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    IReadOnlyList<string>? ShippingCountries = null
+    IReadOnlyList<string>? ShippingCountries = null,
+    int LikesCount = 0
 );
 
 public record StoreGameOfferDto(

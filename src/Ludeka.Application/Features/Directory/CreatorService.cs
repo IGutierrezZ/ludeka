@@ -16,20 +16,26 @@ public class CreatorService : ICreatorService
     private readonly ICreatorRepository _creatorRepository;
     private readonly ICurrentUserService? _currentUserService;
     private readonly IAuditService? _auditService;
+    private readonly IUserLikeRepository? _userLikeRepository;
 
     public CreatorService(
         ICreatorRepository creatorRepository,
         ICurrentUserService? currentUserService = null,
-        IAuditService? auditService = null)
+        IAuditService? auditService = null,
+        IUserLikeRepository? userLikeRepository = null)
     {
         _creatorRepository = creatorRepository ?? throw new ArgumentNullException(nameof(creatorRepository));
         _currentUserService = currentUserService;
         _auditService = auditService;
+        _userLikeRepository = userLikeRepository;
     }
 
     public async Task<IReadOnlyList<CreatorDto>> GetAllAsync(string? search = null, CancellationToken ct = default)
     {
         var creators = await _creatorRepository.GetAllAsync(ct);
+        var likesCounts = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.Creator, creators.Select(c => c.Id), ct)
+            : new Dictionary<Guid, int>();
 
         var query = creators.AsEnumerable();
 
@@ -42,8 +48,9 @@ public class CreatorService : ICreatorService
         }
 
         return query
-            .OrderBy(c => c.Name)
-            .Select(MapToDto)
+            .Select(c => MapToDto(c, likesCounts.GetValueOrDefault(c.Id, 0)))
+            .OrderByDescending(c => c.LikesCount)
+            .ThenBy(c => c.Name)
             .ToList();
     }
 
@@ -54,7 +61,11 @@ public class CreatorService : ICreatorService
         var creator = await _creatorRepository.GetBySlugAsync(slug.Trim().ToLowerInvariant(), ct);
         if (creator == null) return null;
 
-        return MapToDetailDto(creator);
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Creator, creator.Id, ct)
+            : 0;
+
+        return MapToDetailDto(creator, likesCount);
     }
 
     public async Task<CreatorDetailDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -62,7 +73,11 @@ public class CreatorService : ICreatorService
         var creator = await _creatorRepository.GetByIdAsync(id, ct);
         if (creator == null) return null;
 
-        return MapToDetailDto(creator);
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Creator, creator.Id, ct)
+            : 0;
+
+        return MapToDetailDto(creator, likesCount);
     }
 
     public async Task<CreatorDto> CreateAsync(CreateCreatorDto dto, CancellationToken ct = default)
@@ -200,7 +215,7 @@ public class CreatorService : ICreatorService
         }
     }
 
-    private static CreatorDto MapToDto(Creator c)
+    private static CreatorDto MapToDto(Creator c, int likesCount = 0)
     {
         var socialDtos = c.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -215,11 +230,12 @@ public class CreatorService : ICreatorService
             c.BggPersonId,
             c.WebsiteUrl,
             socialDtos,
-            c.CreatedAt
+            c.CreatedAt,
+            likesCount
         );
     }
 
-    private static CreatorDetailDto MapToDetailDto(Creator c)
+    private static CreatorDetailDto MapToDetailDto(Creator c, int likesCount = 0)
     {
         var socialDtos = c.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -235,7 +251,8 @@ public class CreatorService : ICreatorService
             c.WebsiteUrl,
             socialDtos,
             c.CreatedAt,
-            c.UpdatedAt
+            c.UpdatedAt,
+            likesCount
         );
     }
 }

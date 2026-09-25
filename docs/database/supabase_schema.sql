@@ -1660,3 +1660,43 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925194347_AddUserLikes') THEN
+    CREATE TABLE "UserLikes" (
+        "Id" uuid NOT NULL,
+        "UserId" uuid NOT NULL,
+        "TargetType" integer NOT NULL,
+        "TargetId" uuid NOT NULL,
+        "CreatedAt" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_UserLikes" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925194347_AddUserLikes') THEN
+    CREATE INDEX "IX_UserLikes_TargetType_TargetId" ON "UserLikes" ("TargetType", "TargetId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925194347_AddUserLikes') THEN
+    CREATE UNIQUE INDEX "IX_UserLikes_UserId_TargetType_TargetId" ON "UserLikes" ("UserId", "TargetType", "TargetId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925194347_AddUserLikes') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260925194347_AddUserLikes', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+
