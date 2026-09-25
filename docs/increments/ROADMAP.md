@@ -77,7 +77,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ✅ Archivado | [inc-61-menu-de-cuenta.md](archive/inc-61-menu-de-cuenta.md) |
 | **INC-62** | Preferencias de Usuario: Tema y País | ✅ Archivado | [inc-62-preferencias-usuario.md](archive/inc-62-preferencias-usuario.md) |
 | **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ✅ Archivado | [inc-63-conexiones-oauth.md](archive/inc-63-conexiones-oauth.md) |
-| **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ En progreso | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
+| **INC-64** | Acceso por Correo con Verificación (Magic Link sin Contraseñas) | ✅ Archivado | [inc-64-acceso-por-correo.md](archive/inc-64-acceso-por-correo.md) |
 | **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |
 | **INC-66** | Fundas de Cartas: Calidad de Datos y Enlaces de Compra | ⏳ Planificado | [inc-66-fundas-cartas.md](inc-66-fundas-cartas.md) |
 | **INC-67** | Gamificación: Hitos y Logros del Jugador | ⏳ Planificado | [inc-67-hitos-y-logros.md](inc-67-hitos-y-logros.md) |
@@ -108,6 +108,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+*(INC-64 entregó su verificación con 1.756 pruebas unitarias en verde, y quedó archivado el 2026-09-25. Implementa el acceso mediante Magic Link sin contraseñas con tokens de 32 bytes de alta entropía, hash SHA-256 en BD y caducidad de 15 minutos, persistencia dual SQLite/PostgreSQL, emisor simulado DevelopmentEmailSender para desarrollo, endpoints HTTP seguros /login/magic-link y /login/magic-link/request, protección contra redirecciones abiertas, erradicación de la contradicción "sin correo de confirmación" en Login.razor y conservación de proveedores sociales).*
 
 *(INC-63 entregó su PR #113, verificada con 1.711 pruebas unitarias + 10 de integración en verde (1.721 en total), y quedó archivado el 2026-09-25. Garantiza de extremo a extremo la vinculación multi-proveedor sin duplicación de cuentas (Google + Discord), enriquece AccountConnectionDto y AccountConnectionsService con ProviderEmail y ProviderEmailVerifiedAt, deshabilita preventivamente el botón de desvinculación cuando solo resta un método de acceso único con indicativo visual accesible WCAG 2.2 AA y formaliza la suite de ciclo de vida MultiProviderLifecycleTests).*
 

@@ -1,11 +1,12 @@
 # INC-64: Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba)
 
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Fecha de Inicio:** 2026-09-25  
+> **Fecha de Finalización:** 2026-09-25  
 > **Rama de Trabajo:** `inc/acceso-por-correo`
 > **Worktree:** `C:\repos\ludeka-wt\acceso-por-correo`
 > **Dependencias:** INC-49 (política de correo ausente, archivado), INC-63 (frontera con OAuth)
-> **Especificación Viva:** [33. Vinculación de Cuentas y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md) · [36. Persistencia de Identidad](file:///c:/repos/Ludeka/docs/specs/sistema/36-persistencia-de-identidad.md)
+> **Especificación Viva:** [40. Acceso por Correo con Enlace Mágico (Magic Link)](file:///c:/repos/Ludeka/docs/specs/sistema/40-acceso-por-correo-magic-link.md) · [33. Vinculación de Cuentas y Recuperación de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/33-vinculacion-cuentas-y-recuperacion-de-acceso.md)
 
 ---
 
@@ -61,3 +62,17 @@ Primero valorar si se incluye login por email con verificación de buzón (puert
 - **Falsedad documental en UI** si el copy del login sigue prometiendo lo que no hay (el defecto B5 de INC-52 fue exactamente esto en el ROADMAP).
 - Superficie de ataque: enlaces de acceso reenviados/interceptados si la caducidad es laxa.
 - Dependencia de entregabilidad de correo (SPF/DKIM) que el proyecto aún no ha acreditado en producción.
+
+---
+
+## 8. Resultado y Verificación Final
+
+1. **Aprobación de la Puerta de Decisión:** El mantenedor aprobó expresamente la adopción del modelo **Magic Link**.
+2. **Dominio e Invariantes:** Entidad `MagicLinkToken` con tokens de 32 bytes de alta entropía, hash SHA-256 en base de datos, caducidad de 15 minutos y consumo atómico de un solo uso.
+3. **Persistencia Dual y Frescura de Esquema:** Repositorio en SQLite con reconciliación idempotente en `SqliteSchemaMigrator` (bloque 29), migración oficial de EF Core para PostgreSQL `20260925164853_AddMagicLinkTokens.cs` y volcado `supabase_schema.sql` verificado mediante `SupabaseSchemaFreshnessTests`.
+4. **Servicio y Entrega Segura:** `MagicLinkService` y emisor simulado `DevelopmentEmailSender` para pruebas locales sin costes ni servicios externos. En producción se prevé proveedor HTTP transaccional (puerto 587 / API REST) para eludir el bloqueo del puerto 25 en Google Cloud Run.
+5. **Resolución de Identidad sin Duplicados:** Vinculación directa con `AppUser` existente si el correo coincide o creación de cuenta comunitaria limpia.
+6. **Endpoints y Seguridad Web:** `POST /login/magic-link/request` y `GET /login/magic-link` con emisión de cookie `ludeka.session` y protección estricta contra redirecciones abiertas (`IsLocalUrl`).
+7. **Interfaz Accesible:** Rediseño honesto de `Login.razor` erradicando la contradicción «sin correo de confirmación», conservando proveedores sociales y ofreciendo formulario y estados WCAG 2.2 AA.
+8. **Pruebas Automatizadas:** 1.756 pruebas unitarias pasando al 100% en verde (+45 pruebas respecto a la línea base de 1.711).
+9. **Especificación del Sistema:** Documentado en detalle en el módulo vivo [40. Acceso por Correo con Enlace Mágico (Magic Link)](file:///c:/repos/Ludeka/docs/specs/sistema/40-acceso-por-correo-magic-link.md).

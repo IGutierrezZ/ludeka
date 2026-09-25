@@ -65,38 +65,44 @@ Evaluar e implantar el acceso por correo mediante **Magic Link** (enlace de un s
   - [x] 1.1 Documentar valoración arquitectónica (Magic Link vs Contraseña vs Descarte).
   - [x] 1.2 Obtener decisión explícita del mantenedor (Aprobado: Magic Link).
   - [x] 1.3 Registrar decisión en Engram persistent memory.
-- [ ] **ODD-2 — Dominio y Contratos de Aplicación (`Ludeka.Core` y `Ludeka.Application`)**
-  - [ ] 2.1 Entidad `MagicLinkToken` en `Ludeka.Core.Entities`.
-  - [ ] 2.2 Interfaz `IMagicLinkTokenRepository` en `Ludeka.Application.Contracts`.
-  - [ ] 2.3 Interfaz `IEmailSender` y `IMagicLinkService` en `Ludeka.Application.Contracts`.
-  - [ ] 2.4 DTOs y opciones `MagicLinkOptions` en `Ludeka.Application.Features.Identity`.
-  - [ ] 2.5 Pruebas unitarias de dominio en `Ludeka.UnitTests/Domain/MagicLinkTokenTests.cs`.
-- [ ] **ODD-3 — Persistencia e Infraestructura (`Ludeka.Infrastructure`)**
-  - [ ] 3.1 Mapeo de `MagicLinkToken` en `LudekaDbContext`.
-  - [ ] 3.2 Repositorio `SqliteMagicLinkTokenRepository`.
-  - [ ] 3.3 Reconciliador de esquema SQLite en `SqliteSchemaMigrator.cs`.
-  - [ ] 3.4 Migración EF Core para PostgreSQL en `Ludeka.Infrastructure/Migrations`.
-  - [ ] 3.5 Implementación `DevelopmentEmailSender` en `Ludeka.Infrastructure`.
-  - [ ] 3.6 Pruebas de repositorio en `Ludeka.UnitTests/Infrastructure/MagicLinkTokenRepositoryTests.cs`.
-- [ ] **ODD-4 — Servicio de Aplicación e Integración de Identidad (`Ludeka.Application`)**
-  - [ ] 4.1 Implementar `MagicLinkService` (generación segura, hashing SHA-256, verificación, resolución/creación de `AppUser`).
-  - [ ] 4.2 Registro de servicios en DI (`AddLudekaApplicationCore` / `AddLudekaInfrastructure`).
-  - [ ] 4.3 Pruebas unitarias de servicio en `Ludeka.UnitTests/Application/MagicLinkServiceTests.cs`.
-- [ ] **ODD-5 — Endpoints HTTP y UI en `Login.razor` (`Ludeka.Web`)**
-  - [ ] 5.1 Endpoints `POST /login/magic-link/request` y `GET /login/magic-link` en `Program.cs`.
-  - [ ] 5.2 Emisión de cookie de sesión `ExternalAuthenticationSchemes.SessionCookieScheme`.
-  - [ ] 5.3 Actualización de `Login.razor` (formulario de email, estados de envío, soporte de avisos de enlace expirado/inválido).
-  - [ ] 5.4 Actualización de `AccountConnectionMessages` o avisos de login.
-  - [ ] 5.5 Pruebas de contrato web en `Ludeka.UnitTests/Web/LoginContractTests.cs` y `MagicLinkEndpointsTests.cs`.
-- [ ] **ODD-6 — Verificación Final y Sincronización Documental**
-  - [ ] 6.1 Suite completa de pruebas unitarias en verde (`dotnet test`).
-  - [ ] 6.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-  - [ ] 6.3 Actualizar `docs/increments/inc-64-acceso-por-correo.md`.
-  - [ ] 6.4 Volcado a la especificación viva `docs/specs/sistema/`.
-  - [ ] 6.5 Cierre de memoria en Engram con `mem_session_summary`.
+- [x] **ODD-2 — Dominio y Contratos de Aplicación (`Ludeka.Core` y `Ludeka.Application`)**
+  - [x] 2.1 Entidad `MagicLinkToken` en `Ludeka.Core.Entities`.
+  - [x] 2.2 Interfaz `IMagicLinkTokenRepository` en `Ludeka.Application.Contracts`.
+  - [x] 2.3 Interfaz `IEmailSender` y `IMagicLinkService` en `Ludeka.Application.Contracts`.
+  - [x] 2.4 DTOs y opciones `MagicLinkOptions` en `Ludeka.Application.Features.Identity`.
+  - [x] 2.5 Pruebas unitarias de dominio en `Ludeka.UnitTests/Domain/MagicLinkTokenTests.cs`.
+- [x] **ODD-3 — Persistencia e Infraestructura (`Ludeka.Infrastructure`)**
+  - [x] 3.1 Mapeo de `MagicLinkToken` en `LudekaDbContext`.
+  - [x] 3.2 Repositorio `SqliteMagicLinkTokenRepository` / `MagicLinkTokenRepository`.
+  - [x] 3.3 Reconciliador de esquema SQLite en `SqliteSchemaMigrator.cs` (bloque 29).
+  - [x] 3.4 Migración EF Core para PostgreSQL en `20260925164853_AddMagicLinkTokens.cs`.
+  - [x] 3.5 Implementación `DevelopmentEmailSender` en `Ludeka.Infrastructure`.
+  - [x] 3.6 Pruebas de repositorio en `Ludeka.UnitTests/Infrastructure/MagicLinkTokenRepositoryTests.cs`.
+  - [x] 3.7 Verificación de frescura de esquema de Supabase (`docs/database/supabase_schema.sql`).
+- [x] **ODD-4 — Servicio de Aplicación e Integración de Identidad (`Ludeka.Application`)**
+  - [x] 4.1 Implementar `MagicLinkService` (generación segura, hashing SHA-256, verificación, resolución/creación de `AppUser`).
+  - [x] 4.2 Registro de servicios en DI (`AddLudekaApplicationCore` / `AddLudekaInfrastructure`).
+  - [x] 4.3 Pruebas unitarias de servicio en `Ludeka.UnitTests/Application/MagicLinkServiceTests.cs`.
+- [x] **ODD-5 — Endpoints HTTP y UI en `Login.razor` (`Ludeka.Web`)**
+  - [x] 5.1 Endpoints `POST /login/magic-link/request` y `GET /login/magic-link` en `Program.cs`.
+  - [x] 5.2 Emisión de cookie de sesión `ExternalAuthenticationSchemes.SessionCookieScheme`.
+  - [x] 5.3 Actualización de `Login.razor` (formulario de email, estados de envío, soporte de avisos de enlace expirado/inválido).
+  - [x] 5.4 Actualización de `AccountConnectionMessages` y códigos cerrados de `LoginRedirect`.
+  - [x] 5.5 Pruebas de contrato web en `Ludeka.UnitTests/Web/LoginContractTests.cs` y `LoginRedirectTests.cs`.
+- [x] **ODD-6 — Verificación Final y Sincronización Documental**
+  - [x] 6.1 Suite completa de pruebas unitarias en verde (`dotnet test`: 1.756 superadas, 0 fallos).
+  - [x] 6.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
+  - [x] 6.3 Archivar documento de incremento a `docs/increments/archive/inc-64-acceso-por-correo.md`.
+  - [x] 6.4 Volcado a la especificación viva `docs/specs/sistema/40-acceso-por-correo-magic-link.md` y `README.md`.
+  - [x] 6.5 Cierre de memoria en Engram con `mem_session_summary`.
 
 ---
 
 ## 5. Registro de Commits por Unidad de Trabajo
 
 1. `6d52373` — `docs(odd): iniciar inc-64 y registrar plan de tareas de acceso por correo`
+2. `77121c8` — `docs(odd): detallar tareas ODD para acceso por correo con Magic Link tras aprobacion`
+3. `c1139a5` — `feat(identity): add MagicLinkToken domain entity and application contracts`
+4. `488ec44` — `feat(infrastructure): implement MagicLinkToken persistence, migrations, and DevelopmentEmailSender`
+5. `5a9d728` — `feat(identity): implement MagicLinkService with secure token generation, verification, and tests`
+6. `33f5a8b` — `feat(web): add magic link request and verify endpoints and interactive login UI`
