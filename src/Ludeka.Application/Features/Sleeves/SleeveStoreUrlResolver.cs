@@ -46,6 +46,10 @@ public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
         {
             rawUrl = $"https://tablerum.es/buscar?q=fundas+{dimensionQuery}";
         }
+        else if (normalizedStore.Contains("amazon"))
+        {
+            rawUrl = $"https://www.amazon.es/s?k=fundas+{dimensionQuery}";
+        }
         else
         {
             // Fallback genérico a búsqueda
@@ -58,7 +62,24 @@ public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
         }
 
         // Fallback heredado directo si no hay resolver configurado
-        return rawUrl.Contains('?') ? $"{rawUrl}&ref={tag}" : $"{rawUrl}?ref={tag}";
+        string paramName = "ref";
+        string effectiveTag = tag;
+
+        if (normalizedStore.Contains("tablerum"))
+        {
+            paramName = "partner";
+        }
+        else if (normalizedStore.Contains("amazon"))
+        {
+            paramName = "tag";
+            if (string.Equals(tag, DefaultAffiliateTag, StringComparison.OrdinalIgnoreCase))
+            {
+                effectiveTag = "ludeka-21";
+            }
+        }
+
+        var separator = rawUrl.Contains('?') ? "&" : "?";
+        return $"{rawUrl}{separator}{paramName}={effectiveTag}";
     }
 
     public IReadOnlyList<SleevePurchaseOptionDto> ResolvePurchaseOptions(SleeveItem sleeve, string? userCountry = null)
@@ -109,6 +130,33 @@ public class SleeveStoreUrlResolver : ISleeveStoreUrlResolver
                 ShippingCountries = new[] { "España", "Portugal" },
                 Badge = "Gran Variedad",
                 Price = "~2,80 € (pack)"
+            },
+            new
+            {
+                Name = "Cuarto de Juegos",
+                Logo = "/images/stores/cuarto-de-juegos.png",
+                Country = "España",
+                ShippingCountries = new[] { "España", "Portugal" },
+                Badge = "Especialistas",
+                Price = "~2,90 € (pack)"
+            },
+            new
+            {
+                Name = "Tablerum",
+                Logo = "/images/stores/tablerum.png",
+                Country = "España",
+                ShippingCountries = new[] { "España", "Portugal" },
+                Badge = "Gran Catálogo",
+                Price = "~2,85 € (pack)"
+            },
+            new
+            {
+                Name = "Amazon",
+                Logo = "/images/stores/amazon.png",
+                Country = "España",
+                ShippingCountries = new[] { "España", "Portugal", "Internacional" },
+                Badge = "Prime / Rápido",
+                Price = "Ver opciones"
             }
         };
 

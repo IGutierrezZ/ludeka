@@ -8,9 +8,9 @@ namespace Ludeka.UnitTests.Infrastructure;
 public class BggSleeveParserTests
 {
     [Theory]
-    [InlineData("Standard: 63.5 x 88 mm", 63.5, 88.0, 50, "Standard Card Game")]
+    [InlineData("Standard: 63.5 x 88 mm", 63.5, 88.0, 0, "Standard Card Game")]
     [InlineData("Chimera 57 x 89 mm (110 cards)", 57.0, 89.0, 110, "Chimera / USA")]
-    [InlineData("Mini European: 44x68mm", 44.0, 68.0, 50, "Mini Euro")]
+    [InlineData("Mini European: 44x68mm", 44.0, 68.0, 0, "Mini Euro")]
     [InlineData("Tarot (70 x 120 mm) 84 cartas", 70.0, 120.0, 84, "Tarot Grande")]
     public void ParseSingleSleeve_ExtractsDimensionsAndQuantities(string text, double expectedW, double expectedH, int expectedQty, string expectedFormat)
     {
@@ -21,6 +21,43 @@ public class BggSleeveParserTests
         Assert.Equal(expectedH, sleeve.HeightMm);
         Assert.Equal(expectedQty, sleeve.CardCount);
         Assert.Equal(expectedFormat, sleeve.FormatName);
+    }
+
+    [Fact]
+    public void ParseSingleSleeve_ReturnsZeroCardCount_WhenNoQuantitySpecified()
+    {
+        var sleeve = BggSleeveParser.ParseSingleSleeve("Standard: 63.5 x 88 mm");
+        Assert.NotNull(sleeve);
+        Assert.Equal(0, sleeve.CardCount);
+    }
+
+    [Theory]
+    [InlineData("2.5 x 3.5")]
+    [InlineData("10 x 20 mm")]
+    [InlineData("500 x 800 mm")]
+    public void ParseSingleSleeve_ReturnsNull_WhenDimensionsArePlausibilityViolated(string text)
+    {
+        var sleeve = BggSleeveParser.ParseSingleSleeve(text);
+        Assert.Null(sleeve);
+    }
+
+    [Theory]
+    [InlineData("2.5\" x 3.5\"", true, 63.5, 88.9)]
+    [InlineData("2.5 x 3.5 inches", true, 63.5, 88.9)]
+    [InlineData("0.5\" x 1.0\"", false, 0, 0)]
+    public void ParseSingleSleeve_ConvertsInchesToMm_OrRejectsIfInvalid(string text, bool isValid, double expectedW, double expectedH)
+    {
+        var sleeve = BggSleeveParser.ParseSingleSleeve(text);
+        if (isValid)
+        {
+            Assert.NotNull(sleeve);
+            Assert.InRange(sleeve.WidthMm, expectedW - 0.1, expectedW + 0.1);
+            Assert.InRange(sleeve.HeightMm, expectedH - 0.1, expectedH + 0.1);
+        }
+        else
+        {
+            Assert.Null(sleeve);
+        }
     }
 
     [Fact]

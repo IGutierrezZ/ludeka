@@ -1,23 +1,25 @@
 # 19. Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** [INC-26 (inc-26-card-sleeves-spec-stores.md)](file:///c:/repos/Ludeka/docs/increments/archive/inc-26-card-sleeves-spec-stores.md)  
-> **Pruebas Automatizadas:** 21 pruebas dedicadas  
+> **Incrementos Asociados:** [INC-26 (inc-26-card-sleeves-spec-stores.md)](file:///c:/repos/Ludeka/docs/increments/archive/inc-26-card-sleeves-spec-stores.md) · [INC-66 (inc-66-fundas-cartas.md)](file:///c:/repos/Ludeka/docs/increments/archive/inc-66-fundas-cartas.md)  
+> **Pruebas Automatizadas:** 58 pruebas dedicadas (33 dominio + 13 parser + 7 aplicación + 5 web; 1.817 en total en la suite)  
 
 ---
 
 ## 1. Propósito y Filosofía
-El módulo **"Protege tu juego: Guía Editorial de Fundas"** resuelve de forma didáctica, precisa y no invasiva una de las preguntas esenciales de todo aficionado al adquirir un nuevo juego de mesa:  
+
+El módulo **"Protege tu juego: Guía Editorial de Fundas"** resuelve de forma didáctica, precisa, honesta y no invasiva una de las preguntas esenciales de todo aficionado al adquirir un nuevo juego de mesa:  
 *¿Qué medidas exactas tienen sus cartas, cuántos paquetes de fundas necesito comprar y dónde puedo adquirirlas directamente sin búsquedas tediosas?*
 
 El sistema proporciona:
-1. Dimensiones exactas en milímetros (`ancho x alto mm`) y recuento total de cartas por formato.
-2. Cálculo automático de paquetes requeridos en presentaciones universales de 50 y 100 fundas.
-3. Silueta gráfica proporcional de la carta en SVG/CSS con esquinas redondeadas.
-4. Píldora didáctica comparativa de micras (Standard 50-60 µm para insertos originales vs. Premium 100 µm para máxima durabilidad).
-5. Enlaces de compra contextuales y quirúrgicos a tiendas colaboradoras (Zacatrus, Dungeon Marvels, etc.) con inyección de tags de afiliado y respeto del país del usuario (`CountryCatalog` / `IUserLocationService` de INC-29).
-6. Ingesta automática desde BGG XMLAPI2 (`boardgamecardsleeve`) y catálogo maestro in-memory (`StandardSleeveCatalog`) con los 10 formatos universales del hobby.
-7. Pestaña de edición y moderación editorial en `GameEditorModal.razor` con presets rápidos y registro en la bitácora universal de auditoría (`AuditLog`).
+1. **Dimensiones milimétricas exactas e invariantes de dominio:** Validación física rigurosa (`[30.0 mm, 250.0 mm]`) y recuento no negativo de cartas.
+2. **Cálculo automático de paquetes:** Presentaciones universales de 50 y 100 fundas, con manejo pedagógico para recuentos no especificados (evitando inventar compras).
+3. **Silueta gráfica proporcional:** Representación SVG/CSS con esquinas redondeadas y relación de aspecto proporcional de la carta.
+4. **Píldora didáctica de micras:** Comparativa explicativa (Standard 50-60 µm para insertos originales vs. Premium 100 µm para máxima durabilidad).
+5. **Enlaces de compra contextuales y quirúrgicos:** Integración de tiendas colaboradoras (Zacatrus, Dungeon Marvels, Cuarto de Juegos, Tablerum y Amazon) con inyección centralizada de parámetros de afiliado (`ref`, `partner`, `tag`) y filtrado territorial por país (`CountryCatalog` / `IUserLocationService` de INC-29).
+6. **Ingesta robusta BGG XMLAPI2:** Extracción de enlaces `boardgamecardsleeve` sin inferencia inventada de 50 cartas, con soporte de conversión de unidades/pulgadas a milímetros.
+7. **Presentación honesta y sin falsos positivos en UI:** Distinción explícita en `SleeveGuideCard.razor` entre juegos sin cartas comprobados (`HasNoCards = true`) y juegos sin datos registrados de fundas (`HasNoCards = false`), ofreciendo llamada a la acción hacia el editor de fichas.
+8. **Edición y moderación editorial:** Pestaña interactiva en `GameEditorModal.razor` con presets estándar y trazabilidad en la bitácora universal de auditoría (`AuditLog`).
 
 ---
 
@@ -26,50 +28,32 @@ El sistema proporciona:
 ### 2.1 Value Object `SleeveItem`
 Ubicación: [`src/Ludeka.Core/ValueObjects/SleeveItem.cs`](file:///c:/repos/Ludeka/src/Ludeka.Core/ValueObjects/SleeveItem.cs)
 
-```csharp
-public record SleeveItem(
-    string FormatName,
-    double WidthMm,
-    double HeightMm,
-    int CardCount,
-    string? AffiliateUrl,
-    string? StoreName = null,
-    string? Country = null,
-    IReadOnlyList<string>? ShippingCountries = null)
-{
-    public int CalculatePacksNeeded(int packSize = 50) => ...;
-    public int PacksNeeded50 => CalculatePacksNeeded(50);
-    public int PacksNeeded100 => CalculatePacksNeeded(100);
-    public string DimensionText => $"{WidthMm.ToString("0.#", CultureInfo.InvariantCulture)} x {HeightMm.ToString("0.#", CultureInfo.InvariantCulture)} mm";
-    public bool ShipsTo(string? targetCountry) => ...;
-}
-```
+Record inmutable con invariantes reforzadas en constructor compacto (INC-66):
+- `FormatName`: No puede ser nulo ni estar vacío (`ArgumentException`).
+- `WidthMm` y `HeightMm`: Rango de dimensiones físicas plausibles `[30.0 mm, 250.0 mm]` (`ArgumentOutOfRangeException`).
+- `CardCount`: Debe ser `>= 0` (`ArgumentOutOfRangeException`).
+- `CalculatePacksNeeded(int packSize = 50)`: Devuelve 0 si `CardCount <= 0`.
+- `DimensionText`: Cadena formateada `{WidthMm} x {HeightMm} mm`.
+- `ShipsTo(string? targetCountry)`: Evaluación de cobertura territorial según país de la tienda o países de envío.
 
 ### 2.2 Catálogo Maestro `StandardSleeveCatalog`
 Ubicación: [`src/Ludeka.Core/ValueObjects/StandardSleeveCatalog.cs`](file:///c:/repos/Ludeka/src/Ludeka.Core/ValueObjects/StandardSleeveCatalog.cs)
 
-Define los 10 formatos canónicos del mercado:
-- **Mini USA:** 41 x 63 mm
-- **Mini Euro:** 44 x 68 mm
-- **Estándar USA:** 56 x 87 mm
-- **Chimera / USA:** 57 x 89 mm
-- **Euro Standard:** 59 x 92 mm
-- **Standard Card Game (CCG/LCG):** 63.5 x 88 mm
-- **Tarot / 7 Wonders:** 65 x 100 mm
-- **Tarot Grande:** 70 x 120 mm
-- **Cuadrada:** 70 x 70 mm
-- **Magnum / Dixit:** 80 x 120 mm
+Define los 10 formatos canónicos del mercado y normaliza orientaciones:
+- **Mini USA:** 41 x 63 mm (tolerancia 1.0 mm)
+- **Mini Euro:** 44 x 68 mm (tolerancia 1.0 mm)
+- **Estándar USA:** 56 x 87 mm (tolerancia 1.5 mm)
+- **Chimera / USA:** 57 x 89 mm (tolerancia 1.5 mm)
+- **Euro Standard:** 59 x 92 mm (tolerancia 1.5 mm)
+- **Standard Card Game (CCG/LCG):** 63.5 x 88 mm (tolerancia 1.5 mm)
+- **Tarot / 7 Wonders:** 65 x 100 mm (tolerancia 2.0 mm)
+- **Tarot Grande:** 70 x 120 mm (tolerancia 2.0 mm)
+- **Cuadrada:** 70 x 70 mm (tolerancia 2.0 mm)
+- **Magnum / Dixit:** 80 x 120 mm (tolerancia 2.0 mm)
 
-Métodos:
-- `Match(double widthMm, double heightMm)`: Coincidencia dentro de la tolerancia milimétrica (1.0 a 2.0 mm).
-- `FindByName(string name)`: Localización por texto parcial o insensible a mayúsculas.
-
-### 2.3 Métodos de Mutación en `Game`
-Ubicación: [`src/Ludeka.Core/Entities/Game.cs`](file:///c:/repos/Ludeka/src/Ludeka.Core/Entities/Game.cs)
-
-- `UpdateSleeves(IEnumerable<SleeveItem> sleeves)`
-- `AddSleeve(SleeveItem sleeve)`
-- `ClearSleeves()`
+**Mejoras de INC-66:**
+- `StandardSleeveFormat.Matches(width, height)`: Normaliza evaluando `Math.Min(w, h)` frente a `Math.Min(WidthMm, HeightMm)` y `Math.Max(w, h)` frente a `Math.Max(WidthMm, HeightMm)`, soportando cartas especificadas en apaisado sin falsos negativos.
+- `StandardSleeveCatalog.FindByName(name)`: Soporte de alias comunes del mercado (`Mini European` ➔ `Mini Euro`, `Standard European` ➔ `Euro Standard`, `Chimera Standard` ➔ `Chimera / USA`).
 
 ---
 
@@ -80,18 +64,14 @@ Ubicaciones:
 - [`src/Ludeka.Application/Contracts/ISleeveStoreUrlResolver.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/Contracts/ISleeveStoreUrlResolver.cs)
 - [`src/Ludeka.Application/Features/Sleeves/SleeveStoreUrlResolver.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Sleeves/SleeveStoreUrlResolver.cs)
 
-- Mapea dimensiones y tiendas colaboradoras:
-  - **Zacatrus:** `https://zacatrus.es/catalogsearch/result/?q=fundas+{w}x{h}&ref={tag}`
-  - **Dungeon Marvels:** `https://dungeonmarvels.com/buscar?controller=search&s=fundas+{w}x{h}&ref={tag}`
-- Integra la comprobación de envíos territoriales para excluir tiendas incompatibles con el país del usuario.
+Resuelve las opciones comerciales y enlaces directos quirúrgicos por medidas (`{width}x{height}`):
+- **Zacatrus:** `https://zacatrus.es/catalogsearch/result/?q=fundas+{w}x{h}` (`&ref=ludeka`)
+- **Dungeon Marvels:** `https://dungeonmarvels.com/buscar?controller=search&s=fundas+{w}x{h}` (`&ref=ludeka`)
+- **Cuarto de Juegos:** `https://cuartodejuegos.es/buscar?q=fundas+{w}x{h}` (`&ref=ludeka`)
+- **Tablerum:** `https://tablerum.es/buscar?q=fundas+{w}x{h}` (`&partner=ludeka`)
+- **Amazon:** `https://www.amazon.es/s?k=fundas+{w}x{h}` (`&tag=ludeka-21`)
 
-### 3.2 Extensión de `GameEditorService` y `UpdateGameDetailsCommand`
-Ubicaciones:
-- [`src/Ludeka.Application/DTOs/GameEditorDtos.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/DTOs/GameEditorDtos.cs)
-- [`src/Ludeka.Application/Features/Catalog/GameEditorService.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Catalog/GameEditorService.cs)
-
-- `UpdateGameDetailsCommand` admite `IReadOnlyList<SleeveItem>? Sleeves = null`.
-- `GameEditorService` aplica `game.UpdateSleeves` y emite `FieldChangeDto("Sleeves", ...)` hacia `GameEditLog` y `AuditLog`.
+Inyecta centralizadamente las reglas de `IAffiliateUrlResolver` (`AffiliateOptions`) y mantiene un fallback seguro con los nombres de parámetro exactos (`ref`, `partner`, `tag`).
 
 ---
 
@@ -100,26 +80,21 @@ Ubicaciones:
 ### 4.1 Parser de Fundas BGG (`BggSleeveParser`)
 Ubicación: [`src/Ludeka.Infrastructure/Bgg/BggSleeveParser.cs`](file:///c:/repos/Ludeka/src/Ludeka.Infrastructure/Bgg/BggSleeveParser.cs)
 
-- Extrae elementos `<link type="boardgamecardsleeve" ...>` desde el XML de BGG.
-- Aplica expresiones regulares para recuperar ancho, alto y cantidades.
-- Cruza automáticamente con `StandardSleeveCatalog` para asignar el nombre de formato estándar.
+- Extrae enlaces `<link type="boardgamecardsleeve" ...>` desde XML de BGG.
+- **Sin inferencia inventada (INC-66):** Si no hay atributo `qty` ni patrón textual de cartas, asigna `CardCount = 0` (desconocido) en lugar de inventar 50 cartas.
+- **Conversión de pulgadas:** Detecta comillas dobles `"` o el término `inches` en valores menores a 15 y los convierte a milímetros (`* 25.4`).
+- **Validación dimensional:** Descarta automáticamente y retorna `null` ante medidas que violen el rango `[30.0, 250.0]` mm.
 
 ---
 
 ## 5. Componentes de Interfaz de Usuario Blazor (`Ludeka.Web`)
 
-### 5.1 Ficha Pública: `SleeveGuideCard.razor`
+### 5.1 Componente `SleeveGuideCard.razor`
 Ubicación: [`src/Ludeka.Web/Components/Shared/SleeveGuideCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/SleeveGuideCard.razor)
 
-- Silueta gráfica en CSS/SVG con esquinas redondeadas y relación de aspecto proporcional.
-- Badges con formato, medidas en mm, recuento de cartas y cálculo dual de packs (50 y 100 fundas).
-- Píldora desplegable explicativa sobre el grosor en micras (Standard vs Premium).
-- Botones directos con tag de afiliado hacia Zacatrus y tiendas asociadas respetando el país activo.
-- Mensaje amigable cuando el juego no contiene cartas enfundables.
-
-### 5.2 Modal Editorial: `GameEditorModal.razor`
-Ubicación: [`src/Ludeka.Web/Components/Shared/GameEditorModal.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameEditorModal.razor)
-
-- Pestaña **"🛡️ Fundas"** con listado interactivo.
-- Selector de presets rápidos de formatos estándar.
-- Edición, adición y eliminación con validación en tiempo real.
+- **Parámetros:**
+  - `Sleeves`: Lista de especificaciones `SleeveItem`.
+  - `HasNoCards`: Indicador booleano explícito cuando el juego comprobado no contiene cartas (ej. losetas).
+  - `OnOpenEditor`: `EventCallback` para invocar el modal editorial desde el estado sin datos.
+- **Gestión pedagógica de recuento:** Si `CardCount == 0`, muestra "Recuento no especificado (consulta los componentes de tu edición)".
+- **Estado honesto sin datos:** Si no hay fundas registradas y `HasNoCards == false`, muestra banner informativo neutro con acceso directo al botón "Añadir fundas" en lugar de afirmar falsamente que el juego no tiene cartas.

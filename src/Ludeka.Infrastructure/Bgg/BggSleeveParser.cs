@@ -14,7 +14,7 @@ namespace Ludeka.Infrastructure.Bgg;
 public static class BggSleeveParser
 {
     private static readonly Regex DimensionRegex = new(
-        @"(?<width>\d+(?:[\.,]\d+)?)\s*[xX*×]\s*(?<height>\d+(?:[\.,]\d+)?)\s*(?:mm)?",
+        @"(?<width>\d+(?:[\.,]\d+)?)\s*""?\s*[xX*×]\s*(?<height>\d+(?:[\.,]\d+)?)\s*""?\s*(?:mm|inches|inch)?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex QuantityRegex = new(
@@ -75,13 +75,25 @@ public static class BggSleeveParser
 
         if (width <= 0 || height <= 0) return null;
 
+        bool hasInches = text.Contains('"') || text.Contains("inches", StringComparison.OrdinalIgnoreCase);
+        if (hasInches && width < 15.0 && height < 15.0)
+        {
+            width = Math.Round(width * 25.4, 1);
+            height = Math.Round(height * 25.4, 1);
+        }
+
         // Asegurar que ancho sea menor o igual que el alto para formato vertical estándar
         if (width > height)
         {
             (width, height) = (height, width);
         }
 
-        int count = 50; // valor por defecto si no se detecta cantidad explícita
+        if (width < 30.0 || width > 250.0 || height < 30.0 || height > 250.0)
+        {
+            return null;
+        }
+
+        int count = 0;
 
         if (!string.IsNullOrWhiteSpace(explicitQty) && int.TryParse(explicitQty, out int qty) && qty > 0)
         {

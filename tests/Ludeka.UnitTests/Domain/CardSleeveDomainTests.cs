@@ -138,4 +138,73 @@ public class CardSleeveDomainTests
         game.ClearSleeves();
         Assert.Empty(game.Sleeves);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SleeveItem_Constructor_ThrowsArgumentException_WhenFormatNameIsNullOrWhiteSpace(string? formatName)
+    {
+        Assert.Throws<ArgumentException>(() => new SleeveItem(formatName!, 63.5, 88.0, 50, null));
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-10.0)]
+    [InlineData(20.0)]
+    [InlineData(29.9)]
+    [InlineData(250.1)]
+    [InlineData(300.0)]
+    public void SleeveItem_Constructor_ThrowsArgumentOutOfRangeException_WhenWidthIsOutOfRange(double widthMm)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SleeveItem("Standard", widthMm, 88.0, 50, null));
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-10.0)]
+    [InlineData(20.0)]
+    [InlineData(29.9)]
+    [InlineData(250.1)]
+    [InlineData(300.0)]
+    public void SleeveItem_Constructor_ThrowsArgumentOutOfRangeException_WhenHeightIsOutOfRange(double heightMm)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SleeveItem("Standard", 63.5, heightMm, 50, null));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(-50)]
+    public void SleeveItem_Constructor_ThrowsArgumentOutOfRangeException_WhenCardCountIsNegative(int cardCount)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SleeveItem("Standard", 63.5, 88.0, cardCount, null));
+    }
+
+    [Fact]
+    public void StandardSleeveCatalog_MatchesAndMatch_SupportsOrientationIndependentDimensions()
+    {
+        var format = StandardSleeveCatalog.Match(88.0, 63.5);
+        Assert.NotNull(format);
+        Assert.Equal("Standard Card Game", format.Name);
+
+        Assert.True(format.Matches(88.0, 63.5));
+        Assert.True(format.Matches(63.5, 88.0));
+
+        var miniEuro = StandardSleeveCatalog.Match(68.0, 44.0);
+        Assert.NotNull(miniEuro);
+        Assert.Equal("Mini Euro", miniEuro.Name);
+        Assert.True(miniEuro.Matches(68.0, 44.0));
+    }
+
+    [Theory]
+    [InlineData("Mini European", "Mini Euro")]
+    [InlineData("mini european", "Mini Euro")]
+    [InlineData("Standard European", "Euro Standard")]
+    [InlineData("Chimera Standard", "Chimera / USA")]
+    public void StandardSleeveCatalog_FindByName_FindsCommonAliases(string alias, string expectedCanonicalName)
+    {
+        var format = StandardSleeveCatalog.FindByName(alias);
+        Assert.NotNull(format);
+        Assert.Equal(expectedCanonicalName, format.Name);
+    }
 }

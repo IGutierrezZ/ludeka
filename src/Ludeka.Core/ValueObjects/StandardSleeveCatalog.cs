@@ -20,8 +20,13 @@ public record StandardSleeveFormat(
 
     public bool Matches(double widthMm, double heightMm)
     {
-        return Math.Abs(WidthMm - widthMm) <= ToleranceMm &&
-               Math.Abs(HeightMm - heightMm) <= ToleranceMm;
+        var minGiven = Math.Min(widthMm, heightMm);
+        var maxGiven = Math.Max(widthMm, heightMm);
+        var minFormat = Math.Min(WidthMm, HeightMm);
+        var maxFormat = Math.Max(WidthMm, HeightMm);
+
+        return Math.Abs(minFormat - minGiven) <= ToleranceMm &&
+               Math.Abs(maxFormat - maxGiven) <= ToleranceMm;
     }
 }
 
@@ -30,6 +35,13 @@ public record StandardSleeveFormat(
 /// </summary>
 public static class StandardSleeveCatalog
 {
+    private static readonly Dictionary<string, string> CommonAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Mini European"] = "Mini Euro",
+        ["Standard European"] = "Euro Standard",
+        ["Chimera Standard"] = "Chimera / USA"
+    };
+
     public static readonly IReadOnlyList<StandardSleeveFormat> Formats =
     [
         new("Mini USA", 41, 63, 1.0, "Formato compacto habitual en cartas de daño, objetos y eventos", "Arkham Horror, Twilight Imperium, Star Wars: X-Wing"),
@@ -53,14 +65,35 @@ public static class StandardSleeveCatalog
     }
 
     /// <summary>
-    /// Busca un formato estándar por su nombre (búsqueda insensible a mayúsculas o coincidencia parcial).
+    /// Busca un formato estándar por su nombre (búsqueda insensible a mayúsculas, alias o coincidencia parcial).
     /// </summary>
     public static StandardSleeveFormat? FindByName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
 
-        var normalized = name.Trim().ToLowerInvariant();
+        var trimmed = name.Trim();
+
+        // 1. Coincidencia directa con alias conocido
+        if (CommonAliases.TryGetValue(trimmed, out var canonicalTarget))
+        {
+            var direct = Formats.FirstOrDefault(f => string.Equals(f.Name, canonicalTarget, StringComparison.OrdinalIgnoreCase));
+            if (direct != null) return direct;
+        }
+
+        // 2. Si el texto contiene alguno de los alias conocidos
+        foreach (var (alias, target) in CommonAliases)
+        {
+            if (trimmed.Contains(alias, StringComparison.OrdinalIgnoreCase))
+            {
+                var matched = Formats.FirstOrDefault(f => string.Equals(f.Name, target, StringComparison.OrdinalIgnoreCase));
+                if (matched != null) return matched;
+            }
+        }
+
+        // 3. Búsqueda por subcadena insensible a mayúsculas
+        var normalized = trimmed.ToLowerInvariant();
         return Formats.FirstOrDefault(f => f.Name.ToLowerInvariant().Contains(normalized) ||
                                            normalized.Contains(f.Name.ToLowerInvariant()));
     }
 }
+
