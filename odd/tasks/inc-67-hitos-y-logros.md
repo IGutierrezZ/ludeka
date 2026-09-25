@@ -69,11 +69,11 @@ Reconocer el progreso y la vivencia lúdica del jugador en Ludeka mediante un si
 
 ## 4. Checklist de Tareas (IDs Estables)
 
-- [ ] **ODD-1 — Dominio (`Ludeka.Core`): Entidad `UserMilestone`, Tipos y Catálogo de Hitos**
-  - [ ] 1.1 Tests en `UserMilestoneTests.cs` (RED): validación de constructor, rechazo de `UserId` vacío, validación de enumerado `MilestoneType`, invariantes de fecha e inmutabilidad.
-  - [ ] 1.2 Implementar enum `MilestoneType`, `MilestoneCategory` y entidad `UserMilestone` en `Ludeka.Core`.
-  - [ ] 1.3 Implementar `MilestoneCatalog` con catálogo de hitos canónicos (Primer juego, 10 juegos, Primer juego jugado, Primer préstamo, Primera partida en diario, 5 partidas en diario, Mesa llena con 5+ comensales, Primera micro-reseña, Primer me gusta).
-  - [ ] 1.4 Verificación en verde (GREEN) y refactorización limpia (REFACTOR).
+- [x] **ODD-1 — Dominio (`Ludeka.Core`): Entidad `UserMilestone`, Tipos y Catálogo de Hitos**
+  - [x] 1.1 Tests en `UserMilestoneTests.cs` (RED): validación de constructor, rechazo de `UserId` vacío, validación de enumerado `MilestoneType`, invariantes de fecha e inmutabilidad.
+  - [x] 1.2 Implementar enum `MilestoneType`, `MilestoneCategory` y entidad `UserMilestone` en `Ludeka.Core`.
+  - [x] 1.3 Implementar `MilestoneCatalog` con catálogo de hitos canónicos (Primer juego, 10 juegos, Primer juego jugado, Primer préstamo, Primera partida en diario, 5 partidas en diario, Mesa llena con 5+ comensales, Primera micro-reseña, Primer me gusta).
+  - [x] 1.4 Verificación en verde (GREEN) y refactorización limpia (REFACTOR). 1.827 pruebas unitarias verdes.
 - [ ] **ODD-2 — Persistencia e Infraestructura (`Ludeka.Infrastructure`): Repositorio y Esquema**
   - [ ] 2.1 Tests en `UserMilestoneRepositoryTests.cs` (RED): persistencia de hitos, recuperación por usuario, idempotencia al guardar (no duplicar `(UserId, Type)`).
   - [ ] 2.2 Contrato `IUserMilestoneRepository` en `Ludeka.Application.Contracts`.
