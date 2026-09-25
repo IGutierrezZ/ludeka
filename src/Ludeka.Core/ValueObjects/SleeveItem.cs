@@ -12,6 +12,56 @@ public record SleeveItem(
     string? Country = null,
     IReadOnlyList<string>? ShippingCountries = null)
 {
+    private readonly string _formatName = ValidateFormatName(FormatName);
+    private readonly double _widthMm = ValidateDimension(WidthMm, nameof(WidthMm));
+    private readonly double _heightMm = ValidateDimension(HeightMm, nameof(HeightMm));
+    private readonly int _cardCount = ValidateCardCount(CardCount);
+
+    public string FormatName
+    {
+        get => _formatName;
+        init => _formatName = ValidateFormatName(value);
+    }
+
+    public double WidthMm
+    {
+        get => _widthMm;
+        init => _widthMm = ValidateDimension(value, nameof(WidthMm));
+    }
+
+    public double HeightMm
+    {
+        get => _heightMm;
+        init => _heightMm = ValidateDimension(value, nameof(HeightMm));
+    }
+
+    public int CardCount
+    {
+        get => _cardCount;
+        init => _cardCount = ValidateCardCount(value);
+    }
+
+    private static string ValidateFormatName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre del formato no puede ser nulo ni vacío.", nameof(FormatName));
+        return name;
+    }
+
+    private static double ValidateDimension(double dimension, string paramName)
+    {
+        if (dimension is < 30.0 or > 250.0)
+            throw new ArgumentOutOfRangeException(paramName, dimension, $"La dimensión {paramName} debe estar entre 30.0 y 250.0 mm.");
+        return dimension;
+    }
+
+    private static int ValidateCardCount(int count)
+    {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(CardCount), count, "La cantidad de cartas no puede ser negativa.");
+        return count;
+    }
+
     public int CalculatePacksNeeded(int packSize = 50)
     {
         if (packSize <= 0) throw new ArgumentOutOfRangeException(nameof(packSize), "El tamaño de paquete debe ser mayor a 0.");
