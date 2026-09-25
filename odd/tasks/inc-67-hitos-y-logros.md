@@ -91,9 +91,9 @@ Reconocer el progreso y la vivencia lúdica del jugador en Ludeka mediante un si
   - [x] 4.2 Crear componente `MilestonesCard.razor` con estilo editorial hogareño de Ludeka (WCAG 2.2 AA).
   - [x] 4.3 Integrar en `PublicProfile.razor` y en `/cuenta` (sección accesible para el propio usuario).
   - [x] 4.4 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.843 pruebas unitarias verdes.
-- [ ] **ODD-5 — Verificación Global, Documentación y Cierre**
-  - [ ] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test`: suite verde, 0 fallos).
-  - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-  - [ ] 5.3 Volcado a la especificación viva `docs/specs/sistema/` y actualización del índice `README.md`.
-  - [ ] 5.4 Mover `docs/increments/inc-67-hitos-y-logros.md` a `docs/increments/archive/inc-67-hitos-y-logros.md`.
-  - [ ] 5.5 Commit de cierre y resumen en Engram.
+- [x] **ODD-5 — Verificación Global, Documentación y Cierre**
+  - [x] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test`: suite verde, 0 fallos). 1.843 pruebas unitarias al 100%.
+  - [x] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
+  - [x] 5.3 Volcado a la especificación viva `docs/specs/sistema/` (módulo 42) y actualización del índice `README.md`.
+  - [x] 5.4 Mover `docs/increments/inc-67-hitos-y-logros.md` a `docs/increments/archive/inc-67-hitos-y-logros.md`.
+  - [x] 5.5 Commit de cierre y resumen en Engram.

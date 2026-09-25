@@ -109,7 +109,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-67** (`hitos-y-logros`): En progreso en worktree `C:\repos\ludeka-wt\hitos-y-logros` (rama `inc/hitos-y-logros`). Diseña y despliega el sistema de hitos y logros lúdicos del jugador bajo protocolo ODD y Strict TDD.
+- *(Ningún incremento en curso activo; INC-67 listo para PR y merge a `main`).*
+
+*(INC-67 entregó su verificación con 1.843 pruebas unitarias en verde, y quedó archivado el 2026-09-26. Implementa el sistema de hitos y logros no invasivos del jugador con catálogo canónico de 10 hitos [Colección, Partidas, Comunidad], entidad inmutable UserMilestone, persistencia dual SQLite/PostgreSQL con clave natural [UserId, Type] y migración defensiva, servicio IMilestoneService con evaluación idempotente fechada preservando UnlockedAt original, convivencia armónica con el rango/rasgo ComputePlayerBadge de INC-15, componente editorial accesible MilestonesCard y vitrina en PublicProfile).*
 
 *(INC-66 entregó su verificación con 1.817 pruebas unitarias en verde, y quedó archivado el 2026-09-25. Acredita la calidad y fiabilidad de los datos de fundas y enlaces de compra con validaciones de dominio en SleeveItem [30-250 mm], normalización de orientación y alias en StandardSleeveCatalog, erradicación de la inferencia silenciosa de 50 cartas en BggSleeveParser con soporte de conversión de pulgadas a mm, soporte oficial de Amazon con tag ludeka-21 e inclusión de Cuarto de Juegos y Tablerum con parámetros específicos en SleeveStoreUrlResolver, curación de Catán y Dixit en seed-games.json y presentación honesta sin datos en SleeveGuideCard).*
 
