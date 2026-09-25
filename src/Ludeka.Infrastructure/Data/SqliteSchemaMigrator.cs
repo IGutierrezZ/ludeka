@@ -1036,6 +1036,24 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("UserLikes");
             }
+
+            // 31. Crear tabla UserMilestones si no existe (INC-67: Gamificación — Hitos y Logros del Jugador)
+            if (!existingTables.Contains("UserMilestones"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "UserMilestones" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_UserMilestones" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "Type" INTEGER NOT NULL,
+                        "UnlockedAt" TEXT NOT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserMilestones_UserId_Type" ON "UserMilestones" ("UserId", "Type");
+                    CREATE INDEX IF NOT EXISTS "IX_UserMilestones_UserId" ON "UserMilestones" ("UserId");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("UserMilestones");
+            }
         }
         finally
         {

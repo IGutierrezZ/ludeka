@@ -13,4 +13,5 @@ public interface IUserLikeRepository
     Task<int> GetLikesCountAsync(LikeTargetType targetType, Guid targetId, CancellationToken ct = default);
     Task<Dictionary<Guid, int>> GetLikesCountsAsync(LikeTargetType targetType, IEnumerable<Guid> targetIds, CancellationToken ct = default);
     Task<HashSet<Guid>> GetUserLikedTargetIdsAsync(Guid userId, LikeTargetType targetType, IEnumerable<Guid> targetIds, CancellationToken ct = default);
+    Task<int> GetLikesGivenCountByUserAsync(Guid userId, CancellationToken ct = default);
 }

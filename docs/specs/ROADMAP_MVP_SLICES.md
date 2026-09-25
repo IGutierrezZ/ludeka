@@ -631,8 +631,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 67: Gamificación — Hitos y Logros del Jugador
 - **Identificador SDD:** `change-67-hitos-y-logros`
 - **Objetivo Principal:** Sistema de hitos del jugador (colección, diario, comunidad) con desbloqueo idempotente y fechado, en coherencia declarada con `ComputePlayerBadge` de INC-15 y sin comparación entre usuarios (frontera con INC-68).
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
-- **Documento:** [`inc-67-hitos-y-logros.md`](file:///c:/repos/Ludeka/docs/increments/inc-67-hitos-y-logros.md).
+- **Estado:** ✅ **Completado y Verificado** (1.843 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-67-hitos-y-logros.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-67-hitos-y-logros.md).
 
 ---
 

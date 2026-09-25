@@ -145,6 +145,9 @@ public class UserLibraryServiceTests
             if (idx >= 0) Reviews[idx] = review;
             return Task.CompletedTask;
         }
+
+        public Task<int> GetCountByUserIdAsync(string userId, CancellationToken ct = default) =>
+            Task.FromResult(Reviews.Count(r => r.UserId == userId));
     }
 
     private class FakeGameRepo : IGameRepository

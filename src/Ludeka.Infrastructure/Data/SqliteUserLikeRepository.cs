@@ -109,4 +109,15 @@ public class SqliteUserLikeRepository : DbContextRepositoryBase, IUserLikeReposi
 
         return new HashSet<Guid>(likedIds);
     }
+
+    public async Task<int> GetLikesGivenCountByUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        if (userId == Guid.Empty)
+            return 0;
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.UserLikes
+            .AsNoTracking()
+            .CountAsync(l => l.UserId == userId, ct);
+    }
 }

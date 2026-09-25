@@ -16,6 +16,7 @@ using Ludeka.Application.Features.Instagram;
 using Ludeka.Application.Features.Jobs;
 using Ludeka.Application.Features.Library;
 using Ludeka.Application.Features.Media;
+using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
@@ -104,6 +105,10 @@ public static class LudekaServiceCollectionExtensions
         // Incremento 65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos
         services.AddScoped<IUserLikeRepository, SqliteUserLikeRepository>();
         services.AddScoped<IUserLikeService, UserLikeService>();
+
+        // Incremento 67: Gamificación — Hitos y Logros del Jugador
+        services.AddScoped<IUserMilestoneRepository, SqliteUserMilestoneRepository>();
+        services.AddScoped<IMilestoneService, MilestoneService>();
 
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
