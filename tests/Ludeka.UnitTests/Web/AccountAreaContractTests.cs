@@ -16,6 +16,9 @@ public class AccountAreaContractTests
     private const string SectionNavPath = "src/Ludeka.Web/Components/Shared/AccountSectionNav.razor";
     private const string MyLibraryPath = "src/Ludeka.Web/Components/Pages/MyLibrary.razor";
     private const string ConnectionsPath = "src/Ludeka.Web/Components/Pages/AccountConnections.razor";
+    private const string AppearancePath = "src/Ludeka.Web/Components/Pages/AccountAppearance.razor";
+    private const string CountryPath = "src/Ludeka.Web/Components/Pages/AccountCountry.razor";
+    private const string PrivacyPath = "src/Ludeka.Web/Components/Pages/AccountPrivacy.razor";
 
     [Fact]
     public void Hub_ShouldDeclareItsRouteAndPlainAuthorize()
@@ -30,19 +33,21 @@ public class AccountAreaContractTests
     }
 
     [Fact]
-    public void Hub_ShouldInventoryTheFourAccountSections()
+    public void Hub_ShouldInventoryAccountSections()
     {
-        // INC-50, diseño §D1: inventario vialógico de las cuatro entradas. Ludoteca y Conexiones
-        // apuntan a sus rutas hijas; Tema y País comparten el deep-link ?seccion=apariencia.
+        // INC-50 e INC-62: inventario de entradas del área de cuenta hacia sus rutas dedicadas
         var source = ReadSource(HubPath);
 
         Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/cuenta/conexiones\"", source, StringComparison.Ordinal);
-        Assert.Contains("href=\"/cuenta/ludoteca?seccion=apariencia\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/cuenta/apariencia\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/cuenta/pais\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/cuenta/privacidad\"", source, StringComparison.Ordinal);
         Assert.Contains("Ludoteca", source, StringComparison.Ordinal);
         Assert.Contains("Conexiones", source, StringComparison.Ordinal);
         Assert.Contains("Tema", source, StringComparison.Ordinal);
         Assert.Contains("País", source, StringComparison.Ordinal);
+        Assert.Contains("Privacidad", source, StringComparison.Ordinal);
     }
 
     private const string AccountMenuPath = "src/Ludeka.Web/Components/Shared/AccountMenu.razor";
@@ -50,14 +55,13 @@ public class AccountAreaContractTests
     [Fact]
     public void HeaderGate_ShouldDistinguishSessionStatesAndLinkLogin()
     {
-        // INC-50 y INC-61: MainLayout monta AccountMenu, que distingue estados de sesión
-        // con sesión → /cuenta + UserName; sin sesión → /login (sin ReturnUrl: no hay destino
-        // privado). HasSession sigue el patrón MyLibrary.razor.
+        // INC-50, INC-61 e INC-62: MainLayout monta AccountMenu, que distingue estados de sesión
+        // con sesión → destinos canónicos + UserName; sin sesión → /login. HasSession sigue el patrón MyLibrary.razor.
         var layoutSource = ReadSource(LayoutPath);
         Assert.Contains("<AccountMenu />", layoutSource, StringComparison.Ordinal);
 
         var source = ReadSource(AccountMenuPath);
-        Assert.Contains("href=\"/cuenta\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/login\"", source, StringComparison.Ordinal);
         Assert.Contains("Entrar", source, StringComparison.Ordinal);
         Assert.Contains("@CurrentUserService.UserName", source, StringComparison.Ordinal);
@@ -117,21 +121,24 @@ public class AccountAreaContractTests
     [Theory]
     [InlineData(MyLibraryPath, "AccountSectionNav Active=\"ludoteca\"")]
     [InlineData(ConnectionsPath, "AccountSectionNav Active=\"conexiones\"")]
+    [InlineData(AppearancePath, "AccountSectionNav Active=\"apariencia\"")]
+    [InlineData(CountryPath, "AccountSectionNav Active=\"pais\"")]
+    [InlineData(PrivacyPath, "AccountSectionNav Active=\"privacidad\"")]
     public void ChildPages_ShouldMountTheSharedSectionHeader(string relativePath, string marker)
     {
-        // INC-50, diseño §D4.1: ambas rutas hijas montan la cabecera compartida con su sección.
+        // INC-50 e INC-62: las rutas hijas del área de cuenta montan la cabecera compartida con su sección.
         var source = ReadSource(relativePath);
 
         Assert.Contains(marker, source, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData(LayoutPath)]
+    [InlineData(AccountMenuPath)]
     [InlineData("src/Ludeka.Web/Components/Pages/GameDetail.razor")]
     [InlineData("src/Ludeka.Web/Components/Pages/Radar.razor")]
     public void RewrittenLinks_ShouldTargetTheAccountArea(string relativePath)
     {
-        // INC-50, diseño §D4.1: reescritura selectiva de la píldora de cabecera y de los enlaces
+        // INC-50 e INC-62: reescritura selectiva del menú de cuenta en cabecera y de los enlaces
         // de GameDetail/Radar hacia la ruta canónica /cuenta/ludoteca. El alias sigue vivo, por lo
         // que esta reescritura es solo de enlaces, no de rutas.
         var source = ReadSource(relativePath);

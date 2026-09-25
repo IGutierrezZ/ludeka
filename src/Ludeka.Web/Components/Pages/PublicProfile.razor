@@ -2,6 +2,7 @@
 @page "/perfil/{UserId}"
 @rendermode InteractiveServer
 @inject IUserLibraryStatsService StatsService
+@inject IUserPreferenceService PreferenceService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -14,6 +15,22 @@
         <div class="py-24 text-center text-[var(--text-secondary)]">
             <div class="inline-block animate-spin mb-3"><Icon Name="dices" Size="36" /></div>
             <p class="text-base font-semibold">Cargando perfil público de ludoteca...</p>
+        </div>
+    }
+    else if (_isPrivateProfile)
+    {
+        <div class="py-20 text-center max-w-lg mx-auto p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm animate-fade-in">
+            <span class="inline-block text-[var(--text-muted)]"><Icon Name="lock" Size="48" /></span>
+            <h1 class="text-2xl font-black text-[var(--text-primary)]">Perfil privado</h1>
+            <p class="text-sm text-[var(--text-secondary)]">
+                Este jugador ha configurado su perfil como privado. Su colección, partidas y estadísticas no están visibles públicamente.
+            </p>
+            <div class="pt-4 flex justify-center gap-3">
+                <a href="/" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] transition-all inline-flex items-center gap-2">
+                    <Icon Name="dices" Size="14" />
+                    <span>Explorar Catálogo</span>
+                </a>
+            </div>
         </div>
     }
     else if (_profile == null)
@@ -41,6 +58,19 @@
         @* Cabecera del Perfil Público *@
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-6">
             <div>
+                @if (IsOwnProfile && _isProfileHidden)
+                {
+                    <div class="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 font-bold">
+                            <Icon Name="eye-off" Size="16" />
+                            <span>Tu perfil público está en modo PRIVADO (solo visible para ti mientras tengas sesión activa).</span>
+                        </div>
+                        <a href="/cuenta/privacidad" class="underline font-bold hover:text-amber-700 dark:hover:text-amber-300 shrink-0">
+                            Cambiar visibilidad
+                        </a>
+                    </div>
+                }
+
                 <div class="flex items-center gap-2 mb-2">
                     <span class="text-xs font-bold px-3 py-1 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
                         Perfil Público de Jugador
@@ -214,6 +244,8 @@
     private PublicUserProfileDto? _profile;
     private bool _isLoading = true;
     private bool _copied = false;
+    private bool _isProfileHidden = false;
+    private bool _isPrivateProfile = false;
     private string _searchQuery = string.Empty;
 
     private bool IsOwnProfile =>
@@ -245,8 +277,16 @@
     {
         _isLoading = true;
         _profile = null;
+        _isPrivateProfile = false;
         try
         {
+            _isProfileHidden = await PreferenceService.IsPublicProfileHiddenAsync(UserId);
+            if (_isProfileHidden && !IsOwnProfile)
+            {
+                _isPrivateProfile = true;
+                return;
+            }
+
             _profile = await StatsService.GetPublicProfileAsync(UserId);
         }
         catch

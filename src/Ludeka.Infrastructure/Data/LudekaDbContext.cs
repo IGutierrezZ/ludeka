@@ -301,6 +301,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         userPref.HasKey(u => u.UserId);
         userPref.Property(u => u.PreferredTheme).HasMaxLength(32).IsRequired();
         userPref.Property(u => u.Country).HasMaxLength(100);
+        userPref.Property(u => u.HidePublicProfile).HasDefaultValue(false);
         userPref.Property(u => u.UpdatedAt).IsRequired();
 
         // --- Configuración de GameIssueReport (Incremento 17) ---

@@ -11,13 +11,14 @@ public class UserPreference
     public string UserId { get; set; } = string.Empty;
     public string PreferredTheme { get; set; } = "charcoal";
     public string? Country { get; set; }
+    public bool HidePublicProfile { get; set; } = false;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public UserPreference()
     {
     }
 
-    public UserPreference(string userId, string preferredTheme, string? country = null)
+    public UserPreference(string userId, string preferredTheme, string? country = null, bool hidePublicProfile = false)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -27,6 +28,7 @@ public class UserPreference
         UserId = userId.Trim();
         PreferredTheme = NormalizeTheme(preferredTheme);
         Country = string.IsNullOrWhiteSpace(country) ? null : ValueObjects.CountryCatalog.Normalize(country);
+        HidePublicProfile = hidePublicProfile;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -39,6 +41,12 @@ public class UserPreference
     public void SetCountry(string? country)
     {
         Country = string.IsNullOrWhiteSpace(country) ? null : ValueObjects.CountryCatalog.Normalize(country);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetProfileVisibility(bool hidePublicProfile)
+    {
+        HidePublicProfile = hidePublicProfile;
         UpdatedAt = DateTime.UtcNow;
     }
 

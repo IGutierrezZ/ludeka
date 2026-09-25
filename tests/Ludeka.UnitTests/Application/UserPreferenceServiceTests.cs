@@ -99,4 +99,35 @@ public class UserPreferenceServiceTests : IAsyncLifetime
         var themeFallback = await _service.GetUserThemeAsync("jugador-3");
         Assert.Equal("charcoal", themeFallback);
     }
+
+    [Fact]
+    public async Task IsPublicProfileHiddenAsync_ShouldReturnFalse_WhenNoPreferenceExistsOrUserIsEmpty()
+    {
+        // Act
+        var hiddenNew = await _service.IsPublicProfileHiddenAsync("usuario-desconocido");
+        var hiddenEmpty = await _service.IsPublicProfileHiddenAsync(string.Empty);
+
+        // Assert
+        Assert.False(hiddenNew);
+        Assert.False(hiddenEmpty);
+    }
+
+    [Fact]
+    public async Task SetPublicProfileHiddenAsync_ShouldPersistAndToggleVisibility()
+    {
+        // Act: usuario nuevo que oculta su perfil
+        await _service.SetPublicProfileHiddenAsync("jugador-privado", true);
+
+        // Assert
+        var isHidden = await _service.IsPublicProfileHiddenAsync("jugador-privado");
+        Assert.True(isHidden);
+
+        var dto = await _service.GetUserPreferenceAsync("jugador-privado");
+        Assert.True(dto.HidePublicProfile);
+
+        // Act 2: reactivar visibilidad pública
+        await _service.SetPublicProfileHiddenAsync("jugador-privado", false);
+        var isVisible = await _service.IsPublicProfileHiddenAsync("jugador-privado");
+        Assert.False(isVisible);
+    }
 }

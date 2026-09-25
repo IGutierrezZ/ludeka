@@ -74,8 +74,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-58** | Paginación Real del Catálogo y Modos de Vista (Cuadrícula y Lista) | ✅ Archivado | [inc-58-paginacion-catalogo.md](archive/inc-58-paginacion-catalogo.md) |
 | **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ✅ Archivado | [inc-59-filtros-y-tamano-mesa.md](archive/inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ✅ Archivado | [inc-60-navegacion-movil.md](archive/inc-60-navegacion-movil.md) |
-| **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ⏳ En progreso | [inc-61-menu-de-cuenta.md](inc-61-menu-de-cuenta.md) |
-| **INC-62** | Preferencias de Usuario: Tema y País | ⏳ Planificado | [inc-62-preferencias-usuario.md](inc-62-preferencias-usuario.md) |
+| **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ✅ Archivado | [inc-61-menu-de-cuenta.md](archive/inc-61-menu-de-cuenta.md) |
+| **INC-62** | Preferencias de Usuario: Tema y País | ✅ Archivado | [inc-62-preferencias-usuario.md](archive/inc-62-preferencias-usuario.md) |
 | **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ⏳ Planificado | [inc-63-conexiones-oauth.md](inc-63-conexiones-oauth.md) |
 | **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ Planificado | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
 | **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |
@@ -109,7 +109,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-61** — en curso en el worktree `C:\repos\ludeka-wt\menu-de-cuenta` (rama `inc/menu-de-cuenta`). Implementa el menú desplegable de cuenta y estado de sesión en la cabecera superior de la aplicación para usuarios identificados (perfil público, hub de cuenta, ludoteca, preferencias, conexiones y salir), manteniendo una puerta clara de acceso para visitantes invitados y armonizando con la navegación móvil de INC-60.
+*(INC-62 entregó su verificación con 1.703 pruebas unitarias en verde, y quedó archivado el 2026-09-25. Implementa la limpieza de cabecera en MainLayout, el menú desplegable AccountMenu con 7 destinos directos sin opción intermedia redundante, las pantallas dedicadas de Apariencia, País y Privacidad, y el control de visibilidad pública de perfil con migración SQLite DDL).*
+
+*(INC-61 entregó su PR #111, verificada con 1.691 pruebas unitarias + 10 de integración en verde (1.701 en total), y quedó archivado el 2026-09-25. Implementa el menú desplegable de cuenta y estado de sesión en la cabecera superior de la aplicación para usuarios identificados, manteniendo una puerta clara de acceso para visitantes invitados).*
 
 *(INC-60 entregó su verificación con 1.685 pruebas unitarias + 10 de integración en verde (1.695 en total), y quedó archivado el 2026-09-24. Implementa la barra de navegación inferior móvil fija al alcance del pulgar con 5 destinos canónicos, soporte integral de safe-area-inset con viewport-fit=cover, espaciador de reserva anti-solape, elevación de alertas del sistema, optimización táctil de CollectionActionBar y cumplimiento estricto WCAG 2.2 AA).*
 

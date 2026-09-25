@@ -181,6 +181,7 @@ public static class SqliteSchemaMigrator
                         "UserId" TEXT NOT NULL CONSTRAINT "PK_UserPreferences" PRIMARY KEY,
                         "PreferredTheme" TEXT NOT NULL,
                         "Country" TEXT NULL,
+                        "HidePublicProfile" INTEGER NOT NULL DEFAULT 0,
                         "UpdatedAt" TEXT NOT NULL
                     );
                     """;
@@ -515,6 +516,12 @@ public static class SqliteSchemaMigrator
                 {
                     using var cmd = connection.CreateCommand();
                     cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"Country\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!cols.Contains("HidePublicProfile"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"HidePublicProfile\" INTEGER NOT NULL DEFAULT 0;";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
             }

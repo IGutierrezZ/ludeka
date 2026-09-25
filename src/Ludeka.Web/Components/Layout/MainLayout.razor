@@ -73,31 +73,8 @@
 
                 <OfflineIndicator />
 
-                @* Selector de país / territorio *@
-                <button type="button"
-                        @onclick="() => _showLocationModal = true"
-                        title="Configurar país para tiendas, eventos y sorteos"
-                        aria-label="Configurar país y ámbito territorial"
-                        class="px-2.5 py-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:border-[var(--brand-primary)] text-xs font-bold transition-all flex items-center gap-1.5 text-[var(--text-primary)] shadow-sm shrink-0">
-                    @if (string.IsNullOrWhiteSpace(_activeCountry))
-                    {
-                        <Icon Name="globe" Size="14" />
-                    }
-                    else
-                    {
-                        <span>@CountryCatalog.GetFlag(_activeCountry)</span>
-                    }
-                    <span class="hidden sm:inline">@(string.IsNullOrWhiteSpace(_activeCountry) ? "Global" : _activeCountry)</span>
-                </button>
-
-                @* Menú de cuenta y estado de sesión en cabecera (INC-61) *@
+                @* Menú de cuenta y estado de sesión en cabecera (INC-61/INC-62) *@
                 <AccountMenu />
-
-                @* Acceso Mi Ludoteca *@
-                <a href="/cuenta/ludoteca" class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0">
-                    <Icon Name="library" Size="14" />
-                    <span class="hidden sm:inline">Mi Ludoteca</span>
-                </a>
 
                 @* Menú Desplegable de Gestión / Mesa (Solo Administradores y Moderadores) *@
                 @if (CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"))

@@ -68,10 +68,10 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
 
         if (pref != null)
         {
-            return new UserPreferenceDto(pref.UserId, pref.PreferredTheme, pref.UpdatedAt, pref.Country);
+            return new UserPreferenceDto(pref.UserId, pref.PreferredTheme, pref.UpdatedAt, pref.Country, pref.HidePublicProfile);
         }
 
-        return new UserPreferenceDto(cleanUserId, "charcoal", DateTime.UtcNow, null);
+        return new UserPreferenceDto(cleanUserId, "charcoal", DateTime.UtcNow, null, false);
     }
 
     public async Task<string?> GetUserCountryAsync(string userId, CancellationToken ct = default)
@@ -102,6 +102,38 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
         else
         {
             existing.SetCountry(country);
+        }
+
+        await scope.Context.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> IsPublicProfileHiddenAsync(string userId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return false;
+
+        await using var scope = await CreateScopeAsync(ct);
+        var pref = await scope.Context.UserPreferences
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId.Trim(), ct);
+
+        return pref?.HidePublicProfile ?? false;
+    }
+
+    public async Task SetPublicProfileHiddenAsync(string userId, bool hide, CancellationToken ct = default)
+    {
+        string cleanUserId = SessionIdentity.Require(userId);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
+
+        if (existing == null)
+        {
+            var newPref = new UserPreference(cleanUserId, "charcoal", null, hide);
+            scope.Context.UserPreferences.Add(newPref);
+        }
+        else
+        {
+            existing.SetProfileVisibility(hide);
         }
 
         await scope.Context.SaveChangesAsync(ct);

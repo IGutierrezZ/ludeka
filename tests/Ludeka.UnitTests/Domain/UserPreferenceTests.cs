@@ -15,7 +15,35 @@ public class UserPreferenceTests
         // Assert
         Assert.Equal("usuario-1", pref.UserId);
         Assert.Equal("wood", pref.PreferredTheme);
+        Assert.False(pref.HidePublicProfile);
         Assert.True((DateTime.UtcNow - pref.UpdatedAt).TotalSeconds < 5);
+    }
+
+    [Fact]
+    public void Constructor_ShouldInitializeWithHidePublicProfile_WhenProvided()
+    {
+        // Arrange & Act
+        var pref = new UserPreference("usuario-1", "wood", "España", hidePublicProfile: true);
+
+        // Assert
+        Assert.Equal("usuario-1", pref.UserId);
+        Assert.Equal("España", pref.Country);
+        Assert.True(pref.HidePublicProfile);
+    }
+
+    [Fact]
+    public void SetProfileVisibility_ShouldUpdateFlagAndTimestamp()
+    {
+        // Arrange
+        var pref = new UserPreference("usuario-1", "charcoal");
+        var originalTime = pref.UpdatedAt;
+
+        // Act
+        pref.SetProfileVisibility(true);
+
+        // Assert
+        Assert.True(pref.HidePublicProfile);
+        Assert.True(pref.UpdatedAt >= originalTime);
     }
 
     [Theory]

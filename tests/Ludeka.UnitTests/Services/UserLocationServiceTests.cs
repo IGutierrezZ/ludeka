@@ -40,6 +40,15 @@ public class UserLocationServiceTests
             SavedCountry = country;
             return Task.CompletedTask;
         }
+
+        public bool SavedHidePublicProfile { get; set; }
+        public Task<bool> IsPublicProfileHiddenAsync(string userId, CancellationToken ct = default) =>
+            Task.FromResult(SavedHidePublicProfile);
+        public Task SetPublicProfileHiddenAsync(string userId, bool hide, CancellationToken ct = default)
+        {
+            SavedHidePublicProfile = hide;
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]

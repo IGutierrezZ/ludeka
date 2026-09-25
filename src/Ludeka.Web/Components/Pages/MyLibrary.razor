@@ -988,10 +988,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Deep-link del hub: ?seccion=apariencia ⇒ pestaña Apariencia & País (INC-50, §D1).
+        // Deep-link del hub: ?seccion=apariencia ⇒ redirección canónica a /cuenta/apariencia (INC-62).
         if (string.Equals(Seccion, "apariencia", StringComparison.OrdinalIgnoreCase))
         {
             _activeTab = TabType.Appearance;
+            Navigation.NavigateTo("/cuenta/apariencia", replace: true);
+            return;
         }
 
         await LoadSummaryAsync();

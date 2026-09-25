@@ -34,4 +34,15 @@ public interface IUserPreferenceService
     /// Guarda o actualiza el país preferido del usuario.
     /// </summary>
     Task SetUserCountryAsync(string userId, string? country, CancellationToken ct = default);
+
+    /// <summary>
+    /// Obtiene si el usuario ha configurado su perfil público como oculto/privado.
+    /// Por defecto es false (público).
+    /// </summary>
+    Task<bool> IsPublicProfileHiddenAsync(string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Establece si el perfil público del usuario está oculto o visible.
+    /// </summary>
+    Task SetPublicProfileHiddenAsync(string userId, bool hide, CancellationToken ct = default);
 }

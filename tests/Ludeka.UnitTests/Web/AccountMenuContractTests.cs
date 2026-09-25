@@ -53,7 +53,7 @@ public class AccountMenuContractTests
     }
 
     [Fact]
-    public void AccountMenu_DropdownDestinationsContract_ShouldExposeAllSixCanonicalEndpoints()
+    public void AccountMenu_DropdownDestinationsContract_ShouldExposeAllCanonicalEndpoints()
     {
         var source = ReadSource(AccountMenuPath);
 
@@ -62,30 +62,38 @@ public class AccountMenuContractTests
         Assert.Contains("Mi Perfil Público", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"user\"", source, StringComparison.Ordinal);
 
-        // 2. Área de Cuenta (Hub INC-50)
-        Assert.Contains("href=\"/cuenta\"", source, StringComparison.Ordinal);
-        Assert.Contains("Área de Cuenta", source, StringComparison.Ordinal);
-        Assert.Contains("Icon Name=\"settings\"", source, StringComparison.Ordinal);
-
-        // 3. Mi Ludoteca
+        // 2. Mi Ludoteca
         Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
         Assert.Contains("Mi Ludoteca", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"library\"", source, StringComparison.Ordinal);
 
-        // 4. Apariencia & Tema (Preferencia compartida con MyLibrary)
-        Assert.Contains("href=\"/cuenta/ludoteca?seccion=apariencia\"", source, StringComparison.Ordinal);
+        // 3. Apariencia & Tema (Pantalla dedicada INC-62)
+        Assert.Contains("href=\"/cuenta/apariencia\"", source, StringComparison.Ordinal);
         Assert.Contains("Apariencia & Tema", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"palette\"", source, StringComparison.Ordinal);
 
-        // 5. Conexiones OAuth
+        // 4. Ubicación & País (Pantalla dedicada INC-62)
+        Assert.Contains("href=\"/cuenta/pais\"", source, StringComparison.Ordinal);
+        Assert.Contains("Ubicación & País", source, StringComparison.Ordinal);
+        Assert.Contains("Icon Name=\"globe\"", source, StringComparison.Ordinal);
+
+        // 5. Privacidad (Pantalla dedicada INC-62)
+        Assert.Contains("href=\"/cuenta/privacidad\"", source, StringComparison.Ordinal);
+        Assert.Contains("Privacidad", source, StringComparison.Ordinal);
+        Assert.Contains("Icon Name=\"shield\"", source, StringComparison.Ordinal);
+
+        // 6. Conexiones OAuth
         Assert.Contains("href=\"/cuenta/conexiones\"", source, StringComparison.Ordinal);
         Assert.Contains("Conexiones OAuth", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"link\"", source, StringComparison.Ordinal);
 
-        // 6. Cierre de Sesión Limpio
+        // 7. Cierre de Sesión Limpio
         Assert.Contains("href=\"/logout\"", source, StringComparison.Ordinal);
         Assert.Contains("Cerrar Sesión", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"log-out\"", source, StringComparison.Ordinal);
+
+        // No debe contener el enlace redundante a Área de Cuenta dentro del desplegable
+        Assert.DoesNotContain(">Área de Cuenta<", source, StringComparison.Ordinal);
     }
 
     [Fact]

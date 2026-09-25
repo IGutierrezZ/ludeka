@@ -1601,3 +1601,21 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925134715_AddUserPreferenceProfileVisibility') THEN
+    ALTER TABLE "UserPreferences" ADD "HidePublicProfile" boolean NOT NULL DEFAULT FALSE;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925134715_AddUserPreferenceProfileVisibility') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260925134715_AddUserPreferenceProfileVisibility', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

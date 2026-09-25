@@ -104,6 +104,14 @@ public class SqliteCountryMigrationTests
 
         var preferences = await db.UserPreferences.ToListAsync();
         Assert.Empty(preferences);
+
+        // Comprobar que HidePublicProfile se reconcilió y se puede persistir
+        db.UserPreferences.Add(new Core.Entities.UserPreference("user-priv", "wood", "España", hidePublicProfile: true));
+        await db.SaveChangesAsync();
+
+        var saved = await db.UserPreferences.FindAsync("user-priv");
+        Assert.NotNull(saved);
+        Assert.True(saved!.HidePublicProfile);
     }
 
     [Fact]

@@ -6,5 +6,6 @@ public record UserPreferenceDto(
     string UserId,
     string PreferredTheme,
     DateTime UpdatedAt,
-    string? Country = null
+    string? Country = null,
+    bool HidePublicProfile = false
 );

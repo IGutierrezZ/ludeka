@@ -20,6 +20,27 @@
         <span>Ludoteca</span>
     </a>
 
+    <a href="/cuenta/apariencia"
+       aria-current="@(Active == "apariencia" ? "page" : null)"
+       class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(Active == "apariencia" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+        <Icon Name="palette" Size="14" />
+        <span>Apariencia</span>
+    </a>
+
+    <a href="/cuenta/pais"
+       aria-current="@(Active == "pais" ? "page" : null)"
+       class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(Active == "pais" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+        <Icon Name="globe" Size="14" />
+        <span>País</span>
+    </a>
+
+    <a href="/cuenta/privacidad"
+       aria-current="@(Active == "privacidad" ? "page" : null)"
+       class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(Active == "privacidad" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
+        <Icon Name="shield" Size="14" />
+        <span>Privacidad</span>
+    </a>
+
     <a href="/cuenta/conexiones"
        aria-current="@(Active == "conexiones" ? "page" : null)"
        class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(Active == "conexiones" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
@@ -30,7 +51,7 @@
 
 @code {
     /// <summary>
-    /// Sección activa: "ludoteca" | "conexiones". Cadena de conjunto cerrado, no texto libre;
+    /// Sección activa: "ludoteca" | "apariencia" | "pais" | "privacidad" | "conexiones". Cadena de conjunto cerrado, no texto libre;
     /// el componente solo la compara, nunca la pinta como contenido.
     /// </summary>
     [Parameter] public string Active { get; set; } = string.Empty;

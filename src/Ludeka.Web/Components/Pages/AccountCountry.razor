@@ -1,0 +1,204 @@
+@page "/cuenta/pais"
+@attribute [Authorize]
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.ValueObjects
+@inject IUserLocationService LocationService
+@inject IUserPreferenceService PreferenceService
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Ubicación y Filtrado Territorial | Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 max-w-3xl mx-auto space-y-6">
+    <AccountSectionNav Active="pais" />
+
+    <header class="space-y-2 border-b border-[var(--border-subtle)] pb-6">
+        <div class="badge-pill mb-2 px-3 py-1 text-xs font-bold">
+            <Icon Name="globe" Size="14" />
+            <span>Ajustes de Cuenta</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-2.5">
+            <Icon Name="globe" Size="28" />
+            <span>Ubicación y Ámbito Territorial</span>
+        </h1>
+        <p class="text-sm text-[var(--text-secondary)]">
+            Define tu país para adaptar la experiencia a tu territorio: disponibilidad de tiendas especializadas, costes y tiempos de envío, sorteos y eventos lúdicos presenciales.
+        </p>
+    </header>
+
+    @* Aviso de Filtrado Territorial *@
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 text-xs space-y-1.5 shadow-sm">
+        <div class="flex items-center gap-1.5 font-black text-sm">
+            <Icon Name="triangle-alert" Size="16" />
+            <span>Aviso sobre el Filtrado Territorial</span>
+        </div>
+        <p class="leading-relaxed">
+            Al seleccionar un país, las tiendas, sorteos y eventos se filtrarán para mostrar prioritariamente los disponibles en tu territorio. Si deseas ver todo el ecosistema global de la comunidad sin filtros, elige la opción <strong>Global (sin país)</strong>.
+        </p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-3 text-xs shadow-sm animate-fade-in" role="status">
+            <Icon Name="circle-check" Size="16" />
+            <span>@_statusMessage</span>
+        </div>
+    }
+
+    @* Detección Automática por Zona Horaria *@
+    <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div>
+            <h3 class="text-sm font-bold text-[var(--text-primary)]">Detección Automática</h3>
+            <p class="text-xs text-[var(--text-secondary)] mt-0.5">
+                Inferir país aproximado a partir de la zona horaria del navegador.
+            </p>
+        </div>
+        <button type="button"
+                @onclick="AutoDetectCountryAsync"
+                class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs transition-colors inline-flex items-center justify-center gap-2 shadow-sm shrink-0">
+            <Icon Name="map-pin" Size="14" />
+            <span>Detectar País</span>
+        </button>
+    </div>
+
+    @* Buscador y Listado de Países *@
+    <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+            <label for="country-search" class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Selecciona tu País o Territorio
+            </label>
+            <span class="text-xs text-[var(--text-muted)]">
+                País actual: <strong class="text-[var(--text-primary)]">@(string.IsNullOrWhiteSpace(_currentCountry) ? "Global" : _currentCountry)</strong>
+            </span>
+        </div>
+
+        <input id="country-search"
+               type="text"
+               @bind="_searchFilter"
+               @bind:event="oninput"
+               placeholder="Filtrar por nombre o código (ej. España, ES, México, MX...)"
+               class="w-full px-4 py-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] shadow-sm" />
+
+        @* Opción Global (sin país) *@
+        <button type="button"
+                @onclick="() => SelectCountryAsync(null)"
+                class="w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between shadow-sm @(string.IsNullOrWhiteSpace(_currentCountry) ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")">
+            <div class="flex items-center gap-3">
+                <span class="p-2 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                    <Icon Name="globe" Size="20" />
+                </span>
+                <div>
+                    <span class="font-bold text-sm text-[var(--text-primary)] block">Sin país seleccionado (Ámbito Global)</span>
+                    <span class="text-xs text-[var(--text-secondary)]">Muestra todo el catálogo de tiendas, sorteos y eventos sin exclusión geográfica.</span>
+                </div>
+            </div>
+            @if (string.IsNullOrWhiteSpace(_currentCountry))
+            {
+                <span class="px-2.5 py-1 rounded-full bg-[var(--brand-primary)] text-white font-bold text-xs shrink-0">
+                    Activo
+                </span>
+            }
+        </button>
+
+        @* Lista de Países del Catálogo *@
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-96 overflow-y-auto pr-1">
+            @foreach (var c in FilteredCountries)
+            {
+                bool isSelected = string.Equals(_currentCountry, c.Name, StringComparison.OrdinalIgnoreCase);
+                <button type="button"
+                        @onclick="() => SelectCountryAsync(c.Name)"
+                        class="p-3 rounded-xl border text-left transition-all flex items-center justify-between shadow-sm @(isSelected ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-highlight)]")">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-xl shrink-0">@c.FlagEmoji</span>
+                        <div class="truncate">
+                            <span class="font-bold text-xs text-[var(--text-primary)] block truncate">@c.Name</span>
+                            <span class="text-[0.65rem] text-[var(--text-muted)] uppercase">(@c.Code)</span>
+                        </div>
+                    </div>
+                    @if (isSelected)
+                    {
+                        <span class="px-2 py-0.5 rounded-full bg-[var(--brand-primary)] text-white font-black text-[0.65rem] shrink-0">
+                            Activo
+                        </span>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? _currentCountry;
+    private string _searchFilter = string.Empty;
+    private string? _statusMessage;
+
+    private IEnumerable<CountryInfo> FilteredCountries =>
+        string.IsNullOrWhiteSpace(_searchFilter)
+            ? CountryCatalog.GetAllCountries()
+            : CountryCatalog.GetAllCountries().Where(c =>
+                c.Name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
+                c.Code.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _currentCountry = await PreferenceService.GetUserCountryAsync(CurrentUserService.UserId);
+        }
+        catch
+        {
+            _currentCountry = null;
+        }
+    }
+
+    private async Task SelectCountryAsync(string? country)
+    {
+        _currentCountry = country;
+        _statusMessage = null;
+
+        try
+        {
+            await PreferenceService.SetUserCountryAsync(CurrentUserService.UserId, country);
+            LocationService.SetUserCountry(country);
+            await JS.InvokeVoidAsync("setStoredUserCountry", country, CurrentUserService.UserId);
+
+            _statusMessage = country != null
+                ? $"País configurado a {CountryCatalog.GetFlag(country)} {country} para {CurrentUserService.UserName}."
+                : "Ámbito global restablecido. Todo el contenido territorial es visible.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al guardar país: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task AutoDetectCountryAsync()
+    {
+        try
+        {
+            var detected = await JS.InvokeAsync<string?>("detectUserCountry");
+            if (!string.IsNullOrWhiteSpace(detected))
+            {
+                await SelectCountryAsync(detected);
+            }
+            else
+            {
+                _statusMessage = "No se pudo inferir el país desde la zona horaria del dispositivo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al detectar: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+}
