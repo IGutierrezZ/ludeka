@@ -59,5 +59,5 @@ Recompensas a los primeros puestos, clasificaciones por país/torneos, y pondera
 - [x] **Tarea 3 (Servicio de Clasificación y Repositorio)**: Implementar `LeaderboardService` con filtrado estricto por opt-in, cálculo mensual por `GamePlayLog`, condecoración de hitos INC-67, anonimización rigurosa, soporte en `SqliteUserPreferenceService` y suite de pruebas unitarias.
 - [x] **Tarea 4 (Persistencia EF Core)**: Migración `AddLeaderboardPreferences`, snapshot del modelo y sincronización de migración defensiva para SQLite/PostgreSQL.
 - [x] **Tarea 5 (UI de Ajustes de Privacidad)**: Integrar controles de opt-in, anonimato y seudónimo en `AccountPrivacy.razor` con pruebas bUnit / de contrato.
-- [ ] **Tarea 6 (UI de Clasificación Pública)**: Crear página `/clasificaciones` (`Leaderboards.razor`) con navegación mensual, podio editorial, tabla accesible y transparencia de privacidad, con pruebas bUnit y enlace en comunidad.
+- [x] **Tarea 6 (UI de Clasificación Pública)**: Crear página `/clasificaciones` (`Leaderboards.razor`) con navegación mensual, podio editorial, tabla accesible y transparencia de privacidad, con pruebas de contrato y enlace en navegación comunitaria.
 - [ ] **Tarea 7 (Cierre y Documentación Viva)**: Verificación completa de suite, redacción de `docs/specs/sistema/43-clasificaciones-y-anonimato.md`, archivo del incremento y preparación de PR.

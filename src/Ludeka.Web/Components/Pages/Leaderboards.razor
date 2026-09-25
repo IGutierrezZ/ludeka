@@ -1,0 +1,484 @@
+@page "/clasificaciones"
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@inject ILeaderboardService LeaderboardService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+
+<PageTitle>Clasificación Mensual de Jugadores | Ludeka</PageTitle>
+
+<div class="container-ludeka py-10 max-w-5xl mx-auto space-y-8">
+    @* Encabezado Principal *@
+    <header class="text-center space-y-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold">
+            <Icon Name="trophy" Size="14" />
+            <span>Comunidad &bull; Actividad en Mesa</span>
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-black text-[var(--text-primary)] tracking-tight">
+            Clasificación Mensual
+        </h1>
+        <p class="text-sm sm:text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
+            Reconocimiento a los jugones más activos de la comunidad según sus partidas registradas en mesa durante el mes. Sin trampas, con opt-in voluntario y respeto estricto al anonimato.
+        </p>
+    </header>
+
+    @* Selector de Periodo Mensual *@
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Icon Name="calendar" Size="20" />
+            </span>
+            <div>
+                <h2 class="text-sm font-bold text-[var(--text-primary)]">Periodo de Clasificación</h2>
+                <p class="text-xs text-[var(--text-muted)]">El ranking se reinicia al inicio de cada mes natural.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button"
+                    id="prev-month-btn"
+                    @onclick="PreviousMonthAsync"
+                    aria-label="Mes anterior"
+                    class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-colors shadow-sm">
+                <Icon Name="chevron-left" Size="18" />
+            </button>
+
+            <div class="px-5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center shadow-sm min-w-[170px]">
+                <span class="text-sm sm:text-base font-black text-[var(--text-primary)] tracking-tight block">
+                    @(_leaderboard?.MonthLabel ?? $"{_selectedMonth:D2}/{_selectedYear}")
+                </span>
+            </div>
+
+            <button type="button"
+                    id="next-month-btn"
+                    @onclick="NextMonthAsync"
+                    disabled="@IsCurrentOrFutureMonth"
+                    aria-label="Mes siguiente"
+                    class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-colors shadow-sm disabled:opacity-30 disabled:pointer-events-none">
+                <Icon Name="chevron-right" Size="18" />
+            </button>
+
+            @if (!IsCurrentMonth)
+            {
+                <button type="button"
+                        id="current-month-btn"
+                        @onclick="GoToCurrentMonthAsync"
+                        class="px-3 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors shadow-sm">
+                    Mes actual
+                </button>
+            }
+        </div>
+    </div>
+
+    @* Estado de Participación del Usuario Conectado *@
+    @if (HasSession)
+    {
+        @if (_leaderboard?.CurrentUserHasOptedIn == true)
+        {
+            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm" role="status">
+                <div class="flex items-center gap-2.5">
+                    <Icon Name="circle-check" Size="18" />
+                    <span>
+                        Estás participando en la clasificación de este mes.
+                        @if (_leaderboard.CurrentUserRank.HasValue)
+                        {
+                            <strong> Tu posición actual es la #@_leaderboard.CurrentUserRank.</strong>
+                        }
+                        else
+                        {
+                            <span> Registra una partida en mesa este mes para aparecer en la tabla.</span>
+                        }
+                    </span>
+                </div>
+                <a href="/cuenta/privacidad" class="font-bold underline hover:no-underline shrink-0 flex items-center gap-1 text-emerald-800 dark:text-emerald-300">
+                    <Icon Name="lock" Size="14" />
+                    <span>Ajustes de privacidad y anonimato</span>
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm" role="status">
+                <div class="flex items-center gap-2.5">
+                    <Icon Name="eye-off" Size="18" />
+                    <span>
+                        Actualmente no apareces en la clasificación pública. Por privacidad, solo participan los jugadores que lo autorizan explícitamente.
+                    </span>
+                </div>
+                <a href="/cuenta/privacidad" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors shrink-0 flex items-center justify-center gap-1.5 shadow-sm">
+                    <Icon Name="trophy" Size="14" />
+                    <span>Sumarme a la tabla (con o sin seudónimo)</span>
+                </a>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+            <div class="flex items-center gap-2.5">
+                <Icon Name="info" Size="18" />
+                <span>Inicia sesión para comprobar tu posición o sumarte a la clasificación de la comunidad.</span>
+            </div>
+            <a href="/login" class="font-bold text-[var(--brand-primary)] hover:underline shrink-0">
+                Iniciar sesión &rarr;
+            </a>
+        </div>
+    }
+
+    @* Métricas del Periodo *@
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center shadow-sm">
+            <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">Jugadores en Tabla</span>
+            <span class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] mt-1 block">@(_leaderboard?.TotalParticipants ?? 0)</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center shadow-sm">
+            <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">Partidas en Mesa</span>
+            <span class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] mt-1 block">@(_leaderboard?.TotalPlaysLogged ?? 0)</span>
+        </div>
+        <div class="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center shadow-sm flex flex-col justify-center">
+            <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">Ventana Temporal</span>
+            <span class="text-xs font-bold text-[var(--text-secondary)] mt-1.5 block">
+                @(_leaderboard?.PeriodStart.ToString("d MMM") ?? "") &ndash; @(_leaderboard?.PeriodEnd.ToString("d MMM yyyy") ?? "")
+            </span>
+        </div>
+    </div>
+
+    @* Podio Editorial Top 3 *@
+    @if (_leaderboard != null && _leaderboard.Entries.Count > 0)
+    {
+        var topEntries = _leaderboard.Entries.Take(3).ToList();
+
+        <section class="space-y-4" aria-label="Podio de honor">
+            <div class="text-center">
+                <span class="text-xs uppercase font-extrabold tracking-wider text-[var(--brand-primary)]">Podio de Honor</span>
+                <h2 class="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">Los Más Activos en Mesa</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch pt-2">
+                @for (int i = 0; i < topEntries.Count; i++)
+                {
+                    var entry = topEntries[i];
+                    string borderStyle = entry.Rank switch
+                    {
+                        1 => "border-amber-500/50 bg-amber-500/5 shadow-amber-500/10 md:-translate-y-2",
+                        2 => "border-slate-400/40 bg-slate-500/5",
+                        _ => "border-amber-700/30 bg-amber-800/5"
+                    };
+
+                    string rankBadgeBg = entry.Rank switch
+                    {
+                        1 => "bg-amber-500 text-white",
+                        2 => "bg-slate-400 text-white",
+                        _ => "bg-amber-700 text-white"
+                    };
+
+                    <div class="p-6 rounded-2xl border @borderStyle shadow-md flex flex-col justify-between space-y-4 text-center transition-transform">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <span class="w-8 h-8 rounded-full @rankBadgeBg font-black text-sm flex items-center justify-center shadow-sm">
+                                    @if (entry.Rank == 1)
+                                    {
+                                        <Icon Name="crown" Size="16" />
+                                    }
+                                    else
+                                    {
+                                        <span>#@entry.Rank</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <div class="space-y-1">
+                                @if (!entry.IsAnonymous && !string.IsNullOrWhiteSpace(entry.PublicProfileUrl))
+                                {
+                                    <a href="@entry.PublicProfileUrl" class="text-base font-extrabold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block">
+                                        @entry.DisplayName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <span class="text-base font-mono font-bold text-[var(--text-primary)]">@entry.DisplayName</span>
+                                        <span class="badge-pill px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                            <Icon Name="eye-off" Size="10" /> Anónimo
+                                        </span>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(entry.BadgeName))
+                                {
+                                    <span class="badge-pill px-2 py-0.5 text-[10px] font-bold bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                                        <Icon Name="sparkles" Size="10" /> @entry.BadgeName
+                                    </span>
+                                }
+
+                                @if (!entry.IsAnonymous && !string.IsNullOrWhiteSpace(entry.Country))
+                                {
+                                    <span class="text-[11px] text-[var(--text-muted)] block flex items-center justify-center gap-1">
+                                        <Icon Name="map-pin" Size="11" /> @entry.Country
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-[var(--border-subtle)] grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-[var(--bg-surface-elevated)] p-2 rounded-xl">
+                                <span class="text-[10px] text-[var(--text-muted)] block">Partidas</span>
+                                <span class="font-black text-sm text-[var(--text-primary)] flex items-center justify-center gap-1">
+                                    <Icon Name="dices" Size="13" /> @entry.TotalPlaysThisMonth
+                                </span>
+                            </div>
+                            <div class="bg-[var(--bg-surface-elevated)] p-2 rounded-xl">
+                                <span class="text-[10px] text-[var(--text-muted)] block">Hitos</span>
+                                <span class="font-black text-sm text-[var(--text-primary)] flex items-center justify-center gap-1">
+                                    <Icon Name="trophy" Size="13" /> @entry.UnlockedMilestonesCount
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        @* Tabla Completa de Clasificaciones *@
+        <section class="space-y-3" aria-label="Tabla de clasificación">
+            <h2 class="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Icon Name="list" Size="16" />
+                <span>Tabla Completa de Jugadores</span>
+            </h2>
+
+            <div class="overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-sm">
+                <table class="w-full text-left text-xs" aria-label="Clasificación de jugadores">
+                    <thead class="bg-[var(--bg-surface-elevated)] text-[var(--text-muted)] uppercase tracking-wider font-bold text-[11px] border-b border-[var(--border-subtle)]">
+                        <tr>
+                            <th scope="col" class="py-3 px-4 w-16 text-center">#</th>
+                            <th scope="col" class="py-3 px-4">Jugador / Mesa</th>
+                            <th scope="col" class="py-3 px-4 text-center">Partidas en Mesa</th>
+                            <th scope="col" class="py-3 px-4 text-center">Hitos</th>
+                            <th scope="col" class="py-3 px-4">Distintivo</th>
+                            <th scope="col" class="py-3 px-4 text-center">País</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border-subtle)]">
+                        @foreach (var entry in _leaderboard.Entries)
+                        {
+                            bool isCurrent = _leaderboard.CurrentUserRank.HasValue && _leaderboard.CurrentUserRank.Value == entry.Rank;
+                            string rowBg = isCurrent ? "bg-[var(--brand-primary)]/10 font-bold" : "hover:bg-[var(--bg-surface-elevated)]/50 transition-colors";
+
+                            <tr class="@rowBg">
+                                <td class="py-3 px-4 text-center font-black">
+                                    @if (entry.Rank == 1)
+                                    {
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500 text-white text-[11px]">1</span>
+                                    }
+                                    else if (entry.Rank == 2)
+                                    {
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white text-[11px]">2</span>
+                                    }
+                                    else if (entry.Rank == 3)
+                                    {
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700 text-white text-[11px]">3</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[var(--text-secondary)]">@entry.Rank</span>
+                                    }
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        @if (!entry.IsAnonymous && !string.IsNullOrWhiteSpace(entry.PublicProfileUrl))
+                                        {
+                                            <a href="@entry.PublicProfileUrl" class="font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors">
+                                                @entry.DisplayName
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="font-mono font-semibold text-[var(--text-primary)]">@entry.DisplayName</span>
+                                            <span class="badge-pill px-1.5 py-0.2 text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                                Anónimo
+                                            </span>
+                                        }
+
+                                        @if (isCurrent)
+                                        {
+                                            <span class="badge-pill px-2 py-0.5 text-[9px] font-extrabold bg-[var(--brand-primary)] text-white">
+                                                Tú
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="font-black text-sm text-[var(--text-primary)] inline-flex items-center gap-1">
+                                        <Icon Name="dices" Size="13" /> @entry.TotalPlaysThisMonth
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="font-bold text-[var(--text-secondary)] inline-flex items-center gap-1">
+                                        <Icon Name="trophy" Size="13" /> @entry.UnlockedMilestonesCount
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    @if (!string.IsNullOrWhiteSpace(entry.BadgeName))
+                                    {
+                                        <span class="badge-pill px-2 py-0.5 text-[10px] font-bold bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] inline-flex items-center gap-1">
+                                            <Icon Name="sparkles" Size="11" /> @entry.BadgeName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[var(--text-muted)]">&mdash;</span>
+                                    }
+                                </td>
+                                <td class="py-3 px-4 text-center text-[var(--text-secondary)]">
+                                    @if (!entry.IsAnonymous && !string.IsNullOrWhiteSpace(entry.Country))
+                                    {
+                                        <span>@entry.Country</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[var(--text-muted)] text-[10px] font-mono">Reservado</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else
+    {
+        @* Estado Vacío *@
+        <div class="p-12 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center space-y-4 shadow-sm" role="region" aria-label="Sin datos">
+            <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                <Icon Name="dices" Size="32" />
+            </div>
+            <div class="space-y-1 max-w-md mx-auto">
+                <h2 class="text-xl font-black text-[var(--text-primary)]">Mesa vacía en este periodo</h2>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Aún no hay partidas registradas en mesa durante este mes por jugadores con consentimiento de clasificación activo.
+                </p>
+            </div>
+            @if (HasSession)
+            {
+                <a href="/cuenta/ludoteca" class="px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs transition-colors inline-flex items-center justify-center gap-2 shadow-sm">
+                    <Icon Name="plus" Size="14" />
+                    <span>Registrar una partida en mi ludoteca</span>
+                </a>
+            }
+        </div>
+    }
+
+    @* Manifiesto y Compromiso de Privacidad *@
+    <div class="p-6 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-3 shadow-sm">
+        <h3 class="text-xs uppercase font-extrabold tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <Icon Name="shield" Size="14" />
+            <span>Reglas de Mesa &bull; Privacidad y Transparencia Ludeka</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-[var(--text-secondary)] leading-relaxed">
+            <div>
+                <strong class="text-[var(--text-primary)] block mb-1">1. Opt-in obligatorio</strong>
+                Nadie entra en las clasificaciones por defecto. Solo participas si lo activas expresamente desde tus ajustes.
+            </div>
+            <div>
+                <strong class="text-[var(--text-primary)] block mb-1">2. Anonimato real</strong>
+                El modo anónimo oculta avatar, país y enlace a tu perfil, generando un seudónimo determinista no reversible.
+            </div>
+            <div>
+                <strong class="text-[var(--text-primary)] block mb-1">3. Ventana mensual</strong>
+                Las clasificaciones premian la actividad lúdica del mes en curso y se reinician puntualmente sin fosilizar puestos.
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _selectedYear;
+    private int _selectedMonth;
+    private MonthlyLeaderboardDto? _leaderboard;
+
+    private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
+    private bool IsCurrentMonth =>
+        _selectedYear == DateTime.UtcNow.Year && _selectedMonth == DateTime.UtcNow.Month;
+
+    private bool IsCurrentOrFutureMonth =>
+        _selectedYear > DateTime.UtcNow.Year ||
+        (_selectedYear == DateTime.UtcNow.Year && _selectedMonth >= DateTime.UtcNow.Month);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var now = DateTime.UtcNow;
+        _selectedYear = now.Year;
+        _selectedMonth = now.Month;
+
+        await LoadLeaderboardAsync();
+    }
+
+    private async Task LoadLeaderboardAsync()
+    {
+        try
+        {
+            _leaderboard = await LeaderboardService.GetMonthlyLeaderboardAsync(_selectedYear, _selectedMonth);
+        }
+        catch
+        {
+            _leaderboard = new MonthlyLeaderboardDto(
+                _selectedYear,
+                _selectedMonth,
+                $"{_selectedMonth:D2}/{_selectedYear}",
+                new DateTimeOffset(new DateTime(_selectedYear, _selectedMonth, 1), TimeSpan.Zero),
+                new DateTimeOffset(new DateTime(_selectedYear, _selectedMonth, 1).AddMonths(1).AddTicks(-1), TimeSpan.Zero),
+                0,
+                0,
+                new List<LeaderboardEntryDto>(),
+                false,
+                null
+            );
+        }
+    }
+
+    private async Task PreviousMonthAsync()
+    {
+        if (_selectedMonth == 1)
+        {
+            _selectedMonth = 12;
+            _selectedYear--;
+        }
+        else
+        {
+            _selectedMonth--;
+        }
+
+        await LoadLeaderboardAsync();
+    }
+
+    private async Task NextMonthAsync()
+    {
+        if (IsCurrentOrFutureMonth)
+        {
+            return;
+        }
+
+        if (_selectedMonth == 12)
+        {
+            _selectedMonth = 1;
+            _selectedYear++;
+        }
+        else
+        {
+            _selectedMonth++;
+        }
+
+        await LoadLeaderboardAsync();
+    }
+
+    private async Task GoToCurrentMonthAsync()
+    {
+        var now = DateTime.UtcNow;
+        _selectedYear = now.Year;
+        _selectedMonth = now.Month;
+
+        await LoadLeaderboardAsync();
+    }
+}
