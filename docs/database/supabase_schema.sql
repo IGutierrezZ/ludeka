@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
     "ProductVersion" character varying(32) NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
@@ -1615,6 +1615,47 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925134715_AddUserPreferenceProfileVisibility') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
     VALUES ('20260925134715_AddUserPreferenceProfileVisibility', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925164853_AddMagicLinkTokens') THEN
+    CREATE TABLE "MagicLinkTokens" (
+        "Id" uuid NOT NULL,
+        "Email" character varying(200) NOT NULL,
+        "TokenHash" character varying(128) NOT NULL,
+        "CreatedAt" timestamp with time zone NOT NULL,
+        "ExpiresAt" timestamp with time zone NOT NULL,
+        "ConsumedAt" timestamp with time zone,
+        "TargetUserId" character varying(100),
+        CONSTRAINT "PK_MagicLinkTokens" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925164853_AddMagicLinkTokens') THEN
+    CREATE INDEX "IX_MagicLinkTokens_Email_CreatedAt" ON "MagicLinkTokens" ("Email", "CreatedAt");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925164853_AddMagicLinkTokens') THEN
+    CREATE UNIQUE INDEX "IX_MagicLinkTokens_TokenHash" ON "MagicLinkTokens" ("TokenHash");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925164853_AddMagicLinkTokens') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260925164853_AddMagicLinkTokens', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;

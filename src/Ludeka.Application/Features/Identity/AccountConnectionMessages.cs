@@ -81,4 +81,16 @@ public static class AccountConnectionMessages
     /// </summary>
     public const string LoginCollisionNotice =
         "Ya existe una cuenta con este correo. Inicia sesión con el método que ya usas y vincula este proveedor desde Ajustes → Conexiones.";
+
+    /// <summary>
+    /// Aviso cuando el token de magic link es inválido o ya fue utilizado (INC-64).
+    /// </summary>
+    public const string MagicLinkInvalidNotice =
+        "El enlace de acceso es inválido o ya ha sido utilizado. Solicita uno nuevo a continuación.";
+
+    /// <summary>
+    /// Aviso cuando el token de magic link ha caducado (INC-64).
+    /// </summary>
+    public const string MagicLinkExpiredNotice =
+        "El enlace de acceso ha caducado (validez de 15 minutos). Solicita uno nuevo a continuación.";
 }

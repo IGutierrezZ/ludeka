@@ -1,7 +1,12 @@
 @page "/login"
+@using Ludeka.Application.Contracts
 @using Ludeka.Application.Features.Identity
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
 @inject IOptions<AuthenticationOptions> AuthenticationOptionsAccessor
+@inject IMagicLinkService MagicLinkService
+@inject IWebHostEnvironment Environment
 
 <PageTitle>Acceso | Ludeka</PageTitle>
 
@@ -11,8 +16,7 @@
             <span class="inline-block"><Icon Name="dices" Size="40" /></span>
             <h1 class="text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">Acceso a Ludeka</h1>
             <p class="text-sm text-[var(--text-secondary)]">
-                Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa. Entra con tu cuenta social:
-                sin registro, sin contraseña y sin correo de confirmación.
+                Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa. Entra al instante con tu cuenta social o con un enlace mágico a tu correo: sin contraseñas.
             </p>
         </header>
 
@@ -24,6 +28,92 @@
             </div>
         }
 
+        <!-- Acceso por Correo (Magic Link) -->
+        <div class="space-y-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Acceso directo con enlace mágico
+            </h2>
+
+            @if (_magicLinkSent)
+            {
+                <div class="p-4 rounded-2xl bg-[var(--state-success-bg,rgba(16,185,129,0.1))] border border-[var(--state-success-border,rgba(16,185,129,0.3))] text-[var(--state-success,#059669)] space-y-3 text-sm shadow-sm" role="status">
+                    <div class="flex items-center gap-2 font-bold">
+                        <Icon Name="check-circle-2" Size="18" />
+                        <span>¡Enlace enviado a tu bandeja!</span>
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                        Hemos enviado un enlace de un solo uso a <strong class="text-[var(--text-primary)]">@_submittedEmail</strong>. Pincha en el enlace de tu correo para entrar automáticamente.
+                    </p>
+                    <p class="text-[11px] text-[var(--text-secondary)] opacity-80">
+                        Válido durante 15 minutos. Si no lo ves en unos segundos, revisa tu carpeta de spam.
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(_devTokenLink) && Environment.IsDevelopment())
+                    {
+                        <div class="pt-2 border-t border-[var(--border-subtle)]">
+                            <a href="@_devTokenLink"
+                               class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity">
+                                <Icon Name="external-link" Size="14" />
+                                Abrir enlace mágico (Modo desarrollo)
+                            </a>
+                        </div>
+                    }
+
+                    <div class="pt-1">
+                        <button type="button"
+                                @onclick="ResetMagicLinkForm"
+                                class="text-xs underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                            Probar con otro correo
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <form @onsubmit="HandleMagicLinkSubmitAsync" class="space-y-3">
+                    <label for="magic-link-email" class="sr-only">Correo electrónico</label>
+                    <div class="relative">
+                        <input id="magic-link-email"
+                               type="email"
+                               required
+                               autocomplete="email"
+                               placeholder="tu@correo.com"
+                               @bind="_emailInput"
+                               disabled="@_isSubmitting"
+                               class="w-full px-4 py-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] transition-all" />
+                    </div>
+
+                    @if (_magicLinkError is not null)
+                    {
+                        <p class="text-xs text-[var(--state-danger,#dc2626)] font-medium">@_magicLinkError</p>
+                    }
+
+                    <button type="submit"
+                            disabled="@_isSubmitting"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--brand-primary)] text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+                        <Icon Name="mail" Size="18" />
+                        @if (_isSubmitting)
+                        {
+                            <span>Enviando enlace...</span>
+                        }
+                        else
+                        {
+                            <span>Recibir enlace de acceso</span>
+                        }
+                    </button>
+                </form>
+            }
+        </div>
+
+        <!-- Separador -->
+        <div class="relative flex items-center justify-center my-6">
+            <span class="absolute inset-x-0 h-px bg-[var(--border-subtle)]"></span>
+            <span class="relative px-3 bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                o entra con tu cuenta social
+            </span>
+        </div>
+
+        <!-- Acceso Social -->
         @if (_providers.Count == 0)
         {
             <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)]"
@@ -31,7 +121,7 @@
                 <p class="font-bold text-[var(--text-primary)]">El acceso social aún no está configurado.</p>
                 <p class="mt-1 text-xs">
                     La Mesa Fundadora debe habilitar un proveedor con sus credenciales
-                    (<code>Authentication:Providers</code>) antes de poder iniciar sesión.
+                    (<code>Authentication:Providers</code>) antes de poder iniciar sesión con redes.
                 </p>
             </div>
         }
@@ -43,8 +133,12 @@
                     <form method="post" action="/login/external" data-enhance="false">
                         <AntiforgeryToken />
                         <input type="hidden" name="provider" value="@provider.Name" />
+                        @if (!string.IsNullOrWhiteSpace(ReturnUrl))
+                        {
+                            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                        }
                         <button type="submit"
-                                class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--brand-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-sm hover:bg-[var(--bg-card)] transition-colors"
                                 aria-label="Continuar con @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)">
                             <Icon Name="shield" Size="18" />
                             Continuar con @ExternalAuthenticationSchemes.DisplayNameFor(provider.Name)
@@ -65,15 +159,66 @@
     [SupplyParameterFromQuery(Name = "aviso")]
     public string? Aviso { get; set; }
 
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    public string? ReturnUrl { get; set; }
+
     private IReadOnlyList<ExternalProviderRegistration> _providers = [];
     private string? _collisionNotice;
+
+    private string _emailInput = "";
+    private string? _submittedEmail;
+    private bool _isSubmitting;
+    private bool _magicLinkSent;
+    private string? _magicLinkError;
+    private string? _devTokenLink;
 
     protected override void OnInitialized()
     {
         _providers = ExternalAuthenticationSchemes.GetEnabledProviders(AuthenticationOptionsAccessor.Value);
-
-        // Código cerrado de "?aviso=" (INC-49, diseño §3.1): nunca se transporta texto libre, solo
-        // un código de un conjunto cerrado que se traduce en servidor.
         _collisionNotice = LoginRedirect.ResolveAccountCollisionNotice(Aviso);
+    }
+
+    private async Task HandleMagicLinkSubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_emailInput))
+        {
+            _magicLinkError = "Introduce tu dirección de correo electrónico.";
+            return;
+        }
+
+        _isSubmitting = true;
+        _magicLinkError = null;
+
+        try
+        {
+            var result = await MagicLinkService.RequestMagicLinkAsync(_emailInput, ReturnUrl);
+            if (result.Success)
+            {
+                _magicLinkSent = true;
+                _submittedEmail = _emailInput.Trim().ToLowerInvariant();
+                _devTokenLink = result.DevTokenLink;
+            }
+            else
+            {
+                _magicLinkError = result.Message;
+            }
+        }
+        catch (Exception)
+        {
+            _magicLinkError = "No se pudo procesar la solicitud. Por favor, inténtalo de nuevo en unos instantes.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void ResetMagicLinkForm()
+    {
+        _magicLinkSent = false;
+        _emailInput = "";
+        _submittedEmail = null;
+        _magicLinkError = null;
+        _devTokenLink = null;
     }
 }
