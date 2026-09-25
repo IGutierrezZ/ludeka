@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
 @using Ludeka.Web.Components.Shared
 @inject IPublisherService PublisherService
 @inject IDirectorySeederService DirectorySeederService
@@ -119,9 +120,12 @@
                                 </div>
                             </div>
 
-                            <span class="px-2.5 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--brand-primary)] text-xs font-black shrink-0">
-                                @pub.GamesCount @(pub.GamesCount == 1 ? "título" : "títulos")
-                            </span>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="px-2.5 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--brand-primary)] text-xs font-black">
+                                    @pub.GamesCount @(pub.GamesCount == 1 ? "título" : "títulos")
+                                </span>
+                                <LikeButton TargetType="LikeTargetType.Publisher" TargetId="@pub.Id" InitialLikesCount="@pub.LikesCount" Compact="true" />
+                            </div>
                         </div>
 
                         @if (!string.IsNullOrWhiteSpace(pub.Description))

@@ -168,12 +168,15 @@
                                 </div>
                             </div>
 
-                            @if (store.HasLoyaltyProgram)
-                            {
-                                <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0" title="Programa de puntos o ventajas">
-                                    <span class="inline-flex items-center gap-1"><Icon Name="star" Size="10" /> Club</span>
-                                </span>
-                            }
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                @if (store.HasLoyaltyProgram)
+                                {
+                                    <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0" title="Programa de puntos o ventajas">
+                                        <span class="inline-flex items-center gap-1"><Icon Name="star" Size="10" /> Club</span>
+                                    </span>
+                                }
+                                <LikeButton TargetType="LikeTargetType.Store" TargetId="@store.Id" InitialLikesCount="@store.LikesCount" Compact="true" />
+                            </div>
                         </div>
 
                         @if (store.ShippingCountries != null && store.ShippingCountries.Count > 0)

@@ -1,3 +1,5 @@
+@using Ludeka.Core.Enums
+
 @if (IsOpen && Item != null)
 {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -83,6 +85,10 @@
             @* Pie del modal *@
             <div class="p-3.5 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2">
+                    <LikeButton TargetType="LikeTargetType.MediaItem"
+                                TargetId="@Item.Id"
+                                InitialLikesCount="@Item.UserLikesCount"
+                                OnLikesCountChanged="(cnt) => Item = Item with { UserLikesCount = cnt }" />
                     @if (!string.IsNullOrWhiteSpace(Item.PlayerCountBadge))
                     {
                         <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/25 font-semibold text-[0.68rem]">
