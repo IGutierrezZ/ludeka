@@ -84,12 +84,19 @@ Garantizar de forma verificable la vinculación multi-proveedor a una misma cuen
 - [x] **ODD-4 — Pruebas de Contrato y Regresión en Web**
   - [x] 4.1 Actualizar `AccountConnectionsPageContractTests` con los nuevos datos visuales y botón deshabilitado.
   - [x] 4.2 Verificar que el manejo de errores de colisión y última cuenta sigue intacto.
-- [ ] **ODD-5 — Sincronización Documental y Verificación Final**
-  - [ ] 5.1 Suite completa de pruebas unitarias en verde (`dotnet test`).
-  - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` con INC-63 en progreso.
+- [x] **ODD-5 — Sincronización Documental y Verificación Final**
+  - [x] 5.1 Suite completa de pruebas unitarias en verde (1.711 pruebas pasando con `dotnet test`).
+  - [x] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` con INC-63 verificado.
+  - [x] 5.3 Actualizar `odd/tasks/inc-63-conexiones-oauth.md` con commits y registro de evidencia.
+  - [x] 5.4 Actualizar el espejo en Engram.
 
 ---
 
 ## 6. Registro de Commits por Unidad de Trabajo
 
-*(Se completará conforme se implemente cada tarea)*
+1. `d420926` — `docs(odd): iniciar inc-63 y registrar plan de tareas de conexiones oauth`
+2. `6e5b2d4` — `feat(identity): enrich AccountConnectionDto and service with provider email and verification timestamp`
+3. `c8db172` — `feat(web): display provider email and prevent unlinking sole access method in connections page`
+4. `7ba4227` — `test(identity): add end-to-end multi-provider lifecycle and duplicate prevention tests`
+5. `9cac1e4` — `docs(odd): complete ODD-4 contract and error regression verification`
+6. `bd95539` — `docs(odd): complete INC-63 roadmap synchronization and verification evidence`
