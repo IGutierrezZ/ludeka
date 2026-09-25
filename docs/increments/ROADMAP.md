@@ -76,7 +76,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ✅ Archivado | [inc-60-navegacion-movil.md](archive/inc-60-navegacion-movil.md) |
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ✅ Archivado | [inc-61-menu-de-cuenta.md](archive/inc-61-menu-de-cuenta.md) |
 | **INC-62** | Preferencias de Usuario: Tema y País | ✅ Archivado | [inc-62-preferencias-usuario.md](archive/inc-62-preferencias-usuario.md) |
-| **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ⏳ En progreso | [inc-63-conexiones-oauth.md](inc-63-conexiones-oauth.md) |
+| **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ✅ Archivado | [inc-63-conexiones-oauth.md](archive/inc-63-conexiones-oauth.md) |
 | **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ Planificado | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
 | **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |
 | **INC-66** | Fundas de Cartas: Calidad de Datos y Enlaces de Compra | ⏳ Planificado | [inc-66-fundas-cartas.md](inc-66-fundas-cartas.md) |
@@ -108,6 +108,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+*(INC-63 entregó su PR #113, verificada con 1.711 pruebas unitarias + 10 de integración en verde (1.721 en total), y quedó archivado el 2026-09-25. Garantiza de extremo a extremo la vinculación multi-proveedor sin duplicación de cuentas (Google + Discord), enriquece AccountConnectionDto y AccountConnectionsService con ProviderEmail y ProviderEmailVerifiedAt, deshabilita preventivamente el botón de desvinculación cuando solo resta un método de acceso único con indicativo visual accesible WCAG 2.2 AA y formaliza la suite de ciclo de vida MultiProviderLifecycleTests).*
 
 *(INC-62 entregó su verificación con 1.703 pruebas unitarias en verde, y quedó archivado el 2026-09-25. Implementa la limpieza de cabecera en MainLayout, el menú desplegable AccountMenu con 7 destinos directos sin opción intermedia redundante, las pantallas dedicadas de Apariencia, País y Privacidad, y el control de visibilidad pública de perfil con migración SQLite DDL).*
 

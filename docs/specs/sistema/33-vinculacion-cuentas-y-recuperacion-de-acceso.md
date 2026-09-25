@@ -1,9 +1,9 @@
 # 33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso
 
-> **Estado:** Implementado y Verificado (1.417 pruebas unitarias en verde, 0 errores, 0 omitidas) — veredicto `pass_with_warnings` (0 CRITICAL, 1 WARNING, 2 SUGGESTION)
-> **Incremento:** [INC-49 (docs/increments/archive/inc-49-vinculacion-cuentas.md)](file:///c:/repos/Ludeka/docs/increments/archive/inc-49-vinculacion-cuentas.md)
+> **Estado:** Implementado y Verificado (1.711 pruebas unitarias en verde, 0 errores, 0 omitidas)
+> **Incremento:** [INC-49](file:///c:/repos/Ludeka/docs/increments/archive/inc-49-vinculacion-cuentas.md) e [INC-63](file:///c:/repos/Ludeka/docs/increments/archive/inc-63-conexiones-oauth.md)
 > **Dependencia:** INC-46, Autenticación Real (archivado) — ver módulo 32
-> **Módulos relacionados:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md)
+> **Módulos relacionados:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md) · [37. Área de Cuenta y Puerta de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/37-area-de-cuenta-y-puerta-de-acceso.md)
 
 ## 1. El Problema: por qué existe este módulo
 
@@ -174,3 +174,25 @@ El contrato completo es `GetByProviderKeyAsync`, `AddAsync`, `ListByUserIdAsync`
 - **WARNING abierto (no bloqueante):** `ExternalLoginEvents.HandleTicketReceivedAsync` no captura `UnauthorizedAccessException` en la rama de vinculación. Si la cuenta de la sesión se suspende o se elimina exactamente entre el desafío OAuth y el retorno del proveedor, la excepción se propaga sin capturar y degrada a la página `/Error` genérica (vía el manejador de excepciones global ya existente), en vez de a una redirección con mensaje fijo como las demás ramas de fallo de este módulo. No compromete ninguna garantía de seguridad (no se crea cuenta indebida, no se firma sesión ajena, no se pierde ninguna fila): es deuda técnica de seguimiento, candidata a un incremento de mantenimiento posterior.
 - **Pendiente, correctamente declarado (no oculto):** el smoke test manual de navegador (ciclo vincular → desvincular → intento de desvincular el último, con verificación de accesibilidad por teclado y lector de pantalla) exige credenciales OAuth reales de al menos dos proveedores, que no existen en este entorno de aplicación. Sus pasos exactos quedan documentados en el historial de aplicación del incremento (`apply-progress.md`, PR #4) para que el maintainer los ejecute cuando disponga de credenciales de prueba.
 - **Entrega:** 7 Pull Requests encadenados desde el mismo worktree (`inc/vinculacion-cuentas` → `…-07-reemplazo-correo`, PRs #23-#29), todos mergeados a `main`.
+
+---
+
+## 13. Consolidación Multi-Proveedor y Guarda Preventiva en UI (INC-63)
+
+El incremento INC-63 consolidó la vinculación entre múltiples proveedores sin duplicación de cuentas y cerró los huecos identificados en la interfaz de `/cuenta/conexiones`:
+
+### 13.1 Enriquecimiento del Contrato `AccountConnectionDto`
+- `AccountConnectionDto` expone `ProviderEmail` (`string?`) y `ProviderEmailVerifiedAt` (`DateTimeOffset?`), obtenidos de la entidad `ExternalLogin` mediante `AccountConnectionsService.BuildViewAsync`.
+- Esto brinda visibilidad al usuario sobre qué dirección de correo exacta respalda cada proveedor vinculado (por ejemplo, Google frente a Discord).
+
+### 13.2 Guarda Preventiva en la Interfaz de Usuario (`AccountConnections.razor`)
+- Se renderiza el correo vinculado y la fecha de verificación en la lista de conexiones activas.
+- **Deshabilitación preventiva del único método de acceso:** Cuando `!_view.CanUnlink` (`links.Count <= 1`), el botón «Desvincular» se deshabilita preventivamente en el cliente (`disabled`, `aria-disabled="true"`, `cursor-not-allowed`) y se muestra un badge explicativo `Único método`. Esto evita pulsar un botón que desencadenaría una llamada innecesaria al backend que fallaría con `LastAccessMethodException`.
+
+### 13.3 Garantía Verificada de Ciclo de Vida Multi-Proveedor y Prevención de Duplicados
+La suite `MultiProviderLifecycleTests.cs` (`7ba4227`) garantiza de extremo a extremo:
+1. **Acceso indistinto a la misma cuenta:** Un usuario que se registra con Google y vincula Discord puede cerrar sesión y acceder posteriormente con Discord, resolviendo siempre al mismo `AppUser` sin duplicar cuentas en la base de datos.
+2. **Reversibilidad y retención de acceso:** Si se registra con Discord, vincula Google y posteriormente desvincula Discord, el acceso mediante Google permanece operativo y exclusivo.
+3. **Protección anti-colisión estricta:** Si se intenta vincular un proveedor ya asignado a otra cuenta, se rechaza de forma determinista mediante `ExternalLoginCollisionException`, preservando invariantes y evitando asignaciones ilícitas.
+4. **Idempotencia:** Re-vincular el mismo proveedor bajo la misma cuenta no altera el estado.
+
