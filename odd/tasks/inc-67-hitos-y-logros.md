@@ -86,11 +86,11 @@ Reconocer el progreso y la vivencia lúdica del jugador en Ludeka mediante un si
   - [x] 3.3 Implementar `MilestoneService`: evaluar reglas cruzando `IUserCollectionRepository`, `IGamePlayLogRepository`, `IUserReviewRepository`, `IUserLikeRepository`, `IGameLoanRepository`.
   - [x] 3.4 Convivencia armoniosa con `UserLibraryStatsService` y DI en `DependencyInjection.cs`.
   - [x] 3.5 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.839 pruebas unitarias verdes.
-- [ ] **ODD-4 — Presentación Editorial (`Ludeka.Web`): Vitrina de Hitos y Logros**
-  - [ ] 4.1 Tests en `MilestonesCardTests.cs` (RED): renderizado de hitos desbloqueados con fecha, hitos pendientes con silueta/bloqueo accesible y porcentaje de progreso.
-  - [ ] 4.2 Crear componente `MilestonesCard.razor` con estilo editorial hogareño de Ludeka (WCAG 2.2 AA).
-  - [ ] 4.3 Integrar en `PublicProfile.razor` y en `/cuenta` (sección accesible para el propio usuario).
-  - [ ] 4.4 Verificación en verde (GREEN) y refactorización (REFACTOR).
+- [x] **ODD-4 — Presentación Editorial (`Ludeka.Web`): Vitrina de Hitos y Logros**
+  - [x] 4.1 Tests en `MilestonesCardTests.cs` (RED): renderizado de hitos desbloqueados con fecha, hitos pendientes con silueta/bloqueo accesible y porcentaje de progreso.
+  - [x] 4.2 Crear componente `MilestonesCard.razor` con estilo editorial hogareño de Ludeka (WCAG 2.2 AA).
+  - [x] 4.3 Integrar en `PublicProfile.razor` y en `/cuenta` (sección accesible para el propio usuario).
+  - [x] 4.4 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.843 pruebas unitarias verdes.
 - [ ] **ODD-5 — Verificación Global, Documentación y Cierre**
   - [ ] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test`: suite verde, 0 fallos).
   - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.

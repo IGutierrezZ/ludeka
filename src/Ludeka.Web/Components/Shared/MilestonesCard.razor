@@ -1,0 +1,130 @@
+@using System.Globalization
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+
+@if (Progress == null)
+{
+    <div class="rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 text-center text-sm text-[var(--text-muted)] animate-pulse">
+        <div class="flex items-center justify-center gap-2">
+            <Icon Name="sparkles" Size="16" />
+            <span>Cargando hitos y logros...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 sm:p-6 shadow-sm space-y-5">
+        @* Cabecera editorial con título y resumen de progreso *@
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border-subtle)]">
+            <div class="flex items-center gap-2.5">
+                <span class="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Icon Name="trophy" Size="18" />
+                </span>
+                <div>
+                    <h3 class="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
+                        Hitos y Medallas del Jugador
+                    </h3>
+                    <p class="text-xs text-[var(--text-muted)]">
+                        Logros desbloqueados en colección, cuaderno de partidas y comunidad
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-start sm:self-auto">
+                <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
+                    @Progress.TotalUnlocked de @Progress.TotalMilestones
+                </span>
+                <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    @Progress.CompletionPercentage.ToString("0")%
+                </span>
+            </div>
+        </div>
+
+        @* Barra de progreso general *@
+        <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                <span>Progreso hacia la maestría lúdica</span>
+                <span>@Progress.CompletionPercentage.ToString("0")% completado</span>
+            </div>
+            <div class="w-full bg-[var(--bg-surface-elevated)] rounded-full h-2.5 overflow-hidden border border-[var(--border-subtle)]"
+                 role="progressbar"
+                 aria-valuenow="@Progress.CompletionPercentage.ToString("0")"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-label="Progreso general de hitos">
+                <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-2.5 rounded-full transition-all duration-500"
+                     style="width: @(Math.Clamp(Progress.CompletionPercentage, 0, 100))%"></div>
+            </div>
+        </div>
+
+        @* Rejilla de Hitos *@
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            @foreach (var milestone in Progress.Milestones.OrderByDescending(m => m.IsUnlocked).ThenBy(m => m.SortOrder))
+            {
+                var isUnlocked = milestone.IsUnlocked;
+                var cardBg = isUnlocked
+                    ? "bg-[var(--bg-surface-elevated)] border-amber-500/30 shadow-2xs"
+                    : "bg-[var(--bg-surface)]/60 border-[var(--border-subtle)] opacity-75";
+
+                <div class="relative p-3.5 rounded-lg border @cardBg flex flex-col justify-between gap-3 transition-colors">
+                    <div class="space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="text-2xl select-none @(isUnlocked ? "" : "grayscale opacity-60")" aria-hidden="true">
+                                @milestone.IconEmoji
+                            </span>
+                            @if (isUnlocked)
+                            {
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[0.68rem] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                                    <Icon Name="sparkles" Size="10" /> Desbloqueado
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[0.68rem] font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                                    Por desbloquear
+                                </span>
+                            }
+                        </div>
+
+                        <div>
+                            <h4 class="text-xs sm:text-sm font-bold text-[var(--text-primary)] leading-snug">
+                                @milestone.Title
+                            </h4>
+                            <p class="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                                @milestone.Description
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-[var(--border-subtle)]/60 flex items-center justify-between text-[0.68rem] text-[var(--text-muted)]">
+                        <span class="font-medium">
+                            @GetCategoryLabel(milestone.Category)
+                        </span>
+                        @if (isUnlocked && milestone.UnlockedAt.HasValue)
+                        {
+                            <span>
+                                @milestone.UnlockedAt.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public UserMilestoneProgressDto? Progress { get; set; }
+
+    [Parameter]
+    public bool IsCompact { get; set; } = false;
+
+    private static string GetCategoryLabel(MilestoneCategory category) => category switch
+    {
+        MilestoneCategory.Collection => "Colección",
+        MilestoneCategory.Plays => "Partidas",
+        MilestoneCategory.Community => "Comunidad",
+        _ => "General"
+    };
+}

@@ -4,6 +4,7 @@
 @inject IUserLibraryStatsService StatsService
 @inject IUserPreferenceService PreferenceService
 @inject ICurrentUserService CurrentUserService
+@inject IMilestoneService MilestoneService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -127,6 +128,12 @@
         @* Dashboard de Métricas y ADN Lúdico *@
         <LibraryStatsDashboard Stats="_profile.Stats" />
 
+        @* Vitrina de Hitos y Logros del Jugador *@
+        @if (_milestonesProgress != null)
+        {
+            <MilestonesCard Progress="_milestonesProgress" />
+        }
+
         @* Vitrina Pública de Títulos en Estantería *@
         <div class="space-y-6 pt-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -242,6 +249,7 @@
     public string UserId { get; set; } = string.Empty;
 
     private PublicUserProfileDto? _profile;
+    private UserMilestoneProgressDto? _milestonesProgress;
     private bool _isLoading = true;
     private bool _copied = false;
     private bool _isProfileHidden = false;
@@ -277,6 +285,7 @@
     {
         _isLoading = true;
         _profile = null;
+        _milestonesProgress = null;
         _isPrivateProfile = false;
         try
         {
@@ -288,6 +297,10 @@
             }
 
             _profile = await StatsService.GetPublicProfileAsync(UserId);
+            if (_profile != null)
+            {
+                _milestonesProgress = await MilestoneService.EvaluateAndSyncMilestonesAsync(UserId);
+            }
         }
         catch
         {
