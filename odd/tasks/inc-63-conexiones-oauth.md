@@ -76,11 +76,11 @@ Garantizar de forma verificable la vinculación multi-proveedor a una misma cuen
   - [x] 2.1 Mostrar correo del proveedor y etiqueta de verificación si está disponible.
   - [x] 2.2 Deshabilitar botón `Desvincular` cuando `!_view.CanUnlink`, mostrando indicativo «Único método».
   - [x] 2.3 Mantener atributos de accesibilidad WCAG 2.2 AA (`aria-disabled`, `title`).
-- [ ] **ODD-3 — Suite de Ciclo de Vida Multi-Proveedor (`MultiProviderLifecycleTests`)**
-  - [ ] 3.1 Test: Alta Google ➔ Vincular Discord ➔ ResolveAsync con Discord devuelve mismo `AppUser`.
-  - [ ] 3.2 Test: Alta Discord ➔ Vincular Google ➔ Desvincular Discord ➔ ResolveAsync Google mantiene acceso.
-  - [ ] 3.3 Test: Prevención de duplicados cuando un proveedor ya está en uso por otra cuenta.
-  - [ ] 3.4 Test: Intentos de re-vinculación idempotentes.
+- [x] **ODD-3 — Suite de Ciclo de Vida Multi-Proveedor (`MultiProviderLifecycleTests`)**
+  - [x] 3.1 Test: Alta Google ➔ Vincular Discord ➔ ResolveAsync con Discord devuelve mismo `AppUser`.
+  - [x] 3.2 Test: Alta Discord ➔ Vincular Google ➔ Desvincular Discord ➔ ResolveAsync Google mantiene acceso.
+  - [x] 3.3 Test: Prevención de duplicados cuando un proveedor ya está en uso por otra cuenta.
+  - [x] 3.4 Test: Intentos de re-vinculación idempotentes.
 - [ ] **ODD-4 — Pruebas de Contrato y Regresión en Web**
   - [x] 4.1 Actualizar `AccountConnectionsPageContractTests` con los nuevos datos visuales y botón deshabilitado.
   - [ ] 4.2 Verificar que el manejo de errores de colisión y última cuenta sigue intacto.
