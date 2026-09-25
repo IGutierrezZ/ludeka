@@ -578,17 +578,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 61: Menú de Cuenta y Estado de Sesión en la Cabecera
 - **Identificador SDD:** `change-61-menu-de-cuenta`
 - **Objetivo Principal:** Que la cabecera reconozca al usuario: menú de cuenta (perfil, preferencias, conexiones, ludoteca, salir) colgando del hub de INC-50, con puerta clara a `/login` para invitados (hoy solo existe `AccountEmailNotice` como componente consciente de sesión).
-- **Estado:** ⏳ En progreso (iniciado el 2026-09-24, Fase D).
-- **Documento:** [`inc-61-menu-de-cuenta.md`](file:///c:/repos/Ludeka/docs/increments/inc-61-menu-de-cuenta.md).
-- **Módulos del Sistema:** [`32-autenticacion-y-autorizacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) y [`37-area-de-cuenta-y-puerta-de-acceso.md`](file:///c:/repos/Ludeka/docs/specs/sistema/37-area-de-cuenta-y-puerta-de-acceso.md).
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-25 (PR #111, 1.701 pruebas en verde).
+- **Documento:** [`inc-61-menu-de-cuenta.md`](archive/inc-61-menu-de-cuenta.md).
+- **Módulos del Sistema:** [`32-autenticacion-y-autorizacion.md`](sistema/32-autenticacion-y-autorizacion.md) y [`37-area-de-cuenta-y-puerta-de-acceso.md`](sistema/37-area-de-cuenta-y-puerta-de-acceso.md).
 
 ---
 
-## Incremento 62: Preferencias de Usuario — Tema y País
+## Incremento 62: Preferencias de Usuario — Apariencia, País y Privacidad
 - **Identificador SDD:** `change-62-preferencias-usuario`
-- **Objetivo Principal:** Exponer `UserPreference` (tema vía `NormalizeTheme` y país vía `CountryCatalog`) en una pantalla estable del área de cuenta, hoy solo accesible por `LocationSelectorModal`, sin FOUC al aplicar el tema.
-- **Estado:** ⏳ En progreso (iniciado 2026-09-25, Fase D).
-- **Documento:** [`inc-62-preferencias-usuario.md`](file:///c:/repos/Ludeka/docs/increments/inc-62-preferencias-usuario.md).
+- **Objetivo Principal:** Exponer preferencias de usuario (tema vía `NormalizeTheme`, país vía `CountryCatalog` y visibilidad pública de perfil en `UserPreference.HidePublicProfile`) en pantallas estables del área de cuenta (`/cuenta/apariencia`, `/cuenta/pais`, `/cuenta/privacidad`), con limpieza de utilidades en cabecera (`MainLayout.razor`) y menú de cuenta con 7 accesos canónicos sin salto intermedio a `/cuenta`.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-25 (1.703 pruebas unitarias al 100% en verde).
+- **Documento:** [`inc-62-preferencias-usuario.md`](archive/inc-62-preferencias-usuario.md).
+- **Módulos del Sistema:** [`39-preferencias-de-usuario-privacidad-y-navegacion.md`](sistema/39-preferencias-de-usuario-privacidad-y-navegacion.md).
 
 ---
 
