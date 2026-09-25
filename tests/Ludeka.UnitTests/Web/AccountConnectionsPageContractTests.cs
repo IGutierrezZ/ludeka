@@ -54,6 +54,28 @@ public class AccountConnectionsPageContractTests
         Assert.DoesNotContain("ApplyLocalUnlink", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Page_ShouldRenderProviderEmailWhenPresent()
+    {
+        // INC-63 (ODD-2): La página expone el correo del proveedor si existe para mayor transparencia.
+        var source = ReadSource(PagePath);
+
+        Assert.Contains("connection?.ProviderEmail", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnlinkButton_ShouldBeGuardedByCanUnlinkAndRenderPreventiveDisabledState()
+    {
+        // INC-63 (ODD-2): Si solo hay un método de acceso, el botón se deshabilita preventivamente
+        // con mensaje accesible para no inducir a un error evitable del servidor.
+        var source = ReadSource(PagePath);
+
+        Assert.Contains("var canUnlink = _view?.CanUnlink ?? false;", source, StringComparison.Ordinal);
+        Assert.Contains("aria-disabled=\"true\"", source, StringComparison.Ordinal);
+        Assert.Contains("title=\"@AccountConnectionMessages.LastAccessMethodDenied\"", source, StringComparison.Ordinal);
+        Assert.Contains("Único acceso", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

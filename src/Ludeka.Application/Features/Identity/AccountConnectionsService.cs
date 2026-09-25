@@ -67,7 +67,12 @@ public sealed class AccountConnectionsService : IAccountConnectionsService
             {
                 var link = links.FirstOrDefault(l => string.Equals(l.Provider, name, StringComparison.OrdinalIgnoreCase));
                 return new AccountConnectionDto(
-                    name, link is not null, link?.LinkedAt, link?.ProviderEmailVerifiedAt is not null);
+                    name,
+                    link is not null,
+                    link?.LinkedAt,
+                    link?.ProviderEmailVerifiedAt is not null,
+                    link?.ProviderEmail,
+                    link?.ProviderEmailVerifiedAt);
             })
             .ToList();
 

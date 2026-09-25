@@ -596,8 +596,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 63: Conexiones OAuth — Múltiples Proveedores sin Cuentas Duplicadas
 - **Identificador SDD:** `change-63-conexiones-oauth`
 - **Objetivo Principal:** Garantizar multi-proveedor → misma cuenta (Google + Discord, entrar con cualquiera sin duplicar cuentas) y endurecer la vinculación heredada de INC-49: política de última cuenta en `UnlinkAsync`, destino real de `ProviderEmailVerifiedAt` (hoy campo huérfano), tests de `ExternalLoginCollisionException` y alcance de la pantalla de conexiones desde el menú.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
-- **Documento:** [`inc-63-conexiones-oauth.md`](file:///c:/repos/Ludeka/docs/increments/inc-63-conexiones-oauth.md).
+- **Estado:** ⏳ En progreso (2026-09-25, Fase D).
+- **Documento:** [`inc-63-conexiones-oauth.md`](../increments/inc-63-conexiones-oauth.md).
 
 ---
 

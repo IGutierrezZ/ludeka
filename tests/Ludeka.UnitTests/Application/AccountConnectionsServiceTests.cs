@@ -186,4 +186,26 @@ public class AccountConnectionsServiceTests : IAsyncLifetime
         service.InvalidateCache();
         Assert.Equal(2, raisedCount);
     }
+
+    [Fact]
+    public async Task GetConnectionsAsync_WithLinkedProvider_ShouldMapProviderEmailAndVerificationDate()
+    {
+        // Arrange (INC-63 ODD-1): verifica que ProviderEmail y ProviderEmailVerifiedAt se propagan al DTO
+        var user = await SeedUserAsync(new AppUser("user-conn-5", "Jugador Cinco", "conexion5@ludeka.es"));
+        var linkDate = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero);
+        var googleLink = new ExternalLogin(
+            user.Id, "Google", "google-sub-5", "google5@ludeka.es", linkDate, providerEmailVerified: true);
+        await _externalLoginRepository.AddAsync(googleLink);
+
+        var service = BuildService(StubCurrentUserService.WithSession(user.Id));
+
+        // Act
+        var view = await service.GetConnectionsAsync();
+
+        // Assert
+        var google = Assert.Single(view.Connections, c => c.Provider == "Google");
+        Assert.True(google.IsLinked);
+        Assert.Equal("google5@ludeka.es", google.ProviderEmail);
+        Assert.Equal(linkDate, google.ProviderEmailVerifiedAt);
+    }
 }

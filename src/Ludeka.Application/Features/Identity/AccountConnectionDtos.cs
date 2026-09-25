@@ -25,11 +25,15 @@ public sealed record ExternalLoginLinkResult(
     bool AccountEmailReplaced = false);
 
 /// <summary>
-/// Estado de vinculación de un proveedor concreto para la cuenta de la sesión. Sin consumidor hasta
-/// PR #3/#4 (contrato de lectura <c>IAccountConnectionsService</c> y pantalla de conexiones).
+/// Estado de vinculación de un proveedor concreto para la cuenta de la sesión (INC-49, INC-63).
 /// </summary>
 public sealed record AccountConnectionDto(
-    string Provider, bool IsLinked, DateTimeOffset? LinkedAt, bool ProviderEmailVerified);
+    string Provider,
+    bool IsLinked,
+    DateTimeOffset? LinkedAt,
+    bool ProviderEmailVerified,
+    string? ProviderEmail = null,
+    DateTimeOffset? ProviderEmailVerifiedAt = null);
 
 /// <summary>
 /// Vista completa de las conexiones de la cuenta de la sesión. Sin consumidor hasta PR #3/#4.
