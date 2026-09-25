@@ -79,11 +79,11 @@ Acreditar y garantizar la calidad de los datos de fundas de cartas (*sleeves*) y
   - [x] 3.1 Tests en `SleeveStoreUrlResolverTests.cs` (RED): resolución de Amazon con `tag=ludeka-21`, presencia de Cuarto de Juegos y Tablerum con sus parámetros correctos (`partner` / `ref`).
   - [x] 3.2 Implementar soporte de Amazon en `SleeveStoreUrlResolver.cs`.
   - [x] 3.3 Incluir Cuarto de Juegos y Tablerum en `partnerStores` de `ResolvePurchaseOptions`.
-  - [x] 3.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo (1.812 pruebas unitarias verdes).
-- [ ] **ODD-4 — UI Editorial y Estado Honesto sin Datos (`Ludeka.Web`)**
-  - [ ] 4.1 Tests en `Ludeka.UnitTests/Web/SleeveGuideCardTests.cs` o pruebas de componente (RED): verificar que un juego sin fundas registradas no renderiza el mensaje engañoso de "no contiene cartas".
-  - [ ] 4.2 Actualizar `SleeveGuideCard.razor`: renderizar estado honesto ("Información de fundas no disponible para esta edición") con botón de acción al editor editorial.
-  - [ ] 4.3 Verificación en verde (GREEN). Commit de unidad de trabajo.
+  - [x] 3.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit: `1edeeb2` (1.812 pruebas unitarias verdes).
+- [x] **ODD-4 — UI Editorial y Estado Honesto sin Datos (`Ludeka.Web`)**
+  - [x] 4.1 Tests en `Ludeka.UnitTests/Web/SleeveGuideCardTests.cs` (RED): verificar que un juego sin fundas registradas no renderiza el mensaje engañoso de "no contiene cartas" y manejo de recuento no especificado.
+  - [x] 4.2 Actualizar `SleeveGuideCard.razor`: renderizar estado honesto ("Sin especificación registrada de fundas") con botón de acción al editor editorial y soporte para `HasNoCards`.
+  - [x] 4.3 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo (1.817 pruebas unitarias verdes).
 - [ ] **ODD-5 — Verificación Global, Documentación y Cierre**
   - [ ] 5.1 Ejecución completa de suite de pruebas unitarias (`dotnet test` 100% verde).
   - [ ] 5.2 Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md` (INC-66 pasa a completado/archivado).

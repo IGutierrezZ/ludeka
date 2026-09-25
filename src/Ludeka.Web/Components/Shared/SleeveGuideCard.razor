@@ -83,11 +83,19 @@
                             </div>
 
                             <div class="text-xs text-[var(--text-secondary)] flex items-center gap-2 flex-wrap">
-                                <span class="font-bold text-[var(--text-primary)]">@sleeve.CardCount cartas</span>
-                                <span class="text-[var(--text-muted)]">&bull;</span>
-                                <span class="text-[var(--text-secondary)]">
-                                    Requiere: <strong>@sleeve.PacksNeeded50</strong> @(sleeve.PacksNeeded50 == 1 ? "pack" : "packs") de 50 (o <strong>@sleeve.PacksNeeded100</strong> de 100)
-                                </span>
+                                @if (sleeve.CardCount > 0)
+                                {
+                                    <span class="font-bold text-[var(--text-primary)]">@sleeve.CardCount cartas</span>
+                                    <span class="text-[var(--text-muted)]">&bull;</span>
+                                    <span class="text-[var(--text-secondary)]">
+                                        Requiere: <strong>@sleeve.PacksNeeded50</strong> @(sleeve.PacksNeeded50 == 1 ? "pack" : "packs") de 50 (o <strong>@sleeve.PacksNeeded100</strong> de 100)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="font-bold text-[var(--text-primary)]">Recuento no especificado</span>
+                                    <span class="text-[var(--text-muted)] italic text-[0.7rem]">(consulta los componentes de tu edición)</span>
+                                }
                             </div>
                         </div>
                     </div>
@@ -128,18 +136,45 @@
     }
     else
     {
-        <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
-            <Icon Name="party-popper" Size="24" />
-            <p class="text-xs text-[var(--text-secondary)]">
-                <strong class="text-[var(--text-primary)]">¡Buenas noticias!</strong> Este juego no contiene cartas que requieran fundas o no tiene componentes enfundables.
-            </p>
-        </div>
+        @if (HasNoCards)
+        {
+            <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
+                <Icon Name="party-popper" Size="24" />
+                <p class="text-xs text-[var(--text-secondary)]">
+                    <strong class="text-[var(--text-primary)]">¡Buenas noticias!</strong> Este juego no contiene cartas que requieran fundas o no tiene componentes enfundables.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <Icon Name="info" Size="20" class="text-[var(--text-muted)] shrink-0" />
+                    <p class="text-xs text-[var(--text-secondary)]">
+                        <strong class="text-[var(--text-primary)]">Sin especificación registrada de fundas.</strong> Si este juego contiene cartas en tu edición, puedes consultar o añadir las medidas exactas.
+                    </p>
+                </div>
+                @if (OnOpenEditor.HasDelegate)
+                {
+                    <button type="button" @onclick="OnOpenEditor" class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border-subtle)] bg-[var(--bg-card)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] transition-colors flex items-center gap-1.5">
+                        <Icon Name="edit" Size="14" />
+                        <span>Añadir fundas</span>
+                    </button>
+                }
+            </div>
+        }
     }
 </div>
 
 @code {
     [Parameter]
     public IReadOnlyList<SleeveItem>? Sleeves { get; set; }
+
+    [Parameter]
+    public bool HasNoCards { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnOpenEditor { get; set; }
 
     private string? _effectiveCountry;
     private bool _showMicronsGuide = false;
