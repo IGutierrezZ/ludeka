@@ -192,9 +192,15 @@ public class WebMarkupContractTests
 
         // MainLayout: nav, utilidades, menú de gestión y pie con iconos Lucide (sin emojis).
         // El pie reducido (Transparencia + Discord) ya no usa pen-line (Creadores solo en nav).
+        // Tras INC-62, el acceso a biblioteca pasa al menú desplegable de cuenta.
         { "MainLayout (iconografia Lucide)", "src/Ludeka.Web/Components/Layout/MainLayout.razor",
-          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"", "<Icon Name=\"library\"", "<Icon Name=\"bell\"", "<Icon Name=\"menu\"" },
+          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"", "<Icon Name=\"bell\"", "<Icon Name=\"menu\"" },
           new[] { "🎁", "📰", "🎪", "🌍", "📚", "🛡", "👤", "⚙", "🚩", "🌙", "🎬", "📸", "🔔", "👥", "📜", "🏢", "✍", "🛒", "💬", "🗙" } },
+
+        // AccountMenu: menú de cuenta con iconos Lucide (INC-61/INC-62)
+        { "AccountMenu (iconografia Lucide)", "src/Ludeka.Web/Components/Shared/AccountMenu.razor",
+          new[] { "<Icon Name=\"user\"", "<Icon Name=\"library\"", "<Icon Name=\"palette\"", "<Icon Name=\"globe\"", "<Icon Name=\"shield\"", "<Icon Name=\"link\"", "<Icon Name=\"log-out\"" },
+          new[] { "👤", "📚", "🎨", "🌍", "🛡", "🔗", "🚪" } },
 
         // MainLayout: menú móvil desplegable (details/summary, SSR puro) con los mismos
         // 7 destinos de la nav superior; la nav principal se oculta bajo lg (1024px).

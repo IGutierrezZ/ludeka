@@ -79,25 +79,31 @@ else
                     <span>Mi Perfil Público</span>
                 </a>
 
-                @* 2. Área de Cuenta (Hub INC-50) *@
-                <a href="/cuenta" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
-                    <Icon Name="settings" Size="14" />
-                    <span>Área de Cuenta</span>
-                </a>
-
-                @* 3. Mi Ludoteca *@
+                @* 2. Mi Ludoteca *@
                 <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
                     <Icon Name="library" Size="14" />
                     <span>Mi Ludoteca</span>
                 </a>
 
-                @* 4. Apariencia & Tema *@
-                <a href="/cuenta/ludoteca?seccion=apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                @* 3. Apariencia & Tema *@
+                <a href="/cuenta/apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
                     <Icon Name="palette" Size="14" />
                     <span>Apariencia & Tema</span>
                 </a>
 
-                @* 5. Conexiones OAuth *@
+                @* 4. Ubicación & País *@
+                <a href="/cuenta/pais" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="globe" Size="14" />
+                    <span>Ubicación & País</span>
+                </a>
+
+                @* 5. Privacidad *@
+                <a href="/cuenta/privacidad" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="shield" Size="14" />
+                    <span>Privacidad</span>
+                </a>
+
+                @* 6. Conexiones OAuth *@
                 <a href="/cuenta/conexiones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
                     <div class="flex items-center gap-2.5">
                         <Icon Name="link" Size="14" />
@@ -109,7 +115,7 @@ else
                     }
                 </a>
 
-                @* 6. Cerrar Sesión *@
+                @* 7. Cerrar Sesión *@
                 <div class="border-t border-[var(--border-subtle)] my-1 pt-1">
                     <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors font-medium">
                         <Icon Name="log-out" Size="14" />
