@@ -182,6 +182,9 @@ public static class SqliteSchemaMigrator
                         "PreferredTheme" TEXT NOT NULL,
                         "Country" TEXT NULL,
                         "HidePublicProfile" INTEGER NOT NULL DEFAULT 0,
+                        "LeaderboardOptIn" INTEGER NOT NULL DEFAULT 0,
+                        "LeaderboardAnonymous" INTEGER NOT NULL DEFAULT 0,
+                        "LeaderboardPseudonym" TEXT NULL,
                         "UpdatedAt" TEXT NOT NULL
                     );
                     """;
@@ -522,6 +525,24 @@ public static class SqliteSchemaMigrator
                 {
                     using var cmd = connection.CreateCommand();
                     cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"HidePublicProfile\" INTEGER NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!cols.Contains("LeaderboardOptIn"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"LeaderboardOptIn\" INTEGER NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!cols.Contains("LeaderboardAnonymous"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"LeaderboardAnonymous\" INTEGER NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!cols.Contains("LeaderboardPseudonym"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"LeaderboardPseudonym\" TEXT NULL;";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
             }
