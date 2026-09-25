@@ -68,10 +68,10 @@ Garantizar de forma verificable la vinculación multi-proveedor a una misma cuen
 
 ## 5. Checklist de Tareas (IDs Estables)
 
-- [ ] **ODD-1 — Enriquecimiento de `AccountConnectionDto` y `AccountConnectionsService`**
-  - [ ] 1.1 Añadir `ProviderEmail` y `ProviderEmailVerifiedAt` a `AccountConnectionDto`.
-  - [ ] 1.2 Mapear campos desde `ExternalLogin` en `AccountConnectionsService.BuildViewAsync`.
-  - [ ] 1.3 Actualizar pruebas existentes de `AccountConnectionsServiceTests`.
+- [x] **ODD-1 — Enriquecimiento de `AccountConnectionDto` y `AccountConnectionsService`**
+  - [x] 1.1 Añadir `ProviderEmail` y `ProviderEmailVerifiedAt` a `AccountConnectionDto`.
+  - [x] 1.2 Mapear campos desde `ExternalLogin` en `AccountConnectionsService.BuildViewAsync`.
+  - [x] 1.3 Actualizar pruebas existentes de `AccountConnectionsServiceTests`.
 - [ ] **ODD-2 — UI Editorial en `AccountConnections.razor` (Datos y Guarda Preventiva)**
   - [ ] 2.1 Mostrar correo del proveedor y etiqueta de verificación si está disponible.
   - [ ] 2.2 Deshabilitar botón `Desvincular` cuando `!_view.CanUnlink`, mostrando indicativo «Único método».
