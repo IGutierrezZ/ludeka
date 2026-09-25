@@ -26,7 +26,8 @@ public record MediaItemDto(
     bool IsBroken,
     bool IsOrphan,
     DateTimeOffset PublishedAt,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    int UserLikesCount = 0
 )
 {
     public string CategoryDisplayName => Category switch
@@ -38,7 +39,7 @@ public record MediaItemDto(
         _ => Category.ToString()
     };
 
-    public static MediaItemDto FromDomain(MediaItem item, string? gameTitle = null)
+    public static MediaItemDto FromDomain(MediaItem item, string? gameTitle = null, int userLikesCount = 0)
     {
         return new MediaItemDto(
             item.Id,
@@ -61,7 +62,8 @@ public record MediaItemDto(
             item.IsBroken,
             item.IsOrphan,
             item.PublishedAt,
-            item.CreatedAt
+            item.CreatedAt,
+            userLikesCount
         );
     }
 }

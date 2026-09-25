@@ -17,23 +17,29 @@ public class StoreService : IStoreService
     private readonly IGameRepository _gameRepository;
     private readonly ICurrentUserService? _currentUserService;
     private readonly IAuditService? _auditService;
+    private readonly IUserLikeRepository? _userLikeRepository;
 
     public StoreService(
         IStoreRepository storeRepository,
         IGameRepository gameRepository,
         ICurrentUserService? currentUserService = null,
-        IAuditService? auditService = null)
+        IAuditService? auditService = null,
+        IUserLikeRepository? userLikeRepository = null)
     {
         _storeRepository = storeRepository ?? throw new ArgumentNullException(nameof(storeRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _currentUserService = currentUserService;
         _auditService = auditService;
+        _userLikeRepository = userLikeRepository;
     }
 
     public async Task<IReadOnlyList<StoreDto>> GetAllAsync(string? search = null, StoreType? type = null, string? country = null, CancellationToken ct = default)
     {
         var stores = await _storeRepository.GetAllAsync(ct);
         var allGames = await _gameRepository.GetAllGamesAsync(ct);
+        var likesCounts = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.Store, stores.Select(s => s.Id), ct)
+            : new Dictionary<Guid, int>();
 
         var query = stores.AsEnumerable();
 
@@ -58,14 +64,16 @@ public class StoreService : IStoreService
         }
 
         return query
-            .OrderBy(s => s.Name)
             .Select(s =>
             {
                 var activeOffersCount = allGames.Count(g =>
                     g.PurchaseLinks.Any(l => IsMatchStore(l.StoreName, s.Name)));
+                var likesCount = likesCounts.GetValueOrDefault(s.Id, 0);
 
-                return MapToDto(s, activeOffersCount);
+                return MapToDto(s, activeOffersCount, likesCount);
             })
+            .OrderByDescending(s => s.LikesCount)
+            .ThenBy(s => s.Name)
             .ToList();
     }
 
@@ -78,8 +86,11 @@ public class StoreService : IStoreService
 
         var allGames = await _gameRepository.GetAllGamesAsync(ct);
         var offers = ExtractOffersForStore(store, allGames);
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Store, store.Id, ct)
+            : 0;
 
-        return MapToDetailDto(store, offers);
+        return MapToDetailDto(store, offers, likesCount);
     }
 
     public async Task<StoreDetailDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -89,8 +100,11 @@ public class StoreService : IStoreService
 
         var allGames = await _gameRepository.GetAllGamesAsync(ct);
         var offers = ExtractOffersForStore(store, allGames);
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Store, store.Id, ct)
+            : 0;
 
-        return MapToDetailDto(store, offers);
+        return MapToDetailDto(store, offers, likesCount);
     }
 
     public async Task<StoreDto> CreateAsync(CreateStoreDto dto, CancellationToken ct = default)
@@ -281,7 +295,7 @@ public class StoreService : IStoreService
         return result.OrderBy(o => o.Price).ToList();
     }
 
-    private static StoreDto MapToDto(Store s, int activeOffersCount)
+    private static StoreDto MapToDto(Store s, int activeOffersCount, int likesCount = 0)
     {
         var socialDtos = s.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -302,11 +316,12 @@ public class StoreService : IStoreService
             activeOffersCount,
             socialDtos,
             s.CreatedAt,
-            s.ShippingCountries
+            s.ShippingCountries,
+            likesCount
         );
     }
 
-    private static StoreDetailDto MapToDetailDto(Store s, IReadOnlyList<StoreGameOfferDto> offers)
+    private static StoreDetailDto MapToDetailDto(Store s, IReadOnlyList<StoreGameOfferDto> offers, int likesCount = 0)
     {
         var socialDtos = s.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -328,7 +343,8 @@ public class StoreService : IStoreService
             offers,
             s.CreatedAt,
             s.UpdatedAt,
-            s.ShippingCountries
+            s.ShippingCountries,
+            likesCount
         );
     }
 }

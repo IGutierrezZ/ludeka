@@ -17,23 +17,29 @@ public class PublisherService : IPublisherService
     private readonly IGameRepository _gameRepository;
     private readonly ICurrentUserService? _currentUserService;
     private readonly IAuditService? _auditService;
+    private readonly IUserLikeRepository? _userLikeRepository;
 
     public PublisherService(
         IPublisherRepository publisherRepository,
         IGameRepository gameRepository,
         ICurrentUserService? currentUserService = null,
-        IAuditService? auditService = null)
+        IAuditService? auditService = null,
+        IUserLikeRepository? userLikeRepository = null)
     {
         _publisherRepository = publisherRepository ?? throw new ArgumentNullException(nameof(publisherRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _currentUserService = currentUserService;
         _auditService = auditService;
+        _userLikeRepository = userLikeRepository;
     }
 
     public async Task<IReadOnlyList<PublisherDto>> GetAllAsync(string? search = null, CancellationToken ct = default)
     {
         var publishers = await _publisherRepository.GetAllAsync(ct);
         var allGames = await _gameRepository.GetAllGamesAsync(ct);
+        var likesCounts = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.Publisher, publishers.Select(p => p.Id), ct)
+            : new Dictionary<Guid, int>();
 
         var query = publishers.AsEnumerable();
 
@@ -47,12 +53,14 @@ public class PublisherService : IPublisherService
         }
 
         return query
-            .OrderBy(p => p.Name)
             .Select(p =>
             {
                 var gamesCount = allGames.Count(g => IsMatchPublisher(g.Publisher, p.Name));
-                return MapToDto(p, gamesCount);
+                var likesCount = likesCounts.GetValueOrDefault(p.Id, 0);
+                return MapToDto(p, gamesCount, likesCount);
             })
+            .OrderByDescending(p => p.LikesCount)
+            .ThenBy(p => p.Name)
             .ToList();
     }
 
@@ -82,8 +90,11 @@ public class PublisherService : IPublisherService
 
         var games = await _gameRepository.GetByPublisherAsync(publisher.Name, ct);
         var gameSummaries = games.Select(g => GameSummaryDto.FromEntity(g)).ToList();
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Publisher, publisher.Id, ct)
+            : 0;
 
-        return MapToDetailDto(publisher, gameSummaries);
+        return MapToDetailDto(publisher, gameSummaries, likesCount);
     }
 
     public async Task<PublisherDetailDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -93,8 +104,11 @@ public class PublisherService : IPublisherService
 
         var games = await _gameRepository.GetByPublisherAsync(publisher.Name, ct);
         var gameSummaries = games.Select(g => GameSummaryDto.FromEntity(g)).ToList();
+        var likesCount = _userLikeRepository != null
+            ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Publisher, publisher.Id, ct)
+            : 0;
 
-        return MapToDetailDto(publisher, gameSummaries);
+        return MapToDetailDto(publisher, gameSummaries, likesCount);
     }
 
     public async Task<PublisherDto> CreateAsync(CreatePublisherDto dto, CancellationToken ct = default)
@@ -235,7 +249,7 @@ public class PublisherService : IPublisherService
         }
     }
 
-    private static PublisherDto MapToDto(Publisher p, int gamesCount)
+    private static PublisherDto MapToDto(Publisher p, int gamesCount, int likesCount = 0)
     {
         var socialDtos = p.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -251,11 +265,12 @@ public class PublisherService : IPublisherService
             p.WebsiteUrl,
             gamesCount,
             socialDtos,
-            p.CreatedAt
+            p.CreatedAt,
+            likesCount
         );
     }
 
-    private static PublisherDetailDto MapToDetailDto(Publisher p, IReadOnlyList<GameSummaryDto> games)
+    private static PublisherDetailDto MapToDetailDto(Publisher p, IReadOnlyList<GameSummaryDto> games, int likesCount = 0)
     {
         var socialDtos = p.SocialLinks.Select(l => new SocialNetworkLinkDto(
             l.Platform, l.Url, l.Handle, l.Title, l.PlatformIcon, l.PlatformName)).ToList();
@@ -272,7 +287,8 @@ public class PublisherService : IPublisherService
             socialDtos,
             games,
             p.CreatedAt,
-            p.UpdatedAt
+            p.UpdatedAt,
+            likesCount
         );
     }
 }
