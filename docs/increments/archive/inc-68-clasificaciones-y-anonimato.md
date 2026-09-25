@@ -1,11 +1,12 @@
 # INC-68: Gamificación — Clasificaciones Públicas y Anonimato
 
-> **Estado:** ⏳ En progreso (backlog 2026-09-22, Fase F)
+> **Estado:** ✅ Archivado (1.876 pruebas unitarias verificadas)
 > **Fecha de Inicio:** 2026-09-26
+> **Fecha de Cierre:** 2026-09-26
 > **Rama de Trabajo:** `inc/clasificaciones-y-anonimato`
 > **Worktree:** `C:\repos\ludeka-wt\clasificaciones-y-anonimato`
 > **Dependencias:** INC-65 (likes), INC-67 (hitos), INC-62 (preferencias de privacidad)
-> **Especificación Viva:** [02. Ludoteca y Préstamos](file:///c:/repos/Ludeka/docs/specs/sistema/02-ludoteca-y-prestamos.md) · [16. Estadísticas y ADN del Jugador](file:///c:/repos/Ludeka/docs/specs/sistema/16-estadisticas-y-adn-del-jugador.md)
+> **Especificación Viva:** [43. Gamificación — Clasificaciones Públicas y Anonimato](file:///c:/repos/Ludeka/docs/specs/sistema/43-clasificaciones-y-anonimato.md)
 
 ---
 
@@ -60,4 +61,4 @@ Recompensas a los primeros puestos, clasificaciones por país/torneos, y pondera
 - [x] **Tarea 4 (Persistencia EF Core)**: Migración `AddLeaderboardPreferences`, snapshot del modelo y sincronización de migración defensiva para SQLite/PostgreSQL.
 - [x] **Tarea 5 (UI de Ajustes de Privacidad)**: Integrar controles de opt-in, anonimato y seudónimo en `AccountPrivacy.razor` con pruebas bUnit / de contrato.
 - [x] **Tarea 6 (UI de Clasificación Pública)**: Crear página `/clasificaciones` (`Leaderboards.razor`) con navegación mensual, podio editorial, tabla accesible y transparencia de privacidad, con pruebas de contrato y enlace en navegación comunitaria.
-- [ ] **Tarea 7 (Cierre y Documentación Viva)**: Verificación completa de suite, redacción de `docs/specs/sistema/43-clasificaciones-y-anonimato.md`, archivo del incremento y preparación de PR.
+- [x] **Tarea 7 (Cierre y Documentación Viva)**: Verificación completa de suite (1.876 pruebas unitarias al 100%), redacción de `docs/specs/sistema/43-clasificaciones-y-anonimato.md`, actualización de índice maestro y preparación de PR.
