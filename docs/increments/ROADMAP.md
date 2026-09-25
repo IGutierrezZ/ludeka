@@ -75,7 +75,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-59** | Filtros del Catálogo y Tamaño en Mesa | ✅ Archivado | [inc-59-filtros-y-tamano-mesa.md](archive/inc-59-filtros-y-tamano-mesa.md) |
 | **INC-60** | Navegación Móvil: Barra Inferior y Safe-Area | ✅ Archivado | [inc-60-navegacion-movil.md](archive/inc-60-navegacion-movil.md) |
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ⏳ En progreso | [inc-61-menu-de-cuenta.md](inc-61-menu-de-cuenta.md) |
-| **INC-62** | Preferencias de Usuario: Tema y País | ⏳ Planificado | [inc-62-preferencias-usuario.md](inc-62-preferencias-usuario.md) |
+| **INC-62** | Preferencias de Usuario: Tema y País | ⏳ En progreso | [inc-62-preferencias-usuario.md](inc-62-preferencias-usuario.md) |
 | **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ⏳ Planificado | [inc-63-conexiones-oauth.md](inc-63-conexiones-oauth.md) |
 | **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ Planificado | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
 | **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |

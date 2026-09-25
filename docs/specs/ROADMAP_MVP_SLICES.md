@@ -587,7 +587,7 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 62: Preferencias de Usuario — Tema y País
 - **Identificador SDD:** `change-62-preferencias-usuario`
 - **Objetivo Principal:** Exponer `UserPreference` (tema vía `NormalizeTheme` y país vía `CountryCatalog`) en una pantalla estable del área de cuenta, hoy solo accesible por `LocationSelectorModal`, sin FOUC al aplicar el tema.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Estado:** ⏳ En progreso (iniciado 2026-09-25, Fase D).
 - **Documento:** [`inc-62-preferencias-usuario.md`](file:///c:/repos/Ludeka/docs/increments/inc-62-preferencias-usuario.md).
 
 ---
