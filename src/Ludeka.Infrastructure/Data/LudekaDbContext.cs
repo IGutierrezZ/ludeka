@@ -42,6 +42,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<NotificationOutboxMessage> NotificationOutboxMessages => Set<NotificationOutboxMessage>();
     public DbSet<JobExecutionLease> JobExecutionLeases => Set<JobExecutionLease>();
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
+    public DbSet<UserLike> UserLikes => Set<UserLike>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -549,5 +550,16 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         magicLink.Property(t => t.TargetUserId).HasMaxLength(100);
         magicLink.HasIndex(t => t.TokenHash).IsUnique();
         magicLink.HasIndex(t => new { t.Email, t.CreatedAt });
+
+        // --- Configuración de UserLike (INC-65: «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos) ---
+        var userLike = modelBuilder.Entity<UserLike>();
+        userLike.ToTable("UserLikes");
+        userLike.HasKey(l => l.Id);
+        userLike.Property(l => l.UserId).IsRequired();
+        userLike.Property(l => l.TargetType).IsRequired();
+        userLike.Property(l => l.TargetId).IsRequired();
+        userLike.Property(l => l.CreatedAt).IsRequired();
+        userLike.HasIndex(l => new { l.UserId, l.TargetType, l.TargetId }).IsUnique();
+        userLike.HasIndex(l => new { l.TargetType, l.TargetId });
     }
 }
