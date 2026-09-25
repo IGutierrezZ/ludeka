@@ -41,6 +41,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<NotificationOutboxMessage> NotificationOutboxMessages => Set<NotificationOutboxMessage>();
     public DbSet<JobExecutionLease> JobExecutionLeases => Set<JobExecutionLease>();
+    public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -538,5 +539,15 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
 
         // Lectura operativa: últimas ejecuciones de un trabajo.
         jobLease.HasIndex(l => new { l.JobName, l.StartedAt });
+
+        // --- Configuración de MagicLinkToken (INC-64) ---
+        var magicLink = modelBuilder.Entity<MagicLinkToken>();
+        magicLink.ToTable("MagicLinkTokens");
+        magicLink.HasKey(t => t.Id);
+        magicLink.Property(t => t.Email).IsRequired().HasMaxLength(200);
+        magicLink.Property(t => t.TokenHash).IsRequired().HasMaxLength(128);
+        magicLink.Property(t => t.TargetUserId).HasMaxLength(100);
+        magicLink.HasIndex(t => t.TokenHash).IsUnique();
+        magicLink.HasIndex(t => new { t.Email, t.CreatedAt });
     }
 }

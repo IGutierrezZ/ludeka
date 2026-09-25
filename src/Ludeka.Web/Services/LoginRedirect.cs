@@ -62,8 +62,16 @@ public static class LoginRedirect
     public static string? ResolveAccountCollisionNotice(string? aviso) => aviso switch
     {
         "cuenta-existente" => AccountConnectionMessages.LoginCollisionNotice,
+        "magic-link-invalido" => AccountConnectionMessages.MagicLinkInvalidNotice,
+        "magic-link-expirado" => AccountConnectionMessages.MagicLinkExpiredNotice,
         _ => null
     };
+
+    /// <summary>
+    /// Comprueba si la ruta de retorno es local relativa y segura frente a redirecciones abiertas.
+    /// </summary>
+    public static bool IsLocalUrl(string? url) =>
+        !string.IsNullOrWhiteSpace(url) && url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\");
 
     /// <summary>Ruta de la petición actual, o <c>null</c> si ya es el propio acceso.</summary>
     private static string? ResolveReturnUrl(string? uri)

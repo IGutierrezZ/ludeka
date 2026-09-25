@@ -602,11 +602,12 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
-## Incremento 64: Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba)
+## Incremento 64: Acceso por Correo con Verificación (Magic Link sin Contraseñas)
 - **Identificador SDD:** `change-64-acceso-por-correo`
-- **Objetivo Principal:** Valorar (puerta de decisión del maintainer) el login por email con verificación de buzón y, si se aprueba, implantarlo —con la bifurcación abierta contraseña vs magic link— cerrando la contradicción con la promesa de `Login.razor:15`, sin dejar ninguna combinación de estado sin puerta de acceso.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
-- **Documento:** [`inc-64-acceso-por-correo.md`](file:///c:/repos/Ludeka/docs/increments/inc-64-acceso-por-correo.md).
+- **Objetivo Principal:** Acceso alternativo por correo electrónico mediante enlace mágico de un solo uso (Magic Link) de alta entropía (32 bytes, hash SHA-256 en BD y caducidad de 15 minutos), con verificación implícita de buzón, persistencia dual SQLite/PostgreSQL, emisor simulado en desarrollo y tests (`DevelopmentEmailSender`), endpoints HTTP `/login/magic-link` y `/login/magic-link/request`, protección anti-redirección abierta y rediseño honesto de `Login.razor` erradicando la contradicción histórica «sin correo de confirmación».
+- **Estado:** ✅ **Completado y Archivado** (1.756 tests unitarios en verde al 100%).
+- **Documento:** [`inc-64-acceso-por-correo.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-64-acceso-por-correo.md).
+- **Módulos del Sistema:** [`40-acceso-por-correo-magic-link.md`](file:///c:/repos/Ludeka/docs/specs/sistema/40-acceso-por-correo-magic-link.md).
 
 ---
 

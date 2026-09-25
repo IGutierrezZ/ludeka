@@ -339,6 +339,65 @@ app.MapGet("/logout", async (HttpContext httpContext) =>
     return Results.Redirect("/");
 }).AllowAnonymous();
 
+// Incremento 64: verificación y consumo de Magic Link.
+app.MapGet("/login/magic-link", async (
+    HttpContext httpContext,
+    [FromQuery] string? token,
+    [FromQuery] string? returnUrl,
+    [FromServices] IMagicLinkService magicLinkService) =>
+{
+    if (string.IsNullOrWhiteSpace(token))
+    {
+        return Results.Redirect("/login?aviso=magic-link-invalido");
+    }
+
+    var result = await magicLinkService.VerifyAndConsumeAsync(token, httpContext.RequestAborted);
+    if (!result.Success || result.User is null)
+    {
+        return Results.Redirect("/login?aviso=magic-link-expirado");
+    }
+
+    var principal = ExternalLoginEvents.BuildSessionPrincipal(result.User);
+    var properties = new AuthenticationProperties
+    {
+        IsPersistent = true,
+        AllowRefresh = true,
+        IssuedUtc = DateTimeOffset.UtcNow
+    };
+
+    await httpContext.SignInAsync(ExternalAuthenticationSchemes.SessionCookieScheme, principal, properties);
+
+    var target = LoginRedirect.IsLocalUrl(returnUrl) ? returnUrl! : "/";
+    return Results.Redirect(target);
+}).AllowAnonymous();
+
+app.MapPost("/login/magic-link/request", async (
+    HttpContext httpContext,
+    [FromServices] IAntiforgery antiforgery,
+    [FromServices] IMagicLinkService magicLinkService) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(httpContext);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.BadRequest(new { error = "Token antiforgery ausente o inválido." });
+    }
+
+    var form = await httpContext.Request.ReadFormAsync();
+    var email = form["email"].ToString();
+    var returnUrl = form["returnUrl"].ToString();
+
+    var result = await magicLinkService.RequestMagicLinkAsync(email, returnUrl, cancellationToken: httpContext.RequestAborted);
+    if (!result.Success)
+    {
+        return Results.BadRequest(new { error = result.Message });
+    }
+
+    return Results.Ok(new { message = result.Message, devLink = result.DevTokenLink });
+}).AllowAnonymous();
+
 // Incremento 49: desafío de VINCULACIÓN. A diferencia de /login/external, exige sesión y marca la
 // intención y el UserId del servidor en AuthenticationProperties.Items, que viajan dentro del
 // parámetro state protegido por Data Protection. El formulario del navegador no puede alterarlos.

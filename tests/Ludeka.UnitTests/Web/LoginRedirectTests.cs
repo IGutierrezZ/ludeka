@@ -102,13 +102,37 @@ public class LoginRedirectTests
         Assert.Equal(AccountConnectionMessages.LoginCollisionNotice, notice);
     }
 
+    [Fact]
+    public void ResolveAccountCollisionNotice_WithMagicLinkCodes_ReturnsExpectedMessages()
+    {
+        var invalid = LoginRedirect.ResolveAccountCollisionNotice("magic-link-invalido");
+        var expired = LoginRedirect.ResolveAccountCollisionNotice("magic-link-expirado");
+
+        Assert.Equal(AccountConnectionMessages.MagicLinkInvalidNotice, invalid);
+        Assert.Equal(AccountConnectionMessages.MagicLinkExpiredNotice, expired);
+    }
+
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/cuenta")]
+    [InlineData("/cuenta/conexiones")]
+    [InlineData("/juegos/catan?tab=reglas")]
+    public void IsLocalUrl_ShouldReturnTrue_ForValidRelativePaths(string localUrl)
+    {
+        Assert.True(LoginRedirect.IsLocalUrl(localUrl));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("vinculacion-sin-sesion")]
-    [InlineData("codigo-desconocido")]
-    public void ResolveAccountCollisionNotice_WithAnAbsentOrUnknownCode_ReturnsNull(string? aviso)
+    [InlineData("   ")]
+    [InlineData("https://malicious.com")]
+    [InlineData("http://malicious.com")]
+    [InlineData("//malicious.com")]
+    [InlineData("/\\malicious.com")]
+    [InlineData("javascript:alert(1)")]
+    public void IsLocalUrl_ShouldReturnFalse_ForDangerousOrExternalUrls(string? invalidUrl)
     {
-        Assert.Null(LoginRedirect.ResolveAccountCollisionNotice(aviso));
+        Assert.False(LoginRedirect.IsLocalUrl(invalidUrl));
     }
 }
