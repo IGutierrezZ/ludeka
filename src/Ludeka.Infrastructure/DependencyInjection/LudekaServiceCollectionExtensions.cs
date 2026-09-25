@@ -10,6 +10,7 @@ using Ludeka.Application.Features.Discovery;
 using Ludeka.Application.Features.Events;
 using Ludeka.Application.Features.Expansions;
 using Ludeka.Application.Features.Founding;
+using Ludeka.Application.Features.Gamification;
 using Ludeka.Application.Features.Home;
 using Ludeka.Application.Features.Identity;
 using Ludeka.Application.Features.Instagram;
@@ -109,6 +110,10 @@ public static class LudekaServiceCollectionExtensions
         // Incremento 67: Gamificación — Hitos y Logros del Jugador
         services.AddScoped<IUserMilestoneRepository, SqliteUserMilestoneRepository>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+
+        // Incremento 68: Gamificación — Clasificaciones Públicas y Anonimato
+        services.AddScoped<ILeaderboardRepository, SqliteLeaderboardRepository>();
+        services.AddScoped<ILeaderboardService, LeaderboardService>();
 
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
