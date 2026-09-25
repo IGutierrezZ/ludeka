@@ -74,12 +74,12 @@ Acreditar y garantizar la calidad de los datos de fundas de cartas (*sleeves*) y
   - [x] 2.1 Tests en `BggSleeveParserTests.cs` (RED): sin cantidad inventada (`CardCount` nulo/cero o rechazo si no hay datos), rechazo de pulgadas/medidas fuera de rango.
   - [x] 2.2 Eliminar `count = 50` por defecto en `BggSleeveParser.cs` y validar plausibilidad de dimensiones.
   - [x] 2.3 Actualizar `seed-games.json`: añadir fundas de Catán (Mini Euro 44x68 mm) y corregir dimensiones de Dixit.
-  - [x] 2.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo.
-- [ ] **ODD-3 — Tiendas, Amazon y Afiliación en Aplicación (`Ludeka.Application`)**
-  - [ ] 3.1 Tests en `SleeveStoreUrlResolverTests.cs` (RED): resolución de Amazon con `tag=ludeka-21`, presencia de Cuarto de Juegos y Tablerum con sus parámetros correctos (`partner` / `ref`).
-  - [ ] 3.2 Implementar soporte de Amazon en `SleeveStoreUrlResolver.cs`.
-  - [ ] 3.3 Incluir Cuarto de Juegos y Tablerum en `partnerStores` de `ResolvePurchaseOptions`.
-  - [ ] 3.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo.
+  - [x] 2.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit: `344a78c` (1.810 pruebas unitarias verdes).
+- [x] **ODD-3 — Tiendas, Amazon y Afiliación en Aplicación (`Ludeka.Application`)**
+  - [x] 3.1 Tests en `SleeveStoreUrlResolverTests.cs` (RED): resolución de Amazon con `tag=ludeka-21`, presencia de Cuarto de Juegos y Tablerum con sus parámetros correctos (`partner` / `ref`).
+  - [x] 3.2 Implementar soporte de Amazon en `SleeveStoreUrlResolver.cs`.
+  - [x] 3.3 Incluir Cuarto de Juegos y Tablerum en `partnerStores` de `ResolvePurchaseOptions`.
+  - [x] 3.4 Verificación en verde (GREEN) y refactorización (REFACTOR). Commit de unidad de trabajo (1.812 pruebas unitarias verdes).
 - [ ] **ODD-4 — UI Editorial y Estado Honesto sin Datos (`Ludeka.Web`)**
   - [ ] 4.1 Tests en `Ludeka.UnitTests/Web/SleeveGuideCardTests.cs` o pruebas de componente (RED): verificar que un juego sin fundas registradas no renderiza el mensaje engañoso de "no contiene cartas".
   - [ ] 4.2 Actualizar `SleeveGuideCard.razor`: renderizar estado honesto ("Información de fundas no disponible para esta edición") con botón de acción al editor editorial.
