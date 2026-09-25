@@ -77,7 +77,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-61** | Menú de Cuenta y Estado de Sesión en la Cabecera | ✅ Archivado | [inc-61-menu-de-cuenta.md](archive/inc-61-menu-de-cuenta.md) |
 | **INC-62** | Preferencias de Usuario: Tema y País | ✅ Archivado | [inc-62-preferencias-usuario.md](archive/inc-62-preferencias-usuario.md) |
 | **INC-63** | Conexiones OAuth: Múltiples Proveedores sin Cuentas Duplicadas | ✅ Archivado | [inc-63-conexiones-oauth.md](archive/inc-63-conexiones-oauth.md) |
-| **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ Planificado | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
+| **INC-64** | Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba) | ⏳ En progreso | [inc-64-acceso-por-correo.md](inc-64-acceso-por-correo.md) |
 | **INC-65** | «Me gusta» en Editoriales, Tiendas, Creadores y Vídeos | ⏳ Planificado | [inc-65-likes-comunidad.md](inc-65-likes-comunidad.md) |
 | **INC-66** | Fundas de Cartas: Calidad de Datos y Enlaces de Compra | ⏳ Planificado | [inc-66-fundas-cartas.md](inc-66-fundas-cartas.md) |
 | **INC-67** | Gamificación: Hitos y Logros del Jugador | ⏳ Planificado | [inc-67-hitos-y-logros.md](inc-67-hitos-y-logros.md) |

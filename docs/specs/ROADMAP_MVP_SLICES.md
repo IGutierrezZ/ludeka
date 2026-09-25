@@ -605,7 +605,7 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 64: Acceso por Correo con Verificación (Evaluar e Implantar si se Aprueba)
 - **Identificador SDD:** `change-64-acceso-por-correo`
 - **Objetivo Principal:** Valorar (puerta de decisión del maintainer) el login por email con verificación de buzón y, si se aprueba, implantarlo —con la bifurcación abierta contraseña vs magic link— cerrando la contradicción con la promesa de `Login.razor:15`, sin dejar ninguna combinación de estado sin puerta de acceso.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Estado:** ⏳ En progreso.
 - **Documento:** [`inc-64-acceso-por-correo.md`](file:///c:/repos/Ludeka/docs/increments/inc-64-acceso-por-correo.md).
 
 ---
