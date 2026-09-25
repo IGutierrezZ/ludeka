@@ -45,13 +45,18 @@ public class AccountAreaContractTests
         Assert.Contains("País", source, StringComparison.Ordinal);
     }
 
+    private const string AccountMenuPath = "src/Ludeka.Web/Components/Shared/AccountMenu.razor";
+
     [Fact]
     public void HeaderGate_ShouldDistinguishSessionStatesAndLinkLogin()
     {
-        // INC-50, diseño §D3.2: con sesión → /cuenta + UserName; sin sesión → /login (sin
-        // ReturnUrl: no hay destino privado). HasSession sigue el patrón MyLibrary.razor.
-        var source = ReadSource(LayoutPath);
+        // INC-50 y INC-61: MainLayout monta AccountMenu, que distingue estados de sesión
+        // con sesión → /cuenta + UserName; sin sesión → /login (sin ReturnUrl: no hay destino
+        // privado). HasSession sigue el patrón MyLibrary.razor.
+        var layoutSource = ReadSource(LayoutPath);
+        Assert.Contains("<AccountMenu />", layoutSource, StringComparison.Ordinal);
 
+        var source = ReadSource(AccountMenuPath);
         Assert.Contains("href=\"/cuenta\"", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/login\"", source, StringComparison.Ordinal);
         Assert.Contains("Entrar", source, StringComparison.Ordinal);
@@ -63,9 +68,9 @@ public class AccountAreaContractTests
     [Fact]
     public void HeaderGate_ShouldMeetWcagFocusAndTargetSizeMarkers()
     {
-        // INC-50, diseño §D3.2-D3.4: estado con texto en todos los tamaños (sr-only sm:not-sr-only),
+        // INC-50 y INC-61: estado con texto en todos los tamaños (sr-only sm:not-sr-only),
         // foco visible con teclado (focus-visible:ring) y área objetivo ≥24×24 (WCAG 2.2 AA 2.5.8).
-        var source = ReadSource(LayoutPath);
+        var source = ReadSource(AccountMenuPath);
 
         Assert.Contains("sr-only sm:not-sr-only", source, StringComparison.Ordinal);
         Assert.Contains("focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]", source, StringComparison.Ordinal);

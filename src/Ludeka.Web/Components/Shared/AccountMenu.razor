@@ -1,0 +1,245 @@
+@implements IDisposable
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.Features.Identity
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@inject ICurrentUserService CurrentUserService
+@inject IAccountConnectionsService ConnectionsService
+@inject NavigationManager Navigation
+
+@*
+    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-61, diseño §1).
+    - Con sesión activa: botón con avatar editorial de inicial, nombre de usuario,
+      indicador de alerta si hay correo pendiente de verificación y menú desplegable
+      accesible con 6 destinos canónicos.
+    - Sin sesión (invitado): puerta clara y accesible a /login ("Entrar").
+    - Cumple con WCAG 2.2 AA (teclado Escape, aria-expanded, aria-haspopup, telón de descarte).
+*@
+
+@if (!HasSession)
+{
+    <a href="/login"
+       title="Entrar"
+       class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+        <Icon Name="user" Size="14" />
+        <span class="sr-only sm:not-sr-only">Entrar</span>
+    </a>
+}
+else
+{
+    <div class="relative" @onkeydown="HandleKeyDown">
+        <button type="button"
+                @onclick="ToggleMenu"
+                aria-expanded="@_isOpen"
+                aria-haspopup="menu"
+                aria-label="@($"Menú de cuenta de {CurrentUserService.UserName}")"
+                class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(_isOpen ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-[var(--border-subtle)] hover:border-[var(--brand-primary)]")">
+
+            @* Avatar sobrio con la inicial del usuario *@
+            <span class="w-4 h-4 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] font-bold text-[0.65rem] flex items-center justify-center leading-none select-none">
+                @UserInitial
+            </span>
+
+            <span class="sr-only sm:not-sr-only truncate max-w-[8rem]">@CurrentUserService.UserName</span>
+
+            @* Indicador discreto de aviso si el correo no está verificado *@
+            @if (_needsEmailNotice)
+            {
+                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0" title="Correo pendiente de verificación"></span>
+            }
+
+            <span class="text-[0.65rem] transition-transform duration-200 @(_isOpen ? "rotate-180" : "")">
+                <Icon Name="chevron-down" Size="10" />
+            </span>
+        </button>
+
+        @if (_isOpen)
+        {
+            <div class="fixed inset-0 z-40" @onclick="CloseMenu"></div>
+            <div class="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-2xl p-2 z-50 text-xs space-y-1 animate-fade-in"
+                 role="menu"
+                 aria-label="Opciones de cuenta">
+
+                @* Cabecera con datos de cuenta y rol *@
+                <div class="px-3 py-2 border-b border-[var(--border-subtle)] mb-1">
+                    <p class="font-bold text-sm text-[var(--text-primary)] truncate">@CurrentUserService.UserName</p>
+                    @if (!string.IsNullOrWhiteSpace(RoleLabel))
+                    {
+                        <p class="text-[0.7rem] text-[var(--brand-primary)] font-bold truncate">@RoleLabel</p>
+                    }
+                    else
+                    {
+                        <p class="text-[0.7rem] text-[var(--text-muted)] truncate">Usuario de Ludeka</p>
+                    }
+                </div>
+
+                @* 1. Perfil Público *@
+                <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="user" Size="14" />
+                    <span>Mi Perfil Público</span>
+                </a>
+
+                @* 2. Área de Cuenta (Hub INC-50) *@
+                <a href="/cuenta" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="settings" Size="14" />
+                    <span>Área de Cuenta</span>
+                </a>
+
+                @* 3. Mi Ludoteca *@
+                <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="library" Size="14" />
+                    <span>Mi Ludoteca</span>
+                </a>
+
+                @* 4. Apariencia & Tema *@
+                <a href="/cuenta/ludoteca?seccion=apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <Icon Name="palette" Size="14" />
+                    <span>Apariencia & Tema</span>
+                </a>
+
+                @* 5. Conexiones OAuth *@
+                <a href="/cuenta/conexiones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                    <div class="flex items-center gap-2.5">
+                        <Icon Name="link" Size="14" />
+                        <span>Conexiones OAuth</span>
+                    </div>
+                    @if (_needsEmailNotice)
+                    {
+                        <span class="w-2 h-2 rounded-full bg-amber-500" title="Verificación requerida"></span>
+                    }
+                </a>
+
+                @* 6. Cerrar Sesión *@
+                <div class="border-t border-[var(--border-subtle)] my-1 pt-1">
+                    <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors font-medium">
+                        <Icon Name="log-out" Size="14" />
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _isOpen;
+    private bool _needsEmailNotice;
+    private bool _isSubscribed;
+
+    private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
+    private string UserInitial
+    {
+        get
+        {
+            var name = CurrentUserService.UserName;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return "U";
+            }
+
+            return char.ToUpperInvariant(name.Trim()[0]).ToString();
+        }
+    }
+
+    private string PublicProfileUrl => $"/u/{CurrentUserService.UserId}";
+
+    private string RoleLabel
+    {
+        get
+        {
+            if (CurrentUserService.IsFoundingTeam)
+            {
+                return "Mesa Fundadora";
+            }
+
+            if (CurrentUserService.IsInRole("Moderator"))
+            {
+                return "Moderador";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += HandleLocationChanged;
+
+        if (HasSession)
+        {
+            await RefreshEmailStatusAsync();
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _isSubscribed || !RendererInfo.IsInteractive || !HasSession)
+        {
+            return;
+        }
+
+        ConnectionsService.Invalidated += HandleConnectionsInvalidated;
+        _isSubscribed = true;
+    }
+
+    private void HandleConnectionsInvalidated(object? sender, EventArgs e)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshEmailStatusAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task RefreshEmailStatusAsync()
+    {
+        try
+        {
+            _needsEmailNotice = !await ConnectionsService.HasVerifiedProviderEmailAsync();
+        }
+        catch
+        {
+            _needsEmailNotice = false;
+        }
+    }
+
+    private void ToggleMenu()
+    {
+        _isOpen = !_isOpen;
+    }
+
+    private void CloseMenu()
+    {
+        if (_isOpen)
+        {
+            _isOpen = false;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseMenu();
+        }
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (_isOpen)
+        {
+            _isOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= HandleLocationChanged;
+        if (_isSubscribed)
+        {
+            ConnectionsService.Invalidated -= HandleConnectionsInvalidated;
+        }
+    }
+}
