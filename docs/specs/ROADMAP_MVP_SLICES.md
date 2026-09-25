@@ -578,8 +578,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 61: Menú de Cuenta y Estado de Sesión en la Cabecera
 - **Identificador SDD:** `change-61-menu-de-cuenta`
 - **Objetivo Principal:** Que la cabecera reconozca al usuario: menú de cuenta (perfil, preferencias, conexiones, ludoteca, salir) colgando del hub de INC-50, con puerta clara a `/login` para invitados (hoy solo existe `AccountEmailNotice` como componente consciente de sesión).
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase D).
+- **Estado:** ⏳ En progreso (iniciado el 2026-09-24, Fase D).
 - **Documento:** [`inc-61-menu-de-cuenta.md`](file:///c:/repos/Ludeka/docs/increments/inc-61-menu-de-cuenta.md).
+- **Módulos del Sistema:** [`32-autenticacion-y-autorizacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) y [`37-area-de-cuenta-y-puerta-de-acceso.md`](file:///c:/repos/Ludeka/docs/specs/sistema/37-area-de-cuenta-y-puerta-de-acceso.md).
 
 ---
 
