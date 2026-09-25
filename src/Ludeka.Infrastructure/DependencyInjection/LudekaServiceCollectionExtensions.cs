@@ -105,6 +105,9 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IUserLikeRepository, SqliteUserLikeRepository>();
         services.AddScoped<IUserLikeService, UserLikeService>();
 
+        // Incremento 67: Gamificación — Hitos y Logros del Jugador
+        services.AddScoped<IUserMilestoneRepository, SqliteUserMilestoneRepository>();
+
         services.AddScoped<IGameRepository, SqliteGameRepository>();
 
         // Caché Nivel 1 (Aplicación en Memoria) y Decorador del Catálogo

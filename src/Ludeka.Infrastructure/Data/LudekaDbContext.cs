@@ -43,6 +43,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<JobExecutionLease> JobExecutionLeases => Set<JobExecutionLease>();
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
     public DbSet<UserLike> UserLikes => Set<UserLike>();
+    public DbSet<UserMilestone> UserMilestones => Set<UserMilestone>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -561,5 +562,15 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         userLike.Property(l => l.CreatedAt).IsRequired();
         userLike.HasIndex(l => new { l.UserId, l.TargetType, l.TargetId }).IsUnique();
         userLike.HasIndex(l => new { l.TargetType, l.TargetId });
+
+        // --- Configuración de UserMilestone (INC-67: Gamificación — Hitos y Logros del Jugador) ---
+        var userMilestone = modelBuilder.Entity<UserMilestone>();
+        userMilestone.ToTable("UserMilestones");
+        userMilestone.HasKey(m => m.Id);
+        userMilestone.Property(m => m.UserId).IsRequired().HasMaxLength(128);
+        userMilestone.Property(m => m.Type).IsRequired();
+        userMilestone.Property(m => m.UnlockedAt).IsRequired();
+        userMilestone.HasIndex(m => new { m.UserId, m.Type }).IsUnique();
+        userMilestone.HasIndex(m => m.UserId);
     }
 }

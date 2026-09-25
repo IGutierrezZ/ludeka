@@ -1699,4 +1699,43 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    CREATE TABLE "UserMilestones" (
+        "Id" uuid NOT NULL,
+        "UserId" character varying(128) NOT NULL,
+        "Type" integer NOT NULL,
+        "UnlockedAt" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_UserMilestones" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    CREATE INDEX "IX_UserMilestones_UserId" ON "UserMilestones" ("UserId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    CREATE UNIQUE INDEX "IX_UserMilestones_UserId_Type" ON "UserMilestones" ("UserId", "Type");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260925234500_AddUserMilestones', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+
 

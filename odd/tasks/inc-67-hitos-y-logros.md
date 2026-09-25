@@ -74,12 +74,12 @@ Reconocer el progreso y la vivencia lúdica del jugador en Ludeka mediante un si
   - [x] 1.2 Implementar enum `MilestoneType`, `MilestoneCategory` y entidad `UserMilestone` en `Ludeka.Core`.
   - [x] 1.3 Implementar `MilestoneCatalog` con catálogo de hitos canónicos (Primer juego, 10 juegos, Primer juego jugado, Primer préstamo, Primera partida en diario, 5 partidas en diario, Mesa llena con 5+ comensales, Primera micro-reseña, Primer me gusta).
   - [x] 1.4 Verificación en verde (GREEN) y refactorización limpia (REFACTOR). 1.827 pruebas unitarias verdes.
-- [ ] **ODD-2 — Persistencia e Infraestructura (`Ludeka.Infrastructure`): Repositorio y Esquema**
-  - [ ] 2.1 Tests en `UserMilestoneRepositoryTests.cs` (RED): persistencia de hitos, recuperación por usuario, idempotencia al guardar (no duplicar `(UserId, Type)`).
-  - [ ] 2.2 Contrato `IUserMilestoneRepository` en `Ludeka.Application.Contracts`.
-  - [ ] 2.3 Implementar `UserMilestoneRepository` y configurar entidad en `LudekaDbContext`.
-  - [ ] 2.4 Actualizar `SqliteSchemaMigrator.cs` con la creación defensiva de la tabla `UserMilestones` y sus índices.
-  - [ ] 2.5 Verificación en verde (GREEN) y refactorización (REFACTOR).
+- [x] **ODD-2 — Persistencia e Infraestructura (`Ludeka.Infrastructure`): Repositorio y Esquema**
+  - [x] 2.1 Tests en `SqliteUserMilestoneRepositoryTests.cs` (RED): persistencia de hitos, recuperación por usuario, idempotencia al guardar (no duplicar `(UserId, Type)`).
+  - [x] 2.2 Contrato `IUserMilestoneRepository` en `Ludeka.Application.Contracts`.
+  - [x] 2.3 Implementar `SqliteUserMilestoneRepository` y configurar entidad en `LudekaDbContext`.
+  - [x] 2.4 Actualizar `SqliteSchemaMigrator.cs` y `supabase_schema.sql` con la creación de la tabla `UserMilestones` y sus índices.
+  - [x] 2.5 Verificación en verde (GREEN) y refactorización (REFACTOR). 1.833 pruebas unitarias verdes.
 - [ ] **ODD-3 — Lógica de Aplicación (`Ludeka.Application`): Evaluación e Idempotencia**
   - [ ] 3.1 Tests en `MilestoneServiceTests.cs` (RED): evaluación de condiciones de desbloqueo, preservación de fecha original en llamadas sucesivas, retorno de progreso ordenado.
   - [ ] 3.2 DTOs de transporte (`MilestoneDto`, `UserMilestoneProgressDto`) e interfaz `IMilestoneService`.
