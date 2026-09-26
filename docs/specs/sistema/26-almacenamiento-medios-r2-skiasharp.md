@@ -74,6 +74,7 @@ Define las tipologías canónicas de imágenes asociadas a juegos y comunidad:
   - Asignación de cabeceras HTTP de alto rendimiento:
     - `ContentType: image/webp`
     - `Cache-Control: public, max-age=31536000, immutable`
+  - Cobertura unitaria exhaustiva en `CloudflareR2StorageServiceTests` (28 pruebas) validando la composición de peticiones S3, cabeceras, rutas deterministas y variantes.
 - **`SimulatedImageStorageService`:**
   - Almacén en memoria concurrente (`ConcurrentDictionary<string, byte[]>`) para desarrollo local y tests sin conexión.
   - Ejecuta el pipeline real de SkiaSharp para verificar la integridad de la optimización sin llamadas de red a Cloudflare.

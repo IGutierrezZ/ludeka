@@ -1,9 +1,9 @@
 # INC-51: Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43
 
-> **Estado:** ⏳ Planificado (detectado el 2026-09-18 al cerrar el residuo de archivado SDD, PR #32)
-> **Fecha de Inicio:** pendiente
-> **Rama de Trabajo:** pendiente de asignar
-> **Worktree:** pendiente de asignar
+> **Estado:** ✅ Archivado (completado y verificado el 2026-09-26)
+> **Fecha de Inicio:** 2026-09-26
+> **Rama de Trabajo:** `inc/huecos-cobertura`
+> **Worktree:** `C:\repos\ludeka-wt\huecos-cobertura`
 > **Dependencias:** INC-40, INC-42 e INC-43 (los tres archivados el 2026-09-18 como *archivado parcial declarado*)
 > **Especificación Viva:** [26. Almacenamiento de Medios R2 y SkiaSharp](file:///c:/repos/Ludeka/docs/specs/sistema/26-almacenamiento-medios-r2-skiasharp.md) · [28. Hub de Ingesta Social y Moderación](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion.md) · [29. Ingesta Continua de Novedades BGG](file:///c:/repos/Ludeka/docs/specs/sistema/29-ingesta-continua-novedades-bgg.md)
 
@@ -137,3 +137,28 @@ Criterios de aceptación, para lo que se decida entregar:
 - **Las deudas nominales de INC-49**: el smoke test manual (tarea 4.5, que arrastra INC-50) y el WARNING de `ExternalLoginEvents.HandleTicketReceivedAsync`, que no captura `UnauthorizedAccessException` en la rama de vinculación.
 - **La deriva de `AuditAction`** en el módulo 14 de `docs/specs/sistema/`, heredada de INC-46.
 - **`RunScheduledCollectionAsync`** de INC-44: existe en el contrato real pero no en su `design.md` ni en el módulo 30 de la especificación viva. Es deriva documental menor, sin hueco de código.
+
+---
+
+## 8. Resolución Final y Cierre de INC-51 (2026-09-26)
+
+Tras el análisis arquitectónico del estado actual del repositorio y código fuente, se dictaminó la resolución de los puntos pendientes, completando la cobertura de pruebas unitarias faltantes y declarando cerradas las desviaciones históricas obsoletas:
+
+1. **Hueco 1 (`OpenGraphSocialMetadataExtractor`):**
+   - **Resuelto con código y pruebas:** Se implementó la suite completa en `tests/Ludeka.UnitTests/Infrastructure/OpenGraphSocialMetadataExtractorTests.cs` (19 pruebas en verde).
+   - **Corrección de defecto descubierta:** Se corrigió el patrón regex de atributos OpenGraph para soportar de forma segura comillas anidadas (evitando truncados de títulos que contenían comillas simples en atributos delimitados por comillas dobles, habituales en publicaciones de Instagram) y la extracción robusta del autor ignorando el sufijo `on/en Instagram`.
+
+2. **Hueco 2 (`BggSimulationDataset` sin lanzamientos 2025/2026):**
+   - **Cerrado formalmente sin cambio de código:** La lógica de clasificación según fecha (`CatalogQueueOrigin.BggNewReleases` vs `BggHotness`) ya se encuentra 100% cubierta con dobles en `BggDiscoveryServiceTests.cs`. En staging y producción (INC-53), la ingesta utiliza el volcado diario real de BGG (`bg_ranks.csv`), por lo que alterar los 40 juegos clásicos del mock falsearía datos sin aportar valor real.
+
+3. **Hueco 3.1 (`SKSamplingOptions` vs `SKFilterQuality`):**
+   - **Cerrado como obsoleto:** `SKFilterQuality` es una API obsoleta en versiones recientes de SkiaSharp; el código en `SkiaSharpImageOptimizationService.cs` ya utiliza la API canónica moderna `SKSamplingOptions.Default` (adecuadamente documentada en el módulo 26 de la especificación viva).
+
+4. **Hueco 3.2 (Nomenclatura de bucket `social/{year}/...`):**
+   - **Cerrado como superado por diseño superior:** INC-42 implementó un patrón determinista y trazable ligado al agregado (`$"social-inbox/{itemId:N}/thumbnail.webp"` en `SocialIngestionService.cs:449`), haciendo innecesaria y contraproducente la ruta propuesta originalmente en INC-40.
+
+5. **Hueco 3.3 (`CloudflareR2StorageService` sin prueba unitaria propia):**
+   - **Resuelto con pruebas:** Se implementó la suite completa en `tests/Ludeka.UnitTests/Infrastructure/CloudflareR2StorageServiceTests.cs` (28 pruebas en verde), cubriendo subidas optimizadas, verificación de cabeceras S3 (`Cache-Control: public, max-age=31536000, immutable`), variantes de carátula/trasera/mesa, borrado, rutas de CDN y manejo de excepciones.
+
+**Veredicto de Verificación:** 1.923 pruebas unitarias al 100% en verde (47 pruebas nuevas agregadas, 0 fallos). INC-51 queda formalmente **✅ Archivado**.
+

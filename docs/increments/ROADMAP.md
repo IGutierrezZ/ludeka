@@ -64,7 +64,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-48** | Persistencia de Producción en PostgreSQL, Medios en Cloudflare R2 con Fallback Local y Verdad Documental | ✅ Archivado | [inc-48-persistencia-produccion-postgres.md](archive/inc-48-persistencia-produccion-postgres.md) |
 | **INC-49** | Vinculación de Cuentas entre Proveedores, Recuperación de Acceso y Política de Correo Ausente | ✅ Archivado | [inc-49-vinculacion-cuentas.md](archive/inc-49-vinculacion-cuentas.md) |
 | **INC-50** | Área de Cuenta: Puerta de Acceso en la Cabecera y Hub del Usuario | ✅ Archivado | [inc-50-area-de-cuenta.md](archive/inc-50-area-de-cuenta.md) |
-| **INC-51** | Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43 | ⏳ Planificado | [inc-51-huecos-cobertura-archivado.md](inc-51-huecos-cobertura-archivado.md) |
+| **INC-51** | Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43 | ✅ Archivado | [inc-51-huecos-cobertura-archivado.md](archive/inc-51-huecos-cobertura-archivado.md) |
 | **INC-52** | Autenticación y Acceso Administrativo en el Primer Despliegue de Producción | ✅ Archivado | [inc-52-autenticacion-en-el-despliegue.md](archive/inc-52-autenticacion-en-el-despliegue.md) |
 | **INC-53** | Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual | ✅ Archivado | [inc-53-ingesta-masiva-autonoma-bgg.md](archive/inc-53-ingesta-masiva-autonoma-bgg.md) |
 | **INC-54** | Padrón Exhaustivo y Mecanismo de Carga del Directorio Lúdico Español | ✅ Archivado | [inc-54-directorio-exhaustivo.md](archive/inc-54-directorio-exhaustivo.md) |
@@ -109,7 +109,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **Ninguno en curso** (el backlog 2026-09-22 de las Fases A a F queda completado y verificado al 100%).
+- **Ninguno en curso** (el backlog de los 68 incrementos queda completado y verificado al 100%).
+
+*(INC-51 entregó su verificación con 1.923 pruebas unitarias en verde, y quedó archivado el 2026-09-26. Resuelve los huecos de cobertura de OpenGraphSocialMetadataExtractor [19 pruebas] y CloudflareR2StorageService [28 pruebas], corrigiendo el truncado de comillas anidadas en OpenGraph y delimitación de autor de Instagram, y declarando formalmente obsoletas o superadas las desviaciones de dataset BGG, opciones de SkiaSharp y nomenclatura de bucket).*
 
 *(INC-68 entregó su verificación con 1.876 pruebas unitarias en verde, y quedó archivado el 2026-09-26. Implementa el modelo de clasificación mensual según partidas en mesa [GamePlayLog], opt-in estricto con exclusión por defecto, anonimato con seudónimos deterministas no reversibles SHA-256 [Mesa #XXXX] y alias anti-PII, condecoración de hitos INC-67 y badge honorífico, pantalla de privacidad /cuenta/privacidad, podio y tabla accesible en /clasificaciones, y enlaces en navegación global).*
 
