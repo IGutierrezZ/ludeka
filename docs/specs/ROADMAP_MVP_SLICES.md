@@ -656,6 +656,15 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 69: Fix en Colección y Valoración (EF Core Tracking), Flujo de Jugado y Carriles de Portada
+- **Identificador SDD:** `change-69-fix-coleccion-valoracion-carriles`
+- **Objetivo Principal:** Corregir el conflicto de concurrencia y seguimiento en EF Core (UserCollectionItem, UserGameReview, GameLoan) aislando propiedades escalares sin mutar el grafo de Game, implementar flujo guiado al añadir a ludoteca (pregunta de jugado con valoración interactiva), y optimizar los carriles de portada (3.5 tarjetas con affordance en móvil, 1-4J compacto, altura uniforme y drag-to-scroll con ratón en escritorio).
+- **Estado:** ✅ **Completado y Archivado** (1.925 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-69-fix-coleccion-valoracion-carriles.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-69-fix-coleccion-valoracion-carriles.md).
+- **Módulos del Sistema:** [`02-ludoteca-y-prestamos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/02-ludoteca-y-prestamos.md), [`15-dashboard-inicio-editorial.md`](file:///c:/repos/Ludeka/docs/specs/sistema/15-dashboard-inicio-editorial.md), [`23-portada-editorial.md`](file:///c:/repos/Ludeka/docs/specs/sistema/23-portada-editorial.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

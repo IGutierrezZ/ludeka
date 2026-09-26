@@ -66,6 +66,15 @@ Este módulo transforma la portada `/` de un dashboard utilitario (INC-21/INC-31
 - Eliminada la clase inválida `sm:w-68` (Tailwind 3.4); tarjetas de Novedades con `w-60 sm:w-72`.
 - Títulos `<h2>` de los 4 carriles con `--font-display` (`.rail-title`); el resto de la web no se ve afectada.
 
+### 3.5 Refinamiento Móvil, Enfoque Editorial y Arrastre en Escritorio (INC-69)
+- **Cabeceras (`RailHeader.razor`):** Eliminación del badge de conteo numérico redundante (`@Count @CountLabel`), manteniendo únicamente el icono temático, título display del carril y el enlace de navegación rápida («Ver todos»).
+- **Encuadre de Tarjetas Top 20 (`HomeGameCard.razor`):**
+  - **Affordance Móvil:** Dimensiones ajustadas a `w-[28vw] min-w-[105px] max-w-[125px] sm:w-44 md:w-48`. En anchos de pantalla móvil estándar (360px a 430px) entran exactamente 3 tarjetas y media, otorgando una invitación visual clara (*peek affordance*) al desplazamiento horizontal.
+  - **Formato Compacto de Comensales:** Sustitución de etiquetas extensas por formato condensado legible `👥 1-4J` (o `1J`, `1-5J+`).
+  - **Alineación Vertical Milimétrica:** Altura mínima fija en el bloque de título (`min-h-[2.25rem]`, hasta 2 líneas) y anclaje del diseñador/año al borde inferior (`mt-auto`), garantizando uniformidad estética entre tarjetas con nombres cortos y largos.
+- **Interacción de Arrastre en Escritorio (`rail-scroll.js`):**
+  - Soporte de desplazamiento mediante clic y arrastre con ratón (*drag-to-scroll*) sobre cualquier contenedor con el atributo `data-rail-scroll`. Permite una experiencia fluida en monitores de sobremesa no táctiles, suprimiendo la activación accidental de enlaces durante el arrastre. Registrado e inicializado globalmente en `App.razor`.
+
 ---
 
 ## 4. Imágenes por Defecto por Dominio (`default-image-fallbacks`)

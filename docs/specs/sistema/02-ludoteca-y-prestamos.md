@@ -69,3 +69,16 @@ Ubicación: [`src/Ludeka.Core/Entities/UserGameReview.cs`](file:///c:/repos/Lude
 - [`RecordPlayModal.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/RecordPlayModal.razor): Modal accesible para registro táctil rápido de sesiones con selector de fecha, contador de comensales, chips rápidos de lugar, duración y notas.
 - [`MyLibrary.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/MyLibrary.razor): Vista de ludoteca reestructurada con pestañas: `📚 En mi ludoteca`, `🎲 Jugados` (filtrado por `IsPlayed`), `🛒 Comprar` (con banner de radar de ofertas), `📝 Diario de Partidas` (métricas y listado cronológico de sesiones), `📦 Préstamos`, `⏳ Cola comunitaria`, `🎨 Apariencia` y `🧬 ADN y Estadísticas`.
 - [`UserReviewCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/UserReviewCard.razor) y [`ReviewBottomSheet.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ReviewBottomSheet.razor): Bloqueo informativo si el usuario tiene el juego en lista de compra sin haberlo jugado.
+- [`GameDetail.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor):
+  - **Flujo Guiado de "En mi ludoteca" (INC-69):** Al hacer clic en "Tengo" sin haber marcado previamente "Jugado", se presenta un modal accesible: *«¿Has jugado al juego [Nombre]?»*.
+    - **Sí:** Marca automáticamente `IsPlayed = true`, persiste la colección y abre el modal de valoración.
+    - **No:** Guarda en la colección y muestra un aviso amigable recordando valorar y marcar como jugado cuando se estrene en mesa.
+  - **Gestión Robusta de Excepciones:** Todas las operaciones interactivas (colección, jugado, reseña, préstamo) están protegidas en bloques `try/catch` con banner de feedback descartable (`_actionFeedbackMessage`), previniendo errores de UI no controlados.
+
+---
+
+## 5. Infraestructura y Persistencia Limpia (`Ludeka.Infrastructure` - INC-69)
+
+- **Aislamiento de Grafo en EF Core:** En `SqliteUserCollectionRepository`, `SqliteUserReviewRepository` y `SqliteGameLoanRepository`, los métodos de mutación (`UpdateAsync` / `UpsertAsync`) aíslan la actualización a nivel de propiedades escalares de la entidad obtenida por `Id` en el contexto. Se evita invocar `Context.Update(item)` sobre instancias desasociadas con la propiedad de navegación `.Game` cargada, impidiendo que el agregador `Game` y sus entidades complejas JSON propiedad (`Scalability`, `Sleeves`, `AiSummary`) se marquen erróneamente como modificados en EF Core.
+- **Suite de Pruebas Automatizadas:** Verificación contractual en `SqliteLibraryPersistenceTests.cs` garantizando actualizaciones libres de conflictos de seguimiento y concurrencia.
+
