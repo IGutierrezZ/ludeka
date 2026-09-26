@@ -6,7 +6,7 @@
 @using Ludeka.Application.DTOs
 
 <a href="/juegos/@Game.Slug"
-   class="rail-card w-40 sm:w-48 shrink-0 snap-start"
+   class="rail-card w-[28vw] min-w-[105px] max-w-[125px] sm:w-44 md:w-48 shrink-0 snap-start flex flex-col h-full"
    role="listitem"
    aria-label="Ver ficha de @Game.SpanishTitle">
     <div class="rail-cover rail-cover--square">
@@ -25,38 +25,57 @@
              onerror="this.onerror=null; this.src='@placeholder';" />
 
         @* Badge de Rating *@
-        <div class="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-sm border border-amber-500/40 text-amber-300 text-[0.7rem] font-black flex items-center gap-1 shadow-md">
-            <Icon Name="star" Size="12" />
+        <div class="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-sm border border-amber-500/40 text-amber-300 text-[0.65rem] sm:text-[0.7rem] font-black flex items-center gap-0.5 sm:gap-1 shadow-md">
+            <Icon Name="star" Size="11" />
             <span>@Game.BggRating.ToString("0.0")</span>
         </div>
 
         @if (Game.IsExpansion)
         {
-            <div class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-purple-950/80 backdrop-blur-sm border border-purple-500/40 text-[0.65rem] font-bold text-purple-200 flex items-center gap-1">
-                <Icon Name="puzzle" Size="12" /> Expansión
+            <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-purple-950/80 backdrop-blur-sm border border-purple-500/40 text-[0.6rem] sm:text-[0.65rem] font-bold text-purple-200 flex items-center gap-0.5 sm:gap-1">
+                <Icon Name="puzzle" Size="11" />
+                <span class="hidden sm:inline">Expansión</span>
             </div>
         }
     </div>
 
-    <div class="p-3">
-        <div class="flex items-center justify-between text-[0.7rem] font-semibold text-[var(--text-muted)] mb-1">
-            <span>@Game.YearPublished</span>
-            @if (!string.IsNullOrWhiteSpace(Game.IdealPlayerCountText))
+    <div class="p-2 sm:p-3 flex flex-col flex-1">
+        @{
+            var compactPlayers = FormatCompactPlayers(Game.IdealPlayerCountText);
+        }
+        <div class="flex items-center justify-between gap-1 text-[0.65rem] sm:text-[0.7rem] font-semibold text-[var(--text-muted)] mb-1">
+            <span class="shrink-0">@Game.YearPublished</span>
+            @if (!string.IsNullOrWhiteSpace(compactPlayers))
             {
-                <span class="text-[var(--color-mustplay)] font-bold">@Game.IdealPlayerCountText</span>
+                <span class="text-[var(--color-mustplay)] font-bold truncate flex items-center gap-0.5 shrink-0" title="@Game.IdealPlayerCountText">
+                    <Icon Name="users" Size="11" />
+                    <span>@compactPlayers</span>
+                </span>
             }
         </div>
-        <h3 class="text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug">
+        <h3 class="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug min-h-[2.1rem] sm:min-h-[2.5rem]">
             @Game.SpanishTitle
         </h3>
-    </div>
 
-    <div class="p-3 pt-0 text-[0.7rem] text-[var(--text-secondary)] truncate">
-        @Game.Designer
+        <div class="mt-auto pt-1.5 text-[0.62rem] sm:text-[0.7rem] text-[var(--text-secondary)] truncate">
+            @Game.Designer
+        </div>
     </div>
 </a>
 
 @code {
     /// <summary>Juego del carril Top 20 (datos puros; la card no accede a servicios).</summary>
     [Parameter, EditorRequired] public GameSummaryDto Game { get; set; } = null!;
+
+    private static string FormatCompactPlayers(string? idealText)
+    {
+        if (string.IsNullOrWhiteSpace(idealText) || idealText.Contains("Sin datos", StringComparison.OrdinalIgnoreCase))
+            return string.Empty;
+
+        return idealText
+            .Replace("Ideal:", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("jugadores", "J", StringComparison.OrdinalIgnoreCase)
+            .Replace("jugador", "J", StringComparison.OrdinalIgnoreCase)
+            .Trim();
+    }
 }
