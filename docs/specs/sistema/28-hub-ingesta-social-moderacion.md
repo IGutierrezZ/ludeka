@@ -126,8 +126,10 @@ Al aprobar un ítem en `SocialIngestionService`:
 
 ### 4.1. Extractor Ligero OpenGraph (`OpenGraphSocialMetadataExtractor`)
 - Realiza peticiones HTTP GET respetuosas emulando User-Agent estándar de navegador de escritorio.
-- Analiza etiquetas `<meta property="og:..." />`, `<meta name="twitter:..." />` y `<title>`.
+- Analiza etiquetas `<meta property="og:..." />`, `<meta name="twitter:..." />` y `<title>`, con soporte de comillas anidadas (simples dentro de dobles) sin truncamiento.
+- Para publicaciones de Instagram, aísla el nombre del autor descartando el sufijo contextual (`on/en Instagram`).
 - Para URLs de YouTube (`youtube.com` o `youtu.be`), extrae automáticamente el ID del vídeo y resuelve la miniatura canónica de alta definición `https://img.youtube.com/vi/{videoId}/hqdefault.jpg`, consultando adicionalmente la API pública de oEmbed para obtener el título y canal de forma inmediata.
+- Dispone de suite unitaria dedicada (`OpenGraphSocialMetadataExtractorTests`) con 19 casos de prueba automatizados.
 
 ### 4.2. Asistente IA Híbrido (`GeminiSocialAnalysisService`)
 - Integra Google Gemini Flash estructurado en JSON si la API Key está configurada.

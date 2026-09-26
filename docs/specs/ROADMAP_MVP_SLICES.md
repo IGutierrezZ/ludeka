@@ -480,6 +480,18 @@ Este documento desglosa los bloques de la especificación funcional maestra (`LU
 
 ---
 
+## Incremento 51: Huecos de Cobertura y Desviaciones Destapados al Archivar INC-40, INC-42 e INC-43
+- **Identificador SDD:** `change-51-huecos-cobertura`
+- **Objetivo Principal:** Saldar las deudas técnicas reales de cobertura de pruebas unitarias identificadas al archivar INC-40, INC-42 e INC-43, y declarar formalmente cerradas las desviaciones históricas obsoletas o superadas por diseño:
+  1. **Pruebas unitarias para `OpenGraphSocialMetadataExtractor`:** Cobertura de YouTube oEmbed, fallbacks, Instagram con extracción de autor y delimitación, OpenGraph genérico, tags `<title>`, decodificación HTML y manejo de errores HTTP (19 pruebas unitarias, corrigiendo de paso el truncado de comillas anidadas en OpenGraph).
+  2. **Pruebas unitarias para `CloudflareR2StorageService`:** Cobertura directa de subidas a S3 con cliente fake, verificación de cabeceras inmutables de caché, variantes de juego, borrado y resolución de URLs públicas (28 pruebas unitarias).
+  3. **Cierre de desviaciones históricas:** Declaración formal de obsolescencia de `SKFilterQuality` frente a la API moderna `SKSamplingOptions.Default`, superación de la nomenclatura genérica de bucket por la convención determinista `social-inbox/{itemId:N}/thumbnail.webp` de INC-42, y acreditación de cobertura de la lógica de negocio de novedades BGG sin alterar el mock canónico.
+- **Estado:** ✅ **Completado y Archivado** el 2026-09-26 (suite completa 1.923 unitarias en verde al 100%, 0 fallos).
+- **Documento:** [`inc-51-huecos-cobertura-archivado.md`](archive/inc-51-huecos-cobertura-archivado.md).
+- **Módulos del Sistema:** [`26-almacenamiento-medios-r2-skiasharp.md`](sistema/26-almacenamiento-medios-r2-skiasharp.md) y [`28-hub-ingesta-social-moderacion.md`](sistema/28-hub-ingesta-social-moderacion.md).
+
+---
+
 ## Incremento 53: Ingesta Masiva Autónoma de Catálogo BGG (~8.000 Juegos) sin Manipulación Manual
 - **Identificador SDD:** `change-53-ingesta-masiva-autonoma-bgg`
 - **Objetivo Principal:** Descarga y poblado 100% autónomo del dataset de clasificación BGG en la tabla de Staging sin manipulación de archivos locales por parte del usuario:
