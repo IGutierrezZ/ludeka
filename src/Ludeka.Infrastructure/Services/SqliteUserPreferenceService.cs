@@ -68,10 +68,18 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
 
         if (pref != null)
         {
-            return new UserPreferenceDto(pref.UserId, pref.PreferredTheme, pref.UpdatedAt, pref.Country, pref.HidePublicProfile);
+            return new UserPreferenceDto(
+                pref.UserId,
+                pref.PreferredTheme,
+                pref.UpdatedAt,
+                pref.Country,
+                pref.HidePublicProfile,
+                pref.LeaderboardOptIn,
+                pref.LeaderboardAnonymous,
+                pref.LeaderboardPseudonym);
         }
 
-        return new UserPreferenceDto(cleanUserId, "charcoal", DateTime.UtcNow, null, false);
+        return new UserPreferenceDto(cleanUserId, "charcoal", DateTime.UtcNow, null, false, false, false, null);
     }
 
     public async Task<string?> GetUserCountryAsync(string userId, CancellationToken ct = default)
@@ -134,6 +142,25 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
         else
         {
             existing.SetProfileVisibility(hide);
+        }
+
+        await scope.Context.SaveChangesAsync(ct);
+    }
+
+    public async Task SetLeaderboardPreferencesAsync(string userId, bool optIn, bool anonymous, string? pseudonym = null, CancellationToken ct = default)
+    {
+        string cleanUserId = SessionIdentity.Require(userId);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
+
+        if (existing == null)
+        {
+            var newPref = new UserPreference(cleanUserId, "charcoal", null, false, optIn, anonymous, pseudonym);
+            scope.Context.UserPreferences.Add(newPref);
+        }
+        else
+        {
+            existing.SetLeaderboardPreferences(optIn, anonymous, pseudonym);
         }
 
         await scope.Context.SaveChangesAsync(ct);

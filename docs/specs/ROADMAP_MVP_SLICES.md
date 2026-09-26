@@ -639,8 +639,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 68: Gamificación — Clasificaciones Públicas y Anonimato
 - **Identificador SDD:** `change-68-clasificaciones-y-anonimato`
 - **Objetivo Principal:** Clasificaciones de jugadores con opt-in explícito, seudónimo no derivado de la cuenta y ventana temporal, separadas del ranking de juegos (§3.2 del spec), con anti-trampas básico. Último del backlog por su riesgo de privacidad.
-- **Estado:** ⏳ Planificado (backlog 2026-09-22, Fase F).
-- **Documento:** [`inc-68-clasificaciones-y-anonimato.md`](file:///c:/repos/Ludeka/docs/increments/inc-68-clasificaciones-y-anonimato.md).
+- **Estado:** ✅ **Completado y Verificado** (1.876 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-68-clasificaciones-y-anonimato.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-68-clasificaciones-y-anonimato.md).
 
 ---
 

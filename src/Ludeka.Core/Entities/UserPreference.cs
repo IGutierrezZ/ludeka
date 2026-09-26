@@ -12,13 +12,23 @@ public class UserPreference
     public string PreferredTheme { get; set; } = "charcoal";
     public string? Country { get; set; }
     public bool HidePublicProfile { get; set; } = false;
+    public bool LeaderboardOptIn { get; set; } = false;
+    public bool LeaderboardAnonymous { get; set; } = false;
+    public string? LeaderboardPseudonym { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public UserPreference()
     {
     }
 
-    public UserPreference(string userId, string preferredTheme, string? country = null, bool hidePublicProfile = false)
+    public UserPreference(
+        string userId,
+        string preferredTheme,
+        string? country = null,
+        bool hidePublicProfile = false,
+        bool leaderboardOptIn = false,
+        bool leaderboardAnonymous = false,
+        string? leaderboardPseudonym = null)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -29,6 +39,9 @@ public class UserPreference
         PreferredTheme = NormalizeTheme(preferredTheme);
         Country = string.IsNullOrWhiteSpace(country) ? null : ValueObjects.CountryCatalog.Normalize(country);
         HidePublicProfile = hidePublicProfile;
+        LeaderboardOptIn = leaderboardOptIn;
+        LeaderboardAnonymous = leaderboardAnonymous;
+        LeaderboardPseudonym = Helpers.PseudonymGenerator.NormalizeCustomPseudonym(leaderboardPseudonym);
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -47,6 +60,14 @@ public class UserPreference
     public void SetProfileVisibility(bool hidePublicProfile)
     {
         HidePublicProfile = hidePublicProfile;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetLeaderboardPreferences(bool optIn, bool anonymous, string? pseudonym = null)
+    {
+        LeaderboardOptIn = optIn;
+        LeaderboardAnonymous = anonymous;
+        LeaderboardPseudonym = Helpers.PseudonymGenerator.NormalizeCustomPseudonym(pseudonym);
         UpdatedAt = DateTime.UtcNow;
     }
 

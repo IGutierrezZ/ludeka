@@ -7,5 +7,8 @@ public record UserPreferenceDto(
     string PreferredTheme,
     DateTime UpdatedAt,
     string? Country = null,
-    bool HidePublicProfile = false
+    bool HidePublicProfile = false,
+    bool LeaderboardOptIn = false,
+    bool LeaderboardAnonymous = false,
+    string? LeaderboardPseudonym = null
 );

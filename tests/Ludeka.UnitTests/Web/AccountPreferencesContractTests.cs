@@ -52,6 +52,32 @@ public class AccountPreferencesContractTests
     }
 
     [Fact]
+    public void AccountPrivacy_ShouldDeclareLeaderboardOptInAnonymousAndPseudonymControls()
+    {
+        // INC-68: Ajustes de privacidad para gamificación, clasificaciones públicas y anonimato
+        var source = ReadSource(PrivacyPath);
+
+        // Inyecciones y dependencias
+        Assert.Contains("ILeaderboardService LeaderboardService", source, StringComparison.Ordinal);
+        Assert.Contains("PseudonymGenerator", source, StringComparison.Ordinal);
+
+        // Controles de Opt-In y Anonimato
+        Assert.Contains("leaderboard-optin-switch", source, StringComparison.Ordinal);
+        Assert.Contains("ToggleLeaderboardOptInAsync", source, StringComparison.Ordinal);
+        Assert.Contains("leaderboard-anon-switch", source, StringComparison.Ordinal);
+        Assert.Contains("ToggleLeaderboardAnonymousAsync", source, StringComparison.Ordinal);
+
+        // Control y validación de seudónimo personalizado
+        Assert.Contains("custom-pseudonym-input", source, StringComparison.Ordinal);
+        Assert.Contains("save-pseudonym-btn", source, StringComparison.Ordinal);
+        Assert.Contains("SavePseudonymAsync", source, StringComparison.Ordinal);
+        Assert.Contains("IsValidCustomPseudonym", source, StringComparison.Ordinal);
+
+        // Enlace a la página pública de clasificaciones
+        Assert.Contains("href=\"/clasificaciones\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PublicProfile_ShouldGuardAgainstHiddenProfilesForVisitors()
     {
         var source = ReadSource(PublicProfilePath);

@@ -49,6 +49,11 @@ public class UserLocationServiceTests
             SavedHidePublicProfile = hide;
             return Task.CompletedTask;
         }
+
+        public Task SetLeaderboardPreferencesAsync(string userId, bool optIn, bool anonymous, string? pseudonym = null, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]

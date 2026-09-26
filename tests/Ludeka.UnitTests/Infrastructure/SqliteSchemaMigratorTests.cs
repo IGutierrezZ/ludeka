@@ -362,4 +362,46 @@ public class SqliteSchemaMigratorTests
         var leases = await db.JobExecutionLeases.AsNoTracking().ToListAsync();
         Assert.Empty(leases);
     }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_ConUserPreferencesAntigua_DebeAgregarColumnasDeClasificacionYConservarDatos()
+    {
+        // Arrange: BD en memoria con tabla Games y UserPreferences antigua
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        using (var createCmd = connection.CreateCommand())
+        {
+            createCmd.CommandText = """
+                CREATE TABLE "Games" ("Id" TEXT PRIMARY KEY, "BggId" INTEGER, "Slug" TEXT, "SpanishTitle" TEXT);
+                CREATE TABLE "UserPreferences" (
+                    "UserId" TEXT NOT NULL CONSTRAINT "PK_UserPreferences" PRIMARY KEY,
+                    "PreferredTheme" TEXT NOT NULL,
+                    "Country" TEXT NULL,
+                    "HidePublicProfile" INTEGER NOT NULL DEFAULT 0,
+                    "UpdatedAt" TEXT NOT NULL
+                );
+                INSERT INTO "UserPreferences" ("UserId", "PreferredTheme", "Country", "HidePublicProfile", "UpdatedAt")
+                VALUES ('user-antiguo', 'wood', 'España', 0, '2026-09-20T10:00:00Z');
+                """;
+            await createCmd.ExecuteNonQueryAsync();
+        }
+
+        var options = new DbContextOptionsBuilder<LudekaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        using var db = new LudekaDbContext(options);
+
+        // Act
+        await SqliteSchemaMigrator.EnsureSchemaUpToDateAsync(db);
+
+        // Assert: columnas añadidas y datos preservados
+        var pref = await db.UserPreferences.AsNoTracking().SingleAsync(p => p.UserId == "user-antiguo");
+        Assert.Equal("wood", pref.PreferredTheme);
+        Assert.Equal("España", pref.Country);
+        Assert.False(pref.HidePublicProfile);
+        Assert.False(pref.LeaderboardOptIn);
+        Assert.False(pref.LeaderboardAnonymous);
+        Assert.Null(pref.LeaderboardPseudonym);
+    }
 }

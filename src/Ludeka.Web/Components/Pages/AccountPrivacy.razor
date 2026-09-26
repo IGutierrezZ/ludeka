@@ -1,7 +1,9 @@
 @page "/cuenta/privacidad"
 @attribute [Authorize]
 @using Ludeka.Application.Contracts
+@using Ludeka.Core.Helpers
 @inject IUserPreferenceService PreferenceService
+@inject ILeaderboardService LeaderboardService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
@@ -20,7 +22,7 @@
             <span>Privacidad y Perfil Público</span>
         </h1>
         <p class="text-sm text-[var(--text-secondary)]">
-            Gobierna la visibilidad de tu espacio lúdico en la comunidad. Tú decides si otros jugadores pueden consultar tu estantería física, partidas y estadísticas.
+            Gobierna la visibilidad de tu espacio lúdico en la comunidad. Tú decides si otros jugadores pueden consultar tu estantería física, partidas, estadísticas y presencia en clasificaciones públicas.
         </p>
     </header>
 
@@ -32,6 +34,7 @@
         </div>
     }
 
+    @* Tarjeta 1: Visibilidad de Perfil Público *@
     <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-6 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="space-y-1">
@@ -86,23 +89,191 @@
             </a>
         </div>
     </div>
+
+    @* Tarjeta 2: Clasificaciones Públicas y Anonimato *@
+    <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-6 shadow-sm">
+        <header class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                    <Icon Name="trophy" Size="18" />
+                </span>
+                <h2 class="text-base font-bold text-[var(--text-primary)]">
+                    Clasificación Pública y Anonimato
+                </h2>
+            </div>
+            <p class="text-xs text-[var(--text-secondary)]">
+                Participa en la tabla mensual comunitaria según tus partidas registradas en mesa, manteniendo el control total sobre tu privacidad.
+            </p>
+        </header>
+
+        @* Control 1: Opt-in para la clasificación *@
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+            <div class="space-y-1">
+                <label for="leaderboard-optin-switch" class="text-sm font-bold text-[var(--text-primary)] cursor-pointer">
+                    Participar en la clasificación mensual
+                </label>
+                <p class="text-xs text-[var(--text-secondary)] max-w-xl">
+                    Por defecto nadie aparece en las tablas públicas. Activa esta opción para que tus partidas del mes sumen en el ranking de la comunidad.
+                </p>
+            </div>
+
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input id="leaderboard-optin-switch"
+                       type="checkbox"
+                       checked="@_leaderboardOptIn"
+                       @onchange="ToggleLeaderboardOptInAsync"
+                       class="sr-only peer" />
+                <div class="w-12 h-6 bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-primary)] peer-checked:border-[var(--brand-primary)]"></div>
+            </label>
+        </div>
+
+        @if (_leaderboardOptIn)
+        {
+            @* Control 2: Modo Anónimo *@
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] animate-fade-in">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <label for="leaderboard-anon-switch" class="text-sm font-bold text-[var(--text-primary)] cursor-pointer">
+                            Modo anónimo / Ocultar identidad en la tabla
+                        </label>
+                        <span class="badge-pill px-2 py-0.5 text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                            Anti-Doxxing
+                        </span>
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)] max-w-xl">
+                        Si activas el modo anónimo, tu avatar, país y enlace a tu perfil quedarán ocultos. En su lugar se mostrará un seudónimo.
+                    </p>
+                </div>
+
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input id="leaderboard-anon-switch"
+                           type="checkbox"
+                           checked="@_leaderboardAnonymous"
+                           @onchange="ToggleLeaderboardAnonymousAsync"
+                           class="sr-only peer" />
+                    <div class="w-12 h-6 bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-primary)] peer-checked:border-[var(--brand-primary)]"></div>
+                </label>
+            </div>
+
+            @* Control 3: Seudónimo visible y personalización *@
+            <div class="p-4 rounded-xl border border-[var(--border-subtle)] space-y-4 bg-[var(--bg-card)]">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="space-y-0.5">
+                        <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Identidad visible en la tabla</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-base font-black text-[var(--text-primary)] font-mono">
+                                @_effectivePseudonym
+                            </span>
+                            @if (_leaderboardAnonymous)
+                            {
+                                <span class="badge-pill px-2 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    <Icon Name="eye-off" Size="12" /> Anónimo
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-pill px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <Icon Name="user" Size="12" /> Perfil público
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <a href="/clasificaciones" class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1.5">
+                        <Icon Name="trophy" Size="14" />
+                        <span>Ver clasificación comunitaria</span>
+                    </a>
+                </div>
+
+                @if (_leaderboardAnonymous)
+                {
+                    <div class="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+                        <label for="custom-pseudonym-input" class="text-xs font-bold text-[var(--text-primary)] block">
+                            Seudónimo personalizado (opcional)
+                        </label>
+                        <p class="text-[11px] text-[var(--text-secondary)]">
+                            Si lo dejas en blanco, usaremos tu identificador seguro por defecto (<code class="px-1 py-0.5 rounded bg-[var(--bg-surface-elevated)] font-mono">@_defaultAnonymousMask</code>). No se permiten correos electrónicos ni enlaces web.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input id="custom-pseudonym-input"
+                                   type="text"
+                                   maxlength="30"
+                                   placeholder="Ej: Guardián del Meeple"
+                                   value="@_customPseudonym"
+                                   @oninput="OnPseudonymInput"
+                                   class="flex-1 px-3 py-2 rounded-xl text-xs bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]" />
+                            <button type="button"
+                                    id="save-pseudonym-btn"
+                                    @onclick="SavePseudonymAsync"
+                                    disabled="@_isSavingPseudonym"
+                                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs transition-colors inline-flex items-center justify-center gap-2 shadow-sm shrink-0 disabled:opacity-50">
+                                <Icon Name="check" Size="14" />
+                                <span>Guardar seudónimo</span>
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(_pseudonymError))
+                        {
+                            <p class="text-xs text-rose-500 flex items-center gap-1.5 mt-1" role="alert">
+                                <Icon Name="circle-alert" Size="14" />
+                                <span>@_pseudonymError</span>
+                            </p>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="p-4 rounded-xl bg-slate-500/10 border border-slate-500/20 text-xs text-[var(--text-secondary)] flex items-center gap-2.5">
+                <Icon Name="info" Size="16" />
+                <span>Actualmente estás <strong>excluido</strong> de todas las clasificaciones públicas. Nadie verá tus partidas ni tu posición.</span>
+            </div>
+        }
+    </div>
 </div>
 
 @code {
     private bool _isProfileHidden;
+    private bool _leaderboardOptIn;
+    private bool _leaderboardAnonymous;
+    private string? _customPseudonym;
+    private string _effectivePseudonym = string.Empty;
+    private string _defaultAnonymousMask = string.Empty;
     private string? _statusMessage;
+    private string? _pseudonymError;
+    private bool _isSavingPseudonym;
 
     private string PublicProfilePath => $"/u/{CurrentUserService.UserId}";
 
     protected override async Task OnInitializedAsync()
     {
+        var userId = CurrentUserService.UserId ?? string.Empty;
+
         try
         {
-            _isProfileHidden = await PreferenceService.IsPublicProfileHiddenAsync(CurrentUserService.UserId);
+            _isProfileHidden = await PreferenceService.IsPublicProfileHiddenAsync(userId);
         }
         catch
         {
             _isProfileHidden = false;
+        }
+
+        try
+        {
+            var part = await LeaderboardService.GetUserParticipationAsync(userId);
+            _leaderboardOptIn = part.OptIn;
+            _leaderboardAnonymous = part.Anonymous;
+            _customPseudonym = part.CustomPseudonym;
+            _effectivePseudonym = part.EffectivePseudonym;
+            _defaultAnonymousMask = PseudonymGenerator.Generate(userId, isAnonymous: true);
+        }
+        catch
+        {
+            _leaderboardOptIn = false;
+            _leaderboardAnonymous = false;
+            _defaultAnonymousMask = !string.IsNullOrWhiteSpace(userId) ? PseudonymGenerator.Generate(userId, isAnonymous: true) : "Mesa #----";
+            _effectivePseudonym = _defaultAnonymousMask;
         }
     }
 
@@ -130,5 +301,122 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task ToggleLeaderboardOptInAsync(ChangeEventArgs e)
+    {
+        bool newValue = e.Value is bool b && b;
+        _leaderboardOptIn = newValue;
+        _statusMessage = null;
+        _pseudonymError = null;
+
+        try
+        {
+            await LeaderboardService.SetUserParticipationAsync(
+                CurrentUserService.UserId,
+                _leaderboardOptIn,
+                _leaderboardAnonymous,
+                _customPseudonym);
+
+            var part = await LeaderboardService.GetUserParticipationAsync(CurrentUserService.UserId);
+            _effectivePseudonym = part.EffectivePseudonym;
+
+            _statusMessage = newValue
+                ? "Te has sumado a la clasificación mensual de partidas."
+                : "Te has retirado de las clasificaciones públicas. Tus partidas ya no serán visibles.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al actualizar participación: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleLeaderboardAnonymousAsync(ChangeEventArgs e)
+    {
+        bool newValue = e.Value is bool b && b;
+        _leaderboardAnonymous = newValue;
+        _statusMessage = null;
+        _pseudonymError = null;
+
+        try
+        {
+            await LeaderboardService.SetUserParticipationAsync(
+                CurrentUserService.UserId,
+                _leaderboardOptIn,
+                _leaderboardAnonymous,
+                _customPseudonym);
+
+            var part = await LeaderboardService.GetUserParticipationAsync(CurrentUserService.UserId);
+            _effectivePseudonym = part.EffectivePseudonym;
+
+            _statusMessage = newValue
+                ? "Modo anónimo activado: tu identidad pública queda protegida bajo un seudónimo."
+                : "Modo anónimo desactivado: aparecerás con tu nombre y perfil público en la tabla.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al actualizar modo anónimo: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnPseudonymInput(ChangeEventArgs e)
+    {
+        _customPseudonym = e.Value?.ToString();
+        _pseudonymError = null;
+    }
+
+    private async Task SavePseudonymAsync()
+    {
+        _statusMessage = null;
+        _pseudonymError = null;
+
+        if (!PseudonymGenerator.IsValidCustomPseudonym(_customPseudonym, out var error))
+        {
+            _pseudonymError = error;
+            return;
+        }
+
+        _isSavingPseudonym = true;
+        try
+        {
+            await LeaderboardService.SetUserParticipationAsync(
+                CurrentUserService.UserId,
+                _leaderboardOptIn,
+                _leaderboardAnonymous,
+                _customPseudonym);
+
+            var part = await LeaderboardService.GetUserParticipationAsync(CurrentUserService.UserId);
+            _customPseudonym = part.CustomPseudonym;
+            _effectivePseudonym = part.EffectivePseudonym;
+            _statusMessage = "Seudónimo actualizado correctamente.";
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _pseudonymError = ex.Message;
+        }
+        finally
+        {
+            _isSavingPseudonym = false;
+            StateHasChanged();
+        }
     }
 }
