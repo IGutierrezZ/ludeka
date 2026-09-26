@@ -364,11 +364,13 @@ El paso 4 de §9.0 arma el despliegue automático. Antes de llegar a él, crea e
 | `GOOGLE_OAUTH_CLIENT_SECRET` | `Authentication__Providers__Google__ClientSecret` |
 | `DISCORD_OAUTH_CLIENT_ID` | `Authentication__Providers__Discord__ClientId` |
 | `DISCORD_OAUTH_CLIENT_SECRET` | `Authentication__Providers__Discord__ClientSecret` |
+| `FACEBOOK_OAUTH_APP_ID` | `Authentication__Providers__Facebook__AppId` |
+| `FACEBOOK_OAUTH_APP_SECRET` | `Authentication__Providers__Facebook__AppSecret` |
+| `INSTAGRAM_ACCESS_TOKEN` | `Instagram__AccessToken` |
+| `INSTAGRAM_ACCOUNT_ID` | `Instagram__InstagramAccountId` |
 | `ADMIN_USER_EMAIL` | `AdminUser__Email` |
 
 La cuenta de servicio que ejecuta el despliegue necesita `roles/secretmanager.secretAccessor` sobre cada una (§8, "Acceso a secretos"). Si falta cualquier entrada, el despliegue del servicio web falla al arrancar el contenedor.
-
-**Añadir un proveedor después del primer despliegue** (por ejemplo, Facebook cuando la revisión de Meta esté lista): crea sus dos entradas en Secret Manager, añade sus dos líneas a `secrets:` y su línea `Enabled=true` a `env_vars:`, en el mismo paso "Desplegar revisión en Google Cloud Run" de `ci-cd.yml`.
 
 ### 10.4. Primer acceso del Administrador Fundador
 

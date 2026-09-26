@@ -71,3 +71,5 @@ assets-usuario/
 # Tailwind en los .razor, hay que REGENERAR y COMMITEAR el CSS, no ignorarlo:
 #   npx -y tailwindcss@3.4.17 -i ./Styles/input.css -o ./wwwroot/app.css --minify
 # (desde src/Ludeka.Web/, la misma invocacion que usa el Dockerfile.)
+# Local AI runtime state
+.atl/

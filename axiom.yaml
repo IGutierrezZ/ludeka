@@ -1,5 +1,5 @@
 workspace:
-  name: "ludeka"
+  name: "Ludeka"
   topology: "monorepo-embedded"
   specs_repository: "openspec"
   root: "."
@@ -12,8 +12,10 @@ roles:
       - path: "src/Ludeka.Core"
       - path: "src/Ludeka.Application"
       - path: "src/Ludeka.Infrastructure"
+      - path: "src/Ludeka.Jobs"
     tech:
       - ".net-10-class-library"
+      - ".net-10-console-(host-de-trabajos-en-segundo-plano,-cloud-run-jobs)"
 
   web:
     name: "Web UI & Presentation"
