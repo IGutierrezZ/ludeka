@@ -269,9 +269,11 @@ public class UserLibraryService : IUserLibraryService
         // Invariante de anonimia: valorar exige sesión.
         string userId = SessionIdentity.Require(_currentUserService);
 
+        var review = await _reviewRepo.GetByUserAndGameAsync(userId, request.GameId, ct);
+
         // Regla de negocio de integridad: Solo se puede valorar si se ha jugado o se tiene en ludoteca propia
         var collectionItem = await _collectionRepo.GetByUserAndGameAsync(userId, request.GameId, ct);
-        if (collectionItem != null && collectionItem.Status == CollectionStatus.WantToBuy && !collectionItem.IsPlayed)
+        if (review == null && collectionItem != null && collectionItem.Status == CollectionStatus.WantToBuy && !collectionItem.IsPlayed)
         {
             throw new InvalidOperationException("No puedes valorar un juego en tu lista de compra sin haberlo jugado («Jugado»).");
         }
@@ -287,8 +289,6 @@ public class UserLibraryService : IUserLibraryService
             collectionItem.SetPlayed(true);
             await _collectionRepo.UpdateAsync(collectionItem, ct);
         }
-
-        var review = await _reviewRepo.GetByUserAndGameAsync(userId, request.GameId, ct);
 
         if (review != null)
         {

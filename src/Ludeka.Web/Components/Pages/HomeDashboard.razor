@@ -32,7 +32,7 @@
                         LinkText="Ver catálogo completo"
                         AriaLabel="Top 20 Mejores Juegos de Mesa" />
 
-            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
+            <div class="flex gap-2.5 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
                 @foreach (var game in _dashboard.TopGames)
                 {
                     <HomeGameCard Game="game" />

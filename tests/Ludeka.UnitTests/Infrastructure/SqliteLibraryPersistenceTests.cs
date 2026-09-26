@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ludeka.Core.Entities;
@@ -140,5 +140,55 @@ public class SqliteLibraryPersistenceTests : IAsyncLifetime
         Assert.Equal(7, retrieved.FamilyExperience.SuggestedMinAge);
         Assert.NotNull(avg);
         Assert.Equal(8.5, avg.Value);
+    }
+
+    [Fact]
+    public async Task UserCollectionRepository_UpdateAsync_ShouldUpdateStateWithoutDetachedGameConflict()
+    {
+        // Arrange
+        var game = await SeedGameAsync();
+        var repo = new SqliteUserCollectionRepository(_context);
+        var item = new UserCollectionItem("user-test", game.Id, CollectionStatus.Wishlist, isPlayed: false);
+        await repo.AddAsync(item);
+
+        // Act: Obtener el ítem (incluye .Game) y modificar estado de colección y jugado simultáneamente
+        var loaded = await repo.GetByUserAndGameAsync("user-test", game.Id);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded.Game); // Game navigation está poblada
+
+        loaded.ChangeStatus(CollectionStatus.InCollection);
+        loaded.SetPlayed(true);
+        await repo.UpdateAsync(loaded);
+
+        // Assert: Se persiste el nuevo estado sin errores de tracking de Game
+        var updated = await repo.GetByUserAndGameAsync("user-test", game.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(CollectionStatus.InCollection, updated.Status);
+        Assert.True(updated.IsPlayed);
+        Assert.Equal("Azul", updated.Game?.SpanishTitle);
+    }
+
+    [Fact]
+    public async Task UserReviewRepository_UpdateAsync_ShouldUpdateReviewWithoutDetachedGameConflict()
+    {
+        // Arrange
+        var game = await SeedGameAsync();
+        var repo = new SqliteUserReviewRepository(_context);
+        var review = new UserGameReview("user-test", game.Id, 7.0, "Bueno", null, null, PlayContextType.Owned);
+        await repo.AddAsync(review);
+
+        // Act: Obtener la reseña (incluye .Game) y actualizar campos
+        var loaded = await repo.GetByUserAndGameAsync("user-test", game.Id);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded.Game); // Game navigation poblada
+
+        loaded.Update(9.0, "Excelente tras varias partidas", null, null, PlayContextType.Owned);
+        await repo.UpdateAsync(loaded);
+
+        // Assert
+        var updated = await repo.GetByUserAndGameAsync("user-test", game.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(9.0, updated.Score);
+        Assert.Equal("Excelente tras varias partidas", updated.MicroReview);
     }
 }

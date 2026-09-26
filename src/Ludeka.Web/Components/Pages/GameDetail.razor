@@ -276,6 +276,19 @@ else
     OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
     OnLoanClicked="() => _isLoanModalOpen = true" />
 
+        @if (!string.IsNullOrWhiteSpace(_actionFeedbackMessage))
+        {
+            <div class="mt-3 p-3 rounded-xl border flex items-center justify-between text-xs transition-all @(_actionFeedbackType == "error" ? "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)]" : "bg-[var(--state-success-bg)] border-[var(--state-success-border)] text-[var(--state-success)]")">
+                <div class="flex items-center gap-2">
+                    <Icon Name="@(_actionFeedbackType == "error" ? "alert-circle" : "check-circle-2")" Size="16" />
+                    <span>@_actionFeedbackMessage</span>
+                </div>
+                <button type="button" @onclick="() => _actionFeedbackMessage = null" class="opacity-75 hover:opacity-100 p-1" aria-label="Cerrar notificación">
+                    <Icon Name="x" Size="14" />
+                </button>
+            </div>
+        }
+
         @if (_activeLoan != null)
         {
             <div class="mt-3 p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
@@ -487,6 +500,40 @@ else
         @bind-IsOpen="_isEditorModalOpen"
         Game="@Game"
         OnGameUpdated="HandleGameUpdated" />
+
+    @if (_isPlayedPromptModalOpen && Game != null)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="played-prompt-title">
+            <div class="w-full max-w-sm rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 shadow-2xl space-y-4 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                    <Icon Name="dices" Size="24" />
+                </div>
+                <div class="space-y-1">
+                    <h3 id="played-prompt-title" class="text-base font-extrabold text-[var(--text-primary)]">
+                        ¿Has jugado al juego @Game.SpanishTitle?
+                    </h3>
+                    <p class="text-xs text-[var(--text-secondary)]">
+                        Para mantener tu ludoteca al día, indícanos si ya lo has probado en mesa.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 pt-2">
+                    <button type="button"
+                            @onclick="HandlePlayedPromptNo"
+                            class="flex-1 py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs transition-colors">
+                        No
+                    </button>
+                    <button type="button"
+                            @onclick="HandlePlayedPromptYes"
+                            class="flex-1 py-2.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-xs shadow-md transition-colors">
+                        Sí
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -519,6 +566,9 @@ else
     private bool _isGeneratingAiSummary;
     private string? _aiSummaryMessage;
     private int _userPlaysCount;
+    private bool _isPlayedPromptModalOpen;
+    private string? _actionFeedbackMessage;
+    private string _actionFeedbackType = "success";
 
     /// <summary>Indica si hay sesión iniciada: las acciones con identidad la exigen (INC-46 F4).</summary>
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
@@ -683,10 +733,18 @@ else
         {
             _collectionItem = await LibraryService.TogglePlayedStateAsync(Game.Id);
             await RefreshPlaysCountAsync();
+            _actionFeedbackMessage = null;
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al alternar estado jugado para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo alternar el estado de jugado. Por favor, inténtalo de nuevo.";
             return;
         }
 
@@ -705,10 +763,17 @@ else
             await PlayLogService.RecordPlayAsync(req);
             _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
             await RefreshPlaysCountAsync();
+            _actionFeedbackMessage = null;
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al registrar partida para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo registrar la partida. Por favor, inténtalo de nuevo.";
         }
     }
 
@@ -730,20 +795,66 @@ else
         {
             _collectionItem = await LibraryService.SetCollectionStateAsync(Game.Id, status);
             _activeLoan = await LibraryService.GetActiveLoanAsync(Game.Id);
+            _actionFeedbackMessage = null;
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
             return;
         }
-
-        // Disparador de valoración: si el juego pasa a En mi ludoteca por primera vez y no tiene valoración, sugerir valoración
-        if (wasUnrated && _collectionItem != null &&
-            status == CollectionStatus.InCollection &&
-            prevStatus != status)
+        catch (Exception ex)
         {
-            _isReviewModalOpen = true;
+            Logger.LogError(ex, "Error al actualizar estado de colección para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo actualizar el estado en tu colección. Por favor, inténtalo de nuevo.";
+            return;
         }
+
+        // Flujo UX para 'En mi ludoteca': si se añade por primera vez o cambia a este estado
+        if (status == CollectionStatus.InCollection && _collectionItem != null && prevStatus != status)
+        {
+            if (!_collectionItem.IsPlayed)
+            {
+                // Si no tiene marcado jugado, preguntamos con Sí / No
+                _isPlayedPromptModalOpen = true;
+                return;
+            }
+
+            if (wasUnrated)
+            {
+                _isReviewModalOpen = true;
+            }
+        }
+    }
+
+    private async Task HandlePlayedPromptYes()
+    {
+        _isPlayedPromptModalOpen = false;
+        if (Game == null) return;
+
+        try
+        {
+            _collectionItem = await LibraryService.SetPlayedStateAsync(Game.Id, true);
+            await RefreshPlaysCountAsync();
+            _isReviewModalOpen = true; // Salta la valoración
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al marcar como jugado {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo actualizar el estado de jugado. Por favor, inténtalo de nuevo.";
+        }
+    }
+
+    private void HandlePlayedPromptNo()
+    {
+        _isPlayedPromptModalOpen = false;
+        _actionFeedbackType = "success";
+        _actionFeedbackMessage = "¡Añadido a tu ludoteca! Recuerda cuando lo juegues venir a marcarlo como jugado y valorar el juego.";
     }
 
     private async Task HandleCreateLoan(CreateLoanRequest req)
@@ -754,10 +865,17 @@ else
         {
             await LibraryService.CreateLoanAsync(new CreateLoanRequest(Game.Id, req.BorrowerName, req.LoanDate, req.Notes));
             await LoadUserDataAsync();
+            _actionFeedbackMessage = null;
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al crear préstamo para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = ex.Message;
         }
     }
 
@@ -767,10 +885,17 @@ else
         {
             await LibraryService.ReturnLoanAsync(loanId);
             await LoadUserDataAsync();
+            _actionFeedbackMessage = null;
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al devolver préstamo {LoanId}", loanId);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo registrar la devolución del préstamo.";
         }
     }
 
@@ -789,6 +914,9 @@ else
                 req.PlayContext
             ));
 
+            _actionFeedbackType = "success";
+            _actionFeedbackMessage = "¡Valoración guardada correctamente!";
+
             // Refrescar ficha del juego para reflejar el consenso actualizado
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             await LoadUserDataAsync();
@@ -796,6 +924,17 @@ else
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al guardar valoración para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "Hubo un error al guardar tu valoración. Por favor, inténtalo de nuevo.";
         }
     }
 
