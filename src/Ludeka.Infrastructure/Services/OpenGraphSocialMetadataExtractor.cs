@@ -22,15 +22,15 @@ public class OpenGraphSocialMetadataExtractor : ISocialMetadataExtractor
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex OgTitleRegex = new(
-        @"<meta\s+(?:property|name)=[""'](?:og:title|twitter:title)[""']\s+content=[""']([^""']*)[""']|<meta\s+content=[""']([^""']*)[""']\s+(?:property|name)=[""'](?:og:title|twitter:title)[""']",
+        @"<meta\s+(?:property|name)=[""'](?:og:title|twitter:title)[""']\s+content=(?:""([^""]*)""|'([^']*)')|<meta\s+content=(?:""([^""]*)""|'([^']*)')\s+(?:property|name)=[""'](?:og:title|twitter:title)[""']",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex OgImageRegex = new(
-        @"<meta\s+(?:property|name)=[""'](?:og:image|twitter:image)[""']\s+content=[""']([^""']*)[""']|<meta\s+content=[""']([^""']*)[""']\s+(?:property|name)=[""'](?:og:image|twitter:image)[""']",
+        @"<meta\s+(?:property|name)=[""'](?:og:image|twitter:image)[""']\s+content=(?:""([^""]*)""|'([^']*)')|<meta\s+content=(?:""([^""]*)""|'([^']*)')\s+(?:property|name)=[""'](?:og:image|twitter:image)[""']",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex OgDescriptionRegex = new(
-        @"<meta\s+(?:property|name)=[""'](?:og:description|twitter:description|description)[""']\s+content=[""']([^""']*)[""']|<meta\s+content=[""']([^""']*)[""']\s+(?:property|name)=[""'](?:og:description|twitter:description|description)[""']",
+        @"<meta\s+(?:property|name)=[""'](?:og:description|twitter:description|description)[""']\s+content=(?:""([^""]*)""|'([^']*)')|<meta\s+content=(?:""([^""]*)""|'([^']*)')\s+(?:property|name)=[""'](?:og:description|twitter:description|description)[""']",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex TitleTagRegex = new(
@@ -127,7 +127,7 @@ public class OpenGraphSocialMetadataExtractor : ISocialMetadataExtractor
             string? author = null;
             if (platform == SocialPlatform.Instagram && !string.IsNullOrWhiteSpace(title))
             {
-                var authorMatch = Regex.Match(title, @"^([^•:\n]+)(?:\s+(?:en|on)\s+Instagram)?", RegexOptions.IgnoreCase);
+                var authorMatch = Regex.Match(title, @"^(.+?)(?:\s+(?:en|on)\s+Instagram)?(?:\s*[:•]|\s*$)", RegexOptions.IgnoreCase);
                 if (authorMatch.Success)
                 {
                     author = authorMatch.Groups[1].Value.Trim();
@@ -155,8 +155,15 @@ public class OpenGraphSocialMetadataExtractor : ISocialMetadataExtractor
         var match = regex.Match(html);
         if (!match.Success) return null;
 
-        var val = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-        return string.IsNullOrWhiteSpace(val) ? null : WebUtility.HtmlDecode(val).Trim();
+        for (int i = 1; i < match.Groups.Count; i++)
+        {
+            if (match.Groups[i].Success && !string.IsNullOrWhiteSpace(match.Groups[i].Value))
+            {
+                return WebUtility.HtmlDecode(match.Groups[i].Value).Trim();
+            }
+        }
+
+        return null;
     }
 
     private static string? ExtractTitleTag(string html)
