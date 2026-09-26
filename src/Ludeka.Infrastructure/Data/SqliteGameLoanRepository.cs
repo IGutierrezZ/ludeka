@@ -75,7 +75,14 @@ public class SqliteGameLoanRepository : DbContextRepositoryBase, IGameLoanReposi
     public async Task UpdateAsync(GameLoan loan, CancellationToken cancellationToken = default)
     {
         await using var scope = await CreateScopeAsync(cancellationToken);
-        scope.Context.Loans.Update(loan);
-        await scope.Context.SaveChangesAsync(cancellationToken);
+        var existing = await scope.Context.Loans.FirstOrDefaultAsync(l => l.Id == loan.Id, cancellationToken);
+        if (existing != null)
+        {
+            if (loan.IsReturned && !existing.IsReturned)
+            {
+                existing.MarkAsReturned();
+            }
+            await scope.Context.SaveChangesAsync(cancellationToken);
+        }
     }
 }

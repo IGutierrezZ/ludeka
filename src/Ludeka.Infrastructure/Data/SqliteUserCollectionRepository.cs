@@ -117,20 +117,37 @@ public class SqliteUserCollectionRepository : DbContextRepositoryBase, IUserColl
     {
         await using var scope = await CreateScopeAsync(cancellationToken);
         await scope.Context.CollectionItems.AddAsync(item, cancellationToken);
+        if (item.Game != null)
+        {
+            scope.Context.Entry(item.Game).State = EntityState.Unchanged;
+        }
         await scope.Context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(UserCollectionItem item, CancellationToken cancellationToken = default)
     {
         await using var scope = await CreateScopeAsync(cancellationToken);
-        scope.Context.CollectionItems.Update(item);
-        await scope.Context.SaveChangesAsync(cancellationToken);
+        var existing = await scope.Context.CollectionItems.FirstOrDefaultAsync(c => c.Id == item.Id, cancellationToken);
+        if (existing != null)
+        {
+            existing.ChangeStatus(item.Status);
+            existing.SetPlayed(item.IsPlayed);
+            if (item.GameId.HasValue && existing.GameId != item.GameId)
+            {
+                existing.PromoteToCataloged(item.GameId.Value);
+            }
+            await scope.Context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public async Task RemoveAsync(UserCollectionItem item, CancellationToken cancellationToken = default)
     {
         await using var scope = await CreateScopeAsync(cancellationToken);
-        scope.Context.CollectionItems.Remove(item);
-        await scope.Context.SaveChangesAsync(cancellationToken);
+        var existing = await scope.Context.CollectionItems.FirstOrDefaultAsync(c => c.Id == item.Id, cancellationToken);
+        if (existing != null)
+        {
+            scope.Context.CollectionItems.Remove(existing);
+            await scope.Context.SaveChangesAsync(cancellationToken);
+        }
     }
 }

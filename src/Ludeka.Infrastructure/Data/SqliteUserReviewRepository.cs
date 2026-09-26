@@ -62,8 +62,18 @@ public class SqliteUserReviewRepository : DbContextRepositoryBase, IUserReviewRe
     public async Task UpdateAsync(UserGameReview review, CancellationToken cancellationToken = default)
     {
         await using var scope = await CreateScopeAsync(cancellationToken);
-        scope.Context.Reviews.Update(review);
-        await scope.Context.SaveChangesAsync(cancellationToken);
+        var existing = await scope.Context.Reviews.FirstOrDefaultAsync(r => r.Id == review.Id, cancellationToken);
+        if (existing != null)
+        {
+            existing.Update(
+                review.Score,
+                review.MicroReview,
+                review.PlayerCountRatings,
+                review.FamilyExperience,
+                review.PlayContext
+            );
+            await scope.Context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public async Task<int> GetCountByUserIdAsync(string userId, CancellationToken cancellationToken = default)
