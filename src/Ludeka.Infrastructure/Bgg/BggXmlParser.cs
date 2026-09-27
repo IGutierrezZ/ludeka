@@ -44,10 +44,16 @@ public static class BggXmlParser
             .FirstOrDefault(l => l.Attribute("type")?.Value == "boardgamepublisher")
             ?.Attribute("value")?.Value ?? "Varios";
 
-        // Tiempos
-        int minTime = int.TryParse(item.Element("minplaytime")?.Attribute("value")?.Value, out int mt) && mt > 0 ? mt : 30;
-        int maxTime = int.TryParse(item.Element("maxplaytime")?.Attribute("value")?.Value, out int xt) && xt > 0 ? xt : minTime;
-        int estPerPlayer = Math.Max(15, (minTime + maxTime) / 4);
+        // Jugadores
+        int minPlayers = int.TryParse(item.Element("minplayers")?.Attribute("value")?.Value, out int minP) && minP > 0 ? minP : 1;
+        int maxPlayers = int.TryParse(item.Element("maxplayers")?.Attribute("value")?.Value, out int maxP) && maxP >= minPlayers ? maxP : Math.Max(minPlayers, 4);
+
+        // Tiempos reales
+        int playTime = int.TryParse(item.Element("playingtime")?.Attribute("value")?.Value, out int pt) && pt > 0 ? pt : 0;
+        int minTime = int.TryParse(item.Element("minplaytime")?.Attribute("value")?.Value, out int mt) && mt > 0 ? mt : (playTime > 0 ? playTime : 30);
+        int maxTime = int.TryParse(item.Element("maxplaytime")?.Attribute("value")?.Value, out int xt) && xt > 0 ? xt : (playTime > 0 ? playTime : minTime);
+        int avgPlayers = Math.Max(1, (minPlayers + maxPlayers) / 2);
+        int estPerPlayer = Math.Max(10, (int)Math.Round((double)(minTime + maxTime) / (2 * avgPlayers)));
 
         // Edad de caja
         int boxAge = int.TryParse(item.Element("minage")?.Attribute("value")?.Value, out int ma) && ma > 0 ? ma : 10;
@@ -61,11 +67,11 @@ public static class BggXmlParser
         // Ratings y Rankings
         var (bggRating, bggRank) = ParseStatistics(item);
 
-        // Encuesta de escalabilidad
-        var scalability = ParseScalability(item);
+        // Encuesta de escalabilidad (con fallback si no hay votos)
+        var scalability = ParseScalability(item, minPlayers, maxPlayers);
 
-        // ADN lúdico heurístico según enlaces y categorías
-        var (confrontation, style, isSolo) = InferGameDna(item, scalability);
+        // ADN lúdico heurístico según enlaces y categorías (con huella en mesa)
+        var (confrontation, style, isSolo, footprint) = InferGameDna(item, scalability, maxTime);
 
         // Fundas de cartas
         var sleeves = BggSleeveParser.ParseSleeves(item);
@@ -88,7 +94,7 @@ public static class BggXmlParser
             isOfficialSolo: isSolo,
             age: new AgeRating(boxAge, communityAge),
             language: language,
-            footprint: TableFootprint.StandardTable,
+            footprint: footprint,
             duration: new GameDuration(minTime, maxTime, estPerPlayer),
             scalability: scalability,
             sleeves: sleeves
@@ -191,51 +197,75 @@ public static class BggXmlParser
         return (rating, rank);
     }
 
-    private static List<ScalabilityEntry> ParseScalability(XElement item)
+    private static List<ScalabilityEntry> ParseScalability(XElement item, int minPlayers, int maxPlayers)
     {
         var entries = new List<ScalabilityEntry>();
         var poll = item.Elements("poll").FirstOrDefault(p => p.Attribute("name")?.Value == "suggested_numplayers");
-        if (poll == null) return entries;
-
-        foreach (var results in poll.Elements("results"))
+        if (poll != null)
         {
-            string numPlayersRaw = results.Attribute("numplayers")?.Value ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(numPlayersRaw)) continue;
-
-            bool isPlus = numPlayersRaw.EndsWith("+");
-            string cleanNum = numPlayersRaw.TrimEnd('+');
-            if (!int.TryParse(cleanNum, out int playerCount)) continue;
-
-            int best = 0;
-            int recommended = 0;
-            int notRec = 0;
-
-            foreach (var res in results.Elements("result"))
+            foreach (var results in poll.Elements("results"))
             {
-                string val = res.Attribute("value")?.Value ?? string.Empty;
-                int.TryParse(res.Attribute("numvotes")?.Value, out int votes);
+                string numPlayersRaw = results.Attribute("numplayers")?.Value ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(numPlayersRaw)) continue;
 
-                if (val.Equals("Best", StringComparison.OrdinalIgnoreCase)) best = votes;
-                else if (val.Equals("Recommended", StringComparison.OrdinalIgnoreCase)) recommended = votes;
-                else if (val.Equals("Not Recommended", StringComparison.OrdinalIgnoreCase)) notRec = votes;
+                bool isPlus = numPlayersRaw.EndsWith("+");
+                string cleanNum = numPlayersRaw.TrimEnd('+');
+                if (!int.TryParse(cleanNum, out int playerCount)) continue;
+
+                int best = 0;
+                int recommended = 0;
+                int notRec = 0;
+
+                foreach (var res in results.Elements("result"))
+                {
+                    string val = res.Attribute("value")?.Value ?? string.Empty;
+                    int.TryParse(res.Attribute("numvotes")?.Value, out int votes);
+
+                    if (val.Equals("Best", StringComparison.OrdinalIgnoreCase)) best = votes;
+                    else if (val.Equals("Recommended", StringComparison.OrdinalIgnoreCase)) recommended = votes;
+                    else if (val.Equals("Not Recommended", StringComparison.OrdinalIgnoreCase)) notRec = votes;
+                }
+
+                var status = ScalabilityCalculator.DetermineStatus(best, recommended, notRec);
+                string display = isPlus ? $"{playerCount}J+" : $"{playerCount}J";
+
+                entries.Add(new ScalabilityEntry(playerCount, display, status, best, recommended, notRec));
             }
-
-            var status = ScalabilityCalculator.DetermineStatus(best, recommended, notRec);
-            string display = isPlus ? $"{playerCount}J+" : $"{playerCount}J";
-
-            entries.Add(new ScalabilityEntry(playerCount, display, status, best, recommended, notRec));
         }
 
         // Deduplicar por PlayerCount si BGG devolviese múltiples
-        return entries
+        var deduped = entries
             .GroupBy(e => e.PlayerCount)
             .Select(g => g.OrderByDescending(e => e.TotalVotes).First())
             .OrderBy(e => e.PlayerCount)
             .ToList();
+
+        // Si la encuesta de BGG devolvió resultados con votos, devolverlos
+        if (deduped.Count > 0 && deduped.Any(e => e.TotalVotes > 0))
+        {
+            return deduped;
+        }
+
+        // Fallback robusto cuando no hay votos en BGG: generar entradas para el rango oficial
+        int start = Math.Max(1, minPlayers);
+        int end = Math.Max(start, maxPlayers);
+        var fallbackEntries = new List<ScalabilityEntry>();
+
+        for (int p = start; p <= end; p++)
+        {
+            string display = $"{p}J";
+            var status = (start == end)
+                ? ScalabilityStatus.MustPlay
+                : ScalabilityStatus.Recommended;
+
+            fallbackEntries.Add(new ScalabilityEntry(p, display, status, BestVotes: 0, RecommendedVotes: 1, NotRecommendedVotes: 0));
+        }
+
+        return fallbackEntries;
     }
 
-    private static (ConfrontationType Confrontation, GameStyle Style, bool IsSolo) InferGameDna(
-        XElement item, List<ScalabilityEntry> scalability)
+    private static (ConfrontationType Confrontation, GameStyle Style, bool IsSolo, TableFootprint Footprint) InferGameDna(
+        XElement item, List<ScalabilityEntry> scalability, int maxTime)
     {
         var categories = item.Elements("link")
             .Where(l => l.Attribute("type")?.Value is "boardgamecategory" or "boardgamemechanic")
@@ -264,7 +294,28 @@ public static class BggXmlParser
 
         bool isSolo = scalability.Any(s => s.PlayerCount == 1 && s.Status != ScalabilityStatus.NotRecommended);
 
-        return (confrontation, style, isSolo);
+        bool isSmallTable = categories.Any(c =>
+            c.Contains("Card Game", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Party Game", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Dice", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Trivia", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Deduction", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Microgame", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Travel", StringComparison.OrdinalIgnoreCase))
+            && maxTime <= 45;
+
+        bool isMonsterTable = categories.Any(c =>
+            c.Contains("Miniatures", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Wargame", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Civilization", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("4x", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Big Box", StringComparison.OrdinalIgnoreCase))
+            || maxTime >= 150;
+
+        TableFootprint footprint = isMonsterTable ? TableFootprint.TableMonster
+            : (isSmallTable ? TableFootprint.SmallTable : TableFootprint.StandardTable);
+
+        return (confrontation, style, isSolo, footprint);
     }
 
     public static IReadOnlyList<BggCollectionItemDto> ParseCollection(XDocument doc)

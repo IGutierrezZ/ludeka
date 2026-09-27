@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Xml.Linq;
 using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Bgg;
@@ -138,5 +138,80 @@ public class BggXmlParserTests
         Assert.Equal(10, game.Age.BoxAge);
         Assert.Equal(10, game.Age.CommunityAge);
         Assert.Equal(LanguageDependence.High, game.Language); // Level 3/4 = High
+    }
+
+    [Fact]
+    public void ParseGameXml_ShouldExtractRealPlayTimesAndPerPlayerEstimate()
+    {
+        // Arrange
+        var doc = XDocument.Parse(SampleWingspanXml);
+
+        // Act
+        var game = BggXmlParser.ParseItem(doc.Root!.Element("item")!);
+
+        // Assert
+        Assert.NotNull(game);
+        Assert.Equal(40, game.Duration.MinMinutes);
+        Assert.Equal(70, game.Duration.MaxMinutes);
+        // avgPlayers = (1 + 5) / 2 = 3. avgTime = (40 + 70) / 2 = 55. estPerPlayer = 55 / 3 = 18 min
+        Assert.Equal(18, game.Duration.EstimatedPerPlayerMinutes);
+    }
+
+    [Fact]
+    public void ParseGameXml_WithoutPollVotes_ShouldApplyDeterministicScalabilityFallback()
+    {
+        // Arrange: XML sin votos en la encuesta
+        const string xmlWithoutVotes = @"
+<items>
+  <item type=""boardgame"" id=""999999"">
+    <name type=""primary"" value=""Quick Match"" />
+    <minplayers value=""2"" />
+    <maxplayers value=""4"" />
+    <minplaytime value=""15"" />
+    <maxplaytime value=""20"" />
+    <playingtime value=""20"" />
+    <poll name=""suggested_numplayers"" title=""User Suggested Number of Players"" totalvotes=""0"">
+    </poll>
+  </item>
+</items>";
+        var doc = XDocument.Parse(xmlWithoutVotes);
+
+        // Act
+        var game = BggXmlParser.ParseItem(doc.Root!.Element("item")!);
+
+        // Assert
+        Assert.NotNull(game);
+        Assert.Equal(3, game.Scalability.Count); // 2, 3, 4
+        Assert.All(game.Scalability, s => Assert.Equal(ScalabilityStatus.Recommended, s.Status));
+    }
+
+    [Theory]
+    [InlineData("Card Game", 30, TableFootprint.SmallTable)]
+    [InlineData("Miniatures", 120, TableFootprint.TableMonster)]
+    [InlineData("Economic", 180, TableFootprint.TableMonster)]
+    [InlineData("Economic", 90, TableFootprint.StandardTable)]
+    public void ParseGameXml_ShouldInferTableFootprintAccurately(string category, int maxPlayTime, TableFootprint expectedFootprint)
+    {
+        // Arrange
+        string xml = $@"
+<items>
+  <item type=""boardgame"" id=""12345"">
+    <name type=""primary"" value=""Test Game"" />
+    <minplayers value=""2"" />
+    <maxplayers value=""4"" />
+    <minplaytime value=""{maxPlayTime / 2}"" />
+    <maxplaytime value=""{maxPlayTime}"" />
+    <playingtime value=""{maxPlayTime}"" />
+    <link type=""boardgamecategory"" id=""1"" value=""{category}"" />
+  </item>
+</items>";
+        var doc = XDocument.Parse(xml);
+
+        // Act
+        var game = BggXmlParser.ParseItem(doc.Root!.Element("item")!);
+
+        // Assert
+        Assert.NotNull(game);
+        Assert.Equal(expectedFootprint, game.Footprint);
     }
 }
