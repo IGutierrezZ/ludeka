@@ -83,7 +83,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-67** | Gamificación: Hitos y Logros del Jugador | ✅ Archivado | [inc-67-hitos-y-logros.md](archive/inc-67-hitos-y-logros.md) |
 | **INC-68** | Gamificación: Clasificaciones Públicas y Anonimato | ✅ Archivado | [inc-68-clasificaciones-y-anonimato.md](archive/inc-68-clasificaciones-y-anonimato.md) |
 | **INC-69** | Fix en Colección y Valoración (EF Core Tracking), Flujo de Jugado y Carriles de Portada | ✅ Archivado | [inc-69-fix-coleccion-valoracion-carriles.md](archive/inc-69-fix-coleccion-valoracion-carriles.md) |
-| **INC-70** | Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos | ⏳ En progreso | [inc-70-ingesta-multimodal-sorteos.md](inc-70-ingesta-multimodal-sorteos.md) |
+| **INC-70** | Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos | ✅ Archivado | [inc-70-ingesta-multimodal-sorteos.md](archive/inc-70-ingesta-multimodal-sorteos.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -111,7 +111,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-70** (`ingesta-multimodal-sorteos`): Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos. Worktree: `C:\repos\ludeka-wt\ingesta-multimodal-sorteos`. Rama: `inc/ingesta-multimodal-sorteos`. Estado: ⏳ En progreso (Fase `sdd-propose`).
+*(Actualmente no hay incrementos en curso. Todos los incrementos del backlog se encuentran archivados).*
+
+*(INC-70 entregó su verificación con 1.938 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la ingesta multimodal asistida con Gemini Flash Vision para OCR y extracción estructurada de sorteos desde capturas o texto, composición panorámica 16:9 con SkiaSharp [SkiaSharpGiveawayCoverComposer] con fondo difuminado, sombra suave y recorte inteligente de barras móviles, modal reactivo bimodal con soporte @onpaste y blindaje defensivo anti-vacíos en OpenGraphSocialMetadataExtractor y SocialIngestionService).*
 
 *(INC-69 entregó su PR #121, verificada con 1.925 pruebas unitarias en verde, y quedó archivado el 2026-09-26. Corrige el conflicto de seguimiento en EF Core para UserCollectionItem, UserGameReview y GameLoan aislando las propiedades escalares de las entidades desasociadas sin mutar el grafo de Game ni sus tipos JSON propiedad, añade en GameDetail.razor el flujo guiado interactivo de jugado y valoración con manejo robusto de excepciones de interfaz, retira la píldora redundante de RailHeader.razor, refina el encuadre de HomeGameCard.razor [3.5 tarjetas en móvil, indicador compacto 1-4J y diseñador anclado] e introduce rail-scroll.js para arrastre con ratón en carruseles de escritorio).*
 

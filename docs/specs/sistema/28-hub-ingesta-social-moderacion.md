@@ -1,8 +1,8 @@
-# 28. Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés + Directorio de Cuentas Monitorizadas)
+# 28. Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés Multimodal + Directorio de Cuentas Monitorizadas)
 
-> **Incremento Asociado:** INC-42 (`change-42-ingesta-social-moderacion`)  
+> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`) e INC-70 (`change-70-ingesta-multimodal-sorteos`)  
 > **Estado:** Implementado, Verificado y Documentado  
-> **Módulo:** Radar Comunitario, Ingesta Social, Moderación Editorial y Directorio de Fuentes  
+> **Módulo:** Radar Comunitario, Ingesta Social Multimodal, Moderación Editorial y Directorio de Fuentes  
 
 ---
 
@@ -11,11 +11,13 @@
 El módulo de **Hub de Ingesta Social y Multimedia** proporciona una solución integral, soberana y libre de servicios de pago de scraping (como Apify) para alimentar de forma ágil y comunitaria el Radar de Sorteos (`/sorteos`), el Calendario de Novedades (`/novedades`), la Agenda de Eventos (`/eventos`) y los Vídeos Multimedia del catálogo de Ludeka.
 
 Sus pilares fundamentales son:
-1. **Alta Exprés ("Copiar, pegar y listo"):** Extracción automática de metadatos OpenGraph y análisis semántico asistido por IA (Google Gemini Flash o heurística en español desacoplada) a partir de URLs públicas de Instagram, YouTube o sitios web.
-2. **Modo Manual Avanzado:** Soporte directo para vídeos/reels o publicaciones sin descripción de texto legible, permitiendo al moderador indicar la URL, el juego del catálogo asociado y la tipología (`Tutorial`, `Gameplay`, `ReviewOpinion`), optimizando automáticamente la carátula o miniatura WebP en Cloudflare R2 vía `IImageStorageService`.
-3. **Bandeja de Moderación 100% Editable (`/admin/ingesta-social`):** Ningún elemento capturado de redes se publica a ciegas. Todas las capturas ingresan en estado de borrador pendiente (`PendingReview`) y el moderador puede modificar cualquiera de sus datos (título, fechas límite o de estreno, recinto del evento, juego vinculado o imagen) antes de pulsar "Aprobar y Publicar" o "Descartar".
-4. **Directorio Central de Cuentas Monitorizadas (`/admin/canales-monitorizados`):** Padrón de cuentas de Instagram, canales de YouTube y webs de editoriales, divulgadores y tiendas, con sincronización automática en 1 clic desde el directorio de entidades de Ludeka y accesos directos para capturar publicaciones con el organizador preconfigurado.
-5. **Cumplimiento Estricto de Diseño y Contrato de Cero Emojis:** Componentes accesibles construidos con Tailwind CSS y la iconografía oficial de Lucide (`Icon.razor`), respetando íntegramente las pruebas de maquetación editorial (`WebMarkupContractTests`).
+1. **Alta Exprés Multimodal (INC-70):** Supera las restricciones anti-scraping de Instagram y la imposibilidad de seleccionar texto en dispositivos móviles combinando URL de origen, fotografía del post o reel y bases del sorteo (en texto o captura de pantalla).
+2. **Visión Artificial con Gemini Flash:** OCR y extracción semántica automática sobre imágenes (`inlineData` base64) para detectar organizador, colaboradores (`@cuentas`), fechas límite, ámbito territorial y coordenadas de encuadre (`cropBoundingBox`).
+3. **Composición Horizontal 16:9 con SkiaSharp (`SkiaSharpGiveawayCoverComposer`):** Generación automática de carátulas 1280x720 en WebP con fondo desenfocado oscuro, primer plano centrado con sombra, recorte inteligente de barras de estado móviles y badge de marca Ludeka.
+4. **Modo Manual Avanzado:** Soporte directo para vídeos/reels o publicaciones sin descripción de texto legible, permitiendo al moderador indicar la URL, el juego del catálogo asociado y la tipología (`Tutorial`, `Gameplay`, `ReviewOpinion`), optimizando automáticamente la carátula o miniatura WebP en Cloudflare R2 vía `IImageStorageService`.
+5. **Bandeja de Moderación 100% Editable (`/admin/ingesta-social`):** Ningún elemento capturado de redes se publica a ciegas. Todas las capturas ingresan en estado de borrador pendiente (`PendingReview`) y el moderador puede modificar cualquiera de sus datos (título, fechas límite o de estreno, recinto o ámbito territorial, juego vinculado o imagen) antes de pulsar "Aprobar y Publicar" o "Descartar".
+6. **Directorio Central de Cuentas Monitorizadas (`/admin/canales-monitorizados`):** Padrón de cuentas de Instagram, canales de YouTube y webs de editoriales, divulgadores y tiendas, con sincronización automática en 1 clic desde el directorio de entidades de Ludeka.
+7. **Cumplimiento Estricto de Diseño y Contrato de Cero Emojis:** Componentes accesibles construidos con Tailwind CSS y la iconografía oficial de Lucide (`Icon.razor`), respetando íntegramente las pruebas de maquetación editorial (`WebMarkupContractTests`).
 
 ---
 
@@ -133,6 +135,7 @@ Al aprobar un ítem en `SocialIngestionService`:
 
 ### 4.2. Asistente IA Híbrido (`GeminiSocialAnalysisService`)
 - Integra Google Gemini Flash estructurado en JSON si la API Key está configurada.
+- **Visión Multimodal (INC-70):** Mediante `AnalyzeImageAsync`, procesa imágenes (`inlineData` base64) de capturas de pantalla o publicaciones para realizar OCR exhaustivo y extraer datos del sorteo estructurados (título del juego/premio, organizador, colaboradores `@menciones`, fecha límite con zona horaria, ámbito territorial como "Península/España" y cuadro delimitador de recorte `cropBoundingBox`).
 - Dispone de un analizador heurístico avanzado en español diseñado con expresiones regulares deterministas que detecta:
   - **Sorteos:** Búsqueda de "sorteo", "giveaway", "bases", "participa", fechas límite y organizadores colaboradores (ej. `@editorial x @creador`).
   - **Novedades:** Detección de "novedad", "lanzamiento", "ya a la venta", "preventa" y extracción de precios (`PVP: XX €`).
@@ -143,6 +146,13 @@ Al aprobar un ítem en `SocialIngestionService`:
 - Tablas `SocialInboxItems` y `MonitoredSocialAccounts` configuradas en `LudekaDbContext`.
 - Índices optimizados en `Status`, `DetectedType`, `Platform` y `CreatedAt`.
 - Migración defensiva SQLite en `SqliteSchemaMigrator` para desarrollo local y ejecución de tests en memoria.
+
+### 4.4. Compositor Editorial de Portadas 16:9 (`SkiaSharpGiveawayCoverComposer`)
+- Transforma fotografías de publicaciones (1:1 o verticales 9:16) en carátulas horizontales 16:9 (1280x720) en formato WebP optimizado.
+- Aplica fondo desenfocado oscuro (`#0B0F17` con sigma de 28px) a partir de la imagen original.
+- Primer plano centrado preservando relación de aspecto con esquinas redondeadas (radio 24px) y sombra perimetral difusa.
+- Recorte inteligente opcional de barras de estado o elementos de interfaz móvil guiado por coordenadas normalizadas de visión (`NormalizedBoundingBoxDto`).
+- Sello de marca editorial Ludeka discreto integrado en la esquina inferior derecha.
 
 ---
 
@@ -166,8 +176,11 @@ Al aprobar un ítem en `SocialIngestionService`:
 - Botón **"⚡ Publicación"**: abre el modal de alta exprés precargando el nombre de la cuenta para acelerar la ingesta.
 
 ### 5.3. Modales Compartidos
-- **`SocialExpressIngestModal.razor`**: Asistente modal en dos pestañas (`Pegar URL y Listo (IA)` y `Modo Manual Avanzado` con buscador predictivo de juegos).
-- **`SocialInboxEditModal.razor`**: Formulario de edición completa de borradores antes de su aprobación definitiva.
+- **`SocialExpressIngestModal.razor`**: Asistente modal en tres modos de ingesta:
+  1. *Sorteos (Multimodal)*: Diseñado específicamente para superar las restricciones de Instagram. Acepta URL de origen, archivo de foto de portada (con recorte y composición 16:9 automática) y bases del sorteo (vía texto plano o captura de pantalla móvil con OCR mediante Gemini Flash Vision). Soporta `@onpaste` para pegar capturas directamente desde el portapapeles.
+  2. *Pegar URL y Listo (IA)*: Extracción automática para YouTube, noticias web y blogs.
+  3. *Modo Manual Avanzado*: Con buscador predictivo de juegos y selección explícita de tipologías.
+- **`SocialInboxEditModal.razor`**: Formulario de edición completa de borradores antes de su aprobación definitiva, con soporte para ámbito territorial (ej. Península, España, Internacional).
 
 ### 5.4. Puntos de Entrada Transversales
 - Menú de moderación de `MainLayout.razor` con enlaces a la bandeja y al directorio de canales.
@@ -177,5 +190,5 @@ Al aprobar un ítem en `SocialIngestionService`:
 
 ## 6. Pruebas y Validación
 
-- **Suite Automatizada:** 960 pruebas unitarias en verde (100% superado).
+- **Suite Automatizada de la Solución:** 1.938 pruebas unitarias en verde (100% superado), incluyendo pruebas específicas para el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
 - **Pruebas de Componente y Contratos de Marcado:** Verificación con `WebMarkupContractTests` garantizando la ausencia total de emojis prohibidos y el uso riguroso del sistema de diseño editorial con Lucide Icons.
