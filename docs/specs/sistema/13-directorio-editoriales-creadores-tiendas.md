@@ -43,11 +43,12 @@ Además de ofrecer una experiencia editorial de descubrimiento y fichas individu
 - `LudekaDbContext`: DbSets para `Publishers`, `Creators` y `Stores`, con serialización JSON nativa para `SocialLinks` mediante `OwnsMany(..., b => b.ToJson())`.
 - `SqliteSchemaMigrator`: Creación idempotente y defensiva de tablas `Publishers`, `Creators` y `Stores` con índices únicos por `Slug` e índices de búsqueda por `Name`.
 
-### 4.2 Padrón Canónico Embebido (`seed-directory.json` — INC-54)
-El padrón nacional exhaustivo reside en `src/Ludeka.Infrastructure/Seeding/seed-directory.json` configurado como recurso incrustado (`EmbeddedResource`):
-- **46 Editoriales de España:** Cobertura de prácticamente la totalidad de firmas editoriales del país con enlaces web, logos y redes sociales.
-- **37 Tiendas Especializadas:** Top 35 comercios de España + 2 de referencia internacional, con indicación de modalidad, ubicación y programa de fidelidad.
-- **35 Creadores de Contenido:** Divulgadores referentes de YouTube, Instagram y blogs en español con sus @handles y canales oficiales.
+### 4.2 Padrón Canónico Embebido y Curado (`seed-directory.json` — INC-54 & INC-73)
+El padrón nacional exhaustivo reside en `src/Ludeka.Infrastructure/Seeding/seed-directory.json` configurado como recurso incrustado (`EmbeddedResource`). En el incremento INC-73 se sometió a una curación y auditoría integral, erradicando los 101 enlaces rotos o desactualizados detectados en la importación original:
+- **46 Editoriales de España:** Cobertura de prácticamente la totalidad de firmas editoriales del país con enlaces web oficiales contrastados (`https://www.masqueoca.com/`, `https://es.asmodee.com`, `https://bumble3ee.com`, `https://edicionesprimigenio.com`, etc.), canales canónicos de YouTube (`@sdgames`, `@MercurioDistribuciones`, `@2TomatoesGames`), logos y redes sociales verificadas (sellos inactivos o extintos con web en `null`).
+- **37 Tiendas Especializadas:** Comercios referentes de España con dominios comerciales activos (`https://nostromocomics.com`, `https://www.padis-store.com/`, `https://homoludicus-valencia.org`, etc.), indicación de modalidad, ubicación, programa de fidelidad y códigos de afiliación.
+- **35 Creadores de Contenido:** Divulgadores referentes de YouTube, Instagram y blogs en español con canales oficiales validados (`@rdjugones`, `@ELCLUBDANTE`, `@LaMesadeDam`, etc.), webs oficiales corregidas (`https://doctormeeple.es`, `https://www.elclubdante.es`) y purga de cuentas extintas.
+- **Normalización Estructural:** Eliminación total de la redundancia `{ "platform": "Website", ... }` dentro de `SocialLinks` (la URL web canónica reside en `WebsiteUrl`) y preservación estricta de la totalidad de `slugs` para salvaguardar la idempotencia.
 
 ### 4.3 Motor de Siembra e Idempotencia (`DirectorySeeder.cs` & `DirectorySeederService.cs`)
 - **Lectura desacoplada:** Deserializa desde el recurso incrustado en assembly con fallback al sistema de archivos local.

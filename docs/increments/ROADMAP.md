@@ -85,6 +85,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-69** | Fix en Colección y Valoración (EF Core Tracking), Flujo de Jugado y Carriles de Portada | ✅ Archivado | [inc-69-fix-coleccion-valoracion-carriles.md](archive/inc-69-fix-coleccion-valoracion-carriles.md) |
 | **INC-70** | Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos | ✅ Archivado | [inc-70-ingesta-multimodal-sorteos.md](archive/inc-70-ingesta-multimodal-sorteos.md) |
 | **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ✅ Archivado | [inc-72-ux-catalogo-filtros-multiseleccion.md](archive/inc-72-ux-catalogo-filtros-multiseleccion.md) |
+| **INC-73** | Curación y Saneamiento Integral del Directorio Lúdico Español | ✅ Archivado | [inc-73-curacion-directorio-ludico.md](archive/inc-73-curacion-directorio-ludico.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -112,7 +113,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Actualmente no hay incrementos en curso. INC-72 quedó archivado y mergeado a main).*
+*(No hay incrementos en curso en este momento)*
+
+*(INC-73 entregó su verificación con 1.948 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la auditoría exhaustiva concurrente y curación del padrón canónico `seed-directory.json` corrigiendo 101 enlaces caídos o desactualizados [24,3% de fallos]: dominios canónicos contrastados para 46 editoriales, 37 tiendas y 35 creadores de contenido, canales oficiales @handle de YouTube, erradicación total de la redundancia `{ "platform": "Website" }` en `socialLinks` y preservación incondicional de los 118 `slug` para garantizar idempotencia y compatibilidad).*
 
 *(INC-72 entregó su PR #125, verificada con 1.945 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa el cierre automático del menú móvil superior al navegar en MainLayout.razor, retirada de la sección en inglés de BGG e incorporación de visor interactivo de tres imágenes [portada, trasera y mesa] en GameDetail.razor, catálogo móvil a 3 columnas [grid-cols-3] en Home.razor y GameCard.razor, y panel colapsable de filtros avanzados con multiselección completa de jugadores concurrentes, dureza cognitiva [GameComplexity], estilos, tipos, confrontación, duración y huella en mesa con persistencia en URL).*
 

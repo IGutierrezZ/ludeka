@@ -674,6 +674,24 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 72: UX y Catálogo — Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección
+- **Identificador SDD:** `change-72-ux-catalogo-filtros-multiseleccion`
+- **Objetivo Principal:** Cerrar automáticamente el menú móvil superior al navegar, retirar la sección residual en inglés de BGG, incorporar el visor interactivo de tres imágenes (portada, trasera y mesa) en GameDetail.razor, ajustar el catálogo móvil a 3 columnas compactas e implementar el panel colapsable de filtros avanzados con multiselección completa.
+- **Estado:** ✅ **Completado y Archivado** (1.945 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-72-ux-catalogo-filtros-multiseleccion.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-72-ux-catalogo-filtros-multiseleccion.md).
+- **Módulos del Sistema:** [`01-catalogo-base-y-ficha.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-base-y-ficha.md), [`15-dashboard-inicio-editorial.md`](file:///c:/repos/Ludeka/docs/specs/sistema/15-dashboard-inicio-editorial.md).
+
+---
+
+## Incremento 73: Curación y Saneamiento Integral del Directorio Lúdico Español
+- **Identificador SDD:** `change-73-curacion-directorio-ludico`
+- **Objetivo Principal:** Auditar, contrastar y sanear de raíz el padrón canónico de INC-54 (`seed-directory.json`) sobre 118 entidades (46 editoriales, 37 tiendas y 35 creadores), corrigiendo 101 enlaces problemáticos (dominios caídos, TLDs erróneos, perfiles 404 en redes sociales y duplicidad sistemática de Website), preservando slugs e idempotencia de siembra.
+- **Estado:** ✅ **Completado y Archivado** (1.948 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-73-curacion-directorio-ludico.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-73-curacion-directorio-ludico.md).
+- **Módulos del Sistema:** [`13-directorio-editoriales-creadores-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/13-directorio-editoriales-creadores-tiendas.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
