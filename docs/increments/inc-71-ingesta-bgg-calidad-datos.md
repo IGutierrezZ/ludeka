@@ -1,10 +1,10 @@
 # INC-71: Ingesta BGG — Calidad de Datos, Escalabilidad, Fundas, Tiempos y Huella en Mesa
 
-> **Estado:** ⏳ En progreso  
-> **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** Pendiente  
+> **Estado:** ✅ Completado (Listo para PR)  
+> **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** 2026-09-27  
 > **Rama de Trabajo:** `inc/ingesta-bgg-calidad-datos`  
 > **Worktree:** `C:\repos\ludeka-wt\ingesta-bgg-calidad-datos`  
-> **Pruebas Automatizadas:** 1.938 pruebas unitarias en verde al inicio (línea base)  
+> **Pruebas Automatizadas:** 1.949 pruebas unitarias en verde (+11 pruebas netas)  
 > **Dependencias:** INC-26 (Fundas), INC-41/INC-46 (Staging y BggMassIngestion), INC-53 (Volcado Ranks)  
 > **Especificación Viva:** `docs/specs/sistema/01-catalogo-juegos.md`  
 
