@@ -41,10 +41,49 @@ public record GameDetailDto(
     int? ExtraPlayerCount = null,
     int? ExtraDurationMinutes = null,
     string? BackCoverImageUrl = null,
-    string? TableImageUrl = null
+    string? TableImageUrl = null,
+    string? SpanishPublisher = null,
+    IReadOnlyList<RegionalPublisherEntry>? RegionalPublishers = null,
+    IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
+
+    public string GetPublisherForCountry(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Equals("ES", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(SpanishPublisher))
+                return SpanishPublisher;
+        }
+
+        if (!string.IsNullOrWhiteSpace(countryCode) && RegionalPublishers != null && RegionalPublishers.Count > 0)
+        {
+            var match = RegionalPublishers.FirstOrDefault(r => string.Equals(r.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            if (match != null && !string.IsNullOrWhiteSpace(match.PublisherName))
+                return match.PublisherName;
+        }
+
+        return Publisher;
+    }
+
+    public string GetTitleForCountry(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Equals("ES", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(SpanishTitle))
+                return SpanishTitle;
+        }
+
+        if (!string.IsNullOrWhiteSpace(countryCode) && LocalizedTitles != null && LocalizedTitles.Count > 0)
+        {
+            var match = LocalizedTitles.FirstOrDefault(l => string.Equals(l.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            if (match != null && !string.IsNullOrWhiteSpace(match.Title))
+                return match.Title;
+        }
+
+        return !string.IsNullOrWhiteSpace(SpanishTitle) ? SpanishTitle : OriginalTitle;
+    }
 
     public static GameDetailDto FromEntity(Game g) => FromEntity(g, null);
 
@@ -83,6 +122,9 @@ public record GameDetailDto(
         g.ExtraPlayerCount,
         g.ExtraDurationMinutes,
         g.BackCoverImageUrl,
-        g.TableImageUrl
+        g.TableImageUrl,
+        g.SpanishPublisher,
+        (g.RegionalPublishers ?? new List<RegionalPublisherEntry>()).AsReadOnly(),
+        (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly()
     );
 }

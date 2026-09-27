@@ -18,7 +18,7 @@ public static class BggDumpParser
 {
     public static async IAsyncEnumerable<BggRanksDumpRowDto> ParseRanksDumpAsync(
         Stream inputStream,
-        int minUsersRated = 1000,
+        int minUsersRated = 100,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(inputStream);
