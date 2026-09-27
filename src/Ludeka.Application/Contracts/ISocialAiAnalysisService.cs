@@ -11,4 +11,13 @@ namespace Ludeka.Application.Contracts;
 public interface ISocialAiAnalysisService
 {
     Task<SocialAiAnalysisResultDto> AnalyzeTextAsync(string text, string? authorOrChannel = null, CancellationToken ct = default);
+
+    Task<SocialAiAnalysisResultDto> AnalyzeMultimodalAsync(
+        string? text,
+        byte[]? basesImageBytes,
+        string? basesImageMimeType,
+        byte[]? coverImageBytes = null,
+        string? coverImageMimeType = null,
+        string? authorOrChannel = null,
+        CancellationToken ct = default);
 }

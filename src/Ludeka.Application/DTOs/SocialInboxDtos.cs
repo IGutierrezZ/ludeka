@@ -15,6 +15,11 @@ public record SocialMetadataResultDto(
     string? VideoId = null
 );
 
+public record NormalizedBoundingBoxDto(int YMin, int XMin, int YMax, int XMax)
+{
+    public bool IsValid => YMin >= 0 && XMin >= 0 && YMax <= 1000 && XMax <= 1000 && YMax > YMin && XMax > XMin;
+}
+
 public record SocialAiAnalysisResultDto(
     SocialSubmissionType DetectedType,
     string Title,
@@ -27,7 +32,20 @@ public record SocialAiAnalysisResultDto(
     decimal? EstimatedPvp,
     MediaCategory? MediaCategory,
     string? PlayerCountBadge,
-    string? Notes
+    string? Notes,
+    NormalizedBoundingBoxDto? CropBoundingBox = null,
+    string? TerritorialScope = null
+);
+
+public record SocialExpressMultimodalInputDto(
+    string SourceUrl,
+    string? ManualCaption = null,
+    byte[]? CoverImageBytes = null,
+    string? CoverImageFileName = null,
+    string? CoverImageMimeType = null,
+    byte[]? BasesImageBytes = null,
+    string? BasesImageFileName = null,
+    string? BasesImageMimeType = null
 );
 
 public record SocialInboxItemDto(
