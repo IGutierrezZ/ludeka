@@ -1,15 +1,15 @@
-# INC-73: Ampliación de Ingesta Masiva BGG (>100 opiniones), Descarte de Duplicados, Enriquecimiento Integral y Localización Territorial Multipaís de Editoriales y Títulos
-
-> **Estado:** ⏳ En progreso  
-> **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** Pendiente  
-> **Rama de Trabajo:** `inc/ingesta-enriquecimiento-catalogo`  
-> **Worktree:** `C:\repos\ludeka-wt\ingesta-enriquecimiento-catalogo`  
-> **Pruebas Automatizadas:** 1.945 pruebas unitarias en verde al inicio (línea base de INC-72)  
-> **Dependencias:** INC-41/INC-53 (Staging y Ranks Dump BGG), INC-26/INC-66 (Fundas de Cartas), INC-29/INC-54 (Directorio y Países), INC-59/INC-72 (Filtros, Dureza y Huella en Mesa)  
-> **Especificación Viva:** `docs/specs/sistema/01-catalogo-juegos.md` y `docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`  
-> **Metodología:** Implementación directa por capas sin ciclo estricto TDD, con verificación automatizada de la suite completa al cierre  
-
----
+1: # INC-73: Ampliación de Ingesta Masiva BGG (>100 opiniones), Descarte de Duplicados, Enriquecimiento Integral y Localización Territorial Multipaís de Editoriales y Títulos
+2: 
+3: > **Estado:** ✅ Archivado (1.966 pruebas unitarias verificadas al 100%)  
+4: > **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** 2026-09-27  
+5: > **Rama de Trabajo:** `inc/ingesta-enriquecimiento-catalogo`  
+6: > **Worktree:** `C:\repos\ludeka-wt\ingesta-enriquecimiento-catalogo`  
+7: > **Pruebas Automatizadas:** 1.966 pruebas unitarias en verde al 100% (21 pruebas nuevas añadidas en INC-73)  
+8: > **Dependencias:** INC-41/INC-53 (Staging y Ranks Dump BGG), INC-26/INC-66 (Fundas de Cartas), INC-29/INC-54 (Directorio y Países), INC-59/INC-72 (Filtros, Dureza y Huella en Mesa)  
+9: > **Especificación Viva:** [`01. Catálogo y Ficha Inteligente`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`17. Localización Geográfica por País`](file:///c:/repos/Ludeka/docs/specs/sistema/17-localizacion-territorial-pais.md) y [`27. Ingesta Masiva de Catálogo BGG`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md)  
+10: > **Metodología:** Implementación directa por capas sin ciclo estricto TDD, con verificación automatizada de la suite completa al cierre  
+11: 
+12: ---
 
 ## 1. Contexto y Objetivos del Incremento
 
