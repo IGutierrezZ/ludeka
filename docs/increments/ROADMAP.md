@@ -84,7 +84,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-68** | Gamificación: Clasificaciones Públicas y Anonimato | ✅ Archivado | [inc-68-clasificaciones-y-anonimato.md](archive/inc-68-clasificaciones-y-anonimato.md) |
 | **INC-69** | Fix en Colección y Valoración (EF Core Tracking), Flujo de Jugado y Carriles de Portada | ✅ Archivado | [inc-69-fix-coleccion-valoracion-carriles.md](archive/inc-69-fix-coleccion-valoracion-carriles.md) |
 | **INC-70** | Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos | ✅ Archivado | [inc-70-ingesta-multimodal-sorteos.md](archive/inc-70-ingesta-multimodal-sorteos.md) |
-| **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ⏳ En progreso | [inc-72-ux-catalogo-filtros-multiseleccion.md](inc-72-ux-catalogo-filtros-multiseleccion.md) |
+| **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ✅ Archivado | [inc-72-ux-catalogo-filtros-multiseleccion.md](archive/inc-72-ux-catalogo-filtros-multiseleccion.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -112,7 +112,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-72** (`ux-catalogo-filtros-multiseleccion`) — UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección. En progreso en worktree `C:\repos\ludeka-wt\ux-catalogo-filtros-multiseleccion` (rama `inc/ux-catalogo-filtros-multiseleccion`).
+*(Actualmente no hay incrementos en curso. INC-72 quedó archivado y mergeado a main).*
+
+*(INC-72 entregó su PR #125, verificada con 1.945 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa el cierre automático del menú móvil superior al navegar en MainLayout.razor, retirada de la sección en inglés de BGG e incorporación de visor interactivo de tres imágenes [portada, trasera y mesa] en GameDetail.razor, catálogo móvil a 3 columnas [grid-cols-3] en Home.razor y GameCard.razor, y panel colapsable de filtros avanzados con multiselección completa de jugadores concurrentes, dureza cognitiva [GameComplexity], estilos, tipos, confrontación, duración y huella en mesa con persistencia en URL).*
 
 *(INC-70 entregó su verificación con 1.938 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la ingesta multimodal asistida con Gemini Flash Vision para OCR y extracción estructurada de sorteos desde capturas o texto, composición panorámica 16:9 con SkiaSharp [SkiaSharpGiveawayCoverComposer] con fondo difuminado, sombra suave y recorte inteligente de barras móviles, modal reactivo bimodal con soporte @onpaste y blindaje defensivo anti-vacíos en OpenGraphSocialMetadataExtractor y SocialIngestionService).*
 

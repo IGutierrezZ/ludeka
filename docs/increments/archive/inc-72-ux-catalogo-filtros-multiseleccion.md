@@ -1,10 +1,9 @@
 # INC-72: UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección
 
-> **Estado:** ⏳ En progreso  
-> **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** Pendiente  
-> **Rama de Trabajo:** `inc/ux-catalogo-filtros-multiseleccion`  
-> **Worktree:** `C:\repos\ludeka-wt\ux-catalogo-filtros-multiseleccion`  
-> **Pruebas Automatizadas:** 1.938 pruebas unitarias en verde al inicio (línea base)  
+> **Estado:** ✅ Archivado  
+> **Fecha de Inicio:** 2026-09-27 · **Fecha de Cierre:** 2026-09-27  
+> **Rama de Trabajo:** `inc/ux-catalogo-filtros-multiseleccion` (PR #125 mergeado a `main`)  
+> **Pruebas Automatizadas:** 1.945 pruebas unitarias en verde (100% superadas)  
 > **Dependencias:** INC-58 (Catálogo), INC-59 (Filtros), INC-71 (Calidad BGG y Media URLs)  
 > **Especificación Viva:** `docs/specs/sistema/01-catalogo-juegos.md` y `docs/specs/sistema/06-navegacion-global.md`  
 
