@@ -161,6 +161,76 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.All(items, g => Assert.True(g.Duration.MaxMinutes <= 45));
     }
 
+    [Fact]
+    public async Task SearchAsync_MultiSelect_PlayerCounts_ShouldReturnGamesSupportingAllSelectedCounts()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (Filtrar a 2 y 3 jugadores simultáneamente)
+        var criteria = new GameFilterCriteria(PlayerCounts: new[] { 2, 3 }, PlayerCountsMatchAll: true);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        foreach (var game in items)
+        {
+            var p2 = game.Scalability.FirstOrDefault(s => s.PlayerCount == 2);
+            var p3 = game.Scalability.FirstOrDefault(s => s.PlayerCount == 3);
+            Assert.NotNull(p2);
+            Assert.NotNull(p3);
+            Assert.NotEqual(ScalabilityStatus.NotRecommended, p2.Status);
+            Assert.NotEqual(ScalabilityStatus.NotRecommended, p3.Status);
+        }
+    }
+
+    [Fact]
+    public async Task SearchAsync_MultiSelect_Styles_ShouldReturnGamesMatchingAnySelectedStyle()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (Eurogame o PartyGame)
+        var selectedStyles = new[] { GameStyle.Eurogame, GameStyle.PartyGame };
+        var criteria = new GameFilterCriteria(Styles: selectedStyles);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.Contains(g.Style, selectedStyles));
+    }
+
+    [Fact]
+    public async Task SearchAsync_MultiSelect_Footprints_ShouldReturnGamesMatchingAnySelectedFootprint()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (Mesa pequeña o Monstruo de mesa)
+        var selectedFp = new[] { TableFootprint.SmallTable, TableFootprint.TableMonster };
+        var criteria = new GameFilterCriteria(Footprints: selectedFp);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.Contains(g.Footprint, selectedFp));
+    }
+
+    [Fact]
+    public async Task SearchAsync_MultiSelect_Complexities_ShouldFilterByCognitiveLoad()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act (Juegos ligeros)
+        var criteria = new GameFilterCriteria(Complexities: new[] { GameComplexity.Light });
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 50);
+
+        // Assert
+        Assert.True(total > 0);
+        Assert.All(items, g => Assert.Equal(GameComplexity.Light, SqliteGameRepository.CalculateComplexity(g)));
+    }
+
     public void Dispose()
     {
         _context.Dispose();

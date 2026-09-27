@@ -69,20 +69,33 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 EF.Functions.Like(g.Publisher, $"%{term}%"));
         }
 
-        // Filtro por estilo lúdico
-        if (criteria.Style.HasValue)
+        // Filtro por estilo lúdico (multiselección o individual)
+        if (criteria.Styles != null && criteria.Styles.Count > 0)
+        {
+            query = query.Where(g => criteria.Styles.Contains(g.Style));
+        }
+        else if (criteria.Style.HasValue)
         {
             query = query.Where(g => g.Style == criteria.Style.Value);
         }
 
-        // Filtro por confrontación
-        if (criteria.Confrontation.HasValue)
+        // Filtro por confrontación (multiselección o individual)
+        if (criteria.Confrontations != null && criteria.Confrontations.Count > 0)
+        {
+            query = query.Where(g => criteria.Confrontations.Contains(g.Confrontation));
+        }
+        else if (criteria.Confrontation.HasValue)
         {
             query = query.Where(g => g.Confrontation == criteria.Confrontation.Value);
         }
 
         // Filtro por duración máxima
-        if (criteria.MaxDurationMinutes.HasValue)
+        if (criteria.MaxDurations != null && criteria.MaxDurations.Count > 0)
+        {
+            int maxD = criteria.MaxDurations.Max();
+            query = query.Where(g => g.Duration.MaxMinutes <= maxD);
+        }
+        else if (criteria.MaxDurationMinutes.HasValue)
         {
             query = query.Where(g => g.Duration.MaxMinutes <= criteria.MaxDurationMinutes.Value);
         }
@@ -101,14 +114,22 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             query = query.Where(g => g.IsOfficialSolo);
         }
 
-        // Filtro por tipo de juego (BaseGame vs Expansion)
-        if (criteria.TypeFilter.HasValue)
+        // Filtro por tipo de juego (BaseGame vs Expansion vs StandaloneExpansion)
+        if (criteria.Types != null && criteria.Types.Count > 0)
+        {
+            query = query.Where(g => criteria.Types.Contains(g.Type));
+        }
+        else if (criteria.TypeFilter.HasValue)
         {
             query = query.Where(g => g.Type == criteria.TypeFilter.Value);
         }
 
-        // Filtro por espacio / tamaño en mesa (INC-59)
-        if (criteria.Footprint.HasValue)
+        // Filtro por espacio / tamaño en mesa (INC-59 / INC-72)
+        if (criteria.Footprints != null && criteria.Footprints.Count > 0)
+        {
+            query = query.Where(g => criteria.Footprints.Contains(g.Footprint));
+        }
+        else if (criteria.Footprint.HasValue)
         {
             query = query.Where(g => g.Footprint == criteria.Footprint.Value);
         }
@@ -121,12 +142,34 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             list = list.Where(g => g.Scalability.Any(s => s.PlayerCount == 2 && s.Status == ScalabilityStatus.MustPlay)).ToList();
         }
 
-        if (criteria.PlayerCount.HasValue)
+        // Filtro por número de comensales (multiselección o individual)
+        if (criteria.PlayerCounts != null && criteria.PlayerCounts.Count > 0)
+        {
+            if (criteria.PlayerCountsMatchAll)
+            {
+                list = list.Where(g => criteria.PlayerCounts.All(p => g.Scalability.Any(s =>
+                    (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
+                    s.Status != ScalabilityStatus.NotRecommended))).ToList();
+            }
+            else
+            {
+                list = list.Where(g => criteria.PlayerCounts.Any(p => g.Scalability.Any(s =>
+                    (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
+                    s.Status != ScalabilityStatus.NotRecommended))).ToList();
+            }
+        }
+        else if (criteria.PlayerCount.HasValue)
         {
             int p = criteria.PlayerCount.Value;
             list = list.Where(g => g.Scalability.Any(s =>
                 (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
                 s.Status != ScalabilityStatus.NotRecommended)).ToList();
+        }
+
+        // Filtro por dureza / complejidad cognitiva
+        if (criteria.Complexities != null && criteria.Complexities.Count > 0)
+        {
+            list = list.Where(g => criteria.Complexities.Contains(CalculateComplexity(g))).ToList();
         }
 
         int totalCount = list.Count;
@@ -240,5 +283,14 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .AsNoTracking()
             .OrderBy(g => g.SpanishTitle)
             .ToListAsync(ct);
+    }
+
+    public static GameComplexity CalculateComplexity(Game g)
+    {
+        if (g.Style == GameStyle.PartyGame || g.Style == GameStyle.FillerAbstract || (g.Duration.MaxMinutes <= 30 && g.Age.CommunityAge <= 10))
+            return GameComplexity.Light;
+        if (g.Duration.MaxMinutes >= 120 || g.Age.CommunityAge >= 14 || (g.Duration.MaxMinutes >= 90 && g.Style == GameStyle.Eurogame))
+            return GameComplexity.Heavy;
+        return GameComplexity.Medium;
     }
 }

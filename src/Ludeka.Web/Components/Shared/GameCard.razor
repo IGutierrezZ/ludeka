@@ -49,37 +49,37 @@
             </div>
         </div>
 
-        <div class="p-3.5 flex flex-col flex-1 justify-between bg-[var(--bg-card)]">
+        <div class="p-2 sm:p-3.5 flex flex-col flex-1 justify-between bg-[var(--bg-card)]">
             <div>
-                <div class="flex items-center justify-between gap-1 mb-1.5">
-                    <span class="text-xs font-bold text-[var(--brand-primary)]">@Game.YearPublished</span>
+                <div class="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
+                    <span class="text-[0.65rem] sm:text-xs font-bold text-[var(--brand-primary)] shrink-0">@Game.YearPublished</span>
                     @if (!string.IsNullOrWhiteSpace(Game.IdealPlayerCountText))
                     {
-                        <span class="text-[0.68rem] font-bold px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)]">
+                        <span class="text-[0.58rem] sm:text-[0.68rem] font-bold px-1 sm:px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)] truncate max-w-[5rem] sm:max-w-none">
                             @Game.IdealPlayerCountText
                         </span>
                     }
                 </div>
 
-                <h3 class="font-extrabold text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">
+                <h3 class="font-extrabold text-xs sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-tight sm:line-clamp-1 mb-1">
                     @Game.SpanishTitle
                 </h3>
 
                 @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
                 {
-                    <p class="text-xs text-[var(--text-muted)] italic line-clamp-1 mb-1.5">(@Game.OriginalTitle)</p>
+                    <p class="text-[0.65rem] sm:text-xs text-[var(--text-muted)] italic line-clamp-1 mb-1 sm:mb-1.5 hidden sm:block">(@Game.OriginalTitle)</p>
                 }
                 else
                 {
-                    <div class="mb-1.5"></div>
+                    <div class="mb-1 hidden sm:block"></div>
                 }
 
-                <div class="text-[0.72rem] text-[var(--text-secondary)] line-clamp-1 mb-3">
-                    @Game.Designer &bull; @Game.Publisher
+                <div class="text-[0.62rem] sm:text-[0.72rem] text-[var(--text-secondary)] line-clamp-1 mb-1 sm:mb-3">
+                    @Game.Designer
                 </div>
             </div>
 
-            <div class="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
+            <div class="hidden sm:flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
                 @switch (Game.Style)
                 {
                     case GameStyle.Eurogame:

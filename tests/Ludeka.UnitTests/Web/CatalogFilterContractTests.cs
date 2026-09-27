@@ -92,6 +92,58 @@ public class CatalogFilterContractTests
         Assert.Contains("query.TryGetValue(\"duracion\"", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HomeCatalog_FilterContract_ShouldIncludeCollapsibleAdvancedFiltersAndMultiSelectFacets()
+    {
+        var source = ReadSource(HomeCatalogPath);
+
+        // Control de panel desplegable y accesibilidad
+        Assert.Contains("_showAdvancedFilters", source, StringComparison.Ordinal);
+        Assert.Contains("ToggleAdvancedFilters", source, StringComparison.Ordinal);
+        Assert.Contains("id=\"panel-filtros-avanzados\"", source, StringComparison.Ordinal);
+        Assert.Contains("aria-controls=\"panel-filtros-avanzados\"", source, StringComparison.Ordinal);
+
+        // Colecciones de multiselección
+        Assert.Contains("_selectedComplexities", source, StringComparison.Ordinal);
+        Assert.Contains("_selectedTypes", source, StringComparison.Ordinal);
+        Assert.Contains("_selectedStyles", source, StringComparison.Ordinal);
+        Assert.Contains("_selectedConfrontations", source, StringComparison.Ordinal);
+        Assert.Contains("_selectedFootprints", source, StringComparison.Ordinal);
+        Assert.Contains("_selectedPlayerCounts", source, StringComparison.Ordinal);
+
+        // Sincronización en URL de nuevas facetas
+        Assert.Contains("queryParams[\"dureza\"]", source, StringComparison.Ordinal);
+        Assert.Contains("queryParams[\"tipos\"]", source, StringComparison.Ordinal);
+        Assert.Contains("queryParams[\"estilos\"]", source, StringComparison.Ordinal);
+        Assert.Contains("queryParams[\"confrontacion\"]", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MainLayout_MobileMenu_ShouldAutoCloseOnNavigationLinks()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
+
+        // Cierre automático del menú móvil al pulsar enlaces
+        Assert.Contains("onclick=\"this.closest('details')?.removeAttribute('open')\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/catalogo\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameDetail_MarkupContract_ShouldSupportThreeViewImagesAndExcludeEnglishSection()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Pages/GameDetail.razor");
+
+        // Selector de 3 vistas de imagen
+        Assert.Contains("_selectedHeroImageKey", source, StringComparison.Ordinal);
+        Assert.Contains("CurrentHeroImageUrl", source, StringComparison.Ordinal);
+        Assert.Contains("BackCoverImageUrl", source, StringComparison.Ordinal);
+        Assert.Contains("TableImageUrl", source, StringComparison.Ordinal);
+
+        // Sección 'Sobre el juego' retirada
+        Assert.DoesNotContain("Sobre el juego", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("@((MarkupString)Game.Description)", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
