@@ -319,6 +319,23 @@ public partial class Game
         Sleeves.AddRange(sleeves);
     }
 
+    public void UpdateScalability(IEnumerable<ScalabilityEntry> scalability)
+    {
+        ArgumentNullException.ThrowIfNull(scalability);
+        Scalability.Clear();
+        Scalability.AddRange(scalability);
+    }
+
+    public void UpdateDuration(GameDuration duration)
+    {
+        Duration = duration ?? throw new ArgumentNullException(nameof(duration));
+    }
+
+    public void UpdateFootprint(TableFootprint footprint)
+    {
+        Footprint = footprint;
+    }
+
     public void ClearSleeves()
     {
         Sleeves.Clear();

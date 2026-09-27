@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 
 namespace Ludeka.Core.Entities;
 
@@ -32,7 +35,14 @@ public class BggCatalogStagingItem
     public int MinPlayers { get; private set; }
     public int MaxPlayers { get; private set; }
     public int PlayingTimeMinutes { get; private set; }
+    public int MinPlayTimeMinutes { get; private set; }
+    public int MaxPlayTimeMinutes { get; private set; }
     public int MinAge { get; private set; }
+    public TableFootprint InferredFootprint { get; private set; } = TableFootprint.StandardTable;
+
+    // Persistencia serializada JSON para tipos complejos en staging
+    public string? ScalabilityJson { get; private set; }
+    public string? SleevesJson { get; private set; }
 
     // URLs de medios en Cloudflare R2
     public string? CoverImageUrl { get; private set; }
@@ -109,7 +119,12 @@ public class BggCatalogStagingItem
         int maxPlayers,
         int playingTimeMinutes,
         int minAge,
-        double? bggRating = null)
+        double? bggRating = null,
+        string? scalabilityJson = null,
+        string? sleevesJson = null,
+        int minPlayTimeMinutes = 0,
+        int maxPlayTimeMinutes = 0,
+        TableFootprint inferredFootprint = TableFootprint.StandardTable)
     {
         RawThingXml = rawXml;
         if (!string.IsNullOrWhiteSpace(spanishTitle)) SpanishTitle = spanishTitle.Trim();
@@ -119,15 +134,53 @@ public class BggCatalogStagingItem
         MinPlayers = Math.Max(1, minPlayers);
         MaxPlayers = Math.Max(MinPlayers, maxPlayers);
         PlayingTimeMinutes = Math.Max(0, playingTimeMinutes);
+        MinPlayTimeMinutes = minPlayTimeMinutes > 0 ? minPlayTimeMinutes : PlayingTimeMinutes;
+        MaxPlayTimeMinutes = maxPlayTimeMinutes > 0 ? maxPlayTimeMinutes : (MinPlayTimeMinutes > 0 ? MinPlayTimeMinutes : PlayingTimeMinutes);
         MinAge = Math.Max(0, minAge);
         if (bggRating.HasValue && bggRating.Value > 0)
         {
             AverageRating = Math.Clamp(bggRating.Value, 0.0, 10.0);
         }
 
+        ScalabilityJson = string.IsNullOrWhiteSpace(scalabilityJson) ? null : scalabilityJson.Trim();
+        SleevesJson = string.IsNullOrWhiteSpace(sleevesJson) ? null : sleevesJson.Trim();
+        InferredFootprint = inferredFootprint;
+
         FetchStatus = StagingFetchStatus.Fetched;
         UpdatedAt = DateTimeOffset.UtcNow;
         ErrorMessage = null;
+    }
+
+    public void UpdateInferredFootprint(TableFootprint footprint)
+    {
+        InferredFootprint = footprint;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public IReadOnlyList<ScalabilityEntry> GetScalability()
+    {
+        if (string.IsNullOrWhiteSpace(ScalabilityJson)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<ScalabilityEntry>>(ScalabilityJson) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    public IReadOnlyList<SleeveItem> GetSleeves()
+    {
+        if (string.IsNullOrWhiteSpace(SleevesJson)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<SleeveItem>>(SleevesJson) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     public void MarkImagesInProgress()

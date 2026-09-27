@@ -1,4 +1,5 @@
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -449,6 +450,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         staging.Property(s => s.Designer).HasMaxLength(200);
         staging.Property(s => s.Publisher).HasMaxLength(200);
         staging.Property(s => s.ErrorMessage).HasMaxLength(1000);
+        staging.Property(s => s.InferredFootprint).HasDefaultValue(TableFootprint.StandardTable);
+        staging.Property(s => s.MinPlayTimeMinutes).HasDefaultValue(0);
+        staging.Property(s => s.MaxPlayTimeMinutes).HasDefaultValue(0);
 
         // --- Configuración de SocialInboxItem (Incremento 42) ---
         var socialInbox = modelBuilder.Entity<SocialInboxItem>();
