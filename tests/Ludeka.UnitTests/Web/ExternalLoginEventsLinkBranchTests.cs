@@ -188,4 +188,74 @@ public class ExternalLoginEventsLinkBranchTests
         public Task UnlinkAsync(string userId, string provider, CancellationToken cancellationToken = default)
             => throw new NotSupportedException("No se esperaba UnlinkAsync en estas pruebas.");
     }
+
+    [Fact]
+    public async Task HandleTicketReceivedAsync_WhenHttpContextUserIsAnonymous_ShouldAuthenticateFromCookieScheme()
+    {
+        // Arrange: en tiempo de ejecución real, AuthenticationMiddleware no ha poblado HttpContext.User
+        // porque los IAuthenticationRequestHandler se ejecutan antes. El usuario se recupera autenticando
+        // explícitamente el SessionCookieScheme.
+        var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
+        var scheme = new AuthenticationScheme(ProviderName, ProviderName, typeof(CookieAuthenticationHandler));
+        var options = new RemoteAuthenticationOptions();
+
+        var externalPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "google-sub-200")], "External"));
+
+        var properties = new AuthenticationProperties();
+        ExternalLoginIntent.MarkLink(properties, "user-cookie-1");
+
+        var ticket = new AuthenticationTicket(externalPrincipal, properties, ProviderName);
+
+        var service = new FakeExternalLoginService();
+        var linkedUser = new AppUser("user-cookie-1", "Jugador Cookie", "cookie@ludeka.es");
+        service.LinkResult = new ExternalLoginLinkResult(ExternalLoginLinkOutcome.Linked, ProviderName, linkedUser);
+
+        var cookieUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "user-cookie-1")], ExternalAuthenticationSchemes.SessionCookieScheme));
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IExternalLoginService>(service);
+        services.AddSingleton<IAuthenticationService>(new MockAuthenticationService(cookieUser));
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+            User = anonymousUser
+        };
+
+        var context = new TicketReceivedContext(httpContext, scheme, options, ticket);
+
+        // Act
+        await ExternalLoginEvents.HandleTicketReceivedAsync(ProviderName, context);
+
+        // Assert: se vinculó con éxito usando la identidad recuperada del esquema de sesión.
+        var call = Assert.Single(service.LinkCalls);
+        Assert.Equal("user-cookie-1", call.UserId);
+        Assert.Equal("user-cookie-1", context.Principal!.FindFirstValue(ClaimTypes.NameIdentifier));
+        Assert.Null(context.Result);
+    }
+
+    private sealed class MockAuthenticationService : IAuthenticationService
+    {
+        private readonly ClaimsPrincipal _principal;
+
+        public MockAuthenticationService(ClaimsPrincipal principal) => _principal = principal;
+
+        public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string? scheme)
+        {
+            if (string.Equals(scheme, ExternalAuthenticationSchemes.SessionCookieScheme, StringComparison.OrdinalIgnoreCase))
+            {
+                var ticket = new AuthenticationTicket(_principal, scheme!);
+                return Task.FromResult(AuthenticateResult.Success(ticket));
+            }
+
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        public Task ChallengeAsync(HttpContext context, string? scheme, AuthenticationProperties? properties) => Task.CompletedTask;
+        public Task ForbidAsync(HttpContext context, string? scheme, AuthenticationProperties? properties) => Task.CompletedTask;
+        public Task SignInAsync(HttpContext context, string? scheme, ClaimsPrincipal principal, AuthenticationProperties? properties) => Task.CompletedTask;
+        public Task SignOutAsync(HttpContext context, string? scheme, AuthenticationProperties? properties) => Task.CompletedTask;
+    }
 }

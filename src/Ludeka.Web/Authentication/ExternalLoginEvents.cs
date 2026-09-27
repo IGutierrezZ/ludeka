@@ -62,7 +62,7 @@ public static class ExternalLoginEvents
         // rama sustituye por completo al camino de acceso: nunca aprovisiona un AppUser nuevo (diseño §D1).
         if (ExternalLoginIntent.TryReadLink(context.Properties, out var intendedUserId))
         {
-            var sessionUserId = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sessionUserId = await ResolveSessionUserIdAsync(context);
 
             // Reconfirmación (diseño §D1): la sesión que vuelve del proveedor debe ser exactamente
             // la misma que emitió la intención. Sin esto, la comprobación del paso 2 (userId capturado
@@ -152,5 +152,26 @@ public static class ExternalLoginEvents
     {
         var claim = principal.FindFirst(EmailVerifiedClaim);
         return claim is not null && bool.TryParse(claim.Value, out var verified) && verified;
+    }
+
+    private static async Task<string?> ResolveSessionUserIdAsync(TicketReceivedContext context)
+    {
+        var directUser = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!string.IsNullOrWhiteSpace(directUser))
+        {
+            return directUser;
+        }
+
+        var authService = context.HttpContext.RequestServices.GetService<IAuthenticationService>();
+        if (authService is not null)
+        {
+            var authResult = await context.HttpContext.AuthenticateAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
+            if (authResult.Succeeded && authResult.Principal is not null)
+            {
+                return authResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            }
+        }
+
+        return null;
     }
 }
