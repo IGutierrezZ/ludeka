@@ -148,6 +148,74 @@ public class DirectorySeederTests : IDisposable
         Assert.Equal(36, all.Count); // 35 del padrón (incl. analisis-paralisis) + 1 manual
     }
 
+    [Fact]
+    public async Task SeedDirectoryAsync_CanonicalJson_HasNoDuplicatedWebsitesInSocialLinks()
+    {
+        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+
+        var publishers = await _dbContext.Publishers.ToListAsync();
+        var stores = await _dbContext.Stores.ToListAsync();
+        var creators = await _dbContext.Creators.ToListAsync();
+
+        Assert.NotEmpty(publishers);
+        Assert.NotEmpty(stores);
+        Assert.NotEmpty(creators);
+
+        // REQ-4: Ninguna entidad debe tener duplicado de Website dentro de SocialLinks
+        Assert.All(publishers, p => Assert.DoesNotContain(p.SocialLinks, l => l.Platform == SocialPlatform.Website));
+        Assert.All(stores, s => Assert.DoesNotContain(s.SocialLinks, l => l.Platform == SocialPlatform.Website));
+        Assert.All(creators, c => Assert.DoesNotContain(c.SocialLinks, l => l.Platform == SocialPlatform.Website));
+    }
+
+    [Fact]
+    public async Task SeedDirectoryAsync_KeyEntities_HaveCuratedAndAccurateUrls()
+    {
+        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+
+        var doctorMeeple = await _dbContext.Creators.SingleAsync(c => c.Slug == "doctor-meeple");
+        Assert.Equal("https://doctormeeple.es", doctorMeeple.WebsiteUrl);
+        Assert.DoesNotContain(doctorMeeple.SocialLinks, l => l.Platform == SocialPlatform.YouTube);
+
+        var clubDante = await _dbContext.Creators.SingleAsync(c => c.Slug == "club-dante");
+        Assert.Equal("https://www.elclubdante.es", clubDante.WebsiteUrl);
+        Assert.Contains(clubDante.SocialLinks, l => l.Platform == SocialPlatform.YouTube && l.Handle == "@ELCLUBDANTE");
+
+        var nostromo = await _dbContext.Stores.SingleAsync(s => s.Slug == "nostromo-comics");
+        Assert.Equal("https://nostromocomics.com", nostromo.WebsiteUrl);
+
+        var asmodee = await _dbContext.Publishers.SingleAsync(p => p.Slug == "asmodee-iberica");
+        Assert.Equal("https://es.asmodee.com", asmodee.WebsiteUrl);
+
+        var bumblebee = await _dbContext.Publishers.SingleAsync(p => p.Slug == "bumblebee-interactive");
+        Assert.Equal("Bumble3ee Interactive", bumblebee.Name);
+        Assert.Equal("https://bumble3ee.com", bumblebee.WebsiteUrl);
+
+        var primigenio = await _dbContext.Publishers.SingleAsync(p => p.Slug == "primigenia-juegos");
+        Assert.Equal("Ediciones Primigenio", primigenio.Name);
+        Assert.Equal("https://edicionesprimigenio.com", primigenio.WebsiteUrl);
+    }
+
+    [Fact]
+    public async Task SeedDirectoryAsync_AllSocialLinks_HaveValidHttpsUrls()
+    {
+        await DirectorySeeder.SeedDirectoryAsync(_dbContext);
+
+        var publishers = await _dbContext.Publishers.ToListAsync();
+        var stores = await _dbContext.Stores.ToListAsync();
+        var creators = await _dbContext.Creators.ToListAsync();
+
+        var allSocial = publishers.SelectMany(p => p.SocialLinks)
+            .Concat(stores.SelectMany(s => s.SocialLinks))
+            .Concat(creators.SelectMany(c => c.SocialLinks));
+
+        Assert.All(allSocial, link =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(link.Url));
+            Assert.True(Uri.TryCreate(link.Url, UriKind.Absolute, out var uri));
+            Assert.True(uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+        });
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();
