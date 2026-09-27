@@ -24,7 +24,7 @@ graph LR
 Google Cloud Run ofrece cada mes dentro de su capa gratuita:
 - **2 millones de peticiones HTTP** al mes gratis.
 - **180.000 vCPU-segundos** y **360.000 GiB-segundos** de memoria gratis.
-- **Escalado a cero (`min-instances: 0`):** Cuando no hay tráfico en la web, el contenedor se apaga automáticamente y **no consume ni un solo céntimo**. En cuanto entra una petición, levanta en aproximadamente 1-2 segundos gracias a .NET 10 AOT/optimizado.
+- **Instancia activa mínima (`min-instances: 1`) y Startup CPU Boost (`--cpu-boost`):** En producción se configura una instancia fija para eliminar los *cold starts*. Con CPU bajo demanda (`--cpu-throttling`, por defecto), la instancia en reposo solo computa coste de memoria (~3-4 €/mes con 512 MiB), cubierto holgadamente por el crédito mensual. Además, `--cpu-boost` duplica la CPU en arranques para acelerar despliegues o escalados. Si se prefiere coste estrictamente cero, puede bajarse a `min-instances: 0`.
 
 ---
 
@@ -48,12 +48,32 @@ gcloud services enable \
     cloudbuild.googleapis.com
 ```
 
-### Paso 3.2: Crear Repositorio en Artifact Registry
+### Paso 3.2: Crear Repositorio en Artifact Registry y Política de Limpieza
 ```bash
+# 1. Crear el repositorio Docker
 gcloud artifacts repositories create ludeka \
     --repository-format=docker \
     --location=$REGION \
     --description="Imágenes Docker de Ludeka"
+
+# 2. Configurar política de limpieza (conservar las 5 imágenes más recientes para evitar acumulación)
+cat << 'EOF' > cleanup-policy.json
+[
+  {
+    "name": "keep-recent-images",
+    "action": {"type": "Keep"},
+    "mostRecentVersions": {
+      "keepCount": 5
+    }
+  }
+]
+EOF
+
+gcloud artifacts repositories set-cleanup-policies ludeka \
+    --project=$PROJECT_ID \
+    --location=$REGION \
+    --policy=cleanup-policy.json \
+    --no-dry-run
 ```
 
 ### Paso 3.3: Crear Cuenta de Servicio para GitHub Actions
@@ -134,8 +154,9 @@ gcloud run deploy ludeka-web \
     --port=8080 \
     --memory=512Mi \
     --cpu=1 \
-    --min-instances=0 \
-    --max-instances=5 \
+    --min-instances=1 \
+    --max-instances=2 \
+    --cpu-boost \
     --set-env-vars="ASPNETCORE_ENVIRONMENT=Production,Database__Provider=PostgreSql,Database__SeedDemoData=false,Bgg__SimulateApi=false,Gemini__Simulate=false,YouTube__Simulate=false,CommunityNotifications__DryRun=false" \
     --set-env-vars="ConnectionStrings__DefaultConnection=Host=db.xxxx.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=TU_PASSWORD;SSL Mode=Require;Trust Server Certificate=true;"
 ```
