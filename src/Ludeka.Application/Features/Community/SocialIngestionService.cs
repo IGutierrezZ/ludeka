@@ -29,6 +29,7 @@ public class SocialIngestionService : ISocialIngestionService
     private readonly HttpClient _httpClient;
     private readonly ILogger<SocialIngestionService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IGiveawayCoverComposer? _giveawayCoverComposer;
 
     public SocialIngestionService(
         ISocialInboxRepository inboxRepository,
@@ -42,7 +43,8 @@ public class SocialIngestionService : ISocialIngestionService
         IMediaRepository mediaRepository,
         HttpClient httpClient,
         ILogger<SocialIngestionService> logger,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IGiveawayCoverComposer? giveawayCoverComposer = null)
     {
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
         _metadataExtractor = metadataExtractor ?? throw new ArgumentNullException(nameof(metadataExtractor));
@@ -56,6 +58,7 @@ public class SocialIngestionService : ISocialIngestionService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
+        _giveawayCoverComposer = giveawayCoverComposer;
     }
 
     /// <summary>
@@ -72,6 +75,124 @@ public class SocialIngestionService : ISocialIngestionService
         await RequirePermissionAsync(ct);
 
         return await IngestFromCollectorAsync(url, manualCaption, ct);
+    }
+
+    public async Task<SocialInboxItemDto> IngestMultimodalAsync(SocialExpressMultimodalInputDto input, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        ArgumentNullException.ThrowIfNull(input);
+
+        if (string.IsNullOrWhiteSpace(input.SourceUrl))
+            throw new ArgumentException("La URL de origen no puede estar vacía.", nameof(input.SourceUrl));
+
+        bool hasCoverImage = input.CoverImageBytes != null && input.CoverImageBytes.Length > 0;
+        bool hasBasesImage = input.BasesImageBytes != null && input.BasesImageBytes.Length > 0;
+        bool hasText = !string.IsNullOrWhiteSpace(input.ManualCaption);
+
+        if (!hasCoverImage && !hasBasesImage && !hasText)
+        {
+            throw new InvalidOperationException("Debes proporcionar al menos la imagen de portada, la captura de bases o el texto descriptivo.");
+        }
+
+        _logger.LogInformation("Iniciando alta exprés multimodal para URL: {Url}", input.SourceUrl);
+
+        var metadata = await _metadataExtractor.ExtractFromUrlAsync(input.SourceUrl, ct);
+        var platform = metadata?.Platform ?? DetectPlatform(input.SourceUrl);
+        var authorOrChannel = metadata?.AuthorOrChannel ?? "Comunidad";
+
+        // 1. Análisis Multimodal con Gemini Flash Vision
+        var analysis = await _aiAnalysisService.AnalyzeMultimodalAsync(
+            text: input.ManualCaption,
+            basesImageBytes: input.BasesImageBytes,
+            basesImageMimeType: input.BasesImageMimeType,
+            coverImageBytes: input.CoverImageBytes,
+            coverImageMimeType: input.CoverImageMimeType,
+            authorOrChannel: authorOrChannel,
+            ct: ct);
+
+        // 2. Buscar juego en catálogo si la IA sugiere un título
+        Guid? matchedGameId = null;
+        string? matchedGameTitle = analysis.SuggestedGameTitle;
+
+        if (!string.IsNullOrWhiteSpace(analysis.SuggestedGameTitle))
+        {
+            var searchResults = await _gameRepository.SearchAsync(new GameFilterCriteria(SearchTerm: analysis.SuggestedGameTitle), page: 1, pageSize: 1, ct: ct);
+            if (searchResults.Items.Count > 0)
+            {
+                var first = searchResults.Items[0];
+                matchedGameId = first.Id;
+                matchedGameTitle = first.SpanishTitle;
+            }
+        }
+
+        var title = !string.IsNullOrWhiteSpace(analysis.Title)
+            ? analysis.Title
+            : metadata?.Title ?? "Sorteo comunitario";
+
+        var organizer = !string.IsNullOrWhiteSpace(analysis.OrganizerOrAuthor)
+            ? analysis.OrganizerOrAuthor
+            : authorOrChannel;
+
+        var itemId = Guid.NewGuid();
+        string? finalThumbnailUrl = null;
+
+        // 3. Componer o guardar portada horizontal 16:9
+        if (hasCoverImage && _giveawayCoverComposer != null)
+        {
+            try
+            {
+                var composedBytes = _giveawayCoverComposer.ComposeHorizontalCover(input.CoverImageBytes!, analysis.CropBoundingBox);
+                using var composedStream = new MemoryStream(composedBytes);
+                var storageKey = $"social-inbox/{itemId:N}/thumbnail.webp";
+                finalThumbnailUrl = await _imageStorageService.UploadOptimizedImageAsync(composedStream, storageKey, ct: ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al componer carátula horizontal con SkiaSharp. Se intentará almacenamiento directo.");
+                using var directStream = new MemoryStream(input.CoverImageBytes!);
+                var storageKey = $"social-inbox/{itemId:N}/thumbnail.webp";
+                finalThumbnailUrl = await _imageStorageService.UploadOptimizedImageAsync(directStream, storageKey, ct: ct);
+            }
+        }
+        else if (hasCoverImage)
+        {
+            using var directStream = new MemoryStream(input.CoverImageBytes!);
+            var storageKey = $"social-inbox/{itemId:N}/thumbnail.webp";
+            finalThumbnailUrl = await _imageStorageService.UploadOptimizedImageAsync(directStream, storageKey, ct: ct);
+        }
+        else if (!string.IsNullOrWhiteSpace(metadata?.ImageUrl))
+        {
+            finalThumbnailUrl = await TryDownloadAndOptimizeImageAsync(metadata.ImageUrl, itemId, ct);
+        }
+
+        var rawCaption = !string.IsNullOrWhiteSpace(input.ManualCaption)
+            ? input.ManualCaption.Trim()
+            : metadata?.Description ?? metadata?.Title ?? "Bases capturadas por visión artificial multimodal";
+
+        var item = new SocialInboxItem(
+            sourceUrl: input.SourceUrl,
+            platform: platform,
+            detectedType: analysis.DetectedType,
+            title: title,
+            organizerOrAuthor: organizer,
+            collaborator: analysis.Collaborator,
+            gameId: matchedGameId,
+            gameTitle: matchedGameTitle,
+            eventOrReleaseDate: analysis.EventOrReleaseDate,
+            eventEndDate: analysis.EventEndDate,
+            location: analysis.TerritorialScope ?? analysis.Location,
+            estimatedPvp: analysis.EstimatedPvp,
+            mediaCategory: analysis.MediaCategory,
+            playerCountBadge: analysis.PlayerCountBadge,
+            originalCaption: rawCaption,
+            thumbnailUrl: finalThumbnailUrl,
+            isVideo: metadata?.IsVideo ?? false,
+            aiAnalysisNotes: analysis.Notes);
+
+        var savedItem = await _inboxRepository.AddAsync(item, ct);
+        _logger.LogInformation("Ítem multimodal creado en bandeja de moderación con ID {Id} (Tipo: {Type})", savedItem.Id, savedItem.DetectedType);
+
+        return SocialInboxItemDto.FromEntity(savedItem);
     }
 
     /// <inheritdoc />
@@ -91,6 +212,12 @@ public class SocialIngestionService : ISocialIngestionService
         var rawText = !string.IsNullOrWhiteSpace(manualCaption)
             ? manualCaption.Trim()
             : metadata?.Description ?? metadata?.Title ?? string.Empty;
+
+        // Si es Instagram y no se pudo extraer texto ni imagen de la URL y tampoco se aportó texto manual
+        if (platform == SocialPlatform.Instagram && string.IsNullOrWhiteSpace(rawText) && string.IsNullOrWhiteSpace(metadata?.ImageUrl))
+        {
+            throw new InvalidOperationException("Instagram requiere inicio de sesión para leer esta URL. Por favor, utiliza el Alta Exprés Multimodal adjuntando la captura de bases o foto del sorteo.");
+        }
 
         // 2. Analizar texto con IA (Gemini Flash o heurística)
         var analysis = await _aiAnalysisService.AnalyzeTextAsync(rawText, authorOrChannel, ct);

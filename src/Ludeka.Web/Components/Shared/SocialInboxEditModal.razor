@@ -168,6 +168,18 @@
                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
                     </div>
                 }
+                else if (_detectedType == SocialSubmissionType.Giveaway)
+                {
+                    <div>
+                        <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                            Ámbito Territorial / País del Sorteo
+                        </label>
+                        <input type="text"
+                               @bind="_location"
+                               placeholder="Ej. España (Península), Nacional, Internacional..."
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                }
 
                 @if (_detectedType == SocialSubmissionType.WeeklyRelease)
                 {

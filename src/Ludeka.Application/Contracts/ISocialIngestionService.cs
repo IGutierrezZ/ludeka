@@ -12,6 +12,9 @@ public interface ISocialIngestionService
     /// <summary>Alta exprés desde la interfaz: exige sesión y permiso de moderación de medios.</summary>
     Task<SocialInboxItemDto> IngestFromUrlAsync(string url, string? manualCaption = null, CancellationToken ct = default);
 
+    /// <summary>Alta exprés multimodal: admite URL, portada y bases (texto o captura).</summary>
+    Task<SocialInboxItemDto> IngestMultimodalAsync(SocialExpressMultimodalInputDto input, CancellationToken ct = default);
+
     /// <summary>
     /// Alta exprés del recolector en segundo plano (INC-46, W1). Es una ruta de sistema sin sesión:
     /// la usan los servicios hospedados que descubren publicaciones, nunca los manejadores de la interfaz.

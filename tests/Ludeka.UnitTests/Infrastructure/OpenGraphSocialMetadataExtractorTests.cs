@@ -314,6 +314,31 @@ public class OpenGraphSocialMetadataExtractorTests
         Assert.Equal(expectedPlatform, result.Platform);
     }
 
+    [Fact]
+    public async Task ExtractFromUrlAsync_InstagramBlockedLoginHtml_DoesNotTreatAsValidContentAndDisablesVideoFlag()
+    {
+        // Arrange: HTML devuelto por Instagram en servidor anónimo (sólo etiqueta <title>Instagram</title>)
+        var blockedHtml = "<html><head><title>Instagram</title></head><body><h1>Login</h1></body></html>";
+        var handler = new FakeHttpMessageHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(blockedHtml, Encoding.UTF8, "text/html")
+            }));
+
+        var client = new HttpClient(handler);
+        var extractor = new OpenGraphSocialMetadataExtractor(client, NullLogger<OpenGraphSocialMetadataExtractor>.Instance);
+
+        // Act
+        var result = await extractor.ExtractFromUrlAsync("https://www.instagram.com/reel/C-test123/");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(SocialPlatform.Instagram, result.Platform);
+        Assert.Null(result.Title);
+        Assert.Null(result.ImageUrl);
+        Assert.False(result.IsVideo);
+    }
+
     private class FakeHttpMessageHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;

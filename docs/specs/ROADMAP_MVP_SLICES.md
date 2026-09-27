@@ -665,6 +665,15 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 70: Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos
+- **Identificador SDD:** `change-70-ingesta-multimodal-sorteos`
+- **Objetivo Principal:** Superar el bloqueo anti-scraping de Instagram y la imposibilidad de seleccionar texto en móvil mediante alta exprés multimodal asistida por Google Gemini Flash Vision (OCR de bases y capturas) y composición gráfica panorámica 16:9 con SkiaSharp (`SkiaSharpGiveawayCoverComposer`) con fondo desenfocado, sombra suave y recorte inteligente de barras móviles, reforzando la extracción con blindaje anti-vacíos.
+- **Estado:** ✅ **Completado y Archivado** (1.938 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-70-ingesta-multimodal-sorteos.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-70-ingesta-multimodal-sorteos.md).
+- **Módulos del Sistema:** [`28-hub-ingesta-social-moderacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

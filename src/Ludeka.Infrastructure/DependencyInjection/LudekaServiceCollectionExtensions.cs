@@ -301,6 +301,7 @@ public static class LudekaServiceCollectionExtensions
         services.Configure<CloudflareR2Options>(configuration.GetSection(CloudflareR2Options.SectionName));
         services.Configure<MediaOptions>(configuration.GetSection(MediaOptions.SectionName));
         services.AddSingleton<IImageOptimizationService, SkiaSharpImageOptimizationService>();
+        services.AddSingleton<IGiveawayCoverComposer, SkiaSharpGiveawayCoverComposer>();
         services.AddScoped<CloudflareR2StorageService>();
         services.AddScoped<SimulatedImageStorageService>();
         services.AddScoped(sp =>

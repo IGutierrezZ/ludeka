@@ -1,3 +1,5 @@
+@using System.IO
+@using Microsoft.AspNetCore.Components.Forms
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Application.Features.Catalog
@@ -42,12 +44,12 @@
                         @onclick="() => _activeTab = 0"
                         class="flex-1 py-3 px-4 text-xs font-bold text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 @(_activeTab == 0 ? "border-[var(--brand-primary)] text-[var(--brand-primary)] bg-[var(--bg-card)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
                     <Icon Name="zap" Size="14" />
-                    <span>Pegar URL y Listo (IA)</span>
+                    <span>Alta Exprés Multimodal (IA)</span>
                 </button>
                 <button type="button"
                         @onclick="() => _activeTab = 1"
                         class="flex-1 py-3 px-4 text-xs font-bold text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 @(_activeTab == 1 ? "border-[var(--brand-primary)] text-[var(--brand-primary)] bg-[var(--bg-card)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    <Icon Name="sliders" Size="14" />
+                    <Icon Name="settings" Size="14" />
                     <span>Modo Manual Avanzado</span>
                 </button>
             </div>
@@ -72,7 +74,7 @@
 
                 @if (_activeTab == 0)
                 {
-                    @* Pestaña 0: Automática por URL *@
+                    @* Pestaña 0: Alta Exprés Multimodal *@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
@@ -88,18 +90,145 @@
                                        class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                             </div>
                             <span class="text-[0.65rem] text-[var(--text-muted)] mt-1 block">
-                                Se extraerá la miniatura, se optimizará a WebP en R2 y Gemini clasificará el contenido.
+                                Se vinculará como enlace de origen del sorteo o publicación.
                             </span>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
-                                Texto o pie de foto (Opcional)
-                            </label>
-                            <textarea @bind="_expressCaption"
-                                      rows="4"
-                                      placeholder="Si la publicación requiere inicio de sesión en Instagram, pega aquí el texto o bases del post para que Gemini lo procese..."
-                                      class="w-full p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"></textarea>
+                        @* Sección Foto de Portada *@
+                        <div class="p-3.5 rounded-2xl bg-[var(--bg-surface-elevated)]/60 border border-[var(--border-subtle)] space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                    <Icon Name="image" Size="14" />
+                                    <span>Foto de Portada / Post</span>
+                                    <span class="text-[0.65rem] font-normal text-amber-400 font-mono">(Recomendado en Instagram)</span>
+                                </label>
+                                @if (_coverImageBytes != null)
+                                {
+                                    <button type="button"
+                                            @onclick="ClearCoverImage"
+                                            class="text-[0.65rem] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors">
+                                        <Icon Name="trash-2" Size="12" />
+                                        <span>Quitar</span>
+                                    </button>
+                                }
+                            </div>
+
+                            @if (_coverImagePreviewUrl != null)
+                            {
+                                <div class="flex items-center gap-3 p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                                    <img src="@_coverImagePreviewUrl"
+                                         alt="Portada cargada"
+                                         class="w-16 h-16 object-cover rounded-lg border border-[var(--border-subtle)] shrink-0" />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-xs font-bold text-[var(--text-primary)] truncate">@_coverImageFileName</div>
+                                        <div class="text-[0.65rem] text-emerald-400 flex items-center gap-1 mt-0.5">
+                                            <Icon Name="check" Size="10" />
+                                            <span>Lista para encuadre 16:9 y recorte IA</span>
+                                        </div>
+                                        <div class="text-[0.6rem] text-[var(--text-muted)] mt-0.5">
+                                            SkiaSharp compondrá la carátula horizontal con fondo difuminado y marca.
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="relative border-2 border-dashed border-[var(--border-subtle)] hover:border-[var(--brand-primary)]/50 rounded-xl p-3 text-center transition-colors">
+                                    <InputFile OnChange="HandleCoverFileSelected"
+                                               accept=".jpg,.jpeg,.png,.webp"
+                                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                    <div class="flex flex-col items-center justify-center gap-1 pointer-events-none py-1">
+                                        <div class="p-1.5 rounded-lg bg-[var(--bg-surface)] text-[var(--text-muted)]">
+                                            <Icon Name="image" Size="16" />
+                                        </div>
+                                        <span class="text-xs font-semibold text-[var(--text-secondary)]">
+                                            Selecciona o suelta la captura/foto del sorteo
+                                        </span>
+                                        <span class="text-[0.65rem] text-[var(--text-muted)]">
+                                            Si es captura de móvil, la IA detectará los bordes y eliminará la barra superior
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @* Sección Bases del Sorteo *@
+                        <div class="p-3.5 rounded-2xl bg-[var(--bg-surface-elevated)]/60 border border-[var(--border-subtle)] space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                    <Icon Name="file-text" Size="14" />
+                                    <span>Bases o Pie de Foto</span>
+                                </label>
+                                @* Selector sub-modo: Texto vs Captura *@
+                                <div class="flex rounded-lg bg-[var(--bg-surface)] p-0.5 border border-[var(--border-subtle)] text-[0.65rem]">
+                                    <button type="button"
+                                            @onclick="() => _basesInputMode = 0"
+                                            class="px-2 py-1 rounded font-bold transition-colors flex items-center gap-1 @(_basesInputMode == 0 ? "bg-[var(--brand-primary)] text-white shadow-xs" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                                        <Icon Name="file-text" Size="11" />
+                                        <span>Texto</span>
+                                    </button>
+                                    <button type="button"
+                                            @onclick="() => _basesInputMode = 1"
+                                            class="px-2 py-1 rounded font-bold transition-colors flex items-center gap-1 @(_basesInputMode == 1 ? "bg-[var(--brand-primary)] text-white shadow-xs" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                                        <Icon Name="camera" Size="11" />
+                                        <span>Captura (Móvil)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (_basesInputMode == 0)
+                            {
+                                <div>
+                                    <textarea @bind="_expressCaption"
+                                              rows="3"
+                                              placeholder="Pega aquí el texto con los requisitos, fecha y menciones del sorteo..."
+                                              class="w-full p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"></textarea>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (_basesImagePreviewUrl != null)
+                                {
+                                    <div class="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <img src="@_basesImagePreviewUrl"
+                                                 alt="Captura de bases"
+                                                 class="w-12 h-12 object-cover rounded-lg border border-[var(--border-subtle)] shrink-0" />
+                                            <div class="min-w-0">
+                                                <div class="text-xs font-bold text-[var(--text-primary)] truncate">@_basesImageFileName</div>
+                                                <div class="text-[0.65rem] text-emerald-400 flex items-center gap-1 mt-0.5">
+                                                    <Icon Name="check" Size="10" />
+                                                    <span>Captura lista para OCR multimodal</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                @onclick="ClearBasesImage"
+                                                class="text-[0.65rem] font-bold text-rose-400 hover:text-rose-300 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors">
+                                            <Icon Name="trash-2" Size="14" />
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="relative border-2 border-dashed border-[var(--border-subtle)] hover:border-[var(--brand-primary)]/50 rounded-xl p-3 text-center transition-colors">
+                                        <InputFile OnChange="HandleBasesFileSelected"
+                                                   accept=".jpg,.jpeg,.png,.webp"
+                                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                        <div class="flex flex-col items-center justify-center gap-1 pointer-events-none py-1">
+                                            <div class="p-1.5 rounded-lg bg-[var(--bg-surface)] text-[var(--text-muted)]">
+                                                <Icon Name="camera" Size="16" />
+                                            </div>
+                                            <span class="text-xs font-semibold text-[var(--text-secondary)]">
+                                                Sube la captura de pantalla con el texto/bases
+                                            </span>
+                                            <span class="text-[0.65rem] text-[var(--text-muted)]">
+                                                Ideal para Instagram en móvil: Gemini Vision extraerá organizador, fechas y juego
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            }
                         </div>
                     </div>
                 }
@@ -264,9 +393,20 @@
     private string? _errorMessage;
     private string? _successMessage;
 
-    // Campos pestaña 0
+    // Campos pestaña 0 (Multimodal)
     private string _expressUrl = string.Empty;
     private string _expressCaption = string.Empty;
+    private int _basesInputMode = 0; // 0 = Texto, 1 = Captura
+
+    private byte[]? _coverImageBytes;
+    private string? _coverImageMimeType;
+    private string? _coverImagePreviewUrl;
+    private string? _coverImageFileName;
+
+    private byte[]? _basesImageBytes;
+    private string? _basesImageMimeType;
+    private string? _basesImagePreviewUrl;
+    private string? _basesImageFileName;
 
     // Campos pestaña 1
     private string _manualUrl = string.Empty;
@@ -286,6 +426,66 @@
         {
             _manualOrganizer = PrepopulatedOrganizer;
         }
+    }
+
+    private async Task HandleCoverFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+        _errorMessage = null;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _coverImageBytes = ms.ToArray();
+            _coverImageMimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            _coverImagePreviewUrl = $"data:{_coverImageMimeType};base64,{Convert.ToBase64String(_coverImageBytes)}";
+            _coverImageFileName = file.Name;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al leer la foto de portada: {ex.Message}";
+        }
+    }
+
+    private void ClearCoverImage()
+    {
+        _coverImageBytes = null;
+        _coverImageMimeType = null;
+        _coverImagePreviewUrl = null;
+        _coverImageFileName = null;
+    }
+
+    private async Task HandleBasesFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+        _errorMessage = null;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _basesImageBytes = ms.ToArray();
+            _basesImageMimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            _basesImagePreviewUrl = $"data:{_basesImageMimeType};base64,{Convert.ToBase64String(_basesImageBytes)}";
+            _basesImageFileName = file.Name;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al leer la captura de bases: {ex.Message}";
+        }
+    }
+
+    private void ClearBasesImage()
+    {
+        _basesImageBytes = null;
+        _basesImageMimeType = null;
+        _basesImagePreviewUrl = null;
+        _basesImageFileName = null;
     }
 
     private async Task OnSearchGameKeyUp()
@@ -333,7 +533,26 @@
                     return;
                 }
 
-                result = await IngestionService.IngestFromUrlAsync(_expressUrl, _expressCaption);
+                bool hasCover = _coverImageBytes != null && _coverImageBytes.Length > 0;
+                bool hasBasesImg = _basesImageBytes != null && _basesImageBytes.Length > 0;
+                bool hasCaption = !string.IsNullOrWhiteSpace(_expressCaption);
+
+                if (hasCover || hasBasesImg)
+                {
+                    var multimodalInput = new SocialExpressMultimodalInputDto(
+                        SourceUrl: _expressUrl,
+                        ManualCaption: hasCaption ? _expressCaption : null,
+                        BasesImageBytes: _basesImageBytes,
+                        BasesImageMimeType: _basesImageMimeType,
+                        CoverImageBytes: _coverImageBytes,
+                        CoverImageMimeType: _coverImageMimeType);
+
+                    result = await IngestionService.IngestMultimodalAsync(multimodalInput);
+                }
+                else
+                {
+                    result = await IngestionService.IngestFromUrlAsync(_expressUrl, _expressCaption);
+                }
             }
             else
             {
@@ -374,6 +593,9 @@
             // Resetear campos
             _expressUrl = string.Empty;
             _expressCaption = string.Empty;
+            _basesInputMode = 0;
+            ClearCoverImage();
+            ClearBasesImage();
             _manualUrl = string.Empty;
             _manualTitle = string.Empty;
             _selectedGameId = null;

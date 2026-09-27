@@ -123,6 +123,7 @@ public class SocialCollectorServiceTests
         }
 
         public Task<SocialInboxItemDto> IngestManualAdvancedAsync(SocialInboxManualInputDto input, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<SocialInboxItemDto> IngestMultimodalAsync(SocialExpressMultimodalInputDto input, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<SocialInboxItemDto> UpdateItemAsync(SocialInboxUpdateDto dto, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task RejectItemAsync(Guid inboxItemId, string reason, string reviewerUserId, CancellationToken ct = default) => throw new NotImplementedException();

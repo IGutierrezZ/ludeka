@@ -125,12 +125,26 @@ public class OpenGraphSocialMetadataExtractor : ISocialMetadataExtractor
 
             // En Instagram, el título suele tener la forma "Author on Instagram: '...'"
             string? author = null;
-            if (platform == SocialPlatform.Instagram && !string.IsNullOrWhiteSpace(title))
+            if (platform == SocialPlatform.Instagram)
             {
-                var authorMatch = Regex.Match(title, @"^(.+?)(?:\s+(?:en|on)\s+Instagram)?(?:\s*[:•]|\s*$)", RegexOptions.IgnoreCase);
-                if (authorMatch.Success)
+                // Si la respuesta es la pantalla vacía de login o título genérico "Instagram" sin imagen ni descripción
+                if (string.Equals(title, "Instagram", StringComparison.OrdinalIgnoreCase) ||
+                    (title != null && (title.StartsWith("Login", StringComparison.OrdinalIgnoreCase) || title.StartsWith("Inicia sesión", StringComparison.OrdinalIgnoreCase))) &&
+                    string.IsNullOrWhiteSpace(image) && string.IsNullOrWhiteSpace(description))
                 {
-                    author = authorMatch.Groups[1].Value.Trim();
+                    title = null;
+                    author = null;
+                    image = null;
+                    description = null;
+                    isVideo = false;
+                }
+                else if (!string.IsNullOrWhiteSpace(title))
+                {
+                    var authorMatch = Regex.Match(title, @"^(.+?)(?:\s+(?:en|on)\s+Instagram)?(?:\s*[:•]|\s*$)", RegexOptions.IgnoreCase);
+                    if (authorMatch.Success)
+                    {
+                        author = authorMatch.Groups[1].Value.Trim();
+                    }
                 }
             }
 
