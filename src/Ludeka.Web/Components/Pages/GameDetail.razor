@@ -125,39 +125,76 @@ else
     <div class="detail-hero-backdrop">
         <div class="container-ludeka">
             <div class="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                @* Carátula oficial BGG *@
-                <div class="w-full sm:w-64 md:w-72 shrink-0 aspect-square rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-[var(--bg-surface-elevated)] relative">
-                    @{
-                        var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
-                    }
+                @* Carátula oficial BGG y selector interactivo de imágenes *@
+                <div class="w-full sm:w-64 md:w-72 shrink-0 flex flex-col gap-2">
+                    <div class="w-full aspect-square rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-[var(--bg-surface-elevated)] relative">
+                        @{
+                            var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                            var currentImgUrl = CurrentHeroImageUrl;
+                        }
 
-                    @* Badge flotante en carátula para reconocimiento instantáneo *@
-                    @if (Game.IsExpansion)
+                        @* Badge flotante en carátula para reconocimiento instantáneo *@
+                        @if (Game.IsExpansion)
+                        {
+                            <div class="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5">
+                                <Icon Name="puzzle" Size="12" />
+                                <span>Expansión Oficial</span>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(currentImgUrl))
+                        {
+                            <img src="@currentImgUrl"
+                                 alt="@GetHeroImageAlt()"
+                                 fetchpriority="high"
+                                 decoding="async"
+                                 width="320"
+                                 height="320"
+                                 onerror="this.onerror=null; this.src='@placeholderUrl';"
+                                 class="w-full h-full object-cover transition-all duration-300" />
+                        }
+                        else
+                        {
+                            <img src="@placeholderUrl"
+                                 alt="Carátula de @Game.SpanishTitle no disponible"
+                                 width="320"
+                                 height="320"
+                                 class="w-full h-full object-cover opacity-90" />
+                        }
+                    </div>
+
+                    @* Selector de vista de imágenes (Portada, Trasera, Mesa) *@
+                    @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl) || !string.IsNullOrWhiteSpace(Game.TableImageUrl))
                     {
-                        <div class="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5">
-                            <Icon Name="puzzle" Size="12" />
-                            <span>Expansión Oficial</span>
+                        <div class="flex items-center justify-center gap-1.5 p-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+                            <button type="button"
+                                    @onclick='() => _selectedHeroImageKey = "cover"'
+                                    class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "cover" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
+                                    title="Ver portada principal">
+                                <Icon Name="image" Size="12" />
+                                <span>Portada</span>
+                            </button>
+                            @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl))
+                            {
+                                <button type="button"
+                                        @onclick='() => _selectedHeroImageKey = "back"'
+                                        class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "back" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
+                                        title="Ver contraportada">
+                                    <Icon Name="rotate-cw" Size="12" />
+                                    <span>Trasera</span>
+                                </button>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
+                            {
+                                <button type="button"
+                                        @onclick='() => _selectedHeroImageKey = "table"'
+                                        class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "table" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
+                                        title="Ver componentes en mesa">
+                                    <Icon Name="layout-grid" Size="12" />
+                                    <span>En mesa</span>
+                                </button>
+                            }
                         </div>
-                    }
-
-                    @if (!string.IsNullOrWhiteSpace(Game.CoverImageUrl))
-                    {
-                        <img src="@Game.CoverImageUrl"
-                             alt="Carátula oficial de @Game.SpanishTitle"
-                             fetchpriority="high"
-                             decoding="async"
-                             width="320"
-                             height="320"
-                             onerror="this.onerror=null; this.src='@placeholderUrl';"
-                             class="w-full h-full object-cover" />
-                    }
-                    else
-                    {
-                        <img src="@placeholderUrl"
-                             alt="Carátula de @Game.SpanishTitle no disponible"
-                             width="320"
-                             height="320"
-                             class="w-full h-full object-cover opacity-90" />
                     }
                 </div>
 
@@ -443,16 +480,6 @@ else
             </div>
         }
 
-        @* 9. Sinopsis / Descripción *@
-        @if (!string.IsNullOrWhiteSpace(Game.Description))
-        {
-            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                <h2 class="text-base font-bold text-[var(--text-primary)] mb-3">Sobre el juego</h2>
-                <div class="text-sm text-[var(--text-secondary)] leading-relaxed space-y-3">
-                    @((MarkupString)Game.Description.Replace("\n", "<br />"))
-                </div>
-            </div>
-        }
     </div>
 
     @* Modales *@
@@ -569,6 +596,21 @@ else
     private bool _isPlayedPromptModalOpen;
     private string? _actionFeedbackMessage;
     private string _actionFeedbackType = "success";
+    private string _selectedHeroImageKey = "cover";
+
+    private string CurrentHeroImageUrl => _selectedHeroImageKey switch
+    {
+        "back" when !string.IsNullOrWhiteSpace(Game?.BackCoverImageUrl) => Game.BackCoverImageUrl,
+        "table" when !string.IsNullOrWhiteSpace(Game?.TableImageUrl) => Game.TableImageUrl,
+        _ => Game?.CoverImageUrl ?? string.Empty
+    };
+
+    private string GetHeroImageAlt() => _selectedHeroImageKey switch
+    {
+        "back" => $"Contraportada de {Game?.SpanishTitle}",
+        "table" => $"Componentes en mesa de {Game?.SpanishTitle}",
+        _ => $"Carátula oficial de {Game?.SpanishTitle}"
+    };
 
     /// <summary>Indica si hay sesión iniciada: las acciones con identidad la exigen (INC-46 F4).</summary>
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
@@ -616,6 +658,7 @@ else
         try
         {
             _isLoading = true;
+            _selectedHeroImageKey = "cover";
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             if (Game != null)
             {
