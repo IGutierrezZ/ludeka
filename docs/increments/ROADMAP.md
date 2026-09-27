@@ -85,36 +85,39 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-69** | Fix en Colección y Valoración (EF Core Tracking), Flujo de Jugado y Carriles de Portada | ✅ Archivado | [inc-69-fix-coleccion-valoracion-carriles.md](archive/inc-69-fix-coleccion-valoracion-carriles.md) |
 | **INC-70** | Ingesta Multimodal Asistida con Gemini Vision y Generación de Portadas de Sorteos | ✅ Archivado | [inc-70-ingesta-multimodal-sorteos.md](archive/inc-70-ingesta-multimodal-sorteos.md) |
 | **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ✅ Archivado | [inc-72-ux-catalogo-filtros-multiseleccion.md](archive/inc-72-ux-catalogo-filtros-multiseleccion.md) |
-
-### 🧭 Orden lógico sugerido para INC-55…INC-68
-
-Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de numeración; entre fases, respetar dependencias documentadas en cada `inc-NN-*.md`:
-
-1. **Fase A — Marca y Comunidad:** INC-55 (tagline/identidad) y INC-56 (comunidad y mecenazgo). Sin dependencias; hacerlos primero porque fijan el tono y la transparencia del resto.
-2. **Fase B — Catálogo:** INC-57 (imágenes, con diagnóstico antes de tocar nada), luego INC-58 (paginación y modos de vista) y después INC-59 (filtros avanzados y tamaño en mesa), que se apoya en la paginación y comparte el estado de URL.
-3. **Fase C — Móvil:** INC-60 (barra inferior y safe-area). Requiere decidir destinos con INC-61 en el horizonte.
-4. **Fase D — Cuenta (tras INC-50):** INC-61 (menú de cabecera), INC-62 (preferencias), INC-63 (conexiones OAuth) e INC-64 (acceso por correo). INC-61 cuelga del hub de INC-50; INC-63/64 deben resolverse juntas para fijar la frontera correo vs OAuth.
-5. **Fase E — Comunidad y Compra:** INC-65 («me gusta») y INC-66 (fundas). INC-66 alinea su afiliación con lo decidido en INC-56.
-6. **Fase F — Gamificación:** INC-67 (hitos) y, al final del backlog, INC-68 (clasificaciones y anonimato). INC-68 consume las señales de INC-65/67 y debe ser el último por su riesgo de privacidad.
-
-## 🚨 Bloqueo de Salida a Producción
-
-**INC-47** quedó archivado el 2026-09-19 (26 PRs mergeadas). **INC-48** quedó archivado el 2026-09-20 (12 PRs mergeadas, #63–#74: nueve de entrega y tres de archivado). Ambos **prerrequisitos de salida a producción están ahora cerrados**.
-
-🚨 **Antes del primer despliegue real, sea cual sea el incremento que lo dispare:** el host web ya no ejecuta ningún trabajo de negocio en proceso (INC-47), así que el único ejecutor son los Cloud Run Jobs. Configurar `GCP_PROJECT_ID` y `GCP_SA_KEY` en los secretos de GitHub es lo que arma el despliegue automático. **Sigue estrictamente el orden de puesta en marcha de [`docs/deployment/google-cloud-run.md` §9.0](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md)** o tendrás un servicio web en producción sin nadie que ejecute la catalogación nocturna, el radar de precios, el recolector social ni el drenaje del outbox.
-
-- **INC-47** — archivado el 2026-09-19. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está **fusionado desde el 2026-09-19**, no abierto. El gate real no es de *merge*, sino de **despliegue** (ver el aviso de arriba): antes de configurar `GCP_PROJECT_ID` y `GCP_SA_KEY`, sigue el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0.
-- **INC-48** — archivado el 2026-09-20. Resuelve: (1) imágenes en memoria, (2) fallback local sin HTTP, (3) arranque silencioso a SQLite en Production, (4) sondas de salud que mienten. Verificación `pass_with_warnings`, 1.565 unitarias + 10 de integración verdes.
-
-**INC-46 quedó archivado el 2026-09-16**: la identidad simulada está retirada, cada ruta administrativa exige sesión y permiso, y toda escritura revalida la sesión.
-
-## 🌿 Incrementos en Curso (Worktrees / PRs)
-
-Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
-
-*(Actualmente no hay incrementos en curso. INC-72 quedó archivado y mergeado a main).*
-
-*(INC-72 entregó su PR #125, verificada con 1.945 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa el cierre automático del menú móvil superior al navegar en MainLayout.razor, retirada de la sección en inglés de BGG e incorporación de visor interactivo de tres imágenes [portada, trasera y mesa] en GameDetail.razor, catálogo móvil a 3 columnas [grid-cols-3] en Home.razor y GameCard.razor, y panel colapsable de filtros avanzados con multiselección completa de jugadores concurrentes, dureza cognitiva [GameComplexity], estilos, tipos, confrontación, duración y huella en mesa con persistencia en URL).*
+88: | **INC-73** | Ingesta Masiva BGG (>100 opiniones), Anti-Duplicados y Enriquecimiento Integral (Escalabilidad, Fundas, Tiempos, Huella y Localización Multipaís) | ✅ Archivado | [inc-73-ingesta-enriquecimiento-catalogo.md](archive/inc-73-ingesta-enriquecimiento-catalogo.md) |
+89: 
+90: ### 🧭 Orden lógico sugerido para INC-55…INC-68
+91: 
+92: Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de numeración; entre fases, respetar dependencias documentadas en cada `inc-NN-*.md`:
+93: 
+94: 1. **Fase A — Marca y Comunidad:** INC-55 (tagline/identidad) y INC-56 (comunidad y mecenazgo). Sin dependencias; hacerlos primero porque fijan el tono y la transparencia del resto.
+95: 2. **Fase B — Catálogo:** INC-57 (imágenes, con diagnóstico antes de tocar nada), luego INC-58 (paginación y modos de vista) y después INC-59 (filtros avanzados y tamaño en mesa), que se apoya en la paginación y comparte el estado de URL.
+96: 3. **Fase C — Móvil:** INC-60 (barra inferior y safe-area). Requiere decidir destinos con INC-61 en el horizonte.
+97: 4. **Fase D — Cuenta (tras INC-50):** INC-61 (menú de cabecera), INC-62 (preferencias), INC-63 (conexiones OAuth) e INC-64 (acceso por correo). INC-61 cuelga del hub de INC-50; INC-63/64 deben resolverse juntas para fijar la frontera correo vs OAuth.
+98: 5. **Fase E — Comunidad y Compra:** INC-65 («me gusta») y INC-66 (fundas). INC-66 alinea su afiliación con lo decidido en INC-56.
+99: 6. **Fase F — Gamificación:** INC-67 (hitos) y, al final del backlog, INC-68 (clasificaciones y anonimato). INC-68 consume las señales de INC-65/67 y debe ser el último por su riesgo de privacidad.
+100: 
+101: ## 🚨 Bloqueo de Salida a Producción
+102: 
+103: **INC-47** quedó archivado el 2026-09-19 (26 PRs mergeadas). **INC-48** quedó archivado el 2026-09-20 (12 PRs mergeadas, #63–#74: nueve de entrega y tres de archivado). Ambos **prerrequisitos de salida a producción están ahora cerrados**.
+104: 
+105: 🚨 **Antes del primer despliegue real, sea cual sea el incremento que lo dispare:** el host web ya no ejecuta ningún trabajo de negocio en proceso (INC-47), así que el único ejecutor son los Cloud Run Jobs. Configurar `GCP_PROJECT_ID` y `GCP_SA_KEY` en los secretos de GitHub es lo que arma el despliegue automático. **Sigue estrictamente el orden de puesta en marcha de [`docs/deployment/google-cloud-run.md` §9.0](file:///c:/repos/Ludeka/docs/deployment/google-cloud-run.md)** o tendrás un servicio web en producción sin nadie que ejecute la catalogación nocturna, el radar de precios, el recolector social ni el drenaje del outbox.
+106: 
+107: - **INC-47** — archivado el 2026-09-19. Resuelve la duplicación de trabajos al escalar y la pérdida de notificaciones al escalar a cero. **Nota:** el PR #60 (retirada de `AddHostedService`) está **fusionado desde el 2026-09-19**, no abierto. El gate real no es de *merge*, sino de **despliegue** (ver el aviso de arriba): antes de configurar `GCP_PROJECT_ID` y `GCP_SA_KEY`, sigue el orden de puesta en marcha de `docs/deployment/google-cloud-run.md` §9.0.
+108: - **INC-48** — archivado el 2026-09-20. Resuelve: (1) imágenes en memoria, (2) fallback local sin HTTP, (3) arranque silencioso a SQLite en Production, (4) sondas de salud que mienten. Verificación `pass_with_warnings`, 1.565 unitarias + 10 de integración verdes.
+109: 
+110: **INC-46 quedó archivado el 2026-09-16**: la identidad simulada está retirada, cada ruta administrativa exige sesión y permiso, y toda escritura revalida la sesión.
+111: 
+112: ## 🌿 Incrementos en Curso (Worktrees / PRs)
+113: 
+114: Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+115: 
+116: *(Actualmente no hay incrementos en curso. Todos los incrementos del backlog se encuentran archivados o completados).*
+117: 
+118: *(INC-73 entregó su PR, verificada con 1.966 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la ampliación de ingesta masiva BGG a >100 opiniones, descarte y actualización aditiva no destructiva por BggId, extracción de fundas BGG, inferencia analítica de huella en mesa, duraciones reales y estimadas, fallback determinista en escalabilidad comunitaria, localización territorial de editoriales y títulos [ES, MX, AR, CL, CO, PE, UY], padrón ampliado a 57 editoriales, proceso por lotes de enriquecimiento retroactivo y resolución contextual en ficha y tarjetas).*
+119: 
+120: *(INC-72 entregó su PR #125, verificada con 1.945 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa el cierre automático del menú móvil superior al navegar en MainLayout.razor, retirada de la sección en inglés de BGG e incorporación de visor interactivo de tres imágenes [portada, trasera y mesa] en GameDetail.razor, catálogo móvil a 3 columnas [grid-cols-3] en Home.razor y GameCard.razor, y panel colapsable de filtros avanzados con multiselección completa de jugadores concurrentes, dureza cognitiva [GameComplexity], estilos, tipos, confrontación, duración y huella en mesa con persistencia en URL).*
 
 *(INC-70 entregó su verificación con 1.938 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la ingesta multimodal asistida con Gemini Flash Vision para OCR y extracción estructurada de sorteos desde capturas o texto, composición panorámica 16:9 con SkiaSharp [SkiaSharpGiveawayCoverComposer] con fondo difuminado, sombra suave y recorte inteligente de barras móviles, modal reactivo bimodal con soporte @onpaste y blindaje defensivo anti-vacíos en OpenGraphSocialMetadataExtractor y SocialIngestionService).*
 

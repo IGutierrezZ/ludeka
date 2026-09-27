@@ -61,11 +61,14 @@
                     }
                 </div>
 
+                @{
+                    var displayTitle = Game.GetTitleForCountry(CountryCode);
+                }
                 <h3 class="font-extrabold text-xs sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-tight sm:line-clamp-1 mb-1">
-                    @Game.SpanishTitle
+                    @displayTitle
                 </h3>
 
-                @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                @if (!string.Equals(displayTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
                 {
                     <p class="text-[0.65rem] sm:text-xs text-[var(--text-muted)] italic line-clamp-1 mb-1 sm:mb-1.5 hidden sm:block">(@Game.OriginalTitle)</p>
                 }
@@ -135,4 +138,7 @@
 @code {
     [Parameter, EditorRequired]
     public GameSummaryDto Game { get; set; } = null!;
+
+    [Parameter]
+    public string? CountryCode { get; set; }
 }

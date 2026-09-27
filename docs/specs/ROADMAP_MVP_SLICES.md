@@ -674,6 +674,24 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 72: UX y Catálogo — Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección
+- **Identificador SDD:** `change-72-ux-catalogo-filtros-multiseleccion`
+- **Objetivo Principal:** Eliminar descripciones crudas en inglés de BGG en favor de síntesis inteligentes o ficha limpia, selector visual de carátula/trasera/mesa en cabecera de ficha, desplegable móvil refinado de cuenta y navegación, y filtros avanzados con multiselección por estilo, confrontación, dureza y tamaño en mesa.
+- **Estado:** ✅ **Completado y Archivado** (1.945 tests unitarios en verde al 100%).
+- **Documento:** [`archive/inc-72-ux-catalogo-filtros-multiseleccion.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-72-ux-catalogo-filtros-multiseleccion.md).
+- **Módulos del Sistema:** [`01-catalogo-juegos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-juegos.md), [`15-dashboard-inicio-editorial.md`](file:///c:/repos/Ludeka/docs/specs/sistema/15-dashboard-inicio-editorial.md).
+
+---
+
+## Incremento 73: Ingesta Masiva BGG (>100 opiniones), Anti-Duplicados, Enriquecimiento Integral y Localización Multipaís
+- **Identificador SDD:** `change-73-ingesta-enriquecimiento-catalogo`
+- **Objetivo Principal:** Ampliación del umbral de ingesta BGG a >100 opiniones (`minUsersRated = 100`), blindaje de promoción aditiva anti-duplicados por `BggId` (cero errores de índice único), enriquecimiento integral de metadatos de mesa (escalabilidad con fallback determinista, fundas `Sleeves`, inferencia de huella `TableFootprint`, duraciones reales `MinPlayTimeMinutes`/`MaxPlayTimeMinutes`/`EstimatedPerPlayerMinutes`), proceso por lotes de enriquecimiento retroactivo (backfill), y localización territorial de editoriales y títulos comerciales en España y 6 países hispanohablantes (México, Argentina, Chile, Colombia, Perú y Uruguay) con resolución contextual por país de usuario y vinculación en directorio.
+689: - **Estado:** ✅ **Completado y Archivado** (1.966 tests unitarios en verde al 100%).
+690: - **Documento:** [`archive/inc-73-ingesta-enriquecimiento-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-73-ingesta-enriquecimiento-catalogo.md).
+691: - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`17-localizacion-territorial-pais.md`](file:///c:/repos/Ludeka/docs/specs/sistema/17-localizacion-territorial-pais.md), [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md).
+692: 
+693: ---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

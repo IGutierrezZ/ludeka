@@ -27,5 +27,8 @@ public interface IGameRepository
 
     Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
 }
 

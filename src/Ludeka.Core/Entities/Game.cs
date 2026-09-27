@@ -37,6 +37,9 @@ public partial class Game
     public List<ScalabilityEntry> Scalability { get; private set; } = [];
     public List<SleeveItem> Sleeves { get; private set; } = [];
     public List<GamePurchaseLink> PurchaseLinks { get; private set; } = [];
+    public string? SpanishPublisher { get; private set; }
+    public List<RegionalPublisherEntry> RegionalPublishers { get; private set; } = [];
+    public List<LocalizedTitleEntry> LocalizedTitles { get; private set; } = [];
 
     // --- Soporte de Expansiones y Ecosistema (Incremento 8) ---
     public GameType Type { get; private set; } = GameType.BaseGame;
@@ -89,7 +92,10 @@ public partial class Game
         int? extraPlayerCount = null,
         int? extraDurationMinutes = null,
         string? backCoverImageUrl = null,
-        string? tableImageUrl = null)
+        string? tableImageUrl = null,
+        string? spanishPublisher = null,
+        IEnumerable<RegionalPublisherEntry>? regionalPublishers = null,
+        IEnumerable<LocalizedTitleEntry>? localizedTitles = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -119,6 +125,9 @@ public partial class Game
         if (scalability != null) Scalability.AddRange(scalability);
         if (sleeves != null) Sleeves.AddRange(sleeves);
         if (purchaseLinks != null) PurchaseLinks.AddRange(purchaseLinks);
+        SpanishPublisher = string.IsNullOrWhiteSpace(spanishPublisher) ? null : spanishPublisher.Trim();
+        if (regionalPublishers != null) RegionalPublishers.AddRange(regionalPublishers);
+        if (localizedTitles != null) LocalizedTitles.AddRange(localizedTitles);
 
         Slug = string.IsNullOrWhiteSpace(customSlug)
             ? GenerateSlug(SpanishTitle)
@@ -322,6 +331,82 @@ public partial class Game
     public void ClearSleeves()
     {
         Sleeves.Clear();
+    }
+
+    public void UpdateScalability(IEnumerable<ScalabilityEntry> scalability)
+    {
+        ArgumentNullException.ThrowIfNull(scalability);
+        Scalability.Clear();
+        Scalability.AddRange(scalability);
+    }
+
+    public void UpdateDuration(GameDuration duration)
+    {
+        Duration = duration ?? throw new ArgumentNullException(nameof(duration));
+    }
+
+    public void UpdateFootprint(TableFootprint footprint)
+    {
+        Footprint = footprint;
+    }
+
+    public void UpdateSpanishPublisher(string? spanishPublisher)
+    {
+        SpanishPublisher = string.IsNullOrWhiteSpace(spanishPublisher) ? null : spanishPublisher.Trim();
+    }
+
+    public void UpdateRegionalPublishers(IEnumerable<RegionalPublisherEntry>? regionalPublishers)
+    {
+        RegionalPublishers.Clear();
+        if (regionalPublishers != null)
+        {
+            RegionalPublishers.AddRange(regionalPublishers);
+        }
+    }
+
+    public void UpdateLocalizedTitles(IEnumerable<LocalizedTitleEntry>? localizedTitles)
+    {
+        LocalizedTitles.Clear();
+        if (localizedTitles != null)
+        {
+            LocalizedTitles.AddRange(localizedTitles);
+        }
+    }
+
+    public string GetPublisherForCountry(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Equals("ES", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(SpanishPublisher))
+                return SpanishPublisher;
+        }
+
+        if (!string.IsNullOrWhiteSpace(countryCode) && RegionalPublishers.Count > 0)
+        {
+            var match = RegionalPublishers.FirstOrDefault(r => string.Equals(r.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            if (match != null && !string.IsNullOrWhiteSpace(match.PublisherName))
+                return match.PublisherName;
+        }
+
+        return Publisher;
+    }
+
+    public string GetTitleForCountry(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Equals("ES", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(SpanishTitle))
+                return SpanishTitle;
+        }
+
+        if (!string.IsNullOrWhiteSpace(countryCode) && LocalizedTitles.Count > 0)
+        {
+            var match = LocalizedTitles.FirstOrDefault(l => string.Equals(l.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            if (match != null && !string.IsNullOrWhiteSpace(match.Title))
+                return match.Title;
+        }
+
+        return !string.IsNullOrWhiteSpace(SpanishTitle) ? SpanishTitle : OriginalTitle;
     }
 
     public void SetAiSummary(AiGameSummary summary)

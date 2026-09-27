@@ -153,7 +153,14 @@ public class BggMassIngestionService : IBggMassIngestionService
                         maxPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Max(s => s.PlayerCount) : 4,
                         playingTimeMinutes: fetchedGame.Duration.EstimatedPerPlayerMinutes,
                         minAge: fetchedGame.Age.BoxAge,
-                        bggRating: fetchedGame.BggRating
+                        bggRating: fetchedGame.BggRating,
+                        minPlayTimeMinutes: fetchedGame.Duration.MinMinutes,
+                        maxPlayTimeMinutes: fetchedGame.Duration.MaxMinutes,
+                        inferredFootprint: fetchedGame.Footprint,
+                        scalability: fetchedGame.Scalability,
+                        sleeves: fetchedGame.Sleeves,
+                        spanishPublisher: fetchedGame.SpanishPublisher,
+                        regionalPublishers: fetchedGame.RegionalPublishers
                     );
 
                     // Si ya viene con carátula de BGG Thing, se preasignan URLs iniciales si aún no hay fotos
@@ -394,6 +401,14 @@ public class BggMassIngestionService : IBggMassIngestionService
             try
             {
                 var existing = await _gameRepo.GetByBggIdAsync(item.BggId, ct);
+                var scalability = item.GetScalability();
+                var sleeves = item.GetSleeves();
+                var regionalPublishers = item.GetRegionalPublishers();
+                int minPlay = item.MinPlayTimeMinutes > 0 ? item.MinPlayTimeMinutes : (item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30);
+                int maxPlay = item.MaxPlayTimeMinutes > 0 ? item.MaxPlayTimeMinutes : (item.PlayingTimeMinutes > 0 ? (int)(item.PlayingTimeMinutes * 1.5) : 60);
+                int estPerPlayer = Math.Max(15, (item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : maxPlay) / Math.Max(1, item.MaxPlayers));
+                var footprint = item.InferredFootprint;
+
                 if (existing == null)
                 {
                     var newGame = new Game(
@@ -414,13 +429,14 @@ public class BggMassIngestionService : IBggMassIngestionService
                         isOfficialSolo: item.MinPlayers == 1,
                         age: new AgeRating(item.MinAge > 0 ? item.MinAge : 10, item.MinAge > 0 ? item.MinAge : 10),
                         language: LanguageDependence.Low,
-                        footprint: TableFootprint.StandardTable,
-                        duration: new GameDuration(
-                            item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30,
-                            item.PlayingTimeMinutes > 0 ? (int)(item.PlayingTimeMinutes * 1.5) : 60,
-                            item.PlayingTimeMinutes > 0 ? Math.Max(15, item.PlayingTimeMinutes / Math.Max(1, item.MaxPlayers)) : 30),
+                        footprint: footprint,
+                        duration: new GameDuration(minPlay, maxPlay, estPerPlayer),
+                        scalability: scalability,
+                        sleeves: sleeves,
                         backCoverImageUrl: item.BackCoverImageUrl,
-                        tableImageUrl: item.TableImageUrl
+                        tableImageUrl: item.TableImageUrl,
+                        spanishPublisher: item.SpanishPublisher,
+                        regionalPublishers: regionalPublishers
                     );
 
                     // Rehidratar síntesis de IA si existe
@@ -451,12 +467,59 @@ public class BggMassIngestionService : IBggMassIngestionService
                 }
                 else
                 {
+                    // Actualización incremental y enriquecimiento no destructivo para títulos ya existentes en catálogo
                     existing.UpdateMediaUrls(
                         item.CoverImageUrl ?? existing.CoverImageUrl,
                         item.ThumbnailUrl ?? existing.ThumbnailUrl,
                         item.BackCoverImageUrl ?? existing.BackCoverImageUrl,
                         item.TableImageUrl ?? existing.TableImageUrl
                     );
+
+                    if (existing.Scalability.Count == 0 && scalability.Count > 0)
+                    {
+                        existing.UpdateScalability(scalability);
+                    }
+
+                    if (existing.Sleeves.Count == 0 && sleeves.Count > 0)
+                    {
+                        existing.UpdateSleeves(sleeves);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(existing.SpanishPublisher) && !string.IsNullOrWhiteSpace(item.SpanishPublisher))
+                    {
+                        existing.UpdateSpanishPublisher(item.SpanishPublisher);
+                    }
+
+                    if (existing.RegionalPublishers.Count == 0 && regionalPublishers.Count > 0)
+                    {
+                        existing.UpdateRegionalPublishers(regionalPublishers);
+                    }
+
+                    existing.UpdateFootprint(item.InferredFootprint);
+
+                    if (existing.AiSummary == null && !string.IsNullOrWhiteSpace(item.AiSummaryJson))
+                    {
+                        try
+                        {
+                            var parsedAi = JsonSerializer.Deserialize<AiGameSummaryDto>(item.AiSummaryJson);
+                            if (parsedAi != null)
+                            {
+                                existing.SetAiSummary(new AiGameSummary(
+                                    GeneralVerdict: parsedAi.GeneralVerdict,
+                                    ScalabilitySummary: parsedAi.ScalabilitySummary,
+                                    AgeSummary: parsedAi.AgeSummary,
+                                    FootprintSummary: parsedAi.FootprintSummary,
+                                    Model: parsedAi.Model,
+                                    GeneratedAt: parsedAi.GeneratedAt ?? DateTime.UtcNow
+                                ));
+                            }
+                        }
+                        catch
+                        {
+                            // Ignorar error de deserialización de IA
+                        }
+                    }
+
                     await _gameRepo.UpdateAsync(existing, ct);
                 }
 
@@ -719,5 +782,167 @@ public class BggMassIngestionService : IBggMassIngestionService
 
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sampleCsv));
         return await IngestRanksDumpAsync(ms, minUsersRated, ct);
+    }
+
+    public async Task<BggQualityBackfillResultDto> BackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await ExecuteBackfillCatalogQualityBatchAsync(batchSize, ct);
+    }
+
+    public async Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    {
+        return await ExecuteBackfillCatalogQualityBatchAsync(batchSize, ct);
+    }
+
+    private async Task<BggQualityBackfillResultDto> ExecuteBackfillCatalogQualityBatchAsync(int batchSize, CancellationToken ct)
+    {
+        if (batchSize <= 0) batchSize = 50;
+
+        var pendingGames = await _gameRepo.GetGamesPendingQualityBackfillAsync(batchSize, ct);
+        if (pendingGames.Count == 0)
+        {
+            return new BggQualityBackfillResultDto(0, 0, 0, "No hay juegos que requieran enriquecimiento de calidad en este momento.");
+        }
+
+        _logger.LogInformation("Iniciando enriquecimiento retroactivo de calidad para {Count} juegos del catálogo.", pendingGames.Count);
+
+        int updatedCount = 0;
+        int failedCount = 0;
+
+        foreach (var game in pendingGames)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            try
+            {
+                // Estrategia Staging-First: consultar primero si ya está procesado en staging
+                var staging = await _stagingRepo.GetByBggIdAsync(game.BggId, ct);
+                bool enriched = false;
+
+                if (staging != null && staging.FetchStatus == StagingFetchStatus.Fetched)
+                {
+                    var scalability = staging.GetScalability();
+                    if (game.Scalability.Count == 0 && scalability.Count > 0)
+                    {
+                        game.UpdateScalability(scalability);
+                        enriched = true;
+                    }
+
+                    var sleeves = staging.GetSleeves();
+                    if (game.Sleeves.Count == 0 && sleeves.Count > 0)
+                    {
+                        game.UpdateSleeves(sleeves);
+                        enriched = true;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(game.SpanishPublisher) && !string.IsNullOrWhiteSpace(staging.SpanishPublisher))
+                    {
+                        game.UpdateSpanishPublisher(staging.SpanishPublisher);
+                        enriched = true;
+                    }
+
+                    var regional = staging.GetRegionalPublishers();
+                    if (game.RegionalPublishers.Count == 0 && regional.Count > 0)
+                    {
+                        game.UpdateRegionalPublishers(regional);
+                        enriched = true;
+                    }
+
+                    game.UpdateFootprint(staging.InferredFootprint);
+                    enriched = true;
+
+                    int min = staging.MinPlayTimeMinutes > 0 ? staging.MinPlayTimeMinutes : (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : 30);
+                    int max = staging.MaxPlayTimeMinutes > 0 ? staging.MaxPlayTimeMinutes : min;
+                    int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4));
+                    game.UpdateDuration(new GameDuration(min, max, est));
+                    enriched = true;
+                }
+                else
+                {
+                    // Si no está en staging con detalles, consultar a BGG XMLAPI2
+                    var fetched = await _bggClient.FetchGameByBggIdAsync(game.BggId, ct);
+                    if (fetched != null)
+                    {
+                        if (game.Scalability.Count == 0 && fetched.Scalability.Count > 0)
+                        {
+                            game.UpdateScalability(fetched.Scalability);
+                            enriched = true;
+                        }
+
+                        if (game.Sleeves.Count == 0 && fetched.Sleeves.Count > 0)
+                        {
+                            game.UpdateSleeves(fetched.Sleeves);
+                            enriched = true;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(game.SpanishPublisher) && !string.IsNullOrWhiteSpace(fetched.SpanishPublisher))
+                        {
+                            game.UpdateSpanishPublisher(fetched.SpanishPublisher);
+                            enriched = true;
+                        }
+
+                        if (game.RegionalPublishers.Count == 0 && fetched.RegionalPublishers.Count > 0)
+                        {
+                            game.UpdateRegionalPublishers(fetched.RegionalPublishers);
+                            enriched = true;
+                        }
+
+                        game.UpdateFootprint(fetched.Footprint);
+                        enriched = true;
+
+                        if (fetched.Duration != null && (game.Duration == null || game.Duration.MinMinutes == 0))
+                        {
+                            game.UpdateDuration(fetched.Duration);
+                            enriched = true;
+                        }
+
+                        if (staging != null)
+                        {
+                            staging.MarkFetched(
+                                rawXml: fetched.Description,
+                                spanishTitle: fetched.SpanishTitle,
+                                designer: fetched.Designer,
+                                publisher: fetched.Publisher,
+                                description: fetched.Description,
+                                minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
+                                maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
+                                playingTimeMinutes: fetched.Duration?.EstimatedPerPlayerMinutes ?? 30,
+                                minAge: fetched.Age.BoxAge,
+                                bggRating: fetched.BggRating,
+                                minPlayTimeMinutes: fetched.Duration?.MinMinutes ?? 0,
+                                maxPlayTimeMinutes: fetched.Duration?.MaxMinutes ?? 0,
+                                inferredFootprint: fetched.Footprint,
+                                scalability: fetched.Scalability,
+                                sleeves: fetched.Sleeves,
+                                spanishPublisher: fetched.SpanishPublisher,
+                                regionalPublishers: fetched.RegionalPublishers
+                            );
+                            await _stagingRepo.UpdateAsync(staging, ct);
+                        }
+
+                        if (_options.DelayBetweenBggCallsMs > 0 && !ct.IsCancellationRequested)
+                        {
+                            await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
+                        }
+                    }
+                }
+
+                if (enriched)
+                {
+                    await _gameRepo.UpdateAsync(game, ct);
+                    updatedCount++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error durante el backfill de calidad para #{BggId} ('{Title}'): {Message}", game.BggId, game.SpanishTitle, ex.Message);
+                failedCount++;
+            }
+        }
+
+        string msg = $"Enriquecimiento completado: {updatedCount} actualizados, {failedCount} fallidos de {pendingGames.Count} evaluados.";
+        _logger.LogInformation(msg);
+        return new BggQualityBackfillResultDto(pendingGames.Count, updatedCount, failedCount, msg);
     }
 }

@@ -6,6 +6,7 @@
 @inject IFoundingVerdictService FoundingService
 @inject IMediaService MediaService
 @inject ICurrentUserService CurrentUserService
+@inject IUserPreferenceService PreferenceService
 @inject IExpansionService ExpansionService
 @inject NavigationManager Navigation
 @inject ILogger<GameDetail> Logger
@@ -229,11 +230,20 @@ else
                             }
                         </div>
 
+                        @{
+                            var titleForCountry = Game.GetTitleForCountry(_userCountryCode);
+                            var publisherForCountry = Game.GetPublisherForCountry(_userCountryCode);
+                            bool hasLocalPublisher = !string.IsNullOrWhiteSpace(publisherForCountry);
+                            bool differsFromOriginal = hasLocalPublisher && !string.Equals(publisherForCountry, Game.Publisher, StringComparison.OrdinalIgnoreCase);
+                            var localPubSlug = hasLocalPublisher ? Ludeka.Core.Entities.Game.GenerateSlug(publisherForCountry) : null;
+                            var origPubSlug = !string.IsNullOrWhiteSpace(Game.Publisher) ? Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher) : null;
+                        }
+
                         <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                            @Game.SpanishTitle
+                            @titleForCountry
                         </h1>
 
-                        @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                        @if (!string.Equals(titleForCountry, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
                         {
                             <p class="text-sm text-[var(--text-secondary)] italic">
                                 Título original: @Game.OriginalTitle
@@ -250,19 +260,48 @@ else
                             {
                                 <span class="text-[var(--text-primary)] font-bold">Desconocido</span>
                             }
-                            &bull; Publicado en España por
-                            @if (!string.IsNullOrWhiteSpace(Game.Publisher))
+                            &bull; Editorial en @(_userCountryName):
+                            @if (hasLocalPublisher)
                             {
-                                var pubSlug = Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher);
-                                <a href="@($"/editoriales/{pubSlug}")" class="text-[var(--text-primary)] font-bold hover:text-[var(--brand-primary)] hover:underline" title="Ver catálogo de la editorial @Game.Publisher">
-                                    @Game.Publisher
+                                <a href="@($"/editoriales/{localPubSlug}")" class="text-[var(--text-primary)] font-bold hover:text-[var(--brand-primary)] hover:underline" title="Ver catálogo de la editorial @publisherForCountry">
+                                    @publisherForCountry
                                 </a>
                             }
                             else
                             {
-                                <span class="text-[var(--text-primary)] font-bold">Varios</span>
+                                <span class="text-[var(--text-primary)] font-bold">@(string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher)</span>
+                            }
+
+                            @if (differsFromOriginal && !string.IsNullOrWhiteSpace(Game.Publisher))
+                            {
+                                <span class="text-[var(--text-muted)] ml-1">
+                                    (Orig.: <a href="@($"/editoriales/{origPubSlug}")" class="hover:underline">@Game.Publisher</a>)
+                                </span>
                             }
                         </p>
+
+                        @if (Game.RegionalPublishers != null && Game.RegionalPublishers.Count > 0)
+                        {
+                            <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                                <span class="text-[var(--text-muted)] font-semibold text-[0.7rem] uppercase tracking-wider">Ediciones territoriales:</span>
+                                @foreach (var reg in Game.RegionalPublishers)
+                                {
+                                    var country = CountryCatalog.FindByNameOrCode(reg.CountryCode);
+                                    var regSlug = !string.IsNullOrWhiteSpace(reg.PublisherSlug) ? reg.PublisherSlug : Ludeka.Core.Entities.Game.GenerateSlug(reg.PublisherName);
+                                    <a href="@($"/editoriales/{regSlug}")" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[0.72rem] hover:border-[var(--brand-primary)] transition-colors" title="Editorial en @(country?.Name ?? reg.CountryName)">
+                                        @if (!string.IsNullOrWhiteSpace(country?.FlagEmoji))
+                                        {
+                                            <span>@country.FlagEmoji</span>
+                                        }
+                                        else
+                                        {
+                                            <Icon Name="globe" Size="12" />
+                                        }
+                                        <span class="font-medium text-[var(--text-primary)]">@reg.PublisherName</span>
+                                    </a>
+                                }
+                            </div>
+                        }
                     </div>
 
                     @* Doble Rating (BGG vs Ludist) *@
@@ -597,6 +636,8 @@ else
     private string? _actionFeedbackMessage;
     private string _actionFeedbackType = "success";
     private string _selectedHeroImageKey = "cover";
+    private string? _userCountryCode;
+    private string _userCountryName = "España";
 
     private string CurrentHeroImageUrl => _selectedHeroImageKey switch
     {
@@ -653,12 +694,29 @@ else
         _isSocialCardModalOpen = true;
     }
 
+    private async Task LoadUserCountryAsync()
+    {
+        try
+        {
+            var rawCountry = await PreferenceService.GetUserCountryAsync(CurrentUserService.UserId);
+            var countryInfo = CountryCatalog.FindByNameOrCode(rawCountry) ?? CountryCatalog.Spain;
+            _userCountryCode = countryInfo.Code;
+            _userCountryName = countryInfo.Name;
+        }
+        catch
+        {
+            _userCountryCode = "ES";
+            _userCountryName = "España";
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         try
         {
             _isLoading = true;
             _selectedHeroImageKey = "cover";
+            await LoadUserCountryAsync();
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             if (Game != null)
             {
@@ -975,7 +1033,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al guardar valoración para {GameId}", Game.Id);
+            Logger.LogError(ex, "Error al guardar valoración para {GameId}", Game?.Id);
             _actionFeedbackType = "error";
             _actionFeedbackMessage = "Hubo un error al guardar tu valoración. Por favor, inténtalo de nuevo.";
         }

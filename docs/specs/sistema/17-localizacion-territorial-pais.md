@@ -3,38 +3,44 @@
 ## 1. Visión General y Propósito
 Ludeka es una plataforma hispanohablante de ámbito global pensada para conectar a entusiastas de los juegos de mesa en España y toda Latinoamérica. No obstante, las transacciones comerciales, la compra de fundas, la asistencia a grandes ferias y la participación en sorteos son actividades intrínsecamente ligadas a la distribución física y geográfica de cada territorio.
 
-El módulo de **Localización Geográfica por País y Filtrado Territorial (INC-29)** introduce:
-1. **Atribución Geográfica Universal:** Asociación de país y ámbito de envíos a tiendas especializadas (`Store`), sorteos comunitarios (`Giveaway`), ferias y eventos (`BoardGameEvent`), enlaces de compra de juegos (`GamePurchaseLink`), guías de compra de fundas (`SleeveItem`), perfiles de usuario (`AppUser`) y preferencias persistentes (`UserPreference`).
-2. **Filtrado Territorial Estricto Opcional:** Si el usuario selecciona expresamente su país en su perfil o cabecera, la plataforma activa un filtro excluyente para que solo vea sorteos, eventos y tiendas correspondientes a su territorio o con cobertura internacional.
-3. **Regla de Sorteos y Eventos Internacionales:** Los eventos lúdicos y sorteos marcados con ámbito "Internacional" (`INT` / `🌎`) son **siempre visibles** para cualquier país seleccionado o modo global.
-4. **Envíos Multipaís en Tiendas:** Las tiendas que operan o envían pedidos a varios países (`ShippingCountries`) son visibles y computadas en todos y cada uno de los territorios autorizados.
-5. **Advertencia de Filtrado Territorial:** Obligación de avisar de manera explícita y transparente al usuario sobre el filtrado al configurar su país.
-6. **Políticas de Tiendas en Ficha de Juegos y Fundas:** En "Dónde Comprar" de la ficha del juego (`StoreOffersCard`) y en la guía de fundas (`SleeveGuideCard`), si no existen tiendas que envíen al país activo del usuario, **no se muestra ninguna tienda de otros países**, informando con un estado vacío limpio y contextual.
-7. **Detección Automática y Priorización Lúdica:** Detección en cliente por zona horaria de navegador (`Intl.DateTimeFormat`) para ordenar resultados priorizando el país del usuario sin excluir los demás cuando no hay filtro territorial restrictivo.
-
----
-
-## 2. Catálogo Oficial Geográfico y Resolución Lingüística (`Ludeka.Core`)
-
-### 2.1 Entidades y Value Objects
-- **`CountryInfo`**: Value object inmutable con `Code` (ISO-3166 alfa-2 o `INT`), `Name` canónico (ej. `España`, `México`, `Argentina`, `Chile`, `Colombia`, `Perú`, `Uruguay`, `Internacional`) y `FlagEmoji` (ej. 🇪🇸, 🇲🇽, 🇦🇷, 🇨🇱, 🇨🇴, 🇵🇪, 🇺🇾, 🌎).
-- **`CountryCatalog`**: Catálogo central con lista inmutable de países soportados (`All`, `SpecificCountries`), métodos de normalización fonética y de acentos (`RemoveDiacritics`), resolución por sinónimos o aliases (`espana` -> `España`, `global` / `mundial` -> `Internacional`), resolución de banderas (`GetFlag`) y verificación de ámbito mundial (`IsInternational`).
-
-### 2.2 Reglas e Invariantes de Dominio
-- **`Store.cs`**:
-  - Propiedades `Country` (sede principal) y `ShippingCountries` (colección de países a los que envía).
-  - Método `ShipsTo(country)`: valida si el país destino coincide con la sede, con algún país de `ShippingCountries` o si tiene cobertura internacional.
-- **`Giveaway.cs`**:
-  - Propiedades `Country` e `IsInternational` (`CountryCatalog.IsInternational(Country)`).
-  - Método `IsAvailableInCountry(country)`: devuelve siempre `true` si no hay filtro o si es `IsInternational`; si hay filtro, requiere coincidencia exacta con el país.
-- **`BoardGameEvent.cs`**:
-  - Propiedades `Country` e `IsInternational`.
-  - Método `IsCelebratedInCountry(country)`: devuelve siempre `true` si no hay filtro o si es `IsInternational`; en caso contrario verifica coincidencia territorial.
-- **`GamePurchaseLink.cs` y `SleeveItem.cs`**:
-  - Propiedades `Country` y `ShippingCountries`.
-  - Método `ShipsTo(country)`: filtra enlaces para asegurar que solo se muestren tiendas y marcas de fundas que envían al territorio activo.
-- **`AppUser.cs` y `UserPreference.cs`**:
-  - Propiedad nullable `Country`. Si es `null`, representa ámbito "Global (sin filtro)".
+6: El módulo de **Localización Geográfica por País y Filtrado Territorial (INC-29 e INC-73)** introduce:
+7: 1. **Atribución Geográfica Universal:** Asociación de país y ámbito de envíos a tiendas especializadas (`Store`), sorteos comunitarios (`Giveaway`), ferias y eventos (`BoardGameEvent`), enlaces de compra de juegos (`GamePurchaseLink`), guías de compra de fundas (`SleeveItem`), perfiles de usuario (`AppUser`), preferencias persistentes (`UserPreference`), y editoriales y títulos comerciales en el catálogo (`Game`, `RegionalPublishers`, `LocalizedTitles`, INC-73).
+8: 2. **Filtrado Territorial Estricto Opcional:** Si el usuario selecciona expresamente su país en su perfil o cabecera, la plataforma activa un filtro excluyente para que solo vea sorteos, eventos y tiendas correspondientes a su territorio o con cobertura internacional.
+9: 3. **Regla de Sorteos y Eventos Internacionales:** Los eventos lúdicos y sorteos marcados con ámbito "Internacional" (`INT` / `🌎`) son **siempre visibles** para cualquier país seleccionado o modo global.
+10: 4. **Envíos Multipaís en Tiendas:** Las tiendas que operan o envían pedidos a varios países (`ShippingCountries`) son visibles y computadas en todos y cada uno de los territorios autorizados.
+11: 5. **Advertencia de Filtrado Territorial:** Obligación de avisar de manera explícita y transparente al usuario sobre el filtrado al configurar su país.
+12: 6. **Políticas de Tiendas en Ficha de Juegos y Fundas:** En "Dónde Comprar" de la ficha del juego (`StoreOffersCard`) y en la guía de fundas (`SleeveGuideCard`), si no existen tiendas que envíen al país activo del usuario, **no se muestra ninguna tienda de otros países**, informando con un estado vacío limpio y contextual.
+13: 7. **Detección Automática y Priorización Lúdica:** Detección en cliente por zona horaria de navegador (`Intl.DateTimeFormat`) para ordenar resultados priorizando el país del usuario sin excluir los demás cuando no hay filtro territorial restrictivo.
+14: 8. **Localización Territorial de Editoriales y Títulos Comerciales (INC-73):** Identificación de sellos editoriales locales y títulos adaptados en los 7 países hispanohablantes soportados (`ES`, `MX`, `AR`, `CL`, `CO`, `PE`, `UY`). En la ficha del juego, se presenta la editorial local y el título comercial correspondiente al país del usuario (`GetPublisherForCountry` y `GetTitleForCountry`).
+15: 
+16: ---
+17: 
+18: ## 2. Catálogo Oficial Geográfico y Resolución Lingüística (`Ludeka.Core`)
+19: 
+20: ### 2.1 Entidades y Value Objects
+21: - **`CountryInfo`**: Value object inmutable con `Code` (ISO-3166 alfa-2 o `INT`), `Name` canónico (ej. `España`, `México`, `Argentina`, `Chile`, `Colombia`, `Perú`, `Uruguay`, `Internacional`) y `FlagEmoji` (ej. 🇪🇸, 🇲🇽, 🇦🇷, 🇨🇱, 🇨🇴, 🇵🇪, 🇺🇾, 🌎).
+22: - **`CountryCatalog`**: Catálogo central con lista inmutable de países soportados (`All`, `SpecificCountries`), métodos de normalización fonética y de acentos (`RemoveDiacritics`), resolución por sinónimos o aliases (`espana` -> `España`, `global` / `mundial` -> `Internacional`), resolución de banderas (`GetFlag`) y verificación de ámbito mundial (`IsInternational`).
+23: - **`RegionalPublisherEntry` y `LocalizedTitleEntry`**: Value objects inmutables que encapsulan la relación entre un país (`CountryCode`) y el nombre de la editorial o título comercial específico (INC-73).
+24: 
+25: ### 2.2 Reglas e Invariantes de Dominio
+26: - **`Game.cs` (INC-73):**
+27:   - Propiedades `SpanishPublisher` (string?), `RegionalPublishers` (colección JSON de `RegionalPublisherEntry`) y `LocalizedTitles` (colección JSON de `LocalizedTitleEntry`).
+28:   - Método `GetPublisherForCountry(string? countryCode)`: resuelve la editorial licenciante del país del usuario; si no existe, devuelve `SpanishPublisher` para España o `Publisher` internacional como fallback honesto.
+29:   - Método `GetTitleForCountry(string? countryCode)`: resuelve el título comercial traducido para el país del usuario; si no existe, recurre a `SpanishTitle` y finalmente a `OriginalTitle`.
+30: - **`Store.cs`**:
+31:   - Propiedades `Country` (sede principal) y `ShippingCountries` (colección de países a los que envía).
+32:   - Método `ShipsTo(country)`: valida si el país destino coincide con la sede, con algún país de `ShippingCountries` o si tiene cobertura internacional.
+33: - **`Giveaway.cs`**:
+34:   - Propiedades `Country` e `IsInternational` (`CountryCatalog.IsInternational(Country)`).
+35:   - Método `IsAvailableInCountry(country)`: devuelve siempre `true` si no hay filtro o si es `IsInternational`; si hay filtro, requiere coincidencia exacta con el país.
+36: - **`BoardGameEvent.cs`**:
+37:   - Propiedades `Country` e `IsInternational`.
+38:   - Método `IsCelebratedInCountry(country)`: devuelve siempre `true` si no hay filtro o si es `IsInternational`; en caso contrario verifica coincidencia territorial.
+39: - **`GamePurchaseLink.cs` y `SleeveItem.cs`**:
+40:   - Propiedades `Country` y `ShippingCountries`.
+41:   - Método `ShipsTo(country)`: filtra enlaces para asegurar que solo se muestren tiendas y marcas de fundas que envían al territorio activo.
+42: - **`AppUser.cs` y `UserPreference.cs`**:
+43:   - Propiedad nullable `Country`. Si es `null`, representa ámbito "Global (sin filtro)".
 
 ---
 
@@ -94,9 +100,12 @@ Texto exacto integrado en el modal y en las preferencias de perfil:
 
 ---
 
-## 7. Pruebas Unitarias Automatizadas
-El incremento incorpora 42 nuevas pruebas automatizadas verificadas con xUnit, elevando la suite completa de Ludeka a **573 pruebas exitosas (0 fallos)**:
-- `CountryCatalogTests`: Resolución fonética, sinónimos, aliases, banderas y ámbito mundial.
-- `CountryFilteringEntityTests`: Lógica de negocio de `ShipsTo`, `IsAvailableInCountry` e `IsCelebratedInCountry`.
-- `UserLocationServiceTests`: Fallback jerárquico de preferencias y algoritmo de ordenación por prioridad territorial.
-- `SqliteCountryMigrationTests`: Migración idempotente del esquema SQLite con bases de datos en memoria.
+103: ## 7. Pruebas Unitarias Automatizadas
+104: El incremento incorpora pruebas automatizadas verificadas con xUnit, cubriendo la resolución territorial completa:
+105: - `CountryCatalogTests`: Resolución fonética, sinónimos, aliases, banderas y ámbito mundial.
+106: - `CountryFilteringEntityTests`: Lógica de negocio de `ShipsTo`, `IsAvailableInCountry` e `IsCelebratedInCountry`.
+107: - `UserLocationServiceTests`: Fallback jerárquico de preferencias y algoritmo de ordenación por prioridad territorial.
+108: - `RegionalPublisherMatcherTests` (INC-73): 7 pruebas de resolución territorial de editoriales en España, México, Argentina, Chile, Colombia, Perú y Uruguay.
+109: - `SqliteCountryMigrationTests`: Migración idempotente del esquema SQLite con bases de datos en memoria.
+110: 
+111: **Total de la suite verificado tras INC-73:** **1.966 pruebas unitarias en verde al 100% (0 errores, 0 omitidas)**.

@@ -244,10 +244,10 @@ public class BggMassIngestionAutonomousDownloadTests
     }
 
     [Fact]
-    public void Options_DefaultMinUsersRated_Is1000()
+    public void Options_DefaultMinUsersRated_Is100()
     {
         var options = new BggMassIngestionOptions();
-        Assert.Equal(1000, options.MinUsersRated);
+        Assert.Equal(100, options.MinUsersRated);
     }
 
     #region Helpers & Fakes
