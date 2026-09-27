@@ -4,9 +4,31 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'openspec/**'
+      - '**/*.md'
+      - '.claude/**'
+      - '.gemini/**'
+      - '.agents/**'
+      - '.vscode/**'
+      - '.gitignore'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'openspec/**'
+      - '**/*.md'
+      - '.claude/**'
+      - '.gemini/**'
+      - '.agents/**'
+      - '.vscode/**'
+      - '.gitignore'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -33,6 +55,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Caché de paquetes NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Ludeka.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Restaurar dependencias NuGet
         run: dotnet restore Ludeka.sln
 
@@ -43,6 +73,7 @@ jobs:
         run: dotnet test Ludeka.sln --configuration Release --no-build --verbosity normal
 
       - name: Verificar construcción de imagen Docker
+        if: github.ref == 'refs/heads/main'
         run: docker build -t ludeka:ci .
 
   # =========================================================================
