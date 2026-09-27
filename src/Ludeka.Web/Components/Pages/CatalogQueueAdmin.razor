@@ -218,8 +218,22 @@
         <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
                 <div>
-                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-xs font-bold mb-1">
-                        <Icon Name="database" Size="12" /> Ingesta Masiva & Staging (~8.000 títulos)
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-xs font-bold">
+                            <Icon Name="database" Size="12" /> Ingesta Masiva & Staging (Catálogo BGG)
+                        </div>
+                        @if (_pendingQualityCount > 0)
+                        {
+                            <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 text-xs font-bold border border-violet-500/20">
+                                <Icon Name="sparkles" Size="12" /> @_pendingQualityCount títulos pendientes de enriquecimiento
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                                <Icon Name="check" Size="12" /> Catálogo 100% enriquecido
+                            </div>
+                        }
                     </div>
                     <h3 class="text-lg font-bold text-[var(--text-primary)]">
                         Estado del Pipeline de Catálogo BGG
@@ -232,23 +246,23 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <button type="button"
                             @onclick="ExecuteAutonomousStagingSeedAsync"
-                            disabled="@(_isSeedingStaging || _isDrainingStaging || _isClearingStaging)"
+                            disabled="@(_isSeedingStaging || _isDrainingStaging || _isClearingStaging || _isBackfillingQuality || _isContinuousBackfillActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-sky-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isSeedingStaging)
                         {
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Descargando y Poblando (Top ~4.000)...</span>
+                            <span>Descargando y Poblando (≥100 opiniones)...</span>
                         }
                         else
                         {
                             <Icon Name="download" Size="14" class="text-sky-500" />
-                            <span>Descargar y Poblar Catálogo BGG (Top ~4.000, ≥1.000 votos)</span>
+                            <span>Descargar y Poblar Catálogo BGG (≥100 opiniones)</span>
                         }
                     </button>
 
                     <button type="button"
                             @onclick="ExecuteStagingDrainAsync"
-                            disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive)"
+                            disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isBackfillingQuality || _isContinuousBackfillActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isDrainingStaging)
                         {
@@ -266,7 +280,7 @@
                     {
                         <button type="button"
                                 @onclick="StartContinuousDrain"
-                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging)"
+                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isBackfillingQuality || _isContinuousBackfillActive)"
                                 class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                             <Icon Name="play" Size="14" />
                             <span>Drenaje Continuo (Segundo Plano)</span>
@@ -279,6 +293,43 @@
                                 class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
                             <span>Detener Drenaje Continuo</span>
+                        </button>
+                    }
+
+                    <button type="button"
+                            @onclick="ExecuteQualityBackfillBatchAsync"
+                            disabled="@(_isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isContinuousBackfillActive)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-violet-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        @if (_isBackfillingQuality)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Actualizando Calidad (Lote)...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="sparkles" Size="14" class="text-violet-400" />
+                            <span>Actualizar Calidad (Lote 50)</span>
+                        }
+                    </button>
+
+                    @if (!_isContinuousBackfillActive)
+                    {
+                        <button type="button"
+                                @onclick="StartContinuousBackfill"
+                                disabled="@(_isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _pendingQualityCount == 0)"
+                                class="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                title="Actualiza escalabilidad, huella de mesa, fundas y editoriales de los títulos existentes en catálogo">
+                            <Icon Name="sparkles" Size="14" />
+                            <span>Actualizar Calidad Catálogo (@(_pendingQualityCount > 0 ? $"~{_pendingQualityCount}" : "Completo"))</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="StopContinuousBackfill"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Detener Calidad Continua</span>
                         </button>
                     }
 
@@ -397,6 +448,42 @@
                             class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
                         Detener Drenaje
                     </button>
+                </div>
+            }
+
+            @if (_isContinuousBackfillActive)
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+                    <div class="flex items-center gap-2.5">
+                        <span class="animate-spin inline-block text-violet-400"><Icon Name="loader" Size="18" /></span>
+                        <div>
+                            <span class="font-bold text-violet-400 text-sm">Actualización de Calidad de Catálogo en Segundo Plano Activa</span>
+                            <p class="text-[var(--text-secondary)] text-[0.75rem] mt-0.5">
+                                @(_continuousBackfillMessage ?? "Enriqueciendo huella de mesa, fundas, duraciones, editoriales y escalabilidad...")
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="StopContinuousBackfill"
+                            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
+                        Detener Actualización
+                    </button>
+                </div>
+            }
+
+            @if (!_isContinuousBackfillActive && !string.IsNullOrEmpty(_continuousBackfillMessage))
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-violet-400 mr-1.5" /> @_continuousBackfillMessage</span>
+                    <button type="button" @onclick="() => _continuousBackfillMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                </div>
+            }
+
+            @if (_qualityBackfillResult != null)
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="sparkles" Size="14" class="inline text-violet-400 mr-1.5" /> @_qualityBackfillResult.Message (@_pendingQualityCount títulos pendientes restantes en catálogo)</span>
+                    <button type="button" @onclick="() => _qualityBackfillResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
 
@@ -717,6 +804,11 @@
     private static CancellationTokenSource? _continuousDrainCts;
     private static bool _isContinuousDrainActive => _continuousDrainCts != null && !_continuousDrainCts.IsCancellationRequested;
     private static string? _continuousDrainMessage;
+
+    private static CancellationTokenSource? _continuousBackfillCts;
+    private static bool _isContinuousBackfillActive => _continuousBackfillCts != null && !_continuousBackfillCts.IsCancellationRequested;
+    private static string? _continuousBackfillMessage;
+
     private PeriodicTimer? _pollTimer;
     private Task? _pollTask;
 
@@ -728,6 +820,8 @@
     private bool _isResettingAiQuota = false;
     private bool _confirmClearStaging = false;
     private bool _isDiscoveringBgg = false;
+    private bool _isBackfillingQuality = false;
+    private int _pendingQualityCount = 0;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
     private int _bggDiscoveryCount = 0;
@@ -738,6 +832,7 @@
     private BggDiscoveryResultDto? _discoveryResult;
     private BggStagingMetricsDto? _stagingMetrics;
     private BggMassIngestionCycleResultDto? _drainCycleResult;
+    private BggQualityBackfillResultDto? _qualityBackfillResult;
     private string? _stagingSeedResult;
     private bool _isSeedingDirectory = false;
     private DirectorySeedResultDto? _directorySeedResult;
@@ -756,7 +851,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
-        if (_isContinuousDrainActive)
+        if (_isContinuousDrainActive || _isContinuousBackfillActive)
         {
             StartPollingTimer();
         }
@@ -775,6 +870,7 @@
             _history = await NightlyService.GetExecutionHistoryAsync(15);
             _lastHistory = _history.FirstOrDefault();
             _stagingMetrics = await MassIngestionService.GetMetricsAsync();
+            _pendingQualityCount = await MassIngestionService.GetPendingQualityBackfillCountAsync();
         }
         catch (Exception)
         {
@@ -993,6 +1089,89 @@
         }
     }
 
+    private async Task ExecuteQualityBackfillBatchAsync()
+    {
+        if (_isBackfillingQuality || _isDrainingStaging || !CanManageQueue) return;
+
+        _isBackfillingQuality = true;
+        _qualityBackfillResult = null;
+
+        try
+        {
+            _qualityBackfillResult = await MassIngestionService.BackfillCatalogQualityBatchAsync(50);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _qualityBackfillResult = new BggQualityBackfillResultDto(0, 0, 1, $"Error al actualizar calidad: {ex.Message}");
+        }
+        finally
+        {
+            _isBackfillingQuality = false;
+        }
+    }
+
+    private void StartContinuousBackfill()
+    {
+        if (_isContinuousBackfillActive || !CanManageQueue) return;
+
+        _continuousBackfillCts = new CancellationTokenSource();
+        _continuousBackfillMessage = "Actualización masiva de calidad iniciada en segundo plano...";
+
+        var token = _continuousBackfillCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var massService = scope.ServiceProvider.GetRequiredService<IBggMassIngestionService>();
+
+                int totalUpdated = 0;
+                int totalEvaluated = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    var res = await massService.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 50, token);
+                    totalEvaluated += res.EvaluatedCount;
+                    totalUpdated += res.UpdatedCount;
+
+                    _continuousBackfillMessage = $"Procesando calidad: {totalUpdated} actualizados ({totalEvaluated} evaluados)...";
+
+                    if (res.EvaluatedCount == 0 || (res.UpdatedCount == 0 && res.FailedCount == 0))
+                    {
+                        _continuousBackfillMessage = $"Actualización de calidad completada: {totalUpdated} juegos enriquecidos con éxito.";
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousBackfillMessage = "Actualización de calidad detenida por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousBackfillMessage = $"Error durante la actualización de calidad: {ex.Message}";
+            }
+            finally
+            {
+                _continuousBackfillCts?.Dispose();
+                _continuousBackfillCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
+    private void StopContinuousBackfill()
+    {
+        if (_continuousBackfillCts != null && !_continuousBackfillCts.IsCancellationRequested)
+        {
+            _continuousBackfillMessage = "Deteniendo actualización de calidad...";
+            _continuousBackfillCts.Cancel();
+        }
+    }
+
     private void StartPollingTimer()
     {
         _pollTimer?.Dispose();
@@ -1009,7 +1188,7 @@
                         StateHasChanged();
                     });
 
-                    if (!_isContinuousDrainActive)
+                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive)
                     {
                         break;
                     }

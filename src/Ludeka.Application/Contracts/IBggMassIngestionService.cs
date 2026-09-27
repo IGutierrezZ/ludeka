@@ -97,6 +97,12 @@ public interface IBggMassIngestionService
     /// </summary>
     Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
         => Task.FromResult(new BggQualityBackfillResultDto(0, 0, 0, "Noop"));
+
+    /// <summary>
+    /// Obtiene el total de títulos existentes en catálogo que aún no han recibido enriquecimiento de calidad (escalabilidad vacía).
+    /// </summary>
+    Task<int> GetPendingQualityBackfillCountAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 
 /// <summary>
