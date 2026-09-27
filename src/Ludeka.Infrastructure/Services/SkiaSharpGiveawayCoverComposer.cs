@@ -139,7 +139,7 @@ public class SkiaSharpGiveawayCoverComposer : IGiveawayCoverComposer
         };
 
         var destRect = new SKRect(destX, destY, destX + scaledWidth, destY + scaledHeight);
-        canvas.DrawBitmap(source, destRect, paint);
+        canvas.DrawBitmap(source, destRect, SKSamplingOptions.Default, paint);
     }
 
     private static void DrawCenteredForeground(SKCanvas canvas, SKBitmap source, int targetWidth, int targetHeight)
@@ -174,11 +174,10 @@ public class SkiaSharpGiveawayCoverComposer : IGiveawayCoverComposer
         canvas.ClipRoundRect(roundRect, SKClipOperation.Intersect, antialias: true);
         using (var imagePaint = new SKPaint
         {
-            IsAntialias = true,
-            FilterQuality = SKFilterQuality.High
+            IsAntialias = true
         })
         {
-            canvas.DrawBitmap(source, fgRect, imagePaint);
+            canvas.DrawBitmap(source, fgRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), imagePaint);
         }
         canvas.Restore();
 
@@ -209,16 +208,20 @@ public class SkiaSharpGiveawayCoverComposer : IGiveawayCoverComposer
             canvas.DrawRoundRect(badgeRect, bgPaint);
         }
 
-        using (var textPaint = new SKPaint
+        using var typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
+        using var font = new SKFont(typeface, 13);
+        using var textPaint = new SKPaint
         {
             Color = new SKColor(249, 115, 22), // #F97316 Ludeka Brand Orange
-            TextSize = 13,
-            IsAntialias = true,
-            FakeBoldText = true,
-            TextAlign = SKTextAlign.Center
-        })
-        {
-            canvas.DrawText("LUDEKA", badgeRect.Rect.MidX, badgeRect.Rect.MidY + 4.5f, textPaint);
-        }
+            IsAntialias = true
+        };
+
+        var text = "LUDEKA";
+        float textWidth = font.MeasureText(text);
+        float x = badgeRect.Rect.MidX - (textWidth / 2f);
+        float y = badgeRect.Rect.MidY + 4.5f;
+
+        using var blob = SKTextBlob.Create(text, font);
+        canvas.DrawText(blob, x, y, textPaint);
     }
 }

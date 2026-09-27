@@ -105,6 +105,16 @@ public class LudekaPersistenceAndDomainServicesTests
     {
         public Task<SocialAiAnalysisResultDto> AnalyzeTextAsync(string text, string? authorOrChannel = null, CancellationToken ct = default) =>
             throw new NotImplementedException();
+
+        public Task<SocialAiAnalysisResultDto> AnalyzeMultimodalAsync(
+            string? rulesText = null,
+            byte[]? rulesImageBytes = null,
+            string? rulesImageMimeType = null,
+            byte[]? coverImageBytes = null,
+            string? coverImageMimeType = null,
+            string? authorOrChannel = null,
+            CancellationToken ct = default) =>
+            throw new NotImplementedException();
     }
 
     private sealed class FakeImageStorageService : IImageStorageService

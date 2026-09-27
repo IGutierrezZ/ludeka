@@ -46,6 +46,28 @@ internal sealed class StaticAiAnalysisService : ISocialAiAnalysisService
             MediaCategory: null,
             PlayerCountBadge: null,
             Notes: null));
+
+    public Task<SocialAiAnalysisResultDto> AnalyzeMultimodalAsync(
+        string? rulesText = null,
+        byte[]? rulesImageBytes = null,
+        string? rulesImageMimeType = null,
+        byte[]? coverImageBytes = null,
+        string? coverImageMimeType = null,
+        string? authorOrChannel = null,
+        CancellationToken ct = default)
+        => Task.FromResult(new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo detectado",
+            OrganizerOrAuthor: "Editorial Local",
+            Collaborator: null,
+            SuggestedGameTitle: null,
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(5),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: null));
 }
 
 internal sealed class NoopImageStorageService : IImageStorageService

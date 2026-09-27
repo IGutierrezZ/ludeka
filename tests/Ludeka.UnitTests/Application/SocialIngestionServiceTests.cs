@@ -94,6 +94,18 @@ public class SocialIngestionServiceTests
         {
             return Task.FromResult(ResultToReturn);
         }
+
+        public Task<SocialAiAnalysisResultDto> AnalyzeMultimodalAsync(
+            string? rulesText = null,
+            byte[]? rulesImageBytes = null,
+            string? rulesImageMimeType = null,
+            byte[]? coverImageBytes = null,
+            string? coverImageMimeType = null,
+            string? authorOrChannel = null,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(ResultToReturn);
+        }
     }
 
     private class FakeImageStorageService : IImageStorageService
