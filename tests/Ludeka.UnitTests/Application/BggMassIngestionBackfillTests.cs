@@ -152,6 +152,108 @@ public class BggMassIngestionBackfillTests
         Assert.Equal(0, result.UpdatedCount);
     }
 
+    [Fact]
+    public async Task BackfillCatalogQualityBatchAsync_WhenGameHasNoCardsOrSpanishPublisher_EnrichesAndDoesNotRemainPending()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var bggClient = new FakeBggClient();
+        var geekDo = new FakeGeekDoClient();
+        var images = new FakeImageStorageService();
+        var ai = new FakeAiSummaryService();
+        var gameRepo = new FakeGameRepo();
+        using var httpClient = new HttpClient();
+        var options = Options.Create(new BggMassIngestionOptions());
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            geekDo,
+            images,
+            ai,
+            gameRepo,
+            httpClient,
+            options,
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Juego sin cartas (0 sleeves) ni editorial española en catálogo (ej. Hive)
+        var hive = new Game(
+            bggId: 2655,
+            originalTitle: "Hive",
+            spanishTitle: "Hive",
+            designer: "John Yianni",
+            publisher: "Gen42 Games",
+            yearPublished: 2001,
+            coverImageUrl: "https://cdn.ludeka.com/hive.jpg",
+            thumbnailUrl: "https://cdn.ludeka.com/hive_thumb.jpg",
+            description: "Juego de estrategia para 2 jugadores con fichas de insectos.",
+            bggRating: 7.3,
+            bggRank: 300,
+            ludistRating: 7.6,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.FillerAbstract,
+            isOfficialSolo: false,
+            age: new AgeRating(9, 9),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(20, 20, 20),
+            scalability: new List<ScalabilityEntry>(),
+            sleeves: new List<SleeveItem>()
+        );
+        gameRepo.Games.Add(hive);
+
+        // BGG devuelve escalabilidad pero 0 fundas y sin editorial española
+        var fetchedHive = new Game(
+            bggId: 2655,
+            originalTitle: "Hive",
+            spanishTitle: "Hive",
+            designer: "John Yianni",
+            publisher: "Gen42 Games",
+            yearPublished: 2001,
+            coverImageUrl: "https://cdn.ludeka.com/hive.jpg",
+            thumbnailUrl: "https://cdn.ludeka.com/hive_thumb.jpg",
+            description: "Descripción enriquecida",
+            bggRating: 7.3,
+            bggRank: 300,
+            ludistRating: 7.6,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.FillerAbstract,
+            isOfficialSolo: false,
+            age: new AgeRating(9, 9),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.SmallTable,
+            duration: new GameDuration(15, 30, 20),
+            scalability: new List<ScalabilityEntry>
+            {
+                new(2, "2", ScalabilityStatus.MustPlay, 850, 100, 10)
+            },
+            sleeves: new List<SleeveItem>() // 0 fundas
+        );
+        bggClient.Games[2655] = fetchedHive;
+
+        // Act 1: Primer ciclo de enriquecimiento
+        int pendingBefore = await service.GetPendingQualityBackfillCountAsync();
+        Assert.Equal(1, pendingBefore);
+
+        var firstResult = await service.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 10);
+
+        // Assert 1: Se actualizó con éxito
+        Assert.Equal(1, firstResult.EvaluatedCount);
+        Assert.Equal(1, firstResult.UpdatedCount);
+        Assert.Equal(0, firstResult.FailedCount);
+        Assert.NotEmpty(hive.Scalability);
+        Assert.Equal(TableFootprint.SmallTable, hive.Footprint);
+
+        // Act 2: Segundo ciclo no debe re-procesar a Hive en un bucle infinito
+        int pendingAfter = await service.GetPendingQualityBackfillCountAsync();
+        Assert.Equal(0, pendingAfter);
+
+        var secondResult = await service.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 10);
+        Assert.Equal(0, secondResult.EvaluatedCount);
+        Assert.Equal(0, secondResult.UpdatedCount);
+    }
+
     #region Fakes
 
     private class FakeStagingRepo : IBggCatalogStagingRepository
@@ -257,7 +359,9 @@ public class BggMassIngestionBackfillTests
         public Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Array.Empty<Game>());
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Games);
         public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
-            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.Scalability.Count == 0 || g.Sleeves.Count == 0 || g.SpanishPublisher == null).Take(limit).ToList());
+            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.Scalability.Count == 0).Take(limit).ToList());
+        public Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
+            => Task.FromResult(Games.Count(g => g.Scalability.Count == 0));
     }
 
     #endregion

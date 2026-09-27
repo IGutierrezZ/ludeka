@@ -16,6 +16,7 @@ public static class JobNames
     public const string SeedStaging = "seed-staging";
     public const string DrainStaging = "drain-staging";
     public const string SeedDirectory = "seed-directory";
+    public const string BackfillQuality = "backfill-quality";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -27,6 +28,7 @@ public static class JobNames
         NotificationOutbox,
         SeedStaging,
         DrainStaging,
-        SeedDirectory
+        SeedDirectory,
+        BackfillQuality
     ];
 }

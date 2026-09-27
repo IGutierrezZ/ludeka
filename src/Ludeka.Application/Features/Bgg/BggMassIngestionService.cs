@@ -822,7 +822,20 @@ public class BggMassIngestionService : IBggMassIngestionService
 
                 if (staging != null && staging.FetchStatus == StagingFetchStatus.Fetched)
                 {
-                    var scalability = staging.GetScalability();
+                    IReadOnlyList<ScalabilityEntry> scalability = staging.GetScalability();
+                    if (scalability.Count == 0)
+                    {
+                        int minP = staging.MinPlayers > 0 ? staging.MinPlayers : 1;
+                        int maxP = staging.MaxPlayers >= minP ? staging.MaxPlayers : 4;
+                        var fallbackList = new List<ScalabilityEntry>();
+                        for (int p = minP; p <= maxP; p++)
+                        {
+                            var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
+                            fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
+                        }
+                        scalability = fallbackList;
+                    }
+
                     if (game.Scalability.Count == 0 && scalability.Count > 0)
                     {
                         game.UpdateScalability(scalability);
@@ -864,9 +877,23 @@ public class BggMassIngestionService : IBggMassIngestionService
                     var fetched = await _bggClient.FetchGameByBggIdAsync(game.BggId, ct);
                     if (fetched != null)
                     {
-                        if (game.Scalability.Count == 0 && fetched.Scalability.Count > 0)
+                        IReadOnlyList<ScalabilityEntry> scalability = fetched.Scalability;
+                        if (scalability.Count == 0)
                         {
-                            game.UpdateScalability(fetched.Scalability);
+                            int minP = 1;
+                            int maxP = 4;
+                            var fallbackList = new List<ScalabilityEntry>();
+                            for (int p = minP; p <= maxP; p++)
+                            {
+                                var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
+                                fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
+                            }
+                            scalability = fallbackList;
+                        }
+
+                        if (game.Scalability.Count == 0 && scalability.Count > 0)
+                        {
+                            game.UpdateScalability(scalability);
                             enriched = true;
                         }
 
@@ -926,6 +953,18 @@ public class BggMassIngestionService : IBggMassIngestionService
                             await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
                         }
                     }
+                    else
+                    {
+                        // Fallback defensivo para evitar que títulos 404 o descontinuados en BGG bloqueen el bucle
+                        if (game.Scalability.Count == 0)
+                        {
+                            game.UpdateScalability([
+                                new ScalabilityEntry(1, "1J", ScalabilityStatus.Recommended),
+                                new ScalabilityEntry(4, "4J", ScalabilityStatus.Recommended)
+                            ]);
+                            enriched = true;
+                        }
+                    }
                 }
 
                 if (enriched)
@@ -944,5 +983,11 @@ public class BggMassIngestionService : IBggMassIngestionService
         string msg = $"Enriquecimiento completado: {updatedCount} actualizados, {failedCount} fallidos de {pendingGames.Count} evaluados.";
         _logger.LogInformation(msg);
         return new BggQualityBackfillResultDto(pendingGames.Count, updatedCount, failedCount, msg);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> GetPendingQualityBackfillCountAsync(CancellationToken ct = default)
+    {
+        return await _gameRepo.GetGamesPendingQualityBackfillCountAsync(ct);
     }
 }

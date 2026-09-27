@@ -280,11 +280,18 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         await using var scope = await CreateScopeAsync(ct);
         return await scope.Context.Games
-            .Where(g => g.Scalability.Count == 0 || g.Sleeves.Count == 0 || g.SpanishPublisher == null)
+            .Where(g => g.Scalability.Count == 0)
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank)
             .Take(limit)
             .ToListAsync(ct);
+    }
+
+    public async Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .CountAsync(g => g.Scalability.Count == 0, ct);
     }
 
     public async Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default)
