@@ -107,7 +107,7 @@ jobs:
           service: ${{ secrets.GCP_SERVICE_NAME || 'ludeka-web' }}
           region: ${{ secrets.GCP_REGION || 'europe-west1' }}
           image: ${{ secrets.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ludeka/ludeka-web:${{ github.sha }}
-          flags: '--allow-unauthenticated --port=8080 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=5 --liveness-probe=httpGet.path=/healthz,httpGet.port=8080 --startup-probe=httpGet.path=/ready,httpGet.port=8080'
+          flags: '--allow-unauthenticated --port=8080 --memory=512Mi --cpu=1 --min-instances=1 --max-instances=2 --cpu-boost --liveness-probe=httpGet.path=/healthz,httpGet.port=8080 --startup-probe=httpGet.path=/ready,httpGet.port=8080'
           env_vars: |
             ASPNETCORE_ENVIRONMENT=Production
             Database__Provider=PostgreSql
