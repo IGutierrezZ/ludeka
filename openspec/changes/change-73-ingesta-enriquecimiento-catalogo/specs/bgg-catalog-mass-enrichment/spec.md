@@ -1,6 +1,6 @@
 # Especificación: bgg-catalog-mass-enrichment
 
-Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameGeek con filtro de tracción comunitaria rebajado a >100 opiniones, protección estricta contra duplicados por `BggId`, enriquecimiento integral y determinista de metadatos (escalabilidad comunitaria con fallback, fundas de cartas, huella en mesa y tiempos reales de juego), y localización territorial de editoriales en España y títulos comerciales.
+Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameGeek con filtro de tracción comunitaria rebajado a >100 opiniones, protección estricta contra duplicados por `BggId`, enriquecimiento integral y determinista de metadatos (escalabilidad comunitaria con fallback, fundas de cartas, huella en mesa y tiempos reales de juego), y localización territorial multipaís de editoriales y títulos comerciales para todos los países soportados por Ludeka (España, México, Argentina, Chile, Colombia, Perú y Uruguay).
 
 ---
 
@@ -17,13 +17,13 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
   - Al procesar el volcado masivo en staging: `IBggCatalogStagingRepository.UpsertBatchAsync` agrupa por `BggId` e inserta solo los nuevos ítems, actualizando métricas de clasificación en los ya existentes.
   - Al promover a catálogo definitivo (`PromoteReadyToCatalogBatchAsync`):
     - Se consulta `_gameRepo.GetByBggIdAsync(item.BggId)`.
-    - Si no existe: se crea un nuevo `Game` con todos sus metadatos (escalabilidad, fundas, huella, tiempos, editorial española) y se añade a la base de datos.
+    - Si no existe: se crea un nuevo `Game` con todos sus metadatos (escalabilidad, fundas, huella, tiempos, editoriales regionales) y se añade a la base de datos.
     - Si ya existe: **no** se intenta insertar otro registro (impidiendo violaciones del índice único `Games.BggId`). Se realiza una actualización aditiva:
       - Actualización de URLs de medios (`CoverImageUrl`, `BackCoverImageUrl`, `TableImageUrl`).
       - Actualización de `Scalability` si el juego existente no tenía escalabilidad o carecía de votos comunitarios.
       - Actualización de `Sleeves` si el juego existente no tenía fundas registradas.
       - Actualización de `Duration` y `Footprint` con los valores de calidad calculados.
-      - Actualización de `SpanishPublisher` si no estaba informado.
+      - Actualización de `SpanishPublisher` y `RegionalPublishers` incorporando las editoriales locales detectadas.
 
 ### R1.3: Enriquecimiento de Escalabilidad por Jugadores con Fallback
 - `BggXmlParser.ParseItem` analiza el nodo `<poll name="suggested_numplayers">`:
@@ -43,8 +43,8 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
 
 ### R1.5: Inferencia Analítica de Huella en Mesa (TableFootprint)
 - `BggXmlParser` infiere el tamaño en mesa evaluando categorías, mecánicas y duración:
-  - `SmallTable`: Si contiene categorías de cartas, dados, microjuegos, viaje, fiesta o deducción (`Card Game`, `Dice`, `Microgame`, `Travel`, `Party Game`, `Deduction`) y `MaxPlayTime <= 45`.
-  - `TableMonster`: Si contiene miniaturas, wargames, civilización, 4X o cajas grandes (`Miniatures`, `Wargame`, `Civilization`, `4x`, `Big Box`) o `MaxPlayTime >= 150`.
+  - `SmallTable`: Si contiene categorías de cartas, dados, microjuegos, viaje, fiesta o deducción y `MaxPlayTime <= 45`.
+  - `TableMonster`: Si contiene miniaturas, wargames, civilización, 4X o cajas grandes o `MaxPlayTime >= 150`.
   - `StandardTable`: Para el resto de juegos de tablero estándar.
 - El valor inferido se persiste en `BggCatalogStagingItem.InferredFootprint` y se traslada a `Game.Footprint`.
 
@@ -59,17 +59,25 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
 - `IGameRepository.GetGamesPendingQualityBackfillAsync(int limit)` devuelve juegos que requieran enriquecimiento (sin escalabilidad, o huella `StandardTable`, o duraciones con `MinMinutes == MaxMinutes`).
 - El backfill enriquece prioritariamente desde `BggCatalogStaging` si el juego ya fue parseado previamente; de lo contrario, consulta `FetchGameByBggIdAsync`.
 
-### R1.8: Detección y Asociación de Editorial en España (SpanishPublisher)
-- `BggXmlParser` extrae todos los enlaces `<link type="boardgamepublisher">`.
-- Cruza los nombres contra el catálogo de editoriales españolas (`SpanishPublisherMatcher` con el padrón de 46 editoriales de `seed-directory.json`).
-- Si se detecta una editorial española (ej. Devir, Maldito Games, Asmodee, Tranjis Games, TCG Factory, Arrakis Games, Zacatrus, etc.), se asigna a `SpanishPublisher`.
-- `Game.Publisher` conserva la editorial original principal internacional.
-- En la ficha de juego (`GameDetail.razor`):
-  - Se muestra `SpanishPublisher` con enlace a su ficha en el Directorio de Editoriales (`/directorios/editoriales/{slug}`).
-  - Si difiere de `Publisher`, se muestra además la editorial original.
-- En `PublisherDetail.razor`: la consulta de juegos asociados incluye tanto `Publisher` como `SpanishPublisher`, asegurando que la editorial muestre todos los títulos que publica en España.
+### R1.8: Padrón Multipaís de Editoriales en Directorio
+- `seed-directory.json` se amplía con las editoriales destacadas de todos los países hispanohablantes soportados por Ludeka (`CountryCatalog`):
+  - España (46 editoriales canónicas)
+  - México (Devir México, Fractal Juegos México, Taj Mahal Games, Kokonem)
+  - Argentina (Bureau de Juegos, El Troquel, Maldón, Ruibal, Pulga Escapista, ToyCo, Tinkuy)
+  - Chile (Fractal Juegos, Devir Chile, Ludoismo, Dentro de la Caja)
+  - Colombia (Devir Colombia, Borrasca Juegos)
+  - Perú (Malabares Juegos)
+  - Uruguay (Bicho Canasto)
 
-### R1.9: Título Comercial en Español y Título Original
+### R1.9: Detección y Mapeo Multipaís de Editoriales en Juegos
+- `BggXmlParser` extrae todos los enlaces `<link type="boardgamepublisher">`.
+- Cruza la lista contra el padrón multipaís mediante `RegionalPublisherMatcher`:
+  - Detecta todas las editoriales asociadas por país y las agrega a `RegionalPublishers` (`CountryCode`, `CountryName`, `PublisherName`, `PublisherSlug`).
+  - Para España (`ES`), sincroniza también el campo `SpanishPublisher` por compatibilidad.
+  - `Game.Publisher` conserva la editorial original principal internacional.
+- Método `Game.GetPublisherForCountry(string? country)` resuelve la editorial local para el país indicado (o fallback al sello original).
+
+### R1.10: Título Comercial en Español y Título Original
 - En `BggXmlParser`:
   - `SpanishTitle` extrae el nombre comercial en español desde los nombres alternativos de BGG (`<name type="alternate">`) o versiones, limpiando sufijos redundantes.
   - `OriginalTitle` conserva el nombre primario internacional de BGG.
@@ -77,9 +85,10 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
   - Se presenta `SpanishTitle` de forma prominente.
   - Si `SpanishTitle` es diferente de `OriginalTitle`, se muestra `OriginalTitle` como referencia.
 
-### R1.10: Búsquedas y Filtros por Editorial y Título
-- `IGameRepository.SearchAsync` busca coincidencias en `SpanishTitle`, `OriginalTitle`, `Publisher` y `SpanishPublisher`.
-- `IGameRepository.GetByPublisherAsync` busca coincidencias en `Publisher` y `SpanishPublisher`.
+### R1.11: Búsquedas y Filtros por Editorial y Título Multipaís
+- `IGameRepository.SearchAsync` busca coincidencias en `SpanishTitle`, `OriginalTitle`, `Publisher`, `SpanishPublisher` y en las editoriales de `RegionalPublishers`.
+- `IGameRepository.GetByPublisherAsync` busca coincidencias en `Publisher`, `SpanishPublisher` y en `RegionalPublishers`.
+- En `PublisherDetail.razor`, cualquier editorial de España, México, Argentina, Chile, Colombia, Perú o Uruguay lista sus juegos asociados.
 
 ---
 
@@ -92,21 +101,23 @@ Escenario: Ingesta de volcado BGG filtrando por >100 opiniones
   Entonces el juego con 120 votos se inserta en staging
   Y el juego con 80 votos se descarta
 
-Escenario: Detección de editorial española en juego con múltiples sellos
-  Dado un XML de BGG con enlaces de editoriales "Roxley" y "Maldito Games"
+Escenario: Detección de editoriales en múltiples países
+  Dado un XML de BGG con enlaces de editoriales "Roxley", "Maldito Games" y "Bureau de Juegos"
   Cuando BggXmlParser parsea el juego
   Entonces Publisher es "Roxley"
   Y SpanishPublisher es "Maldito Games"
+  Y RegionalPublishers contiene una entrada para España con "Maldito Games"
+  Y RegionalPublishers contiene una entrada para Argentina con "Bureau de Juegos"
 
-Escenario: Prevención de duplicados en promoción de juego ya existente
-  Dado un juego con BggId 342942 ya almacenado en la tabla Games
-  Y un registro en BggCatalogStagingItem listo para promover con el mismo BggId 342942
-  Cuando se ejecuta PromoteReadyToCatalogBatchAsync
-  Entonces no se produce ninguna excepción de clave duplicada
-  Y el juego existente actualiza su escalabilidad, fundas, huella y editorial en España
+Escenario: Consulta de editorial según país del usuario
+  Dado un juego con Publisher="Roxley", editorial en España="Maldito Games" y en Argentina="Bureau de Juegos"
+  Cuando se invoca GetPublisherForCountry("Argentina")
+  Entonces el resultado es "Bureau de Juegos"
+  Cuando se invoca GetPublisherForCountry("España")
+  Entonces el resultado es "Maldito Games"
 
-Escenario: Búsqueda de juegos por editorial en España
-  Dado un juego con Publisher="Lookout Games" y SpanishPublisher="Maldito Games"
-  Cuando se consulta GetByPublisherAsync("Maldito Games")
+Escenario: Búsqueda de juegos por editorial de cualquier país soportado
+  Dado un juego publicado en Argentina por "Bureau de Juegos"
+  Cuando se consulta GetByPublisherAsync("Bureau de Juegos")
   Entonces el juego está presente en los resultados
 ```
