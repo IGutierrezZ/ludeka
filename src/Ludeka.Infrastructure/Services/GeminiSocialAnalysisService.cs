@@ -66,6 +66,53 @@ public class GeminiSocialAnalysisService : ISocialAiAnalysisService
         return GenerateHeuristic(cleanText, authorOrChannel);
     }
 
+    public async Task<SocialAiAnalysisResultDto> AnalyzeMultimodalAsync(
+        string? text,
+        byte[]? basesImageBytes,
+        string? basesImageMimeType,
+        byte[]? coverImageBytes = null,
+        string? coverImageMimeType = null,
+        string? authorOrChannel = null,
+        CancellationToken ct = default)
+    {
+        var cleanText = text?.Trim() ?? string.Empty;
+
+        // Si no hay ninguna imagen, delegar a AnalyzeTextAsync
+        if ((basesImageBytes == null || basesImageBytes.Length == 0) &&
+            (coverImageBytes == null || coverImageBytes.Length == 0))
+        {
+            return await AnalyzeTextAsync(cleanText, authorOrChannel, ct);
+        }
+
+        // Si hay ApiKey y no está en modo simulado, intentar Gemini API Multimodal
+        if (!_options.ShouldSimulate && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            try
+            {
+                var geminiResult = await CallGeminiMultimodalApiAsync(
+                    cleanText,
+                    basesImageBytes,
+                    basesImageMimeType,
+                    coverImageBytes,
+                    coverImageMimeType,
+                    authorOrChannel,
+                    ct);
+
+                if (geminiResult != null)
+                {
+                    return geminiResult;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al invocar Google Gemini Vision para análisis multimodal. Usando fallback heurístico.");
+            }
+        }
+
+        // Fallback heurístico multimodal local
+        return GenerateHeuristicMultimodal(cleanText, authorOrChannel, basesImageBytes != null || coverImageBytes != null);
+    }
+
     private async Task<SocialAiAnalysisResultDto?> CallGeminiApiAsync(string text, string? authorOrChannel, CancellationToken ct)
     {
         var prompt = $@"
@@ -184,7 +231,186 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             EstimatedPvp: parsed.EstimatedPvp,
             MediaCategory: category,
             PlayerCountBadge: parsed.PlayerCountBadge,
-            Notes: parsed.Notes);
+            Notes: parsed.Notes,
+            CropBoundingBox: null,
+            TerritorialScope: parsed.TerritorialScope ?? parsed.Location);
+    }
+
+    private async Task<SocialAiAnalysisResultDto?> CallGeminiMultimodalApiAsync(
+        string? text,
+        byte[]? basesImageBytes,
+        string? basesImageMimeType,
+        byte[]? coverImageBytes,
+        string? coverImageMimeType,
+        string? authorOrChannel,
+        CancellationToken ct)
+    {
+        var prompt = $@"
+Eres el asistente de ingesta social y catalogación de Ludeka, la plataforma comunitaria de juegos de mesa en español.
+Analiza la siguiente publicación social de Instagram, YouTube o web del sector lúdico, prestando especial atención a las imágenes adjuntas (captura de bases del sorteo, cartel o portada del post):
+
+Autor/Canal de la publicación: {authorOrChannel ?? "Desconocido"}
+Texto adicional proporcionado por el usuario:
+""""""
+{text ?? string.Empty}
+""""""
+
+Instrucciones prioritarias:
+1. Realiza OCR sobre la captura de pantalla de bases o texto si está adjunta. Extrae las condiciones, fecha límite, ámbito territorial y premios.
+2. Si es un sorteo, extrae organizador, colaboradores (@cuentas), premio (juego o accesorio), fecha límite exacta y ámbito geográfico (ej. 'Península', 'España', 'Baleares y Canarias', 'Internacional').
+3. Si hay una imagen del cartel o post, devuelve en 'cropBoundingBox' las 4 coordenadas normalizadas [ymin, xmin, ymax, xmax] (valores enteros entre 0 y 1000) que aíslan la imagen principal del cartel/premio, descartando la barra superior de estado del teléfono (hora, batería) y la barra inferior de navegación de Instagram.
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
+{{
+  ""detectedType"": ""Giveaway"" | ""WeeklyRelease"" | ""BoardGameEvent"" | ""MediaItem"",
+  ""title"": ""Título conciso en español"",
+  ""organizerOrAuthor"": ""Editorial, organizador o creador responsable"",
+  ""collaborator"": ""Colaborador o cuenta asociada si existe, o null"",
+  ""suggestedGameTitle"": ""Título del juego de mesa principal o premio, o null"",
+  ""eventOrReleaseDateIso"": ""YYYY-MM-DDTHH:mm:ssZ (fecha límite de sorteo, fecha de inicio de evento o fecha de lanzamiento) o null"",
+  ""eventEndDateIso"": ""YYYY-MM-DDTHH:mm:ssZ o null"",
+  ""location"": ""Ámbito territorial si es sorteo (ej. Península, España) o ciudad si es evento, o null"",
+  ""territorialScope"": ""Península"" | ""España"" | ""Internacional"" | null,
+  ""estimatedPvp"": número decimal si se indica precio, o null,
+  ""mediaCategory"": ""Tutorial"" | ""Playthrough"" | ""Review"" | null,
+  ""playerCountBadge"": ""Ej. 'Partida a 2' o null"",
+  ""notes"": ""Resumen o bases breves del contenido"",
+  ""cropBoundingBox"": [ymin, xmin, ymax, xmax] o null
+}}";
+
+        var effectiveModel = string.IsNullOrWhiteSpace(_options.Model)
+            ? GeminiOptions.DefaultModel
+            : _options.Model;
+
+        var partsList = new System.Collections.Generic.List<object>
+        {
+            new { text = prompt }
+        };
+
+        if (basesImageBytes != null && basesImageBytes.Length > 0)
+        {
+            partsList.Add(new
+            {
+                inlineData = new
+                {
+                    mimeType = !string.IsNullOrWhiteSpace(basesImageMimeType) ? basesImageMimeType : "image/jpeg",
+                    data = Convert.ToBase64String(basesImageBytes)
+                }
+            });
+        }
+
+        if (coverImageBytes != null && coverImageBytes.Length > 0)
+        {
+            partsList.Add(new
+            {
+                inlineData = new
+                {
+                    mimeType = !string.IsNullOrWhiteSpace(coverImageMimeType) ? coverImageMimeType : "image/jpeg",
+                    data = Convert.ToBase64String(coverImageBytes)
+                }
+            });
+        }
+
+        var requestBody = new
+        {
+            contents = new[]
+            {
+                new { parts = partsList }
+            },
+            generationConfig = new
+            {
+                responseMimeType = "application/json",
+                temperature = 0.1
+            }
+        };
+
+        var jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
+        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
+
+        using var response = await _httpClient.PostAsync(requestUri, content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Gemini Vision API devolvió código {Code}: {Error}", response.StatusCode, err);
+            return null;
+        }
+
+        var responseJson = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(responseJson);
+
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            return null;
+
+        var candidate = candidates[0];
+        if (!candidate.TryGetProperty("content", out var contentProp) ||
+            !contentProp.TryGetProperty("parts", out var parts) ||
+            parts.GetArrayLength() == 0)
+            return null;
+
+        var rawJson = parts[0].GetProperty("text").GetString();
+        if (string.IsNullOrWhiteSpace(rawJson))
+            return null;
+
+        var parsed = JsonSerializer.Deserialize<GeminiAnalysisResponseDto>(rawJson, JsonOptions);
+        if (parsed == null)
+            return null;
+
+        var type = Enum.TryParse<SocialSubmissionType>(parsed.DetectedType, true, out var t)
+            ? t
+            : SocialSubmissionType.Giveaway;
+
+        DateTimeOffset? startDate = null;
+        if (!string.IsNullOrWhiteSpace(parsed.EventOrReleaseDateIso) &&
+            DateTimeOffset.TryParse(parsed.EventOrReleaseDateIso, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var d1))
+        {
+            startDate = d1;
+        }
+
+        DateTimeOffset? endDate = null;
+        if (!string.IsNullOrWhiteSpace(parsed.EventEndDateIso) &&
+            DateTimeOffset.TryParse(parsed.EventEndDateIso, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var d2))
+        {
+            endDate = d2;
+        }
+
+        MediaCategory? category = null;
+        if (!string.IsNullOrWhiteSpace(parsed.MediaCategory) &&
+            Enum.TryParse<MediaCategory>(parsed.MediaCategory, true, out var cat))
+        {
+            category = cat;
+        }
+
+        NormalizedBoundingBoxDto? boundingBox = null;
+        if (parsed.CropBoundingBox != null && parsed.CropBoundingBox.Length == 4)
+        {
+            var b = new NormalizedBoundingBoxDto(
+                parsed.CropBoundingBox[0],
+                parsed.CropBoundingBox[1],
+                parsed.CropBoundingBox[2],
+                parsed.CropBoundingBox[3]);
+            if (b.IsValid)
+            {
+                boundingBox = b;
+            }
+        }
+
+        return new SocialAiAnalysisResultDto(
+            DetectedType: type,
+            Title: !string.IsNullOrWhiteSpace(parsed.Title) ? parsed.Title : "Sorteo Asistido",
+            OrganizerOrAuthor: !string.IsNullOrWhiteSpace(parsed.OrganizerOrAuthor) ? parsed.OrganizerOrAuthor : authorOrChannel ?? "Editorial / Creador",
+            Collaborator: parsed.Collaborator,
+            SuggestedGameTitle: parsed.SuggestedGameTitle,
+            EventOrReleaseDate: startDate,
+            EventEndDate: endDate,
+            Location: parsed.Location,
+            EstimatedPvp: parsed.EstimatedPvp,
+            MediaCategory: category,
+            PlayerCountBadge: parsed.PlayerCountBadge,
+            Notes: parsed.Notes,
+            CropBoundingBox: boundingBox,
+            TerritorialScope: parsed.TerritorialScope ?? parsed.Location);
     }
 
     public static SocialAiAnalysisResultDto GenerateHeuristic(string text, string? authorOrChannel)
@@ -330,6 +556,14 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             _ => "Publicación detectada"
         };
 
+        string? territorialScope = null;
+        if (lower.Contains("península") || lower.Contains("peninsula"))
+            territorialScope = "Península";
+        else if (lower.Contains("españa") || lower.Contains("espana"))
+            territorialScope = "España";
+        else if (lower.Contains("internacional"))
+            territorialScope = "Internacional";
+
         return new SocialAiAnalysisResultDto(
             DetectedType: type,
             Title: title,
@@ -338,11 +572,32 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             SuggestedGameTitle: gameTitle,
             EventOrReleaseDate: startDate,
             EventEndDate: endDate,
-            Location: location,
+            Location: location ?? territorialScope,
             EstimatedPvp: null,
             MediaCategory: mediaCategory,
             PlayerCountBadge: playerCountBadge,
-            Notes: "Detección heurística de patrones editoriales en español");
+            Notes: "Detección heurística de patrones editoriales en español",
+            CropBoundingBox: null,
+            TerritorialScope: territorialScope);
+    }
+
+    public static SocialAiAnalysisResultDto GenerateHeuristicMultimodal(string? text, string? authorOrChannel, bool hasImages)
+    {
+        var clean = !string.IsNullOrWhiteSpace(text) ? text : "¡Sorteo activo! Bases y participación";
+        var res = GenerateHeuristic(clean, authorOrChannel);
+
+        if (hasImages)
+        {
+            var defaultBox = new NormalizedBoundingBoxDto(45, 0, 945, 1000);
+            return res with
+            {
+                DetectedType = SocialSubmissionType.Giveaway,
+                CropBoundingBox = defaultBox,
+                TerritorialScope = res.TerritorialScope ?? "Península"
+            };
+        }
+
+        return res;
     }
 
     private static int ParseSpanishMonth(string monthName)
@@ -375,9 +630,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         public string? EventOrReleaseDateIso { get; set; }
         public string? EventEndDateIso { get; set; }
         public string? Location { get; set; }
+        public string? TerritorialScope { get; set; }
         public decimal? EstimatedPvp { get; set; }
         public string? MediaCategory { get; set; }
         public string? PlayerCountBadge { get; set; }
         public string? Notes { get; set; }
+        public int[]? CropBoundingBox { get; set; }
     }
 }
