@@ -73,7 +73,12 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         game.OwnsMany(g => g.Scalability, b => b.ToJson());
         game.OwnsMany(g => g.Sleeves, b => b.ToJson());
         game.OwnsMany(g => g.PurchaseLinks, b => b.ToJson());
+        game.OwnsMany(g => g.RegionalPublishers, b => b.ToJson());
+        game.OwnsMany(g => g.LocalizedTitles, b => b.ToJson());
         game.PrimitiveCollection(g => g.ImpactTags);
+
+        game.Property(g => g.SpanishPublisher).HasMaxLength(200);
+        game.HasIndex(g => g.SpanishPublisher);
 
         // Mapeo de Síntesis Inteligente con IA (Incremento 13)
         game.OwnsOne(g => g.AiSummary, b => b.ToJson());
@@ -448,6 +453,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         staging.Property(s => s.SpanishTitle).HasMaxLength(250);
         staging.Property(s => s.Designer).HasMaxLength(200);
         staging.Property(s => s.Publisher).HasMaxLength(200);
+        staging.Property(s => s.SpanishPublisher).HasMaxLength(200);
         staging.Property(s => s.ErrorMessage).HasMaxLength(1000);
 
         // --- Configuración de SocialInboxItem (Incremento 42) ---
