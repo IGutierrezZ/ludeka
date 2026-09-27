@@ -212,7 +212,7 @@ public class SocialIngestionWriteGuardTests : AdministrativeWriteGuardTestBase
         SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
         var service = CreateService(CreateGuard(LiveCookie()));
 
-        var created = await service.IngestFromUrlAsync("https://instagram.com/p/nuevo-sorteo");
+        var created = await service.IngestFromUrlAsync("https://youtube.com/watch?v=nuevo-sorteo");
 
         Assert.Equal("Sorteo detectado", created.Title);
         Assert.Equal(1, await Context.SocialInboxItems.AsNoTracking().CountAsync());

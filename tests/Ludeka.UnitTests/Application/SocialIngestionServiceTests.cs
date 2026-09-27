@@ -213,7 +213,19 @@ public class SocialIngestionServiceTests
     private readonly FakeBoardGameEventRepository _eventRepo = new();
     private readonly FakeMediaRepository _mediaRepo = new();
 
-    private SocialIngestionService CreateService()
+    private class FakeGiveawayCoverComposer : IGiveawayCoverComposer
+    {
+        public bool WasCalled { get; set; }
+        public byte[] ComposeHorizontalCover(byte[] inputImageBytes, NormalizedBoundingBoxDto? cropBox = null, int targetWidth = 1200, int targetHeight = 675)
+        {
+            WasCalled = true;
+            return new byte[] { 1, 2, 3, 4 };
+        }
+    }
+
+    private readonly FakeGiveawayCoverComposer _coverComposer = new();
+
+    private SocialIngestionService CreateService(IGiveawayCoverComposer? composer = null)
     {
         return new SocialIngestionService(
             _inboxRepo,
@@ -226,7 +238,9 @@ public class SocialIngestionServiceTests
             _eventRepo,
             _mediaRepo,
             new HttpClient(),
-            NullLogger<SocialIngestionService>.Instance);
+            NullLogger<SocialIngestionService>.Instance,
+            permissionGuard: null,
+            giveawayCoverComposer: composer ?? _coverComposer);
     }
 
     [Fact]
@@ -413,5 +427,70 @@ public class SocialIngestionServiceTests
         Assert.Equal(SocialInboxStatus.Rejected, item.Status);
         Assert.Equal("No es juego de mesa", item.ModeratorNotes);
         Assert.Equal("admin_user", item.ReviewedByUserId);
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_WithCoverImage_ComposesHorizontalCoverAndStoresInInbox()
+    {
+        // Arrange
+        var service = CreateService();
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: "https://www.instagram.com/p/multimodal-test/",
+            ManualCaption: "Sorteo Ark Nova bases completas",
+            CoverImageBytes: new byte[] { 1, 2, 3, 4 },
+            CoverImageMimeType: "image/jpeg");
+
+        // Act
+        var result = await service.IngestMultimodalAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(_coverComposer.WasCalled);
+        Assert.Equal("Sorteo Ark Nova", result.Title);
+        Assert.Contains("social-inbox", result.ThumbnailUrl);
+        Assert.Single(_inboxRepo.Items);
+        Assert.Equal(SocialInboxStatus.PendingReview, _inboxRepo.Items[0].Status);
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_MissingAllInputs_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var service = CreateService();
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: "https://www.instagram.com/p/empty-test/",
+            ManualCaption: null,
+            CoverImageBytes: null,
+            BasesImageBytes: null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.IngestMultimodalAsync(input));
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_EmptySourceUrl_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: "   ",
+            ManualCaption: "Texto de prueba");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.IngestMultimodalAsync(input));
+    }
+
+    [Fact]
+    public async Task IngestFromCollectorAsync_BlockedInstagramUrlWithoutContent_ThrowsInvalidOperationException()
+    {
+        // Arrange: Metadata nulo (página bloqueada por login) y sin texto manual
+        var service = CreateService();
+        _metadataExtractor.ResultToReturn = null;
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestFromCollectorAsync("https://www.instagram.com/reel/blocked123/", manualCaption: null));
+
+        Assert.Contains("Alta Exprés Multimodal", ex.Message);
     }
 }
