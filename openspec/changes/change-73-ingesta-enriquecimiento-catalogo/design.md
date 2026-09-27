@@ -1,6 +1,6 @@
 # Diseño Técnico: change-73-ingesta-enriquecimiento-catalogo
 
-> **Incremento:** INC-73 (Ampliación Ingesta Masiva BGG >100 opiniones, Anti-Duplicados y Enriquecimiento Integral)  
+> **Incremento:** INC-73 (Ampliación Ingesta Masiva BGG >100 opiniones, Anti-Duplicados, Enriquecimiento Integral y Localización Territorial de Editoriales y Títulos)  
 > **Estado:** Propuesto / En revisión  
 > **Fecha:** 2026-09-27  
 
@@ -17,7 +17,7 @@
 - En base de datos, `Game.BggId` cuenta con índice único `IsUnique()`.
 - En `PromoteReadyToCatalogBatchAsync`, la comprobación `await _gameRepo.GetByBggIdAsync(item.BggId)` bifurca deterministamente:
   - Si es nuevo: se inserta como `new Game(...)`.
-  - Si ya existe: se descarta de la inserción y se aplica actualización aditiva (`existing.UpdateScalability(...)`, `existing.UpdateSleeves(...)`, `existing.UpdateDuration(...)`, `existing.UpdateFootprint(...)`, `existing.UpdateMediaUrls(...)`).
+  - Si ya existe: se descarta de la inserción y se aplica actualización aditiva (`existing.UpdateScalability(...)`, `existing.UpdateSleeves(...)`, `existing.UpdateDuration(...)`, `existing.UpdateFootprint(...)`, `existing.UpdateSpanishPublisher(...)`, `existing.UpdateMediaUrls(...)`).
   - No se producen colisiones de clave ni excepciones de concurrencia.
 
 ### D3: Serialización JSON en Staging para tipos complejos
@@ -42,6 +42,30 @@
   - Nivel 1 (Local/Instantáneo): Si el juego ya está en staging con datos de calidad, actualiza la entidad `Game` sin coste de red ni consumo de API BGG.
   - Nivel 2 (Remoto/BGG Thing): Si el juego no estaba en staging o no tenía calidad, invoca `_bggClient.FetchGameByBggIdAsync(game.BggId)`, actualiza el juego y sincroniza el staging item.
 
+### D7: Detección y Asociación de Editorial en España (SpanishPublisher)
+- BGG entrega todos los sellos editoriales en `<link type="boardgamepublisher">`.
+- Se crea el catálogo y resolutor estático `SpanishPublisherMatcher` con el padrón canónico de las 46 editoriales de España presentes en `seed-directory.json` (ej. *Devir*, *Maldito Games*, *Asmodee*, *Tranjis Games*, *TCG Factory*, *Arrakis Games*, *Zacatrus*, *Doit Games*, *Salt & Pepper Games*, *GDM Games*, *Mercurio*, *MasQueOca*, *Gen X Games*, *SD Games*, *Cacahuete Games*, etc.):
+  - Compara la lista de editoriales del juego contra el padrón.
+  - Si encuentra coincidencia, asigna el nombre canónico de la editorial española a `SpanishPublisher`.
+  - `Publisher` preserva la editorial original (habitualmente la primera en la lista de BGG).
+
+### D8: Localización de Títulos y Preferencia Territorial
+- En `GameDetail.razor` y `GameCard.razor`:
+  - `SpanishTitle` es el título prioritario.
+  - Si `SpanishTitle != OriginalTitle`, se muestra `OriginalTitle` en subtítulo secundario accesible.
+  - Si `SpanishPublisher` está informado y difiere de `Publisher`, se muestra:
+    - `Editorial en España: <a href="/directorios/editoriales/{slug}">SpanishPublisher</a>`
+    - `Editorial original: Publisher`
+  - En `PublisherDetail.razor`: el catálogo de la editorial muestra todos los juegos asociados mediante `GetByPublisherAsync(publisherName)`.
+
+### D9: Búsquedas Multidimensionales en Repositorio
+- `SqliteGameRepository.SearchAsync` busca por texto contra:
+  `SpanishTitle`, `OriginalTitle`, `Publisher` y `SpanishPublisher`.
+- `SqliteGameRepository.GetByPublisherAsync` busca coincidencias en `Publisher` o `SpanishPublisher`.
+
+### D10: Metodología de Implementación
+- Implementación directa por capas sin ciclo estricto TDD paso a paso, asegurando la suite completa de pruebas unitarias al 100% en verde al finalizar.
+
 ---
 
 ## 2. Diagrama de Flujo del Pipeline Enriquecido
@@ -52,13 +76,13 @@ flowchart TD
     B --> C["UpsertBatchAsync en BggCatalogStaging"]
     
     C --> D["ProcessPendingDetailsBatchAsync (BGG XMLAPI2 /thing)"]
-    D --> E["BggXmlParser (Tiempos reales, Fundas, Huella, Escalabilidad)"]
-    E --> F["Guardar en Staging (ScalabilityJson, SleevesJson, Tiempos, Huella)"]
+    D --> E["BggXmlParser (Tiempos reales, Fundas, Huella, Escalabilidad, SpanishPublisher)"]
+    E --> F["Guardar en Staging (ScalabilityJson, SleevesJson, SpanishPublisher, Tiempos, Huella)"]
     
     F --> G["PromoteReadyToCatalogBatchAsync"]
     G --> H{"¿Existe en Games por BggId?"}
     H -- "No (Nuevo)" --> I["new Game(...) con Metadatos Completos"]
-    H -- "Sí (Existente)" --> J["Actualización Aditiva (Scalability, Fundas, Tiempos, Huella, Medios)"]
+    H -- "Sí (Existente)" --> J["Actualización Aditiva (Scalability, Fundas, SpanishPublisher, Tiempos, Huella, Medios)"]
     I --> K["Catálogo Definitivo Games"]
     J --> K
     
@@ -82,18 +106,23 @@ public int MaxPlayTimeMinutes { get; private set; }
 public TableFootprint InferredFootprint { get; private set; } = TableFootprint.StandardTable;
 public string? ScalabilityJson { get; private set; }
 public string? SleevesJson { get; private set; }
+public string? SpanishPublisher { get; private set; }
 
 public IReadOnlyList<ScalabilityEntry> GetScalability();
 public IReadOnlyList<SleeveItem> GetSleeves();
 public void UpdateInferredFootprint(TableFootprint footprint);
+public void UpdateSpanishPublisher(string? spanishPublisher);
 ```
 
 ### 3.2 `Game` (`Ludeka.Core.Entities`)
 ```csharp
+public string? SpanishPublisher { get; private set; }
+
 public void UpdateScalability(IEnumerable<ScalabilityEntry> scalability);
 public void UpdateDuration(GameDuration duration);
 public void UpdateFootprint(TableFootprint footprint);
 public void UpdateSleeves(IEnumerable<SleeveItem> sleeves);
+public void UpdateSpanishPublisher(string? spanishPublisher);
 ```
 
 ---
@@ -109,19 +138,24 @@ Task<int> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, Cance
 ### 4.2 `IGameRepository`
 ```csharp
 Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default);
+Task<IReadOnlyList<Game>> GetByPublisherAsync(string publisherName, CancellationToken ct = default);
 ```
 
 ---
 
 ## 5. Migración EF Core
 
-Nombre: `20260927010318_AddStagingQualityFields`  
-Columnas añadidas a `BggCatalogStaging`:
-- `InferredFootprint` (int, default 1)
-- `MinPlayTimeMinutes` (int, default 0)
-- `MaxPlayTimeMinutes` (int, default 0)
-- `ScalabilityJson` (string/text, nullable)
-- `SleevesJson` (string/text, nullable)
+Nombre: `20260927010318_AddStagingQualityFields` (y ampliación de columna `SpanishPublisher` en `Games` y `BggCatalogStaging`).
+Columnas añadidas:
+- En `BggCatalogStaging`:
+  - `InferredFootprint` (int, default 1)
+  - `MinPlayTimeMinutes` (int, default 0)
+  - `MaxPlayTimeMinutes` (int, default 0)
+  - `ScalabilityJson` (string/text, nullable)
+  - `SleevesJson` (string/text, nullable)
+  - `SpanishPublisher` (string, max 200, nullable)
+- En `Games`:
+  - `SpanishPublisher` (string, max 200, nullable)
 
 ---
 
@@ -131,11 +165,16 @@ Columnas añadidas a `BggCatalogStaging`:
    - Extracción de tiempos reales y cálculo de tiempo estimado por jugador.
    - Fallback determinista de escalabilidad cuando la encuesta comunitaria no tiene votos.
    - Inferencia analítica de huella en mesa (`SmallTable`, `StandardTable`, `TableMonster`).
+   - Detección de editorial española `SpanishPublisher` entre múltiples enlaces de `boardgamepublisher`.
 2. **Streaming Parser Tests (`BggDumpParserTests.cs`):**
    - Filtrado de volcado con umbral `minUsersRated = 100`.
 3. **Ingestion & Promotion Tests (`BggMassIngestionServiceTests.cs`):**
    - Inserción y actualización idempotente sin duplicación de `Game` en promoción.
-   - Persistencia de escalabilidad y fundas desde staging a catálogo.
+   - Persistencia de escalabilidad, fundas y `SpanishPublisher` desde staging a catálogo.
    - Ejecución del ciclo de backfill retroactivo con actualización correcta de entidades existentes.
 4. **Repository Tests (`SqliteGameRepositoryTests.cs`):**
    - Consulta `GetGamesPendingQualityBackfillAsync` filtrando juegos pendientes de enriquecimiento.
+   - Búsqueda en `GetByPublisherAsync` y `SearchAsync` por `SpanishPublisher`.
+5. **Component Tests (`GameDetailTests.cs` / `PublisherDetailTests.cs`):**
+   - Renderizado de editorial española con enlace al directorio.
+   - Asociación correcta de juegos en la vista de detalle de la editorial.

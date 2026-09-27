@@ -1,6 +1,6 @@
 # Especificación: bgg-catalog-mass-enrichment
 
-Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameGeek con filtro de tracción comunitaria rebajado a >100 opiniones, protección estricta contra duplicados por `BggId`, y enriquecimiento integral y determinista de metadatos (escalabilidad comunitaria con fallback, fundas de cartas, huella en mesa y tiempos reales de juego).
+Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameGeek con filtro de tracción comunitaria rebajado a >100 opiniones, protección estricta contra duplicados por `BggId`, enriquecimiento integral y determinista de metadatos (escalabilidad comunitaria con fallback, fundas de cartas, huella en mesa y tiempos reales de juego), y localización territorial de editoriales en España y títulos comerciales.
 
 ---
 
@@ -17,12 +17,13 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
   - Al procesar el volcado masivo en staging: `IBggCatalogStagingRepository.UpsertBatchAsync` agrupa por `BggId` e inserta solo los nuevos ítems, actualizando métricas de clasificación en los ya existentes.
   - Al promover a catálogo definitivo (`PromoteReadyToCatalogBatchAsync`):
     - Se consulta `_gameRepo.GetByBggIdAsync(item.BggId)`.
-    - Si no existe: se crea un nuevo `Game` con todos sus metadatos (escalabilidad, fundas, huella, tiempos) y se añade a la base de datos.
+    - Si no existe: se crea un nuevo `Game` con todos sus metadatos (escalabilidad, fundas, huella, tiempos, editorial española) y se añade a la base de datos.
     - Si ya existe: **no** se intenta insertar otro registro (impidiendo violaciones del índice único `Games.BggId`). Se realiza una actualización aditiva:
       - Actualización de URLs de medios (`CoverImageUrl`, `BackCoverImageUrl`, `TableImageUrl`).
       - Actualización de `Scalability` si el juego existente no tenía escalabilidad o carecía de votos comunitarios.
       - Actualización de `Sleeves` si el juego existente no tenía fundas registradas.
       - Actualización de `Duration` y `Footprint` con los valores de calidad calculados.
+      - Actualización de `SpanishPublisher` si no estaba informado.
 
 ### R1.3: Enriquecimiento de Escalabilidad por Jugadores con Fallback
 - `BggXmlParser.ParseItem` analiza el nodo `<poll name="suggested_numplayers">`:
@@ -58,6 +59,28 @@ Capacidad de ampliación masiva del catálogo de juegos de mesa desde BoardGameG
 - `IGameRepository.GetGamesPendingQualityBackfillAsync(int limit)` devuelve juegos que requieran enriquecimiento (sin escalabilidad, o huella `StandardTable`, o duraciones con `MinMinutes == MaxMinutes`).
 - El backfill enriquece prioritariamente desde `BggCatalogStaging` si el juego ya fue parseado previamente; de lo contrario, consulta `FetchGameByBggIdAsync`.
 
+### R1.8: Detección y Asociación de Editorial en España (SpanishPublisher)
+- `BggXmlParser` extrae todos los enlaces `<link type="boardgamepublisher">`.
+- Cruza los nombres contra el catálogo de editoriales españolas (`SpanishPublisherMatcher` con el padrón de 46 editoriales de `seed-directory.json`).
+- Si se detecta una editorial española (ej. Devir, Maldito Games, Asmodee, Tranjis Games, TCG Factory, Arrakis Games, Zacatrus, etc.), se asigna a `SpanishPublisher`.
+- `Game.Publisher` conserva la editorial original principal internacional.
+- En la ficha de juego (`GameDetail.razor`):
+  - Se muestra `SpanishPublisher` con enlace a su ficha en el Directorio de Editoriales (`/directorios/editoriales/{slug}`).
+  - Si difiere de `Publisher`, se muestra además la editorial original.
+- En `PublisherDetail.razor`: la consulta de juegos asociados incluye tanto `Publisher` como `SpanishPublisher`, asegurando que la editorial muestre todos los títulos que publica en España.
+
+### R1.9: Título Comercial en Español y Título Original
+- En `BggXmlParser`:
+  - `SpanishTitle` extrae el nombre comercial en español desde los nombres alternativos de BGG (`<name type="alternate">`) o versiones, limpiando sufijos redundantes.
+  - `OriginalTitle` conserva el nombre primario internacional de BGG.
+- En la ficha de juego (`GameDetail.razor`) y tarjetas (`GameCard.razor`):
+  - Se presenta `SpanishTitle` de forma prominente.
+  - Si `SpanishTitle` es diferente de `OriginalTitle`, se muestra `OriginalTitle` como referencia.
+
+### R1.10: Búsquedas y Filtros por Editorial y Título
+- `IGameRepository.SearchAsync` busca coincidencias en `SpanishTitle`, `OriginalTitle`, `Publisher` y `SpanishPublisher`.
+- `IGameRepository.GetByPublisherAsync` busca coincidencias en `Publisher` y `SpanishPublisher`.
+
 ---
 
 ## 2. Criterios de Aceptación (Gherkin)
@@ -69,27 +92,21 @@ Escenario: Ingesta de volcado BGG filtrando por >100 opiniones
   Entonces el juego con 120 votos se inserta en staging
   Y el juego con 80 votos se descarta
 
+Escenario: Detección de editorial española en juego con múltiples sellos
+  Dado un XML de BGG con enlaces de editoriales "Roxley" y "Maldito Games"
+  Cuando BggXmlParser parsea el juego
+  Entonces Publisher es "Roxley"
+  Y SpanishPublisher es "Maldito Games"
+
 Escenario: Prevención de duplicados en promoción de juego ya existente
   Dado un juego con BggId 342942 ya almacenado en la tabla Games
   Y un registro en BggCatalogStagingItem listo para promover con el mismo BggId 342942
   Cuando se ejecuta PromoteReadyToCatalogBatchAsync
   Entonces no se produce ninguna excepción de clave duplicada
-  Y el juego existente actualiza su escalabilidad, fundas y huella en mesa
+  Y el juego existente actualiza su escalabilidad, fundas, huella y editorial en España
 
-Escenario: Fallback determinista cuando la encuesta de escalabilidad carece de votos
-  Dado un XML de juego con minplayers=2, maxplayers=4 y totalvotes="0" en la encuesta
-  Cuando BggXmlParser parsea el juego
-  Entonces la lista de escalabilidad contiene exactamente 3 entradas (2J, 3J, 4J)
-  Y todas las entradas tienen estado Recommended
-
-Escenario: Inferencia de tamaño en mesa SmallTable para juego de cartas corto
-  Dado un XML de juego con categoría "Card Game" y tiempo máximo de 30 minutos
-  Cuando BggXmlParser parsea el juego
-  Entonces su Footprint es TableFootprint.SmallTable
-
-Escenario: Backfill retroactivo de calidad para juegos existentes en catálogo
-  Dado un juego en catálogo con Scalability vacía y huella StandardTable
-  Y su correspondiente registro en staging con ScalabilityJson y fundas calculadas
-  Cuando se ejecuta RunScheduledBackfillCatalogQualityBatchAsync
-  Entonces el juego en catálogo queda enriquecido con la escalabilidad y fundas de staging
+Escenario: Búsqueda de juegos por editorial en España
+  Dado un juego con Publisher="Lookout Games" y SpanishPublisher="Maldito Games"
+  Cuando se consulta GetByPublisherAsync("Maldito Games")
+  Entonces el juego está presente en los resultados
 ```

@@ -1,100 +1,114 @@
-# Propuesta: change-73-ingesta-enriquecimiento-catalogo (Incremento 73: Ampliación de Ingesta Masiva BGG >100 opiniones, Descarte de Duplicados y Enriquecimiento Integral de Metadatos)
+# Propuesta: change-73-ingesta-enriquecimiento-catalogo (Incremento 73: Ampliación de Ingesta Masiva BGG >100 opiniones, Descarte de Duplicados, Enriquecimiento Integral y Localización Territorial de Editoriales y Títulos)
 
 ## 1. Resumen Ejecutivo y Motivación
 
 En Ludeka, el catálogo de juegos de mesa es el pilar central sobre el que se articulan la ludoteca personal, las estadísticas de jugador, los filtros de búsqueda, las fichas con ADN lúdico y los enlaces a tiendas afiliadas.
 
-Tras la ingesta masiva inicial (~4.000 títulos mediante el umbral `usersrated >= 1000`) y las mejoras de experiencia de usuario del Incremento 72 (filtros multiselección, carrusel de tres fotos, retiro de textos en inglés), se evidencia una doble necesidad crítica:
+Tras la ingesta masiva inicial (~4.000 títulos mediante el umbral `usersrated >= 1000`) y las mejoras de experiencia de usuario del Incremento 72 (filtros multiselección, carrusel de tres fotos, retiro de textos en inglés), se abordan dos grandes bloques estratégicos:
 
+### Bloque A: Ingesta Masiva y Calidad Profunda de Metadatos
 1. **Ampliación del fondo de catálogo (Umbral >100 opiniones):**
-   - El umbral previo de 1.000 votos dejaba fuera miles de títulos excelentes: juegos de editoriales españolas independientes, novedades de los últimos 2-3 años con gran valoración pero aún en crecimiento de votos, y juegos de nicho de enorme calidad lúdica.
-   - Modificar el filtro del volcado masivo de BGG (`bg_ranks`) para admitir juegos con más de 100 opiniones (`minUsersRated = 100`) permite ampliar el catálogo a decenas de miles de juegos con tracción comunitaria contrastada.
-
+   - Modificar el filtro del volcado masivo de BGG (`bg_ranks`) para admitir juegos con más de 100 opiniones (`minUsersRated = 100`), expandiendo el catálogo con joyas de nicho y producciones nacionales contrastadas.
 2. **Blindaje anti-duplicados y actualización incremental:**
-   - La ingesta masiva del nuevo lote debe convivir limpiamente con los ~4.000 títulos ya existentes en las bases de datos (SQLite y PostgreSQL).
-   - Debe blindarse el flujo para que cualquier título existente sea detectado por su `BggId` único: no debe intentarse una inserción duplicada (evitando violaciones de unicidad en `Games.BggId`), sino una actualización aditiva de sus metadatos (incorporando campos que antes estaban vacíos).
-
-3. **Enriquecimiento de escalabilidad por jugadores (Best / Recommended):**
-   - En el catálogo previo, muchos títulos carecían de semáforo de escalabilidad («A cuántos jugadores funciona bien»), mostrando «Sin datos de escalabilidad» en la ficha.
-   - Se debe parsear la encuesta comunitaria de BGG (`poll name="suggested_numplayers"`). Si la encuesta no está informada o tiene 0 votos, se debe complementar con una heurística determinista basada en el rango oficial de jugadores (y opcionalmente refinada por síntesis IA) para que ningún juego quede sin semáforo.
-
+   - Detección estricta por `BggId`: los juegos ya existentes en la tabla `Games` no se reinsertan (evitando colisiones en el índice único), sino que se actualizan de forma aditiva con los nuevos metadatos.
+3. **Escalabilidad comunitaria con fallback determinista:**
+   - Extracción de la encuesta `<poll name="suggested_numplayers">` y generación de recomendaciones (`MustPlay`, `Recommended`) según el rango oficial cuando la encuesta carece de votos comunitarios.
 4. **Ingesta de tamaños de fundas (Sleeves):**
-   - Extraer e informar las dimensiones de fundas cuando vengan reportadas en los enlaces `boardgamecardsleeve` de la API de BGG.
-   - Almacenar las fundas en staging y trasladarlas a `Game.Sleeves` para que la guía de fundas y tiendas afiliadas (INC-26 / INC-66) disponga de datos reales.
+   - Extracción de enlaces `boardgamecardsleeve` para informar las fundas de cartas requeridas y conectar con los enlaces de compra de INC-66.
+5. **Corrección de huella en mesa (`TableFootprint`):**
+   - Inferencia analítica (`SmallTable`, `StandardTable`, `TableMonster`) según categorías lúdicas, componentes y duraciones.
+6. **Consistencia de duraciones:**
+   - Tiempos reales de partida (`MinPlayTimeMinutes`, `MaxPlayTimeMinutes`) y estimación realista por jugador (`EstimatedPerPlayerMinutes`).
+7. **Backfill retroactivo:**
+   - Mecanismo por lotes para enriquecer el catálogo actual sin necesidad de reingesta destructiva.
 
-5. **Corrección de tamaño en mesa (TableFootprint):**
-   - Erradicar la asignación estática plana de `StandardTable`. Asignar el tamaño real (`SmallTable`, `StandardTable`, `TableMonster`) analizando categorías, mecánicas, componentes, duración y síntesis de IA.
-
-6. **Consistencia de tiempos de juego y tiempos por jugador:**
-   - Eliminar el multiplicador artificial `PlayingTimeMinutes * 1.5`. Parsear `MinPlayTimeMinutes` y `MaxPlayTimeMinutes` reales de BGG y computar un `EstimatedPerPlayerMinutes` realista.
-
-7. **Proceso de enriquecimiento retroactivo (Backfill):**
-   - Incorporar un servicio de backfill por lotes (`BackfillCatalogQualityBatchAsync`) para actualizar los títulos ya presentes en el catálogo sin necesidad de una reingesta destructiva.
+### Bloque B: Localización Territorial (Editoriales en España y Títulos Adaptados)
+8. **Detección y Mapeo de la Editorial en España (`SpanishPublisher`):**
+   - En BGG, cada juego dispone de múltiples enlaces `<link type="boardgamepublisher">` que reflejan tanto la editorial original extranjera (ej. *Lookout Games*, *Roxley*, *Czech Games Edition*, *Hans im Glück*) como las editoriales que licencian el juego internacionalmente.
+   - En España, títulos icónicos se publican por editoriales locales (ej. *Maldito Games* publica *Brass* y *Ark Nova*; *Devir* publica *Catán*, *Carcassonne* y *Terraforming Mars*; *Asmodee* publica *7 Wonders*; *Tranjis Games* publica *Virus!*).
+   - Analizar los enlaces de editorial cruzándolos con el padrón exhaustivo del Directorio Lúdico Español (`seed-directory.json`) para extraer e informar `SpanishPublisher`.
+   - En la ficha de juego (`GameDetail.razor`):
+     - Mostrar de forma preferente la editorial en España, con enlace directo a su ficha en el directorio (`/directorios/editoriales/{slug}`).
+     - Indicar de forma secundaria la editorial original internacional (ej. *"Editorial en España: Maldito Games · Editorial original: Roxley"*).
+   - En el directorio de editoriales (`PublisherDetail.razor`): los juegos quedarán correctamente vinculados a su editorial española, listando el catálogo real que cada editorial edita y distribuye en nuestro territorio.
+9. **Títulos en España vs Títulos Internacionales (`SpanishTitle` vs `OriginalTitle`):**
+   - En BGG, el nombre primario suele ser anglosajón, mientras que en `<name type="alternate">` o en versiones españolas figuran los títulos comercializados en España (ej. *"Los Colonos de Catán"*, *"Toma 6"*, *"Ciudadelas"*, *"La Tripulación"*).
+   - Extraer y preservar el título comercial en español y mostrar el título original como referencia cuando difieran.
+   - Adaptar la vista según el país del usuario (`UserPreferences.Country` / INC-29 / INC-62): priorizar el título en español para usuarios en España y países hispanohablantes.
+10. **Búsquedas y Filtros Multidimensionales:**
+    - Permitir que el buscador del catálogo encuentre juegos tanto por su título español como por su título original, y tanto por su editorial española como por su editorial original.
 
 ---
 
-## 2. Arquitectura y Alcance por Capas
+## 2. Metodología de Implementación (Directa sin TDD Estricto)
 
-### 2.1 Dominio (`Ludeka.Core`)
+Por instrucción expresa del mantenedor, este incremento **no** se ejecuta bajo el ciclo estricto TDD (sin obligatoriedad de alternar commits red/green unitarios previos). Se adopta una implementación directa y robusta por componentes y capas, respaldada por la verificación automatizada al 100% de la suite de pruebas al cierre del incremento.
+
+---
+
+## 3. Arquitectura y Alcance por Capas
+
+### 3.1 Dominio (`Ludeka.Core`)
 - **`BggCatalogStagingItem`**:
-  - Incorporar campos de persistencia de calidad:
-    - `MinPlayTimeMinutes` (int) y `MaxPlayTimeMinutes` (int).
-    - `InferredFootprint` (`TableFootprint`).
-    - `ScalabilityJson` (string?) y `SleevesJson` (string?).
-  - Métodos utilitarios deserializadores: `GetScalability()` y `GetSleeves()`.
-  - Sobrecarga ampliada en `MarkFetched(...)` para recibir estos metadatos.
-  - Método `UpdateInferredFootprint(TableFootprint footprint)`.
+  - `MinPlayTimeMinutes`, `MaxPlayTimeMinutes`, `InferredFootprint`, `ScalabilityJson`, `SleevesJson`.
+  - `SpanishPublisher` (string?).
+  - Métodos `GetScalability()`, `GetSleeves()`, `UpdateInferredFootprint()`, `UpdateSpanishPublisher()`.
 - **`Game`**:
-  - Métodos aditivos para mutación controlada en backfill y promoción incremental:
+  - Nueva propiedad: `public string? SpanishPublisher { get; private set; }`.
+  - Métodos de actualización aditiva:
     - `UpdateScalability(IEnumerable<ScalabilityEntry> scalability)`
     - `UpdateDuration(GameDuration duration)`
     - `UpdateFootprint(TableFootprint footprint)`
     - `UpdateSleeves(IEnumerable<SleeveItem> sleeves)`
+    - `UpdateSpanishPublisher(string? spanishPublisher)`
 
-### 2.2 Aplicación (`Ludeka.Application`)
+### 3.2 Aplicación (`Ludeka.Application`)
 - **`BggMassIngestionOptions`**:
-  - Modificar el valor por defecto: `MinUsersRated = 100` (anteriormente 1000).
+  - `MinUsersRated = 100`.
 - **`BggDumpParser`**:
-  - Actualizar parámetro por defecto a `minUsersRated = 100`.
-- **`IBggMassIngestionService`**:
-  - Añadir contratos para el backfill retroactivo de calidad:
-    - `Task<int> BackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default);`
-    - `Task<int> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default);`
-- **`BggMassIngestionService`**:
-  - En `ProcessPendingDetailsBatchAsync`: capturar `fetchedGame.Scalability`, `fetchedGame.Sleeves`, `fetchedGame.Duration` y `fetchedGame.Footprint` y persistirlos en `BggCatalogStagingItem`.
-  - En `PromoteReadyToCatalogBatchAsync`:
-    - Al crear un `new Game(...)`, asignar la escalabilidad, fundas, huella inferida y duraciones reales.
-    - Si el juego ya existe en `Games` (detección por `BggId`): actualizar aditivamente escalabilidad, fundas, duración y huella si no las tenía o si eran valores por defecto.
-    - Manejo defensivo para garantizar cero errores por clave única duplicada.
-  - Implementar `RunScheduledBackfillCatalogQualityBatchAsync`: localiza juegos candidatos y los enriquece desde staging (o consultando BGG Thing si no están en staging).
+  - `minUsersRated = 100`.
+- **`IBggMassIngestionService` y `BggMassIngestionService`**:
+  - Extracción de editoriales BGG y resolución de la editorial en España mediante matching con el catálogo canónico de editoriales nacionales (`SpanishPublisherMatcher`).
+  - Extracción de títulos en español desde nombres alternativos de BGG y síntesis IA.
+  - Promoción y deduplicación por `BggId`: inserción de nuevos títulos y actualización aditiva de existentes (incluyendo `SpanishPublisher`).
+  - Métodos `BackfillCatalogQualityBatchAsync` y `RunScheduledBackfillCatalogQualityBatchAsync`.
 - **`IGameRepository`**:
-  - Añadir contrato `Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default);`
+  - `GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)`.
+  - Actualización de `GetByPublisherAsync` y `SearchAsync` para buscar tanto por `Publisher` como por `SpanishPublisher`.
 
-### 2.3 Infraestructura (`Ludeka.Infrastructure`)
+### 3.3 Infraestructura (`Ludeka.Infrastructure`)
 - **`BggXmlParser`**:
-  - Parsear `MinPlayTimeMinutes`, `MaxPlayTimeMinutes` y derivar `EstimatedPerPlayerMinutes` balanceado.
-  - Extraer `ParseScalability` con fallback determinista cuando la encuesta comunitaria no tiene votos (generando recomendaciones para el rango oficial de jugadores).
-  - Inferir analíticamente `TableFootprint` combinando categorías de BGG (*Card Game*, *Microgame*, *Miniatures*, *Wargame*, *Big Box*, etc.) y duración máxima.
+  - Extraer todos los publicadores `<link type="boardgamepublisher">`.
+  - Cruzar con el catálogo de editoriales españolas para asignar `spanishPublisher` y mantener `originalPublisher`.
+  - Fallback determinista de escalabilidad sin votos.
+  - Inferencia de `TableFootprint` y tiempos reales.
 - **`LudekaDbContext`**:
-  - Configurar las nuevas propiedades de `BggCatalogStagingItem` con valores por defecto.
-  - Generar migración EF Core `AddStagingQualityFields` (compatible con SQLite y PostgreSQL).
+  - Configurar `SpanishPublisher` en `Game` y en `BggCatalogStagingItem`.
+  - Migración EF Core `AddStagingQualityFields` (y columna `SpanishPublisher` en `Games`).
 - **`SqliteGameRepository`**:
-  - Implementar `GetGamesPendingQualityBackfillAsync`: consulta juegos que carecen de escalabilidad, o cuya huella es `StandardTable` sin clasificar, o con duraciones estáticas `MinMinutes == MaxMinutes`.
+  - Búsqueda y filtrado compatible con `SpanishPublisher` y `SpanishTitle`.
 
-### 2.4 Tareas y Procesos (`Ludeka.Jobs`)
-- **`SeedStagingJobRunner`**:
-  - Consume automáticamente `_options.Value.MinUsersRated` (100).
-- Preparación para ejecución del enriquecimiento en cola nocturna / trabajos programados.
+### 3.4 Interfaz de Usuario (`Ludeka.Web`)
+- **`GameDetail.razor`**:
+  - En la cabecera / metadatos:
+    - Si `SpanishPublisher` está informado y difiere de `Publisher`, mostrar:
+      - Editorial en España con enlace a `/directorios/editoriales/{slug}`.
+      - Editorial original internacional.
+    - Si el título en español difiere del original, mostrar el título original en subtítulo discreto.
+- **`GameCard.razor`**:
+  - Mostrar la editorial relevante (`SpanishPublisher ?? Publisher`).
+- **`PublisherDetail.razor`**:
+  - Muestra todos los juegos publicados por la editorial en España gracias a la búsqueda por `SpanishPublisher`.
 
 ---
 
-## 3. Criterios de Aceptación
+## 4. Criterios de Aceptación
 
-1. **Umbral de Ingesta:** `BggMassIngestionOptions.MinUsersRated` se fija en 100 y `BggDumpParser` procesa juegos con `UsersRated >= 100`.
-2. **Idempotencia y Cero Duplicados:** Al ingerir volcados o promover registros, los títulos preexistentes en `Games` se actualizan de forma aditiva por `BggId` sin generar excepciones de clave duplicada.
-3. **Escalabilidad Comunitaria con Fallback:** Todo juego ingestado o actualizado dispone de registros en `Scalability`. Si BGG no incluye votos, se aplica el fallback determinista garantizando que la ficha muestre semáforo.
-4. **Fundas de Cartas Persistidas:** Los datos de fundas extraídos de BGG se almacenan en staging y se persisten en `Game.Sleeves`.
-5. **Huella en Mesa Diferenciada:** Juegos de cartas y microjuegos reciben `SmallTable`; wargames y miniaturas reciben `TableMonster`; juegos intermedios reciben `StandardTable`.
-6. **Tiempos Reales:** `Duration` refleja los valores mínimos y máximos de BGG y un tiempo por jugador realista.
-7. **Backfill Operativo:** `BackfillCatalogQualityBatchAsync` enriquece con éxito juegos existentes en catálogo.
-8. **Pruebas Automatizadas:** 100% de la suite de pruebas en verde, con tests unitarios específicos para cada componente.
+1. **Umbral >100:** `MinUsersRated = 100` por defecto en opciones y volcado.
+2. **Idempotencia:** Juegos preexistentes en catálogo se actualizan de forma aditiva por `BggId` sin generar errores de clave única.
+3. **Escalabilidad y Fundas:** Fichas con semáforo poblado y datos de fundas persistidos.
+4. **Huella y Tiempos Reales:** Huella diferenciada (`SmallTable`, `StandardTable`, `TableMonster`) y duraciones reales de BGG.
+5. **Editorial en España:** Juegos publicados en España por editoriales nacionales identifican `SpanishPublisher` y se asocian a las fichas del Directorio de Editoriales.
+6. **Títulos en Español:** Fichas muestran el título comercial en español y conservan el título original.
+7. **Búsquedas:** Buscar por el nombre de la editorial española devuelve sus juegos.
+8. **Pruebas:** 100% de la suite de pruebas automatizadas en verde.
