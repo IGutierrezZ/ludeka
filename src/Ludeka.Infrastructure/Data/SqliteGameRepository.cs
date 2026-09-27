@@ -241,4 +241,16 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .OrderBy(g => g.SpanishTitle)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
+    {
+        if (limit <= 0) limit = 50;
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => !g.Scalability.Any() || g.Footprint == TableFootprint.StandardTable || g.Duration.MinMinutes == g.Duration.MaxMinutes)
+            .OrderBy(g => g.BggRank.HasValue ? g.BggRank.Value : 999999)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
 }

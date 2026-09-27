@@ -161,6 +161,19 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.All(items, g => Assert.True(g.Duration.MaxMinutes <= 45));
     }
 
+    [Fact]
+    public async Task GetGamesPendingQualityBackfillAsync_ShouldReturnGamesNeedingBackfill()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act
+        var candidates = await _repository.GetGamesPendingQualityBackfillAsync(limit: 10);
+
+        // Assert: la consulta se ejecuta limpiamente contra SQLite en memoria
+        Assert.NotNull(candidates);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

@@ -143,6 +143,18 @@ public class BggMassIngestionService : IBggMassIngestionService
                 var fetchedGame = await _bggClient.FetchGameByBggIdAsync(item.BggId, ct);
                 if (fetchedGame != null)
                 {
+                    string? scalabilityJson = fetchedGame.Scalability.Count > 0
+                        ? JsonSerializer.Serialize(fetchedGame.Scalability)
+                        : null;
+
+                    string? sleevesJson = fetchedGame.Sleeves.Count > 0
+                        ? JsonSerializer.Serialize(fetchedGame.Sleeves)
+                        : null;
+
+                    int minTime = fetchedGame.Duration.MinMinutes;
+                    int maxTime = fetchedGame.Duration.MaxMinutes;
+                    int estPerPlayer = fetchedGame.Duration.EstimatedPerPlayerMinutes;
+
                     item.MarkFetched(
                         rawXml: fetchedGame.Description,
                         spanishTitle: fetchedGame.SpanishTitle,
@@ -151,9 +163,14 @@ public class BggMassIngestionService : IBggMassIngestionService
                         description: fetchedGame.Description,
                         minPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Min(s => s.PlayerCount) : 1,
                         maxPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Max(s => s.PlayerCount) : 4,
-                        playingTimeMinutes: fetchedGame.Duration.EstimatedPerPlayerMinutes,
+                        playingTimeMinutes: estPerPlayer,
                         minAge: fetchedGame.Age.BoxAge,
-                        bggRating: fetchedGame.BggRating
+                        bggRating: fetchedGame.BggRating,
+                        scalabilityJson: scalabilityJson,
+                        sleevesJson: sleevesJson,
+                        minPlayTimeMinutes: minTime,
+                        maxPlayTimeMinutes: maxTime,
+                        inferredFootprint: fetchedGame.Footprint
                     );
 
                     // Si ya viene con carátula de BGG Thing, se preasignan URLs iniciales si aún no hay fotos
@@ -396,6 +413,10 @@ public class BggMassIngestionService : IBggMassIngestionService
                 var existing = await _gameRepo.GetByBggIdAsync(item.BggId, ct);
                 if (existing == null)
                 {
+                    int minTime = item.MinPlayTimeMinutes > 0 ? item.MinPlayTimeMinutes : (item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30);
+                    int maxTime = item.MaxPlayTimeMinutes > 0 ? item.MaxPlayTimeMinutes : (item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 60);
+                    int estPerPlayer = item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30;
+
                     var newGame = new Game(
                         bggId: item.BggId,
                         originalTitle: item.OriginalTitle,
@@ -414,13 +435,12 @@ public class BggMassIngestionService : IBggMassIngestionService
                         isOfficialSolo: item.MinPlayers == 1,
                         age: new AgeRating(item.MinAge > 0 ? item.MinAge : 10, item.MinAge > 0 ? item.MinAge : 10),
                         language: LanguageDependence.Low,
-                        footprint: TableFootprint.StandardTable,
-                        duration: new GameDuration(
-                            item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30,
-                            item.PlayingTimeMinutes > 0 ? (int)(item.PlayingTimeMinutes * 1.5) : 60,
-                            item.PlayingTimeMinutes > 0 ? Math.Max(15, item.PlayingTimeMinutes / Math.Max(1, item.MaxPlayers)) : 30),
+                        footprint: item.InferredFootprint,
+                        duration: new GameDuration(minTime, maxTime, estPerPlayer),
                         backCoverImageUrl: item.BackCoverImageUrl,
-                        tableImageUrl: item.TableImageUrl
+                        tableImageUrl: item.TableImageUrl,
+                        scalability: item.GetScalability().ToList(),
+                        sleeves: item.GetSleeves().ToList()
                     );
 
                     // Rehidratar síntesis de IA si existe
@@ -457,6 +477,30 @@ public class BggMassIngestionService : IBggMassIngestionService
                         item.BackCoverImageUrl ?? existing.BackCoverImageUrl,
                         item.TableImageUrl ?? existing.TableImageUrl
                     );
+
+                    var stagingScalability = item.GetScalability().ToList();
+                    if (stagingScalability.Count > 0 && (existing.Scalability.Count == 0 || !existing.Scalability.Any(s => s.TotalVotes > 0)))
+                    {
+                        existing.UpdateScalability(stagingScalability);
+                    }
+
+                    var stagingSleeves = item.GetSleeves().ToList();
+                    if (stagingSleeves.Count > 0 && existing.Sleeves.Count == 0)
+                    {
+                        existing.UpdateSleeves(stagingSleeves);
+                    }
+
+                    if (item.MinPlayTimeMinutes > 0 && item.MaxPlayTimeMinutes > 0)
+                    {
+                        int est = item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : 30;
+                        existing.UpdateDuration(new GameDuration(item.MinPlayTimeMinutes, item.MaxPlayTimeMinutes, est));
+                    }
+
+                    if (item.InferredFootprint != TableFootprint.StandardTable || existing.Footprint == TableFootprint.StandardTable)
+                    {
+                        existing.UpdateFootprint(item.InferredFootprint);
+                    }
+
                     await _gameRepo.UpdateAsync(existing, ct);
                 }
 
@@ -719,5 +763,113 @@ public class BggMassIngestionService : IBggMassIngestionService
 
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sampleCsv));
         return await IngestRanksDumpAsync(ms, minUsersRated, ct);
+    }
+
+    public async Task<int> BackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await RunScheduledBackfillCatalogQualityBatchAsync(batchSize, ct);
+    }
+
+    public async Task<int> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    {
+        if (batchSize <= 0) batchSize = 50;
+
+        var candidates = await _gameRepo.GetGamesPendingQualityBackfillAsync(batchSize, ct);
+        if (candidates.Count == 0) return 0;
+
+        _logger.LogInformation("Iniciando backfill de calidad para {Count} juegos en catálogo.", candidates.Count);
+        int updatedCount = 0;
+
+        foreach (var game in candidates)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            try
+            {
+                // 1. Si existe en staging con datos de calidad, enriquecer sin consultar BGG HTTP
+                var stagingItem = await _stagingRepo.GetByBggIdAsync(game.BggId, ct);
+                var stagingScalability = stagingItem?.GetScalability().ToList() ?? [];
+                var stagingSleeves = stagingItem?.GetSleeves().ToList() ?? [];
+
+                if (stagingItem != null && stagingScalability.Count > 0 && stagingItem.MinPlayTimeMinutes > 0)
+                {
+                    if (stagingScalability.Count > 0 && (game.Scalability.Count == 0 || !game.Scalability.Any(s => s.TotalVotes > 0)))
+                    {
+                        game.UpdateScalability(stagingScalability);
+                    }
+
+                    if (stagingSleeves.Count > 0 && game.Sleeves.Count == 0)
+                    {
+                        game.UpdateSleeves(stagingSleeves);
+                    }
+
+                    int est = stagingItem.PlayingTimeMinutes > 0 ? stagingItem.PlayingTimeMinutes : 30;
+                    game.UpdateDuration(new GameDuration(stagingItem.MinPlayTimeMinutes, stagingItem.MaxPlayTimeMinutes, est));
+                    game.UpdateFootprint(stagingItem.InferredFootprint);
+
+                    await _gameRepo.UpdateAsync(game, ct);
+                    updatedCount++;
+                    continue;
+                }
+
+                // 2. Si staging carece de datos de calidad o el juego no está en staging, consultar BGG Thing
+                var fetched = await _bggClient.FetchGameByBggIdAsync(game.BggId, ct);
+                if (fetched != null)
+                {
+                    if (fetched.Scalability.Count > 0)
+                    {
+                        game.UpdateScalability(fetched.Scalability);
+                    }
+
+                    if (fetched.Sleeves.Count > 0)
+                    {
+                        game.UpdateSleeves(fetched.Sleeves);
+                    }
+
+                    game.UpdateDuration(fetched.Duration);
+                    game.UpdateFootprint(fetched.Footprint);
+
+                    await _gameRepo.UpdateAsync(game, ct);
+
+                    // Si existe en staging, sincronizarlo también para que quede enriquecido
+                    if (stagingItem != null)
+                    {
+                        stagingItem.MarkFetched(
+                            rawXml: fetched.Description,
+                            spanishTitle: fetched.SpanishTitle,
+                            designer: fetched.Designer,
+                            publisher: fetched.Publisher,
+                            description: fetched.Description,
+                            minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
+                            maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
+                            playingTimeMinutes: fetched.Duration.EstimatedPerPlayerMinutes,
+                            minAge: fetched.Age.BoxAge,
+                            bggRating: fetched.BggRating,
+                            scalabilityJson: JsonSerializer.Serialize(fetched.Scalability),
+                            sleevesJson: JsonSerializer.Serialize(fetched.Sleeves),
+                            minPlayTimeMinutes: fetched.Duration.MinMinutes,
+                            maxPlayTimeMinutes: fetched.Duration.MaxMinutes,
+                            inferredFootprint: fetched.Footprint
+                        );
+                        await _stagingRepo.UpdateBatchAsync([stagingItem], ct);
+                    }
+
+                    updatedCount++;
+                }
+
+                if (_options.DelayBetweenBggCallsMs > 0 && !ct.IsCancellationRequested)
+                {
+                    await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error durante backfill de calidad para #{BggId} ('{Title}'): {Message}", game.BggId, game.SpanishTitle, ex.Message);
+            }
+        }
+
+        _logger.LogInformation("Backfill de calidad completado: {Updated}/{Total} juegos enriquecidos.", updatedCount, candidates.Count);
+        return updatedCount;
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
@@ -287,6 +288,260 @@ public class BggMassIngestionServiceTests
         Assert.Equal(1, pendingAiCount);
     }
 
+    [Fact]
+    public async Task ProcessPendingDetailsBatchAsync_PersistsQualityFieldsInStagingItem()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var stagingItem = new BggCatalogStagingItem(266192, "Wingspan");
+        stagingRepo.Items.Add(stagingItem);
+
+        var fetchedGame = new Game(
+            bggId: 266192,
+            originalTitle: "Wingspan",
+            spanishTitle: "Wingspan",
+            designer: "Elizabeth Hargrave",
+            publisher: "Maldito Games",
+            yearPublished: 2019,
+            coverImageUrl: "https://cf.geekdo-images.com/wingspan.jpg",
+            thumbnailUrl: "https://cf.geekdo-images.com/wingspan_thumb.jpg",
+            description: "Motor de cartas de aves",
+            bggRating: 8.1,
+            bggRank: 25,
+            ludistRating: 8.5,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: true,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(40, 70, 20),
+            scalability: [new ScalabilityEntry(2, "2J", ScalabilityStatus.MustPlay, 850, 390, 35)],
+            sleeves: [new SleeveItem("Standard American", 57, 89, 130, null)]
+        );
+
+        var bggClient = new FakeBggClient();
+        bggClient.Games[266192] = fetchedGame;
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            new FakeGeekDoClient(),
+            new FakeImageStorageService(),
+            new FakeAiSummaryService(),
+            new FakeGameRepo(),
+            new HttpClient(),
+            Options.Create(new BggMassIngestionOptions()),
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Act
+        int processed = await service.ProcessPendingDetailsBatchAsync(10);
+
+        // Assert
+        Assert.Equal(1, processed);
+        Assert.NotNull(stagingItem.ScalabilityJson);
+        Assert.Contains("2J", stagingItem.ScalabilityJson);
+        Assert.NotNull(stagingItem.SleevesJson);
+        Assert.Contains("Standard American", stagingItem.SleevesJson);
+        Assert.Equal(40, stagingItem.MinPlayTimeMinutes);
+        Assert.Equal(70, stagingItem.MaxPlayTimeMinutes);
+        Assert.Equal(TableFootprint.StandardTable, stagingItem.InferredFootprint);
+    }
+
+    [Fact]
+    public async Task PromoteReadyToCatalogBatchAsync_WhenGameIsNew_HydratesAllQualityFields()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var stagingItem = new BggCatalogStagingItem(266192, "Wingspan");
+        var scalabilityJson = JsonSerializer.Serialize(new List<ScalabilityEntry>
+        {
+            new(2, "2J", ScalabilityStatus.MustPlay, 850, 390, 35)
+        });
+        var sleevesJson = JsonSerializer.Serialize(new List<SleeveItem>
+        {
+            new("Standard American", 57, 89, 130, null)
+        });
+
+        stagingItem.MarkFetched("xml", "Wingspan", "Elizabeth Hargrave", "Maldito", "Aves", 1, 5, 20, 10, 8.1,
+            scalabilityJson, sleevesJson, minPlayTimeMinutes: 40, maxPlayTimeMinutes: 70, inferredFootprint: TableFootprint.StandardTable);
+        stagingItem.MarkImagesCompleted("https://cdn.ludeka.com/cover.webp", "https://cdn.ludeka.com/thumb.webp");
+        stagingRepo.Items.Add(stagingItem);
+
+        var gameRepo = new FakeGameRepo();
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            new FakeBggClient(),
+            new FakeGeekDoClient(),
+            new FakeImageStorageService(),
+            new FakeAiSummaryService(),
+            gameRepo,
+            new HttpClient(),
+            Options.Create(new BggMassIngestionOptions()),
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Act
+        int promoted = await service.PromoteReadyToCatalogBatchAsync(10);
+
+        // Assert
+        Assert.Equal(1, promoted);
+        Assert.Single(gameRepo.Games);
+        var game = gameRepo.Games[0];
+        Assert.Single(game.Scalability);
+        Assert.Equal(2, game.Scalability[0].PlayerCount);
+        Assert.Single(game.Sleeves);
+        Assert.Equal("Standard American", game.Sleeves[0].FormatName);
+        Assert.Equal(40, game.Duration.MinMinutes);
+        Assert.Equal(70, game.Duration.MaxMinutes);
+        Assert.Equal(TableFootprint.StandardTable, game.Footprint);
+    }
+
+    [Fact]
+    public async Task PromoteReadyToCatalogBatchAsync_WhenGameAlreadyExists_EnrichesQualityFieldsRetroactively()
+    {
+        // Arrange
+        var existingGame = new Game(
+            bggId: 266192,
+            originalTitle: "Wingspan",
+            spanishTitle: "Wingspan",
+            designer: "Elizabeth Hargrave",
+            publisher: "Maldito Games",
+            yearPublished: 2019,
+            coverImageUrl: "old_cover.jpg",
+            thumbnailUrl: "old_thumb.jpg",
+            description: "Old description",
+            bggRating: 8.1,
+            bggRank: 25,
+            ludistRating: 8.5,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: true,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(60, 60, 30),
+            scalability: [],
+            sleeves: []
+        );
+
+        var gameRepo = new FakeGameRepo();
+        gameRepo.Games.Add(existingGame);
+
+        var stagingRepo = new FakeStagingRepo();
+        var stagingItem = new BggCatalogStagingItem(266192, "Wingspan");
+        var scalabilityJson = JsonSerializer.Serialize(new List<ScalabilityEntry>
+        {
+            new(2, "2J", ScalabilityStatus.MustPlay, 850, 390, 35)
+        });
+        var sleevesJson = JsonSerializer.Serialize(new List<SleeveItem>
+        {
+            new("Standard American", 57, 89, 130, null)
+        });
+
+        stagingItem.MarkFetched("xml", "Wingspan", "Elizabeth Hargrave", "Maldito", "Aves", 1, 5, 20, 10, 8.1,
+            scalabilityJson, sleevesJson, minPlayTimeMinutes: 40, maxPlayTimeMinutes: 70, inferredFootprint: TableFootprint.StandardTable);
+        stagingItem.MarkImagesCompleted("new_cover.jpg", "new_thumb.jpg");
+        stagingRepo.Items.Add(stagingItem);
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            new FakeBggClient(),
+            new FakeGeekDoClient(),
+            new FakeImageStorageService(),
+            new FakeAiSummaryService(),
+            gameRepo,
+            new HttpClient(),
+            Options.Create(new BggMassIngestionOptions()),
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Act
+        int promoted = await service.PromoteReadyToCatalogBatchAsync(10);
+
+        // Assert
+        Assert.Equal(1, promoted);
+        Assert.Single(existingGame.Scalability);
+        Assert.Equal(2, existingGame.Scalability[0].PlayerCount);
+        Assert.Single(existingGame.Sleeves);
+        Assert.Equal("Standard American", existingGame.Sleeves[0].FormatName);
+        Assert.Equal(40, existingGame.Duration.MinMinutes);
+        Assert.Equal(70, existingGame.Duration.MaxMinutes);
+    }
+
+    [Fact]
+    public async Task RunScheduledBackfillCatalogQualityBatchAsync_EnrichesCatalogGamesSuccessfully()
+    {
+        // Arrange
+        var existingGame = new Game(
+            bggId: 342942,
+            originalTitle: "Ark Nova",
+            spanishTitle: "Ark Nova",
+            designer: "Mathias Wigge",
+            publisher: "Maldito Games",
+            yearPublished: 2021,
+            coverImageUrl: "ark.jpg",
+            thumbnailUrl: "ark_t.jpg",
+            description: "Zoológico moderno",
+            bggRating: 8.5,
+            bggRank: 4,
+            ludistRating: 9.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: true,
+            age: new AgeRating(14, 14),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(120, 120, 60),
+            scalability: [],
+            sleeves: []
+        );
+
+        var gameRepo = new FakeGameRepo();
+        gameRepo.Games.Add(existingGame);
+
+        var stagingRepo = new FakeStagingRepo();
+        var stagingItem = new BggCatalogStagingItem(342942, "Ark Nova");
+        var scalabilityJson = JsonSerializer.Serialize(new List<ScalabilityEntry>
+        {
+            new(2, "2J", ScalabilityStatus.MustPlay, 1200, 400, 30)
+        });
+        var sleevesJson = JsonSerializer.Serialize(new List<SleeveItem>
+        {
+            new("Standard Card Game", 63.5, 88, 250, null)
+        });
+
+        stagingItem.MarkFetched("xml", "Ark Nova", "Mathias Wigge", "Maldito", "Zoo", 1, 4, 45, 14, 8.5,
+            scalabilityJson, sleevesJson, minPlayTimeMinutes: 90, maxPlayTimeMinutes: 150, inferredFootprint: TableFootprint.TableMonster);
+        stagingRepo.Items.Add(stagingItem);
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            new FakeBggClient(),
+            new FakeGeekDoClient(),
+            new FakeImageStorageService(),
+            new FakeAiSummaryService(),
+            gameRepo,
+            new HttpClient(),
+            Options.Create(new BggMassIngestionOptions()),
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Act
+        int enriched = await service.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 10);
+
+        // Assert
+        Assert.Equal(1, enriched);
+        Assert.Single(existingGame.Scalability);
+        Assert.Equal(2, existingGame.Scalability[0].PlayerCount);
+        Assert.Single(existingGame.Sleeves);
+        Assert.Equal("Standard Card Game", existingGame.Sleeves[0].FormatName);
+        Assert.Equal(90, existingGame.Duration.MinMinutes);
+        Assert.Equal(150, existingGame.Duration.MaxMinutes);
+        Assert.Equal(TableFootprint.TableMonster, existingGame.Footprint);
+    }
+
     // --- FAKES ---
 
     private class FakeStagingRepo : IBggCatalogStagingRepository
@@ -457,5 +712,8 @@ public class BggMassIngestionServiceTests
         public Task UpdateAsync(Game game, CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<bool> HasAnyAsync(CancellationToken ct = default) => Task.FromResult(Games.Count > 0);
+
+        public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Game>>(Games.Where(g => g.Scalability.Count == 0 || g.Footprint == TableFootprint.StandardTable || g.Duration.MinMinutes == g.Duration.MaxMinutes).Take(limit).ToList());
     }
 }

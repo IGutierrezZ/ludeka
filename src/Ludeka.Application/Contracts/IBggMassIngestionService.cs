@@ -84,6 +84,20 @@ public interface IBggMassIngestionService
     /// Versión de sistema del drenaje continuo para ejecutores en segundo plano (Ludeka.Jobs).
     /// </summary>
     Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default);
+
+    /// <summary>
+    /// Enriquece retroactivamente un lote de juegos del catálogo que carecen de semáforo de escalabilidad,
+    /// fundas de cartas, tiempos reales o huella en mesa inferida.
+    /// Exige sesión y permiso de moderación (INC-46, W1).
+    /// </summary>
+    Task<int> BackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+        => Task.FromResult(0);
+
+    /// <summary>
+    /// Versión de sistema del enriquecimiento retroactivo para ejecutores en segundo plano (Ludeka.Jobs).
+    /// </summary>
+    Task<int> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 
 /// <summary>

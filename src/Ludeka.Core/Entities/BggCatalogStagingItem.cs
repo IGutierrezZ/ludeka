@@ -157,12 +157,17 @@ public class BggCatalogStagingItem
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public IReadOnlyList<ScalabilityEntry> GetScalability()
     {
         if (string.IsNullOrWhiteSpace(ScalabilityJson)) return [];
         try
         {
-            return JsonSerializer.Deserialize<List<ScalabilityEntry>>(ScalabilityJson) ?? [];
+            return JsonSerializer.Deserialize<List<ScalabilityEntry>>(ScalabilityJson, JsonOptions) ?? [];
         }
         catch
         {
@@ -175,7 +180,7 @@ public class BggCatalogStagingItem
         if (string.IsNullOrWhiteSpace(SleevesJson)) return [];
         try
         {
-            return JsonSerializer.Deserialize<List<SleeveItem>>(SleevesJson) ?? [];
+            return JsonSerializer.Deserialize<List<SleeveItem>>(SleevesJson, JsonOptions) ?? [];
         }
         catch
         {
