@@ -1,4 +1,4 @@
-# INC-73: Curación y Saneamiento Integral del Directorio Lúdico Español
+# INC-74: Curación y Saneamiento Integral del Directorio Lúdico Español
 
 > **Estado:** ✅ Archivado  
 > **Fecha de Inicio:** 2026-09-27  

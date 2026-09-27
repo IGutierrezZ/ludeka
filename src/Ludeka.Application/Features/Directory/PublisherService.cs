@@ -55,13 +55,33 @@ public class PublisherService : IPublisherService
         return query
             .Select(p =>
             {
-                var gamesCount = allGames.Count(g => IsMatchPublisher(g.Publisher, p.Name));
+                var gamesCount = allGames.Count(g => IsMatchGame(g, p.Name));
                 var likesCount = likesCounts.GetValueOrDefault(p.Id, 0);
                 return MapToDto(p, gamesCount, likesCount);
             })
             .OrderByDescending(p => p.LikesCount)
             .ThenBy(p => p.Name)
             .ToList();
+    }
+
+    private static bool IsMatchGame(Game g, string publisherName)
+    {
+        if (IsMatchPublisher(g.Publisher, publisherName))
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(g.SpanishPublisher) && IsMatchPublisher(g.SpanishPublisher, publisherName))
+            return true;
+
+        if (g.RegionalPublishers != null)
+        {
+            foreach (var reg in g.RegionalPublishers)
+            {
+                if (!string.IsNullOrWhiteSpace(reg.PublisherName) && IsMatchPublisher(reg.PublisherName, publisherName))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsMatchPublisher(string gamePublisher, string publisherName)

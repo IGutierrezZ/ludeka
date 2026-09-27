@@ -1,4 +1,4 @@
-﻿{
+{
   "publishers": [
     {
       "name": "Devir Iberia",
@@ -1037,6 +1037,116 @@
           "title": "Jamey Stegmaier"
         }
       ]
+    },
+    {
+      "name": "Devir México",
+      "slug": "devir-mexico",
+      "country": "México",
+      "city": "Ciudad de México",
+      "description": "Filial mexicana de Devir, responsable de la distribución y desarrollo de juegos de mesa modernos en México y Centroamérica.",
+      "logoUrl": null,
+      "websiteUrl": "https://devir.mx",
+      "socialLinks": []
+    },
+    {
+      "name": "El Troquel",
+      "slug": "el-troquel",
+      "country": "México",
+      "city": "Guadalajara",
+      "description": "Editorial mexicana independiente comprometida con la divulgación lúdica, autores nacionales y diseños frescos.",
+      "logoUrl": null,
+      "websiteUrl": "https://eltroquel.com.mx",
+      "socialLinks": []
+    },
+    {
+      "name": "Bureau de Juegos",
+      "slug": "bureau-de-juegos",
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "description": "Editorial argentina referente en juegos modernos, divulgación familiar y localizaciones de éxitos internacionales para el Cono Sur.",
+      "logoUrl": null,
+      "websiteUrl": "https://budejuegos.com",
+      "socialLinks": []
+    },
+    {
+      "name": "Maldón",
+      "slug": "maldon",
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "description": "Editorial de diseño y creación argentina destacada por sus juegos de autoría propia, componentes visuales de alto valor y estilo literario.",
+      "logoUrl": null,
+      "websiteUrl": "https://maldon.com.ar",
+      "socialLinks": []
+    },
+    {
+      "name": "Ruibal Juegos",
+      "slug": "ruibal-juegos",
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "description": "Histórica editorial y fabricante argentino con décadas liderando el mercado del entretenimiento de mesa familiar y juegos de mesa contemporáneos.",
+      "logoUrl": null,
+      "websiteUrl": "https://ruibaljuegos.com",
+      "socialLinks": []
+    },
+    {
+      "name": "Fractal Juegos",
+      "slug": "fractal-juegos",
+      "country": "Chile",
+      "city": "Santiago",
+      "description": "Editorial chilena referente en el Cono Sur, especializada en localización de grandes éxitos y producción editorial de juegos para toda la región.",
+      "logoUrl": null,
+      "websiteUrl": "https://fractaljuegos.com",
+      "socialLinks": []
+    },
+    {
+      "name": "Devir Chile",
+      "slug": "devir-chile",
+      "country": "Chile",
+      "city": "Santiago",
+      "description": "Sede chilena de Devir, impulsora activa de las comunidades lúdicas locales y torneos competitivos de mesa.",
+      "logoUrl": null,
+      "websiteUrl": "https://devir.cl",
+      "socialLinks": []
+    },
+    {
+      "name": "Devir Colombia",
+      "slug": "devir-colombia",
+      "country": "Colombia",
+      "city": "Bogotá",
+      "description": "Presencia oficial de Devir en Colombia, expandiendo el catálogo de mesa en clubes, bibliotecas y tiendas del país.",
+      "logoUrl": null,
+      "websiteUrl": "https://devir.com.co",
+      "socialLinks": []
+    },
+    {
+      "name": "Ouroboros Games",
+      "slug": "ouroboros-games",
+      "country": "Colombia",
+      "city": "Medellín",
+      "description": "Editorial y estudio de diseño colombiano enfocado en proyectos lúdicos independientes con mecánicas envolventes.",
+      "logoUrl": null,
+      "websiteUrl": "https://ouroborosgames.co",
+      "socialLinks": []
+    },
+    {
+      "name": "Devir Perú",
+      "slug": "devir-peru",
+      "country": "Perú",
+      "city": "Lima",
+      "description": "Distribución oficial de juegos de mesa y eventos de comunidad en territorio peruano.",
+      "logoUrl": null,
+      "websiteUrl": "https://devir.pe",
+      "socialLinks": []
+    },
+    {
+      "name": "Matufia Juegos",
+      "slug": "matufia-juegos",
+      "country": "Uruguay",
+      "city": "Montevideo",
+      "description": "Editorial uruguaya dedicada a la creación, edición y difusión de juegos de mesa de diseño nacional y regional.",
+      "logoUrl": null,
+      "websiteUrl": "https://matufia.com.uy",
+      "socialLinks": []
     }
   ],
   "stores": [

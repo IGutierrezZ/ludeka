@@ -58,16 +58,7 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         await using var scope = await CreateScopeAsync(ct);
         var query = scope.Context.Games.AsNoTracking().AsQueryable();
 
-        // Filtro por término de búsqueda (bilingüe: título español o título original)
-        if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
-        {
-            string term = criteria.SearchTerm.Trim();
-            query = query.Where(g =>
-                EF.Functions.Like(g.SpanishTitle, $"%{term}%") ||
-                EF.Functions.Like(g.OriginalTitle, $"%{term}%") ||
-                EF.Functions.Like(g.Designer, $"%{term}%") ||
-                EF.Functions.Like(g.Publisher, $"%{term}%"));
-        }
+
 
         // Filtro por estilo lúdico (multiselección o individual)
         if (criteria.Styles != null && criteria.Styles.Count > 0)
@@ -136,6 +127,21 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         // Para filtros que evalúan elementos de colecciones JSON complejas en SQLite
         var list = await query.ToListAsync(ct);
+
+        // Filtro por término de búsqueda (bilingüe y multipaís: títulos, diseñador, editoriales)
+        if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
+        {
+            string term = criteria.SearchTerm.Trim();
+            list = list.Where(g =>
+                (!string.IsNullOrWhiteSpace(g.SpanishTitle) && g.SpanishTitle.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(g.OriginalTitle) && g.OriginalTitle.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(g.Designer) && g.Designer.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(g.Publisher) && g.Publisher.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(g.SpanishPublisher) && g.SpanishPublisher.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (g.LocalizedTitles != null && g.LocalizedTitles.Any(l => !string.IsNullOrWhiteSpace(l.Title) && l.Title.Contains(term, StringComparison.OrdinalIgnoreCase))) ||
+                (g.RegionalPublishers != null && g.RegionalPublishers.Any(r => !string.IsNullOrWhiteSpace(r.PublisherName) && r.PublisherName.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            ).ToList();
+        }
 
         if (criteria.EspecialParejas)
         {
@@ -256,10 +262,28 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         var clean = publisherName.Trim();
         await using var scope = await CreateScopeAsync(ct);
-        return await scope.Context.Games
+        var games = await scope.Context.Games
             .AsNoTracking()
-            .Where(g => EF.Functions.Like(g.Publisher, $"%{clean}%"))
+            .ToListAsync(ct);
+
+        return games
+            .Where(g => (!string.IsNullOrWhiteSpace(g.Publisher) && g.Publisher.Contains(clean, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(g.SpanishPublisher) && g.SpanishPublisher.Contains(clean, StringComparison.OrdinalIgnoreCase)) ||
+                        (g.RegionalPublishers != null && g.RegionalPublishers.Any(r => !string.IsNullOrWhiteSpace(r.PublisherName) && r.PublisherName.Contains(clean, StringComparison.OrdinalIgnoreCase))))
             .OrderBy(g => g.SpanishTitle)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
+    {
+        if (limit <= 0) limit = 50;
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => g.Scalability.Count == 0 || g.Sleeves.Count == 0 || g.SpanishPublisher == null)
+            .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
+            .ThenBy(g => g.BggRank)
+            .Take(limit)
             .ToListAsync(ct);
     }
 

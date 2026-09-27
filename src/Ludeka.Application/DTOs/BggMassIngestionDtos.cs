@@ -77,9 +77,9 @@ public class BggMassIngestionOptions
     public const string SectionName = "BggMassIngestion";
 
     /// <summary>
-    /// Umbral mínimo de valoraciones para admitir un título en staging (por defecto 1000, ~4.000 títulos más destacados).
+    /// Umbral mínimo de valoraciones para admitir un título en staging (por defecto 100, catálogo amplio de calidad).
     /// </summary>
-    public int MinUsersRated { get; set; } = 1000;
+    public int MinUsersRated { get; set; } = 100;
 
     /// <summary>
     /// Tamaño de lote para consultar detalles /xmlapi2/thing de BGG (máximo 20 recomendado por BGG).
@@ -140,5 +140,15 @@ public record BggMassIngestionContinuousDrainResultDto(
     int TotalPromotedToCatalog,
     bool StoppedDueToAiQuota,
     bool CompletedAllStaging,
+    string Message
+);
+
+/// <summary>
+/// Resultado del proceso de enriquecimiento retroactivo de calidad (escalabilidad, fundas, duraciones, huella y localización) para juegos ya existentes en el catálogo.
+/// </summary>
+public record BggQualityBackfillResultDto(
+    int ProcessedCount,
+    int UpdatedCount,
+    int FailedCount,
     string Message
 );

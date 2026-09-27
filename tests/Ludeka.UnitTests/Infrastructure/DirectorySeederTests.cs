@@ -86,11 +86,11 @@ public class DirectorySeederTests : IDisposable
         var stores = await _dbContext.Stores.ToListAsync();
 
         Assert.Equal(35, creators.Count);
-        Assert.Equal(46, publishers.Count);
+        Assert.Equal(57, publishers.Count);
         Assert.Equal(37, stores.Count);
 
         Assert.Equal(34, result.CreatorsAdded); // 35 en total, 1 ya existía (analisis-paralisis)
-        Assert.Equal(46, result.PublishersAdded);
+        Assert.Equal(57, result.PublishersAdded);
         Assert.Equal(37, result.StoresAdded);
 
         Assert.DoesNotContain(creators, c => RetiredDesignerSlugs.Contains(c.Slug));
@@ -120,7 +120,7 @@ public class DirectorySeederTests : IDisposable
         Assert.Equal(storesAfterFirst, storesAfterSecond);
 
         Assert.Equal(35, creatorsAfterSecond);
-        Assert.Equal(46, publishersAfterSecond);
+        Assert.Equal(57, publishersAfterSecond);
         Assert.Equal(37, storesAfterSecond);
 
         Assert.Equal(0, secondResult.CreatorsAdded);

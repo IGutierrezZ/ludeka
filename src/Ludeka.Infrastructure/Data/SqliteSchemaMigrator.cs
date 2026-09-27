@@ -69,7 +69,10 @@ public static class SqliteSchemaMigrator
                 ("PurchaseLinks", "TEXT NOT NULL DEFAULT '[]'"),
                 ("AiSummary", "TEXT NULL"),
                 ("BackCoverImageUrl", "TEXT NULL"),
-                ("TableImageUrl", "TEXT NULL")
+                ("TableImageUrl", "TEXT NULL"),
+                ("SpanishPublisher", "TEXT NULL"),
+                ("RegionalPublishers", "TEXT NOT NULL DEFAULT '[]'"),
+                ("LocalizedTitles", "TEXT NOT NULL DEFAULT '[]'")
             };
 
             foreach (var (colName, colDef) in columnsToAdd)
@@ -88,6 +91,8 @@ public static class SqliteSchemaMigrator
                 fixCmd.CommandText = """
                     UPDATE "Games" SET "ImpactTags" = '[]' WHERE "ImpactTags" IS NULL;
                     UPDATE "Games" SET "PurchaseLinks" = '[]' WHERE "PurchaseLinks" IS NULL;
+                    UPDATE "Games" SET "RegionalPublishers" = '[]' WHERE "RegionalPublishers" IS NULL;
+                    UPDATE "Games" SET "LocalizedTitles" = '[]' WHERE "LocalizedTitles" IS NULL;
                     UPDATE "Games" SET "Type" = 0 WHERE "Type" IS NULL;
                     """;
                 await fixCmd.ExecuteNonQueryAsync(ct);
@@ -753,6 +758,16 @@ public static class SqliteSchemaMigrator
                         "PromotionStatus" INTEGER NOT NULL DEFAULT 0,
                         "PromotionError" TEXT NULL,
                         "PromotedAt" TEXT NULL,
+                        "SpanishPublisher" TEXT NULL,
+                        "RegionalPublishers" TEXT NOT NULL DEFAULT '[]',
+                        "LocalizedTitles" TEXT NOT NULL DEFAULT '[]',
+                        "InferredFootprint" INTEGER NOT NULL DEFAULT 1,
+                        "Sleeves" TEXT NOT NULL DEFAULT '[]',
+                        "Scalability" TEXT NOT NULL DEFAULT '[]',
+                        "MinPlayTimeMinutes" INTEGER NOT NULL DEFAULT 0,
+                        "MaxPlayTimeMinutes" INTEGER NOT NULL DEFAULT 0,
+                        "EstimatedPerPlayerMinutes" INTEGER NOT NULL DEFAULT 0,
+                        "HasCommunityPoll" INTEGER NOT NULL DEFAULT 0,
                         "CreatedAt" TEXT NOT NULL,
                         "UpdatedAt" TEXT NOT NULL
                     );
@@ -764,6 +779,44 @@ public static class SqliteSchemaMigrator
                 """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("BggCatalogStaging");
+            }
+            else
+            {
+                // Reconciliar columnas de BggCatalogStaging si la tabla ya existía
+                var stagingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var scCmd = connection.CreateCommand())
+                {
+                    scCmd.CommandText = "PRAGMA table_info('BggCatalogStaging');";
+                    using var reader = await scCmd.ExecuteReaderAsync(ct);
+                    while (await reader.ReadAsync(ct))
+                    {
+                        stagingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                var stagingColsToAdd = new (string Name, string TypeSql)[]
+                {
+                    ("SpanishPublisher", "TEXT NULL"),
+                    ("RegionalPublishers", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("LocalizedTitles", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("InferredFootprint", "INTEGER NOT NULL DEFAULT 1"),
+                    ("Sleeves", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("Scalability", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("MinPlayTimeMinutes", "INTEGER NOT NULL DEFAULT 0"),
+                    ("MaxPlayTimeMinutes", "INTEGER NOT NULL DEFAULT 0"),
+                    ("EstimatedPerPlayerMinutes", "INTEGER NOT NULL DEFAULT 0"),
+                    ("HasCommunityPoll", "INTEGER NOT NULL DEFAULT 0")
+                };
+
+                foreach (var (colName, colDef) in stagingColsToAdd)
+                {
+                    if (!stagingColumns.Contains(colName))
+                    {
+                        using var alterCmd = connection.CreateCommand();
+                        alterCmd.CommandText = $"ALTER TABLE \"BggCatalogStaging\" ADD COLUMN \"{colName}\" {colDef};";
+                        await alterCmd.ExecuteNonQueryAsync(ct);
+                    }
+                }
             }
 
             // 17. Reconciliar tabla SocialInboxItems (Incremento 42)

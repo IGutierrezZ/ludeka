@@ -53,6 +53,8 @@ public class CloudflareR2StorageServiceTests
         Assert.Equal("covers/catan.webp", putRequest.Key);
         Assert.Equal("image/webp", putRequest.ContentType);
         Assert.Equal("public, max-age=31536000, immutable", putRequest.Headers.CacheControl);
+        Assert.True(putRequest.DisablePayloadSigning);
+        Assert.True(putRequest.DisableDefaultChecksumValidation);
 
         Assert.Single(fakeOptimizer.ConversionCalls);
         Assert.Equal(800, fakeOptimizer.ConversionCalls[0].MaxWidth);

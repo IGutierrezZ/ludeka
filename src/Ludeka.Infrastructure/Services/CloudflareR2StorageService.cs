@@ -44,6 +44,7 @@ public class CloudflareR2StorageService : IImageStorageService
             var config = new AmazonS3Config
             {
                 ServiceURL = $"https://{_options.AccountId}.r2.cloudflarestorage.com",
+                AuthenticationRegion = "auto",
                 ForcePathStyle = true
             };
             _s3Client = new AmazonS3Client(credentials, config);
@@ -69,6 +70,8 @@ public class CloudflareR2StorageService : IImageStorageService
             Key = objectKey,
             InputStream = uploadStream,
             ContentType = "image/webp",
+            DisablePayloadSigning = true,
+            DisableDefaultChecksumValidation = true,
             Headers =
             {
                 CacheControl = "public, max-age=31536000, immutable"
