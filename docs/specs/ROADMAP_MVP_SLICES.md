@@ -732,6 +732,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 78: Barrido Completo de Calidad de Catálogo (~10.000 Juegos Promovidos)
+- **Identificador SDD:** `change-78-barrido-calidad-catalogo`
+- **Objetivo Principal:** Auditar y sanear secuencialmente el 100% de los títulos promovidos al catálogo (~10.000 juegos) eliminando los falsos Eurogames y duraciones de 15 min heredados de la promoción histórica:
+  1. **Paginación Determinista por Cursor:** Introducción de `GetGamesCursorPagedAsync(afterBggId, limit)` en `IGameRepository` (`WHERE BggId > afterBggId ORDER BY BggId ASC`), permitiendo recorrer los 10.000 juegos en lotes de 50 de forma finita, determinista y sin riesgo de bucles infinitos.
+  2. **Servicio de Barrido Integral:** `SweepCatalogQualityBatchAsync` y `RunScheduledSweepCatalogQualityBatchAsync` en `BggMassIngestionService`, con estrategia *Staging-First* (actualización ultrarrápida en memoria si staging ya contiene `<dna `) y fallback a BGG XMLAPI2 con caché retroactiva.
+  3. **Escritura Idempotente:** Contabilización de `SkippedCount` y omisión de escrituras en base de datos para títulos que ya tienen estilo, duración y escalabilidad correctos.
+  4. **Superficie de Control:** Botón interactivo de barrido continuo en `/admin/cola-catalogacion` con contador en vivo (`Evaluados X/Total`) y ejecución desatendida en `BackfillQualityJobRunner`.
+- **Estado:** ⏳ **En progreso** (Worktree `barrido-calidad-catalogo`).
+- **Documento:** [`inc-78-barrido-calidad-catalogo.md`](../increments/inc-78-barrido-calidad-catalogo.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md) y [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
