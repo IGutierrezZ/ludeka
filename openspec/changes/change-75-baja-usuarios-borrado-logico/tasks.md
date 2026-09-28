@@ -6,9 +6,9 @@
 - [x] 1.3 Crear pruebas unitarias de dominio en `tests/Ludeka.UnitTests/Domain/AppUserTests.cs` verificando la anonimización de PII, generación de correo sintético único y protección de la Mesa Fundadora.
 
 ## Fase 2: Infraestructura y Repositorios
-- [ ] 2.1 Extender `IExternalLoginRepository` con `DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)`.
-- [ ] 2.2 Implementar `DeleteByUserIdAsync` en `src/Ludeka.Infrastructure/Data/ExternalLoginRepository.cs`.
-- [ ] 2.3 Crear o ampliar pruebas unitarias de repositorios en `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginRepositoryTests.cs`.
+- [x] 2.1 Extender `IExternalLoginRepository` con `DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)`.
+- [x] 2.2 Implementar `DeleteByUserIdAsync` en `src/Ludeka.Infrastructure/Data/ExternalLoginRepository.cs`.
+- [x] 2.3 Crear o ampliar pruebas unitarias de repositorios en `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginRepositoryTests.cs`.
 
 ## Fase 3: Casos de Uso y Servicios de Aplicación
 - [ ] 3.1 Extender `IUserManagementService` con `AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default)` e implementarlo en `UserManagementService.cs` con purga de logins, registro de auditoría (`AuditAction.Deleted`, `AuditEntityType.User`) e invalidación de sesión.

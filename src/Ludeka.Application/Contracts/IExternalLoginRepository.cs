@@ -40,4 +40,13 @@ public interface IExternalLoginRepository
     /// <param name="externalLogin">Vínculo a eliminar.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Elimina todos los vínculos de identidad externa asociados a una cuenta de usuario (INC-75).
+    /// Permite liberar de forma atómica los proveedores OAuth tras la baja o supresión de la cuenta.
+    /// </summary>
+    /// <param name="userId">Identificador de la cuenta cuyos vínculos se eliminan.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    Task DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default);
 }
+

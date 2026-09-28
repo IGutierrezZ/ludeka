@@ -74,4 +74,25 @@ public class ExternalLoginRepository : DbContextRepositoryBase, IExternalLoginRe
         scope.Context.ExternalLogins.Remove(tracked ?? externalLogin);
         await scope.Context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        await using var scope = await CreateScopeAsync(cancellationToken);
+        var logins = await scope.Context.ExternalLogins
+            .Where(l => l.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        if (logins.Count > 0)
+        {
+            scope.Context.ExternalLogins.RemoveRange(logins);
+            await scope.Context.SaveChangesAsync(cancellationToken);
+        }
+    }
 }
+

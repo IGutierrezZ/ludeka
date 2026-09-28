@@ -270,7 +270,11 @@ public class ExternalLoginLinkingTests : IAsyncLifetime
 
         public Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default)
             => _inner.RemoveAsync(externalLogin, cancellationToken);
+
+        public Task DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+            => _inner.DeleteByUserIdAsync(userId, cancellationToken);
     }
+
 
     [Fact]
     public async Task LinkAsync_WhenSuccessful_ShouldRecordAuditEntryForTheSessionUser()
