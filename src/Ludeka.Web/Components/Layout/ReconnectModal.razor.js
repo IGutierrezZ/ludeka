@@ -8,14 +8,41 @@ retryButton.addEventListener("click", retry);
 const resumeButton = document.getElementById("components-resume-button");
 resumeButton.addEventListener("click", resume);
 
+let showModalTimer = null;
+const RECONNECT_GRACE_PERIOD_MS = 1500;
+
+function clearShowTimer() {
+    if (showModalTimer !== null) {
+        clearTimeout(showModalTimer);
+        showModalTimer = null;
+    }
+}
+
 function handleReconnectStateChanged(event) {
     if (event.detail.state === "show") {
-        reconnectModal.showModal();
+        // Retardo de cortesía: si la reconexión se resuelve rápidamente (p. ej. al volver de otra pestaña),
+        // no mostramos el diálogo evitando parpadeos molestos en la interfaz.
+        if (showModalTimer === null && !reconnectModal.open) {
+            showModalTimer = setTimeout(() => {
+                showModalTimer = null;
+                if (!reconnectModal.open) {
+                    reconnectModal.showModal();
+                }
+            }, RECONNECT_GRACE_PERIOD_MS);
+        }
     } else if (event.detail.state === "hide") {
-        reconnectModal.close();
+        clearShowTimer();
+        if (reconnectModal.open) {
+            reconnectModal.close();
+        }
     } else if (event.detail.state === "failed") {
+        clearShowTimer();
+        if (!reconnectModal.open) {
+            reconnectModal.showModal();
+        }
         document.addEventListener("visibilitychange", retryWhenDocumentBecomesVisible);
     } else if (event.detail.state === "rejected") {
+        clearShowTimer();
         location.reload();
     }
 }
@@ -36,7 +63,10 @@ async function retry() {
             if (!resumeSuccessful) {
                 location.reload();
             } else {
-                reconnectModal.close();
+                clearShowTimer();
+                if (reconnectModal.open) {
+                    reconnectModal.close();
+                }
             }
         }
     } catch (err) {
@@ -50,6 +80,11 @@ async function resume() {
         const successful = await Blazor.resumeCircuit();
         if (!successful) {
             location.reload();
+        } else {
+            clearShowTimer();
+            if (reconnectModal.open) {
+                reconnectModal.close();
+            }
         }
     } catch {
         reconnectModal.classList.replace("components-reconnect-paused", "components-reconnect-resume-failed");

@@ -640,6 +640,15 @@ public class WebMarkupContractTests
         { "Radar (pestaña ofertas y mínimos históricos)", "src/Ludeka.Web/Components/Pages/Radar.razor",
           new[] { "PriceRadarService", "GetTopDiscountsAsync", "panel-deals", "Ofertas &amp; Mínimos Históricos" },
           Array.Empty<string>() },
+
+        // ReconnectModal: textos en castellano y script con retardo de cortesía
+        { "ReconnectModal (textos en castellano)", "src/Ludeka.Web/Components/Layout/ReconnectModal.razor",
+          new[] { "Reconectando con el servidor...", "Reconexión fallida...", "No se pudo reconectar.", "Reintentar", "La sesión ha sido pausada", "Reanudar" },
+          new[] { "Rejoining the server...", "Rejoin failed...", "Failed to rejoin", "Retry", "The session has been paused", "Resume" } },
+
+        { "ReconnectModal.js (retardo de cortesía)", "src/Ludeka.Web/Components/Layout/ReconnectModal.razor.js",
+          new[] { "RECONNECT_GRACE_PERIOD_MS", "showModalTimer", "clearShowTimer" },
+          Array.Empty<string>() },
     };
 
     [Theory]
