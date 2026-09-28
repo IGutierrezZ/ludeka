@@ -325,6 +325,25 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         return scalabilities.Count(s => s.Count == 0 || s.All(e => e.BestVotes == 0 && e.RecommendedVotes == 0));
     }
 
+    public async Task<IReadOnlyList<Game>> GetGamesCursorPagedAsync(int afterBggId, int limit = 50, CancellationToken ct = default)
+    {
+        if (limit <= 0) limit = 50;
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => g.BggId > afterBggId)
+            .OrderBy(g => g.BggId)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games.CountAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(designerName)) return Array.Empty<Game>();

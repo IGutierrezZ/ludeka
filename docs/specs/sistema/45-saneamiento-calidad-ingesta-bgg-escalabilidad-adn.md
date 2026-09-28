@@ -2,8 +2,8 @@
 
 > **Estado:** Implementado y Verificado en Código  
 > **Alcance:** `src/Ludeka.Core`, `src/Ludeka.Application`, `src/Ludeka.Infrastructure`, `tests/Ludeka.UnitTests`  
-> **Incremento Asociado:** INC-77 (Saneamiento de Calidad en Ingesta BGG)  
-> **Pruebas Automatizadas Verificadas:** 2.032 pruebas (2.022 unitarias + 10 de integración) al 100% en verde  
+> **Incremento Asociado:** INC-77 (Saneamiento de Calidad en Ingesta BGG) e INC-78 (Barrido Completo de Calidad de Catálogo)  
+> **Pruebas Automatizadas Verificadas:** 2.037 pruebas (2.027 unitarias + 10 de integración) al 100% en verde  
 
 ---
 
@@ -135,12 +135,47 @@ Utilizando `.AsNoTracking()` en las consultas para posibilitar la proyección de
 
 ---
 
-## 6. Verificación de Pruebas Automatizadas
+## 6. Barrido Completo de Calidad de Catálogo por Cursor Paginado Determinista (INC-78)
 
-El saneamiento integral de INC-77 se encuentra respaldado por pruebas unitarias de regresión en todas las capas:
+Para auditar y sanear la totalidad de los títulos promovidos al catálogo (~10.000 juegos en producción), el filtro de títulos sin votos comunitarios era insuficiente (dejaba fuera ~6.000 juegos que ya tenían votos pero conservaban el estilo artificial `Eurogame` y tiempos incorrectos). Tampoco era viable filtrar por `Style == Eurogame` debido a que los Eurogames legítimos (*Catán*, *Agrícola*, *Concordia*) mantendrían ese estilo tras el saneamiento, provocando un bucle infinito de re-evaluación.
+
+### 6.1 Paginación Determinista $O(1)$ por Cursor Ascendente
+Se implementa en `IGameRepository` y `SqliteGameRepository`:
+```csharp
+public async Task<IReadOnlyList<Game>> GetGamesCursorPagedAsync(int afterBggId, int limit = 50, CancellationToken ct = default)
+{
+    await using var scope = await CreateScopeAsync(ct);
+    return await scope.Context.Games
+        .AsNoTracking()
+        .Where(g => g.BggId > afterBggId)
+        .OrderBy(g => g.BggId)
+        .Take(limit)
+        .ToListAsync(ct);
+}
+```
+Esto garantiza un recorrido estrictamente monótono, finito y sin repeticiones a lo largo de todo el catálogo.
+
+### 6.2 Servicio de Barrido Idempotente y Estrategia *Staging-First*
+En `BggMassIngestionService`:
+- `SweepCatalogQualityBatchAsync` y `RunScheduledSweepCatalogQualityBatchAsync` evalúan lotes ordenados devolviendo `BggQualitySweepBatchResultDto`.
+- Se extrae el método unificado `EnrichSingleGameQualityAsync(Game game, CancellationToken ct)`.
+- Si el título ya contiene el ADN, duración y escalabilidad correctos, `EnrichSingleGameQualityAsync` devuelve `false`, incrementando `SkippedCount` y **omitiendo la llamada a base de datos** (`UpdateAsync`), lo que maximiza el rendimiento y reduce la contención de I/O.
+- Si el juego requiere actualización, se consume primero el staging con ADN precacheado (`<dna `); en su ausencia, consulta BGG XMLAPI2 y actualiza staging retroactivamente.
+
+### 6.3 Ejecución Autónoma y Superficie de Control
+- **Runner Desatendido (`BackfillQualityJobRunner`):** Itera mediante el cursor `currentAfterBggId = result.LastBggIdProcessed` hasta completar `!result.HasMore`.
+- **Panel Administrativo (`CatalogQueueAdmin.razor`):** Incorpora el botón **«Barrido Total Catálogo (~10.000)»** con ejecución continua en segundo plano, cancelación segura con `CancellationTokenSource`, y telemetría reactiva en tiempo real (`Evaluados X/Total`, `Y actualizados`, `Z ya correctos`, `W errores`).
+
+---
+
+## 7. Verificación de Pruebas Automatizadas
+
+El saneamiento integral y el barrido determinista se encuentran respaldados por pruebas unitarias de regresión en todas las capas:
 - `GameEditorDomainTests`: Pruebas de años históricos (-2200, -3500, 1475, 1876, 0, 2026), límites de rango y preservación de votos comunitarios en `UpdateCatalogInformation`.
 - `BggXmlParserTests`: Pruebas de inferencia de `GameStyle` a partir de subdominios (`Thematic Games`, `Wargames`, `Party Games`, `Children's Games`, `Abstract Games`, `Strategy Games`), categorías y mecánicas temáticas (`Miniatures`, `Zombies`, `Dungeon Crawl`, `Trivia`, `Campaign`), y precedencia de confrontación (`Semi-Cooperative`, `Traitor`).
 - `BggMassIngestionBackfillTests`: Pruebas de promoción con estilo inferido y duración calculada no colapsada (~30 min/jugador en 120 min), y enriquecimiento retroactivo de ADN y escalabilidad comunitaria.
-- `SqliteGameRepositoryTests`: Pruebas de persistencia real de `MustPlay`, `BestVotes` y `Sleeves` tras `UpdateAsync`, y selección correcta en el filtro de backfill.
+- `SqliteGameRepositoryTests`: Pruebas de persistencia real de `MustPlay`, `BestVotes` y `Sleeves` tras `UpdateAsync`, selección correcta en el filtro de backfill y paginación determinista por cursor ascendente (`GetGamesCursorPagedAsync`).
+- `BggMassIngestionSweepTests`: Pruebas de barrido secuencial por cursor ascendente, corrección de falsos Eurogames a estilos reales inferidos, omisión de escrituras para juegos ya correctos (`SkippedCount`) y detección de catálogo agotado (`HasMore = false`).
+- `BackfillQualityJobRunnerTests`: Pruebas de iteración autónoma del runner de Cloud Run hasta agotar el catálogo y resultado de lease completado.
 
-**Total Verificado:** 2.032 pruebas automatizadas en verde al 100% (2.022 unitarias + 10 de integración).
+**Total Verificado:** 2.037 pruebas automatizadas en verde al 100% (2.027 unitarias + 10 de integración).

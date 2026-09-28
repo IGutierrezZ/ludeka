@@ -816,6 +816,70 @@ public class BggMassIngestionService : IBggMassIngestionService
         return await ExecuteBackfillCatalogQualityBatchAsync(batchSize, ct);
     }
 
+    public async Task<BggQualitySweepBatchResultDto> SweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await ExecuteSweepCatalogQualityBatchAsync(afterBggId, batchSize, ct);
+    }
+
+    public async Task<BggQualitySweepBatchResultDto> RunScheduledSweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
+    {
+        return await ExecuteSweepCatalogQualityBatchAsync(afterBggId, batchSize, ct);
+    }
+
+    public async Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default)
+    {
+        return await _gameRepo.GetTotalCatalogCountAsync(ct);
+    }
+
+    private async Task<BggQualitySweepBatchResultDto> ExecuteSweepCatalogQualityBatchAsync(int afterBggId, int batchSize, CancellationToken ct)
+    {
+        if (batchSize <= 0) batchSize = 50;
+
+        var games = await _gameRepo.GetGamesCursorPagedAsync(afterBggId, batchSize, ct);
+        if (games.Count == 0)
+        {
+            return new BggQualitySweepBatchResultDto(0, 0, 0, 0, afterBggId, false, "Barrido finalizado: no hay más títulos.");
+        }
+
+        _logger.LogInformation("Iniciando lote de barrido de calidad para {Count} juegos a partir de BggId > {AfterBggId}.", games.Count, afterBggId);
+
+        int updatedCount = 0;
+        int skippedCount = 0;
+        int failedCount = 0;
+        int maxBggId = afterBggId;
+
+        foreach (var game in games)
+        {
+            if (ct.IsCancellationRequested) break;
+            if (game.BggId > maxBggId) maxBggId = game.BggId;
+
+            try
+            {
+                bool modified = await EnrichSingleGameQualityAsync(game, ct);
+                if (modified)
+                {
+                    await _gameRepo.UpdateAsync(game, ct);
+                    updatedCount++;
+                }
+                else
+                {
+                    skippedCount++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error durante el barrido de calidad para #{BggId} ('{Title}'): {Message}", game.BggId, game.SpanishTitle, ex.Message);
+                failedCount++;
+            }
+        }
+
+        bool hasMore = games.Count == batchSize;
+        string msg = $"Lote de barrido completado: {games.Count} evaluados ({updatedCount} actualizados, {skippedCount} sin cambios, {failedCount} fallidos). Último BggId: {maxBggId}.";
+        _logger.LogInformation(msg);
+        return new BggQualitySweepBatchResultDto(games.Count, updatedCount, skippedCount, failedCount, maxBggId, hasMore, msg);
+    }
+
     private async Task<BggQualityBackfillResultDto> ExecuteBackfillCatalogQualityBatchAsync(int batchSize, CancellationToken ct)
     {
         if (batchSize <= 0) batchSize = 50;
@@ -837,172 +901,7 @@ public class BggMassIngestionService : IBggMassIngestionService
 
             try
             {
-                // Estrategia Staging-First: consultar primero si ya está procesado en staging
-                var staging = await _stagingRepo.GetByBggIdAsync(game.BggId, ct);
-                bool enriched = false;
-
-                if (staging != null && staging.FetchStatus == StagingFetchStatus.Fetched)
-                {
-                    IReadOnlyList<ScalabilityEntry> scalability = staging.GetScalability();
-                    if (scalability.Count == 0)
-                    {
-                        int minP = staging.MinPlayers > 0 ? staging.MinPlayers : 1;
-                        int maxP = staging.MaxPlayers >= minP ? staging.MaxPlayers : 4;
-                        var fallbackList = new List<ScalabilityEntry>();
-                        for (int p = minP; p <= maxP; p++)
-                        {
-                            var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
-                            fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
-                        }
-                        scalability = fallbackList;
-                    }
-
-                    if (game.Scalability.Count == 0 && scalability.Count > 0)
-                    {
-                        game.UpdateScalability(scalability);
-                        enriched = true;
-                    }
-
-                    var sleeves = staging.GetSleeves();
-                    if (game.Sleeves.Count == 0 && sleeves.Count > 0)
-                    {
-                        game.UpdateSleeves(sleeves);
-                        enriched = true;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(game.SpanishPublisher) && !string.IsNullOrWhiteSpace(staging.SpanishPublisher))
-                    {
-                        game.UpdateSpanishPublisher(staging.SpanishPublisher);
-                        enriched = true;
-                    }
-
-                    var regional = staging.GetRegionalPublishers();
-                    if (game.RegionalPublishers.Count == 0 && regional.Count > 0)
-                    {
-                        game.UpdateRegionalPublishers(regional);
-                        enriched = true;
-                    }
-
-                    game.UpdateFootprint(staging.InferredFootprint);
-                    enriched = true;
-
-                    int min = staging.MinPlayTimeMinutes > 0 ? staging.MinPlayTimeMinutes : (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : 30);
-                    int max = staging.MaxPlayTimeMinutes > 0 ? staging.MaxPlayTimeMinutes : min;
-                    int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4));
-                    game.UpdateDuration(new GameDuration(min, max, est));
-                    if (staging.GetInferredStyle() != GameStyle.Eurogame || game.Style == GameStyle.Eurogame)
-                    {
-                        game.UpdateDna(staging.GetInferredStyle(), staging.GetInferredConfrontation(), game.IsOfficialSolo);
-                    }
-                    enriched = true;
-                }
-                else
-                {
-                    // Si no está en staging con detalles, consultar a BGG XMLAPI2
-                    var fetched = await _bggClient.FetchGameByBggIdAsync(game.BggId, ct);
-                    if (fetched != null)
-                    {
-                        IReadOnlyList<ScalabilityEntry> scalability = fetched.Scalability;
-                        if (scalability.Count == 0)
-                        {
-                            int minP = 1;
-                            int maxP = 4;
-                            var fallbackList = new List<ScalabilityEntry>();
-                            for (int p = minP; p <= maxP; p++)
-                            {
-                                var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
-                                fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
-                            }
-                            scalability = fallbackList;
-                        }
-
-                        bool hasCorruptOrEmptyScalability = game.Scalability.Count == 0 ||
-                                                           game.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0);
-                        if ((hasCorruptOrEmptyScalability || scalability.Any(s => s.TotalVotes > 0)) && scalability.Count > 0)
-                        {
-                            game.UpdateScalability(scalability);
-                            enriched = true;
-                        }
-
-                        if (fetched.Sleeves.Count > 0 && (game.Sleeves.Count == 0 || game.Sleeves.Count != fetched.Sleeves.Count))
-                        {
-                            game.UpdateSleeves(fetched.Sleeves);
-                            enriched = true;
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(fetched.SpanishPublisher))
-                        {
-                            game.UpdateSpanishPublisher(fetched.SpanishPublisher);
-                            enriched = true;
-                        }
-
-                        if (fetched.RegionalPublishers.Count > 0)
-                        {
-                            game.UpdateRegionalPublishers(fetched.RegionalPublishers);
-                            enriched = true;
-                        }
-
-                        game.UpdateFootprint(fetched.Footprint);
-                        enriched = true;
-
-                        if (fetched.Duration != null)
-                        {
-                            game.UpdateDuration(fetched.Duration);
-                            enriched = true;
-                        }
-
-                        game.UpdateDna(fetched.Style, fetched.Confrontation, fetched.IsOfficialSolo);
-                        enriched = true;
-
-                        if (staging != null)
-                        {
-                            int totalPlayTime = (fetched.Duration != null && fetched.Duration.MaxMinutes > 0)
-                                ? fetched.Duration.MaxMinutes
-                                : (fetched.Duration != null && fetched.Duration.MinMinutes > 0 ? fetched.Duration.MinMinutes : 30);
-
-                            string dnaXml = $"<dna style=\"{fetched.Style}\" confrontation=\"{fetched.Confrontation}\" solo=\"{fetched.IsOfficialSolo}\" />";
-
-                            staging.MarkFetched(
-                                rawXml: dnaXml,
-                                spanishTitle: fetched.SpanishTitle,
-                                designer: fetched.Designer,
-                                publisher: fetched.Publisher,
-                                description: fetched.Description,
-                                minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
-                                maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
-                                playingTimeMinutes: totalPlayTime,
-                                minAge: fetched.Age.BoxAge,
-                                bggRating: fetched.BggRating,
-                                minPlayTimeMinutes: fetched.Duration?.MinMinutes ?? 0,
-                                maxPlayTimeMinutes: fetched.Duration?.MaxMinutes ?? 0,
-                                inferredFootprint: fetched.Footprint,
-                                scalability: fetched.Scalability,
-                                sleeves: fetched.Sleeves,
-                                spanishPublisher: fetched.SpanishPublisher,
-                                regionalPublishers: fetched.RegionalPublishers
-                            );
-                            await _stagingRepo.UpdateAsync(staging, ct);
-                        }
-
-                        if (_options.DelayBetweenBggCallsMs > 0 && !ct.IsCancellationRequested)
-                        {
-                            await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
-                        }
-                    }
-                    else
-                    {
-                        // Fallback defensivo para evitar que títulos 404 o descontinuados en BGG bloqueen el bucle
-                        if (game.Scalability.Count == 0)
-                        {
-                            game.UpdateScalability([
-                                new ScalabilityEntry(1, "1J", ScalabilityStatus.Recommended),
-                                new ScalabilityEntry(4, "4J", ScalabilityStatus.Recommended)
-                            ]);
-                            enriched = true;
-                        }
-                    }
-                }
-
+                bool enriched = await EnrichSingleGameQualityAsync(game, ct);
                 if (enriched)
                 {
                     await _gameRepo.UpdateAsync(game, ct);
@@ -1019,6 +918,202 @@ public class BggMassIngestionService : IBggMassIngestionService
         string msg = $"Enriquecimiento completado: {updatedCount} actualizados, {failedCount} fallidos de {pendingGames.Count} evaluados.";
         _logger.LogInformation(msg);
         return new BggQualityBackfillResultDto(pendingGames.Count, updatedCount, failedCount, msg);
+    }
+
+    private async Task<bool> EnrichSingleGameQualityAsync(Game game, CancellationToken ct)
+    {
+        // Estrategia Staging-First: consultar primero si ya está procesado en staging con ADN
+        var staging = await _stagingRepo.GetByBggIdAsync(game.BggId, ct);
+        bool enriched = false;
+
+        if (staging != null && staging.FetchStatus == StagingFetchStatus.Fetched && !string.IsNullOrWhiteSpace(staging.RawThingXml) && staging.RawThingXml.Contains("<dna "))
+        {
+            IReadOnlyList<ScalabilityEntry> scalability = staging.GetScalability();
+            if (scalability.Count == 0)
+            {
+                int minP = staging.MinPlayers > 0 ? staging.MinPlayers : 1;
+                int maxP = staging.MaxPlayers >= minP ? staging.MaxPlayers : 4;
+                var fallbackList = new List<ScalabilityEntry>();
+                for (int p = minP; p <= maxP; p++)
+                {
+                    var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
+                    fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
+                }
+                scalability = fallbackList;
+            }
+
+            bool hasCorruptOrEmptyScalability = game.Scalability.Count == 0 ||
+                                               game.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0);
+            if ((hasCorruptOrEmptyScalability || scalability.Any(s => s.TotalVotes > 0)) && scalability.Count > 0)
+            {
+                if (game.Scalability.Count != scalability.Count || game.Scalability.All(s => s.BestVotes == 0))
+                {
+                    game.UpdateScalability(scalability);
+                    enriched = true;
+                }
+            }
+
+            var sleeves = staging.GetSleeves();
+            if (game.Sleeves.Count == 0 && sleeves.Count > 0)
+            {
+                game.UpdateSleeves(sleeves);
+                enriched = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(game.SpanishPublisher) && !string.IsNullOrWhiteSpace(staging.SpanishPublisher))
+            {
+                game.UpdateSpanishPublisher(staging.SpanishPublisher);
+                enriched = true;
+            }
+
+            var regional = staging.GetRegionalPublishers();
+            if (game.RegionalPublishers.Count == 0 && regional.Count > 0)
+            {
+                game.UpdateRegionalPublishers(regional);
+                enriched = true;
+            }
+
+            if (game.Footprint != staging.InferredFootprint)
+            {
+                game.UpdateFootprint(staging.InferredFootprint);
+                enriched = true;
+            }
+
+            int min = staging.MinPlayTimeMinutes > 0 ? staging.MinPlayTimeMinutes : (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : 30);
+            int max = staging.MaxPlayTimeMinutes > 0 ? staging.MaxPlayTimeMinutes : min;
+            int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4));
+
+            if (game.Duration == null || game.Duration.EstimatedPerPlayerMinutes != est || game.Duration.MinMinutes != min || game.Duration.MaxMinutes != max)
+            {
+                game.UpdateDuration(new GameDuration(min, max, est));
+                enriched = true;
+            }
+
+            var inferredStyle = staging.GetInferredStyle();
+            var inferredConfrontation = staging.GetInferredConfrontation();
+            if (inferredStyle != game.Style || inferredConfrontation != game.Confrontation)
+            {
+                game.UpdateDna(inferredStyle, inferredConfrontation, game.IsOfficialSolo);
+                enriched = true;
+            }
+        }
+        else
+        {
+            // Consultar a BGG XMLAPI2
+            var fetched = await _bggClient.FetchGameByBggIdAsync(game.BggId, ct);
+            if (fetched != null)
+            {
+                IReadOnlyList<ScalabilityEntry> scalability = fetched.Scalability;
+                if (scalability.Count == 0)
+                {
+                    int minP = 1;
+                    int maxP = 4;
+                    var fallbackList = new List<ScalabilityEntry>();
+                    for (int p = minP; p <= maxP; p++)
+                    {
+                        var status = (minP == maxP) ? ScalabilityStatus.MustPlay : ScalabilityStatus.Recommended;
+                        fallbackList.Add(new ScalabilityEntry(p, $"{p}J", status));
+                    }
+                    scalability = fallbackList;
+                }
+
+                bool hasCorruptOrEmptyScalability = game.Scalability.Count == 0 ||
+                                                   game.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0);
+                if ((hasCorruptOrEmptyScalability || scalability.Any(s => s.TotalVotes > 0)) && scalability.Count > 0)
+                {
+                    if (game.Scalability.Count != scalability.Count || game.Scalability.All(s => s.BestVotes == 0))
+                    {
+                        game.UpdateScalability(scalability);
+                        enriched = true;
+                    }
+                }
+
+                if (fetched.Sleeves.Count > 0 && (game.Sleeves.Count == 0 || game.Sleeves.Count != fetched.Sleeves.Count))
+                {
+                    game.UpdateSleeves(fetched.Sleeves);
+                    enriched = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(fetched.SpanishPublisher) && game.SpanishPublisher != fetched.SpanishPublisher)
+                {
+                    game.UpdateSpanishPublisher(fetched.SpanishPublisher);
+                    enriched = true;
+                }
+
+                if (fetched.RegionalPublishers.Count > 0 && game.RegionalPublishers.Count != fetched.RegionalPublishers.Count)
+                {
+                    game.UpdateRegionalPublishers(fetched.RegionalPublishers);
+                    enriched = true;
+                }
+
+                if (game.Footprint != fetched.Footprint)
+                {
+                    game.UpdateFootprint(fetched.Footprint);
+                    enriched = true;
+                }
+
+                if (fetched.Duration != null && (game.Duration == null || game.Duration.EstimatedPerPlayerMinutes != fetched.Duration.EstimatedPerPlayerMinutes || game.Duration.MinMinutes != fetched.Duration.MinMinutes || game.Duration.MaxMinutes != fetched.Duration.MaxMinutes))
+                {
+                    game.UpdateDuration(fetched.Duration);
+                    enriched = true;
+                }
+
+                if (fetched.Style != game.Style || fetched.Confrontation != game.Confrontation || fetched.IsOfficialSolo != game.IsOfficialSolo)
+                {
+                    game.UpdateDna(fetched.Style, fetched.Confrontation, fetched.IsOfficialSolo);
+                    enriched = true;
+                }
+
+                if (staging != null)
+                {
+                    int totalPlayTime = (fetched.Duration != null && fetched.Duration.MaxMinutes > 0)
+                        ? fetched.Duration.MaxMinutes
+                        : (fetched.Duration != null && fetched.Duration.MinMinutes > 0 ? fetched.Duration.MinMinutes : 30);
+
+                    string dnaXml = $"<dna style=\"{fetched.Style}\" confrontation=\"{fetched.Confrontation}\" solo=\"{fetched.IsOfficialSolo}\" />";
+
+                    staging.MarkFetched(
+                        rawXml: dnaXml,
+                        spanishTitle: fetched.SpanishTitle,
+                        designer: fetched.Designer,
+                        publisher: fetched.Publisher,
+                        description: fetched.Description,
+                        minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
+                        maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
+                        playingTimeMinutes: totalPlayTime,
+                        minAge: fetched.Age.BoxAge,
+                        bggRating: fetched.BggRating,
+                        minPlayTimeMinutes: fetched.Duration?.MinMinutes ?? 0,
+                        maxPlayTimeMinutes: fetched.Duration?.MaxMinutes ?? 0,
+                        inferredFootprint: fetched.Footprint,
+                        scalability: fetched.Scalability,
+                        sleeves: fetched.Sleeves,
+                        spanishPublisher: fetched.SpanishPublisher,
+                        regionalPublishers: fetched.RegionalPublishers
+                    );
+                    await _stagingRepo.UpdateAsync(staging, ct);
+                }
+
+                if (_options.DelayBetweenBggCallsMs > 0 && !ct.IsCancellationRequested)
+                {
+                    await Task.Delay(_options.DelayBetweenBggCallsMs, ct);
+                }
+            }
+            else
+            {
+                // Fallback defensivo para evitar que títulos 404 o descontinuados en BGG bloqueen el bucle
+                if (game.Scalability.Count == 0)
+                {
+                    game.UpdateScalability([
+                        new ScalabilityEntry(1, "1J", ScalabilityStatus.Recommended),
+                        new ScalabilityEntry(4, "4J", ScalabilityStatus.Recommended)
+                    ]);
+                    enriched = true;
+                }
+            }
+        }
+
+        return enriched;
     }
 
     /// <inheritdoc />

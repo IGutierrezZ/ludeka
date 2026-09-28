@@ -33,5 +33,11 @@ public interface IGameRepository
 
     Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    Task<IReadOnlyList<Game>> GetGamesCursorPagedAsync(int afterBggId, int limit = 50, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 

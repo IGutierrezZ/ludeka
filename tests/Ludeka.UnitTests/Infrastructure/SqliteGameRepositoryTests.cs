@@ -353,6 +353,46 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Contains(pendingList, g => g.BggId == 99999);
     }
 
+    [Fact]
+    public async Task GetGamesCursorPagedAsync_ReturnsGamesAscendingAndFiltersByCursor()
+    {
+        // Arrange: limpiar y sembrar 3 juegos con BggIds específicos
+        var g1 = new Game(100, "Game A", "Juego A", "D1", "P1", 2020, "", "", "", 7.0, 10, 0.0,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10),
+            LanguageDependence.Low, TableFootprint.SmallTable, new GameDuration(30, 60, 20), [], []);
+        var g2 = new Game(200, "Game B", "Juego B", "D2", "P2", 2021, "", "", "", 8.0, 5, 0.0,
+            ConfrontationType.Competitive, GameStyle.Ameritrash, false, new AgeRating(12, 12),
+            LanguageDependence.Low, TableFootprint.StandardTable, new GameDuration(60, 120, 30), [], []);
+        var g3 = new Game(300, "Game C", "Juego C", "D3", "P3", 2022, "", "", "", 8.5, 1, 0.0,
+            ConfrontationType.Cooperative, GameStyle.Eurogame, false, new AgeRating(14, 14),
+            LanguageDependence.Low, TableFootprint.TableMonster, new GameDuration(90, 180, 45), [], []);
+
+        await _repository.AddRangeAsync([g3, g1, g2]); // Añadidos desordenados
+
+        // Act 1: Primer lote desde afterBggId = 0
+        var batch1 = await _repository.GetGamesCursorPagedAsync(afterBggId: 0, limit: 2);
+
+        // Assert 1: Deben venir 100 y 200 en orden ascendente
+        Assert.Equal(2, batch1.Count);
+        Assert.Equal(100, batch1[0].BggId);
+        Assert.Equal(200, batch1[1].BggId);
+
+        // Act 2: Segundo lote desde afterBggId = 200
+        var batch2 = await _repository.GetGamesCursorPagedAsync(afterBggId: 200, limit: 2);
+
+        // Assert 2: Debe venir 300
+        Assert.Single(batch2);
+        Assert.Equal(300, batch2[0].BggId);
+
+        // Act 3: Tercer lote desde afterBggId = 300
+        var batch3 = await _repository.GetGamesCursorPagedAsync(afterBggId: 300, limit: 2);
+        Assert.Empty(batch3);
+
+        // Act 4: Conteo total
+        int total = await _repository.GetTotalCatalogCountAsync();
+        Assert.True(total >= 3);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

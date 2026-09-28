@@ -297,30 +297,51 @@
                     }
 
                     <button type="button"
-                            @onclick="ExecuteQualityBackfillBatchAsync"
-                            disabled="@(_isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isContinuousBackfillActive)"
+                            @onclick="ExecuteQualitySweepBatchAsync"
+                            disabled="@(_isSweepingQuality || _isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-violet-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
-                        @if (_isBackfillingQuality)
+                        @if (_isSweepingQuality)
                         {
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Actualizando Calidad (Lote)...</span>
+                            <span>Barriendo Calidad (Lote)...</span>
                         }
                         else
                         {
                             <Icon Name="sparkles" Size="14" class="text-violet-400" />
-                            <span>Actualizar Calidad (Lote 50)</span>
+                            <span>Barrido Calidad (Lote 50)</span>
                         }
                     </button>
+
+                    @if (!_isContinuousSweepActive)
+                    {
+                        <button type="button"
+                                @onclick="StartContinuousSweep"
+                                disabled="@(_isSweepingQuality || _isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isContinuousBackfillActive || _totalCatalogCount == 0)"
+                                class="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                title="Audita y sanea ordenadamente todos los juegos del catálogo (~@_totalCatalogCount títulos) por cursor ascendente, corrigiendo falsos Eurogames, duraciones y escalabilidad">
+                            <Icon Name="sparkles" Size="14" />
+                            <span>Barrido Total Catálogo (@(_totalCatalogCount > 0 ? $"~{_totalCatalogCount}" : "Completo"))</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="StopContinuousSweep"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Detener Barrido Total</span>
+                        </button>
+                    }
 
                     @if (!_isContinuousBackfillActive)
                     {
                         <button type="button"
                                 @onclick="StartContinuousBackfill"
-                                disabled="@(_isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _pendingQualityCount == 0)"
-                                class="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                                title="Actualiza escalabilidad, huella de mesa, fundas y editoriales de los títulos existentes en catálogo">
-                            <Icon Name="sparkles" Size="14" />
-                            <span>Actualizar Calidad Catálogo (@(_pendingQualityCount > 0 ? $"~{_pendingQualityCount}" : "Completo"))</span>
+                                disabled="@(_isSweepingQuality || _isBackfillingQuality || _isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive || _isContinuousSweepActive || _pendingQualityCount == 0)"
+                                class="px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-violet-500 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                title="Actualiza escalabilidad solo para los títulos sin votos comunitarios">
+                            <Icon Name="sparkles" Size="14" class="text-violet-400" />
+                            <span>Pendientes Sin Votos (@(_pendingQualityCount > 0 ? $"~{_pendingQualityCount}" : "0"))</span>
                         </button>
                     }
                     else
@@ -329,7 +350,7 @@
                                 @onclick="StopContinuousBackfill"
                                 class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Detener Calidad Continua</span>
+                            <span>Detener Pendientes</span>
                         </button>
                     }
 
@@ -448,6 +469,42 @@
                             class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
                         Detener Drenaje
                     </button>
+                </div>
+            }
+
+            @if (_isContinuousSweepActive)
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+                    <div class="flex items-center gap-2.5">
+                        <span class="animate-spin inline-block text-violet-400"><Icon Name="loader" Size="18" /></span>
+                        <div>
+                            <span class="font-bold text-violet-400 text-sm">Barrido Completo de Calidad de Catálogo Activo</span>
+                            <p class="text-[var(--text-secondary)] text-[0.75rem] mt-0.5">
+                                @(_continuousSweepMessage ?? "Auditando y corrigiendo falsos Eurogames, duraciones y escalabilidad...")
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="StopContinuousSweep"
+                            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
+                        Detener Barrido
+                    </button>
+                </div>
+            }
+
+            @if (!_isContinuousSweepActive && !string.IsNullOrEmpty(_continuousSweepMessage))
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-violet-400 mr-1.5" /> @_continuousSweepMessage</span>
+                    <button type="button" @onclick="() => _continuousSweepMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                </div>
+            }
+
+            @if (_qualitySweepResult != null)
+            {
+                <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="sparkles" Size="14" class="inline text-violet-400 mr-1.5" /> @_qualitySweepResult.Message</span>
+                    <button type="button" @onclick="() => _qualitySweepResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
 
@@ -809,6 +866,10 @@
     private static bool _isContinuousBackfillActive => _continuousBackfillCts != null && !_continuousBackfillCts.IsCancellationRequested;
     private static string? _continuousBackfillMessage;
 
+    private static CancellationTokenSource? _continuousSweepCts;
+    private static bool _isContinuousSweepActive => _continuousSweepCts != null && !_continuousSweepCts.IsCancellationRequested;
+    private static string? _continuousSweepMessage;
+
     private PeriodicTimer? _pollTimer;
     private Task? _pollTask;
 
@@ -821,7 +882,9 @@
     private bool _confirmClearStaging = false;
     private bool _isDiscoveringBgg = false;
     private bool _isBackfillingQuality = false;
+    private bool _isSweepingQuality = false;
     private int _pendingQualityCount = 0;
+    private int _totalCatalogCount = 0;
     private int _totalQueueCount = 0;
     private int _newsDiscoveryCount = 0;
     private int _bggDiscoveryCount = 0;
@@ -833,6 +896,7 @@
     private BggStagingMetricsDto? _stagingMetrics;
     private BggMassIngestionCycleResultDto? _drainCycleResult;
     private BggQualityBackfillResultDto? _qualityBackfillResult;
+    private BggQualitySweepBatchResultDto? _qualitySweepResult;
     private string? _stagingSeedResult;
     private bool _isSeedingDirectory = false;
     private DirectorySeedResultDto? _directorySeedResult;
@@ -851,7 +915,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
-        if (_isContinuousDrainActive || _isContinuousBackfillActive)
+        if (_isContinuousDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive)
         {
             StartPollingTimer();
         }
@@ -871,6 +935,7 @@
             _lastHistory = _history.FirstOrDefault();
             _stagingMetrics = await MassIngestionService.GetMetricsAsync();
             _pendingQualityCount = await MassIngestionService.GetPendingQualityBackfillCountAsync();
+            _totalCatalogCount = await MassIngestionService.GetTotalCatalogCountAsync();
         }
         catch (Exception)
         {
@@ -1089,6 +1154,95 @@
         }
     }
 
+    private async Task ExecuteQualitySweepBatchAsync()
+    {
+        if (_isSweepingQuality || _isBackfillingQuality || _isDrainingStaging || !CanManageQueue) return;
+
+        _isSweepingQuality = true;
+        _qualitySweepResult = null;
+
+        try
+        {
+            _qualitySweepResult = await MassIngestionService.SweepCatalogQualityBatchAsync(afterBggId: 0, batchSize: 50);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _qualitySweepResult = new BggQualitySweepBatchResultDto(0, 0, 0, 1, 0, false, $"Error al realizar barrido de calidad: {ex.Message}");
+        }
+        finally
+        {
+            _isSweepingQuality = false;
+        }
+    }
+
+    private void StartContinuousSweep()
+    {
+        if (_isContinuousSweepActive || !CanManageQueue) return;
+
+        _continuousSweepCts = new CancellationTokenSource();
+        _continuousSweepMessage = "Barrido total de calidad iniciado en segundo plano...";
+
+        var token = _continuousSweepCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var massService = scope.ServiceProvider.GetRequiredService<IBggMassIngestionService>();
+
+                int totalEvaluated = 0;
+                int totalUpdated = 0;
+                int totalSkipped = 0;
+                int totalFailed = 0;
+                int currentAfterBggId = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    var res = await massService.RunScheduledSweepCatalogQualityBatchAsync(currentAfterBggId, batchSize: 50, token);
+                    totalEvaluated += res.EvaluatedCount;
+                    totalUpdated += res.UpdatedCount;
+                    totalSkipped += res.SkippedCount;
+                    totalFailed += res.FailedCount;
+                    currentAfterBggId = res.LastBggIdProcessed;
+
+                    _continuousSweepMessage = $"Barrido de calidad en curso: {totalEvaluated}/{_totalCatalogCount} evaluados ({totalUpdated} corregidos, {totalSkipped} ya correctos, {totalFailed} errores). Último BGG #{currentAfterBggId}.";
+
+                    if (!res.HasMore || res.EvaluatedCount == 0)
+                    {
+                        _continuousSweepMessage = $"Barrido de calidad completado con éxito: {totalEvaluated} títulos evaluados ({totalUpdated} corregidos, {totalSkipped} ya correctos, {totalFailed} errores).";
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousSweepMessage = "Barrido de calidad detenido por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousSweepMessage = $"Error durante el barrido de calidad: {ex.Message}";
+            }
+            finally
+            {
+                _continuousSweepCts?.Dispose();
+                _continuousSweepCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
+    private void StopContinuousSweep()
+    {
+        if (_continuousSweepCts != null && !_continuousSweepCts.IsCancellationRequested)
+        {
+            _continuousSweepMessage = "Deteniendo barrido de calidad...";
+            _continuousSweepCts.Cancel();
+        }
+    }
+
     private async Task ExecuteQualityBackfillBatchAsync()
     {
         if (_isBackfillingQuality || _isDrainingStaging || !CanManageQueue) return;
@@ -1188,7 +1342,7 @@
                         StateHasChanged();
                     });
 
-                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive)
+                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive && !_isContinuousSweepActive)
                     {
                         break;
                     }

@@ -42,15 +42,23 @@ public class BackfillQualityJobRunnerTests
     {
         public int RunScheduledCallCount { get; private set; }
 
-        public Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+        public Task<BggQualitySweepBatchResultDto> RunScheduledSweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
         {
             RunScheduledCallCount++;
             if (RunScheduledCallCount == 1)
             {
-                return Task.FromResult(new BggQualityBackfillResultDto(50, 50, 0, "50 actualizados"));
+                return Task.FromResult(new BggQualitySweepBatchResultDto(50, 45, 5, 0, 50, true, "50 evaluados"));
             }
-            return Task.FromResult(new BggQualityBackfillResultDto(0, 0, 0, "0 pendientes"));
+            return Task.FromResult(new BggQualitySweepBatchResultDto(20, 10, 10, 0, 70, false, "20 evaluados"));
         }
+
+        public Task<BggQualitySweepBatchResultDto> SweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
+            => RunScheduledSweepCatalogQualityBatchAsync(afterBggId, batchSize, ct);
+
+        public Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default) => Task.FromResult(70);
+
+        public Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+            => Task.FromResult(new BggQualityBackfillResultDto(0, 0, 0, "0 pendientes"));
 
         public Task<int> DownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> RunScheduledDownloadAndIngestLatestRanksAsync(int? minUsersRated = null, CancellationToken ct = default) => throw new NotImplementedException();

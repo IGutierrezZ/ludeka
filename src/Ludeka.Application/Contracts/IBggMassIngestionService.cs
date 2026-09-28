@@ -103,6 +103,25 @@ public interface IBggMassIngestionService
     /// </summary>
     Task<int> GetPendingQualityBackfillCountAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    /// <summary>
+    /// Ejecuta un lote del barrido completo y determinista de calidad de catálogo (~10.000 títulos).
+    /// Exige sesión y permiso de edición de fichas.
+    /// </summary>
+    Task<BggQualitySweepBatchResultDto> SweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
+        => Task.FromResult(new BggQualitySweepBatchResultDto(0, 0, 0, 0, afterBggId, false, "Noop"));
+
+    /// <summary>
+    /// Versión de sistema para el barrido completo de calidad de catálogo por lotes sin guarda interactiva (Ludeka.Jobs).
+    /// </summary>
+    Task<BggQualitySweepBatchResultDto> RunScheduledSweepCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
+        => Task.FromResult(new BggQualitySweepBatchResultDto(0, 0, 0, 0, afterBggId, false, "Noop"));
+
+    /// <summary>
+    /// Obtiene el total de títulos actualmente promovidos en el catálogo definitivo.
+    /// </summary>
+    Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 
 /// <summary>
