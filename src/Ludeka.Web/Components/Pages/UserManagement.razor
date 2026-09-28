@@ -103,6 +103,7 @@
                     <option value="">Estado: Todos</option>
                     <option value="Active">Activos</option>
                     <option value="Suspended">Suspendidos</option>
+                    <option value="Deleted">Eliminados</option>
                 </select>
             </div>
         </div>
@@ -140,7 +141,7 @@
                                     <span class="text-[0.7rem] px-2 py-0.5 rounded-full font-bold @GetRoleBadgeStyle(user.Role)">
                                         @user.RoleDisplayName
                                     </span>
-                                    <span class="text-[0.7rem] px-2 py-0.5 rounded-full font-semibold @(user.Status == UserStatus.Active ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20")">
+                                    <span class="text-[0.7rem] px-2 py-0.5 rounded-full font-semibold @GetStatusBadgeStyle(user.Status)">
                                         @user.StatusDisplayName
                                     </span>
                                 </div>
@@ -186,30 +187,49 @@
 
                         @* Acciones de la Mesa Fundadora *@
                         <div class="flex flex-wrap items-center gap-2 self-end md:self-center shrink-0">
-                            <button type="button"
-                                    @onclick="() => OpenPermissionsModal(user)"
-                                    class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)]/15 hover:bg-[var(--brand-primary)]/25 text-[var(--brand-primary)] font-bold border border-[var(--brand-primary)]/30 transition-colors flex items-center gap-1">
-                                <Icon Name="settings" Size="14" />
-                                <span>Rol & Permisos</span>
-                            </button>
-
-                            @if (user.Status == UserStatus.Active)
+                            @if (user.Status == UserStatus.Deleted)
                             {
-                                <button type="button"
-                                        @onclick="() => ToggleStatus(user)"
-                                        title="Suspender cuenta de usuario"
-                                        class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/20 transition-colors">
-                                    <Icon Name="ban" Size="12" /> Suspender
-                                </button>
+                                <span class="px-2.5 py-1 rounded-xl text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-1">
+                                    <Icon Name="lock" Size="12" /> Cuenta anonimizada
+                                </span>
                             }
                             else
                             {
                                 <button type="button"
-                                        @onclick="() => ToggleStatus(user)"
-                                        title="Reactivar cuenta de usuario"
-                                        class="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/20 transition-colors">
-                                    <span class="inline-block size-2 rounded-full bg-emerald-400" aria-hidden="true"></span> Reactivar
+                                        @onclick="() => OpenPermissionsModal(user)"
+                                        class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)]/15 hover:bg-[var(--brand-primary)]/25 text-[var(--brand-primary)] font-bold border border-[var(--brand-primary)]/30 transition-colors flex items-center gap-1">
+                                    <Icon Name="settings" Size="14" />
+                                    <span>Rol & Permisos</span>
                                 </button>
+
+                                @if (user.Status == UserStatus.Active)
+                                {
+                                    <button type="button"
+                                            @onclick="() => ToggleStatus(user)"
+                                            title="Suspender cuenta de usuario"
+                                            class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/20 transition-colors">
+                                        <Icon Name="ban" Size="12" /> Suspender
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            @onclick="() => ToggleStatus(user)"
+                                            title="Reactivar cuenta de usuario"
+                                            class="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/20 transition-colors">
+                                        <span class="inline-block size-2 rounded-full bg-emerald-400" aria-hidden="true"></span> Reactivar
+                                    </button>
+                                }
+
+                                @if (user.Role != UserRole.FoundingTeam)
+                                {
+                                    <button type="button"
+                                            @onclick="() => OpenAnonymizeModal(user)"
+                                            title="Dar de baja y anonimizar usuario (RGPD)"
+                                            class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold border border-rose-500/20 transition-colors flex items-center gap-1">
+                                        <Icon Name="trash-2" Size="12" /> Baja
+                                    </button>
+                                }
                             }
                         </div>
                     </div>
@@ -224,6 +244,66 @@
                       User="_selectedUserForEdit"
                       OnClose="ClosePermissionsModal"
                       OnUserUpdated="HandleUserUpdated" />
+
+@* Modal de Baja y Anonimización Administrativa (INC-75) *@
+<EditorialModal Open="_isAnonymizeModalOpen"
+                Title="Dar de baja y anonimizar usuario"
+                TitleIcon="alert-triangle"
+                OnClose="CloseAnonymizeModal">
+    <ChildContent>
+        @if (_selectedUserForAnonymize != null)
+        {
+            <div class="space-y-4 text-xs text-[var(--text-secondary)]">
+                <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 space-y-1">
+                    <p class="font-bold flex items-center gap-1.5 text-sm">
+                        <Icon Name="alert-triangle" Size="16" />
+                        <span>Acción destructiva e irreversible (RGPD)</span>
+                    </p>
+                    <p>
+                        Vas a tramitar la supresión y anonimización irreversible de la cuenta de <strong>@_selectedUserForAnonymize.UserName</strong> (<code class="font-mono">@_selectedUserForAnonymize.Email</code>).
+                    </p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="admin-anonymize-reason" class="font-bold text-[var(--text-primary)] block">
+                        Motivo / Justificación de la baja (auditoría obligatoria)
+                    </label>
+                    <textarea id="admin-anonymize-reason"
+                              rows="3"
+                              @bind="_anonymizeReason"
+                              placeholder="Ej: Solicitud formal de supresión de datos conforme al RGPD art. 17..."
+                              class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500 text-xs resize-none"></textarea>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_anonymizeError))
+                {
+                    <p class="text-rose-500 text-xs flex items-center gap-1.5" role="alert">
+                        <Icon Name="circle-alert" Size="14" />
+                        <span>@_anonymizeError</span>
+                    </p>
+                }
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <button type="button"
+                id="cancel-admin-anonymize-btn"
+                @onclick="CloseAnonymizeModal"
+                disabled="@_isAnonymizing"
+                class="px-4 py-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] transition-colors disabled:opacity-50">
+            Cancelar
+        </button>
+
+        <button type="button"
+                id="confirm-admin-anonymize-btn"
+                @onclick="ConfirmAnonymizeAsync"
+                disabled="@(_isAnonymizing || string.IsNullOrWhiteSpace(_anonymizeReason))"
+                class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors flex items-center gap-2 shadow-sm">
+            <Icon Name="trash-2" Size="14" />
+            <span>@(_isAnonymizing ? "Anonimizando..." : "Confirmar baja irreversible")</span>
+        </button>
+    </Footer>
+</EditorialModal>
 
 @code {
     private List<AppUserDto> _users = [];
@@ -341,4 +421,62 @@
         UserRole.Moderator => "bg-sky-500/15 text-sky-300 border border-sky-500/30",
         _ => "bg-slate-500/15 text-slate-300 border border-slate-500/30"
     };
+
+    private static string GetStatusBadgeStyle(UserStatus status) => status switch
+    {
+        UserStatus.Active => "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+        UserStatus.Suspended => "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+        UserStatus.Deleted => "bg-slate-500/10 text-slate-400 border border-slate-500/20",
+        _ => "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+    };
+
+    private bool _isAnonymizeModalOpen;
+    private AppUserDto? _selectedUserForAnonymize;
+    private string _anonymizeReason = string.Empty;
+    private string? _anonymizeError;
+    private bool _isAnonymizing;
+
+    private void OpenAnonymizeModal(AppUserDto user)
+    {
+        _selectedUserForAnonymize = user;
+        _anonymizeReason = string.Empty;
+        _anonymizeError = null;
+        _isAnonymizeModalOpen = true;
+    }
+
+    private void CloseAnonymizeModal()
+    {
+        _isAnonymizeModalOpen = false;
+        _selectedUserForAnonymize = null;
+        _anonymizeReason = string.Empty;
+        _anonymizeError = null;
+    }
+
+    private async Task ConfirmAnonymizeAsync()
+    {
+        if (_selectedUserForAnonymize == null) return;
+        if (string.IsNullOrWhiteSpace(_anonymizeReason))
+        {
+            _anonymizeError = "Debes indicar un motivo para el registro de auditoría.";
+            return;
+        }
+
+        _isAnonymizing = true;
+        _anonymizeError = null;
+        try
+        {
+            var updated = await UserService.AnonymizeUserAsync(_selectedUserForAnonymize.Id, _anonymizeReason.Trim());
+            HandleUserUpdated(updated);
+            CloseAnonymizeModal();
+        }
+        catch (Exception ex)
+        {
+            _anonymizeError = $"Error al dar de baja al usuario: {ex.Message}";
+        }
+        finally
+        {
+            _isAnonymizing = false;
+            StateHasChanged();
+        }
+    }
 }

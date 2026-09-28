@@ -21,9 +21,9 @@
 - [x] 4.2 Añadir pruebas de integración/rutas web para el endpoint de baja.
 
 ## Fase 5: Interfaz de Usuario Blazor
-- [ ] 5.1 Incorporar la sección «Zona de peligro / Dar de baja mi cuenta» en `AccountPrivacy.razor` con diálogo modal accesible que requiera confirmación explícita mediante la frase `"DAR DE BAJA"`.
-- [ ] 5.2 Actualizar `UserManagement.razor` para mostrar la insignia de estado *«Eliminado»*, inhabilitar acciones sobre usuarios ya eliminados y proporcionar el botón y modal de baja administrativa para moderadores con `CanManageUsers`.
-- [ ] 5.3 Añadir pruebas de componentes Razor para `AccountPrivacy.razor` y `UserManagement.razor`.
+- [x] 5.1 Incorporar la sección «Zona de peligro / Dar de baja mi cuenta» en `AccountPrivacy.razor` con diálogo modal accesible que requiera confirmación explícita mediante la frase `"DAR DE BAJA"`.
+- [x] 5.2 Actualizar `UserManagement.razor` para mostrar la insignia de estado *«Eliminado»*, inhabilitar acciones sobre usuarios ya eliminados y proporcionar el botón y modal de baja administrativa para moderadores con `CanManageUsers`.
+- [x] 5.3 Añadir pruebas de componentes Razor para `AccountPrivacy.razor` y `UserManagement.razor`.
 
 ## Fase 6: Verificación Integral y Suite de Pruebas
 - [ ] 6.1 Ejecutar `dotnet test` y constatar el 100% de la suite de pruebas en verde sin regresiones.
