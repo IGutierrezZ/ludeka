@@ -203,6 +203,11 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
     {
         await using var scope = await CreateScopeAsync(ct);
         var existing = await scope.Context.Games.FirstOrDefaultAsync(g => g.Id == game.Id, ct);
+        if (existing == null && game.BggId > 0)
+        {
+            existing = await scope.Context.Games.FirstOrDefaultAsync(g => g.BggId == game.BggId, ct);
+        }
+
         if (existing != null)
         {
             if (!ReferenceEquals(existing, game))
@@ -234,7 +239,25 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     maxPlayers
                 );
 
+                // INC-77: Sincronización incondicional de colecciones complejas y metadatos enriquecidos
+                existing.UpdateScalability(game.Scalability);
+                existing.UpdateSleeves(game.Sleeves);
+                if (!string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                {
+                    existing.UpdateSpanishPublisher(game.SpanishPublisher);
+                }
+                if (game.RegionalPublishers != null && game.RegionalPublishers.Count > 0)
+                {
+                    existing.UpdateRegionalPublishers(game.RegionalPublishers);
+                }
+
                 existing.UpdateImages(game.CoverImageUrl, game.ThumbnailUrl);
+                existing.UpdateMediaUrls(
+                    game.CoverImageUrl,
+                    game.ThumbnailUrl,
+                    game.BackCoverImageUrl,
+                    game.TableImageUrl
+                );
             }
 
             await scope.Context.SaveChangesAsync(ct);
@@ -279,19 +302,27 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         if (limit <= 0) limit = 50;
 
         await using var scope = await CreateScopeAsync(ct);
-        return await scope.Context.Games
-            .Where(g => g.Scalability.Count == 0)
+        var candidates = await scope.Context.Games
+            .AsNoTracking()
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank)
-            .Take(limit)
             .ToListAsync(ct);
+
+        return candidates
+            .Where(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0))
+            .Take(limit)
+            .ToList();
     }
 
     public async Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
-        return await scope.Context.Games
-            .CountAsync(g => g.Scalability.Count == 0, ct);
+        var scalabilities = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => g.Scalability)
+            .ToListAsync(ct);
+
+        return scalabilities.Count(s => s.Count == 0 || s.All(e => e.BestVotes == 0 && e.RecommendedVotes == 0));
     }
 
     public async Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default)
