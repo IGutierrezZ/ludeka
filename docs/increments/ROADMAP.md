@@ -91,6 +91,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-76** | Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link | ⏳ Planificado | [inc-76-proveedor-correo-transaccional.md](inc-76-proveedor-correo-transaccional.md) |
 | **INC-77** | Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador | ✅ Archivado | [inc-77-calidad-ingesta-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-77-calidad-ingesta-bgg.md) |
 | **INC-78** | Barrido Completo de Calidad de Catálogo (~10.000 Juegos Promovidos) | ✅ Archivado | [inc-78-barrido-calidad-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-78-barrido-calidad-catalogo.md) |
+| **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](inc-79-sorteos-ficha-redimension-y-edicion.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -121,6 +122,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
 | *(Ninguno activo)* | — | — | — | Todos los incrementos en curso están completados y archivados. |
+
+*(INC-79 entregó su verificación con 2.045 pruebas automáticas [2.035 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-28. Corrige la URL pública CDN de Cloudflare R2 [pub-a0b33b365ae446c58f5e80b3dc493970.r2.dev] para las imágenes dinámicas subidas en producción, rediseña las tarjetas de sorteos en carril de portada [HomeGiveawayCard] y radar [GiveawayCard] al tamaño compacto y proporciones cuadradas del catálogo [rail-cover--square / 192x192 / 240x240], ajusta la cuadrícula de sorteos en Radar.razor, y crea la ficha inteligente de sorteos [/sorteos/{id}] con CTA prominente de participación oficial, detalles completos, juego asociado y modal administrativo para edición de metadatos y reemplazo de carátulas WebP optimizadas en R2 vía IImageStorageService).*
 
 *(INC-78 entregó su verificación con 2.037 pruebas automáticas [2.027 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-28. Implementa la paginación determinista por cursor O(1) [GetGamesCursorPagedAsync], servicio de barrido idempotente [SweepCatalogQualityBatchAsync] con estrategia Staging-First y omisión de escrituras si ya es correcto, runner desatendido BackfillQualityJobRunner y panel interactivo en /admin/cola-catalogacion con telemetría en tiempo real y cancelación segura).*
 
