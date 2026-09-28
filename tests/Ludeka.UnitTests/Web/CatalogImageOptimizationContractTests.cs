@@ -59,9 +59,9 @@ public class CatalogImageOptimizationContractTests
     {
         var source = ReadSource(HomeGiveawayCardPath);
 
-        // El img de sorteos debe contar con dimensiones intrínsecas explícitas y carga asíncrona
-        Assert.Contains("width=\"320\"", source, StringComparison.Ordinal);
-        Assert.Contains("height=\"180\"", source, StringComparison.Ordinal);
+        // El img de sorteos debe contar con dimensiones intrínsecas explícitas y carga asíncrona (formato catálogo INC-79)
+        Assert.Contains("width=\"192\"", source, StringComparison.Ordinal);
+        Assert.Contains("height=\"192\"", source, StringComparison.Ordinal);
         Assert.Contains("loading=\"lazy\"", source, StringComparison.Ordinal);
         Assert.Contains("decoding=\"async\"", source, StringComparison.Ordinal);
     }

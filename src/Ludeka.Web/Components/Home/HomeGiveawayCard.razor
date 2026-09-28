@@ -1,66 +1,80 @@
-@* Tarjeta del carril Sorteos de la portada (INC-35, Decisión 3): estrena el render de
-   GiveawayDto.ThumbnailUrl con fallback por dominio (SVG inline temable si falta el
-   dato, asset estático de sorteos vía onerror si la URL cae en el navegador), badges
-   con Icon sin emojis y la microinteracción .rail-card del PR-1. *@
+@* Tarjeta del carril Sorteos de la portada (INC-79): formato vertical compacto equivalente al catálogo (HomeGameCard),
+   microinteracción .rail-card, portada con badges de plataforma y expiración, y enlace directo a la ficha del sorteo. *@
 @using Ludeka.Web.Components.Shared
 @using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
 
-<div class="rail-card w-64 sm:w-72 shrink-0 snap-start p-4" role="listitem">
-    <div class="rail-cover rail-cover--wide rounded-xl mb-3">
+<a href="/sorteos/@Giveaway.Id"
+   class="rail-card w-[28vw] min-w-[105px] max-w-[125px] sm:w-44 md:w-48 shrink-0 snap-start flex flex-col h-full cursor-pointer"
+   role="listitem"
+   aria-label="Ver ficha del sorteo @Giveaway.Title">
+    <div class="rail-cover rail-cover--square">
         @if (!string.IsNullOrWhiteSpace(Giveaway.ThumbnailUrl))
         {
             <img src="@Giveaway.ThumbnailUrl"
-                 alt="Imagen del sorteo @Giveaway.Title"
+                 alt="Carátula del sorteo @Giveaway.Title"
                  loading="lazy"
                  decoding="async"
-                 width="320"
-                 height="180"
+                 width="192"
+                 height="192"
                  onerror="this.onerror=null; this.src='/images/defaults/sorteo-default.svg';" />
         }
         else
         {
             <DefaultImage Domain="DefaultImageDomain.Sorteo" CssClass="w-full h-full" />
         }
-    </div>
 
-    <div>
-        <div class="flex items-center justify-between gap-2 mb-2.5">
-            @if (Giveaway.IsPromoted)
-            {
-                <span class="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/40 text-amber-400 font-extrabold text-[0.68rem] flex items-center gap-1">
-                    <Icon Name="star" Size="12" /> Promocionado
-                </span>
-            }
-            else
-            {
-                <span class="px-2 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] font-semibold text-[0.68rem]">
-                    @Giveaway.Platform
-                </span>
-            }
-
-            <span class="text-[0.68rem] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1">
-                <Icon Name="timer" Size="12" /> @Giveaway.RemainingTimeText
-            </span>
+        @* Badge de Tiempo Restante *@
+        <div class="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm border border-rose-500/40 text-rose-300 text-[0.6rem] sm:text-[0.68rem] font-bold flex items-center gap-0.5 sm:gap-1 shadow-md">
+            <Icon Name="timer" Size="11" />
+            <span>@Giveaway.RemainingTimeText</span>
         </div>
 
-        <h3 class="text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug mb-1">
+        @* Badge de Plataforma o Promocionado *@
+        @if (Giveaway.IsPromoted)
+        {
+            <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-950/85 backdrop-blur-sm border border-amber-500/40 text-amber-300 text-[0.6rem] sm:text-[0.65rem] font-black flex items-center gap-0.5 sm:gap-1 shadow-md">
+                <Icon Name="star" Size="11" />
+                <span>Top</span>
+            </div>
+        }
+        else
+        {
+            <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] text-[0.6rem] sm:text-[0.65rem] font-semibold flex items-center gap-0.5 sm:gap-1 shadow-md">
+                <Icon Name="@GetPlatformIcon(Giveaway.Platform)" Size="11" />
+                <span class="hidden sm:inline">@Giveaway.Platform</span>
+            </div>
+        }
+    </div>
+
+    <div class="p-2 sm:p-3 flex flex-col flex-1">
+        <div class="flex items-center justify-between gap-1 text-[0.65rem] sm:text-[0.7rem] font-semibold text-[var(--text-muted)] mb-1">
+            <span class="truncate">@Giveaway.CountryFlag @(Giveaway.IsInternational ? "Internacional" : Giveaway.Country)</span>
+            @if (Giveaway.IsCommunityExclusive)
+            {
+                <span class="text-[var(--brand-primary)] font-bold text-[0.6rem] uppercase">Exclusivo</span>
+            }
+        </div>
+
+        <h3 class="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug min-h-[2.1rem] sm:min-h-[2.5rem]">
             @Giveaway.Title
         </h3>
 
-        <p class="text-xs text-[var(--text-secondary)] mb-3">
-            Por <strong class="text-[var(--text-primary)]">@Giveaway.FormattedOrganizer</strong>
-        </p>
+        <div class="mt-auto pt-1.5 text-[0.62rem] sm:text-[0.7rem] text-[var(--text-secondary)] truncate flex items-center gap-1">
+            <Icon Name="user" Size="11" Class="shrink-0 text-[var(--text-muted)]" />
+            <span class="truncate">@Giveaway.FormattedOrganizer</span>
+        </div>
     </div>
-
-    <a href="@Giveaway.Url"
-       target="_blank"
-       rel="noopener noreferrer"
-       class="w-full text-center py-2 px-3 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--border-subtle)] font-bold text-xs text-[var(--text-primary)] transition-colors">
-        Participar en sorteo &rarr;
-    </a>
-</div>
+</a>
 
 @code {
-    /// <summary>Sorteo del carril (datos puros; la card no accede a servicios).</summary>
     [Parameter, EditorRequired] public GiveawayDto Giveaway { get; set; } = null!;
+
+    private static string GetPlatformIcon(GiveawayPlatform platform) => platform switch
+    {
+        GiveawayPlatform.Instagram => "instagram",
+        GiveawayPlatform.TwitterX => "twitter",
+        GiveawayPlatform.YouTube => "youtube",
+        _ => "gift"
+    };
 }
