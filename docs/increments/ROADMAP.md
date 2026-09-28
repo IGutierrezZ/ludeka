@@ -88,6 +88,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-73** | Ingesta Masiva BGG (>100 opiniones), Anti-Duplicados y Enriquecimiento Integral (Escalabilidad, Fundas, Tiempos, Huella y Localización Multipaís) | ✅ Archivado | [inc-73-ingesta-enriquecimiento-catalogo.md](archive/inc-73-ingesta-enriquecimiento-catalogo.md) |
 | **INC-74** | Curación y Saneamiento Integral del Directorio Lúdico Español | ✅ Archivado | [inc-74-curacion-directorio-ludico.md](archive/inc-74-curacion-directorio-ludico.md) |
 | **INC-75** | Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido) | ⏳ Planificado | [inc-75-baja-usuarios-borrado-logico.md](inc-75-baja-usuarios-borrado-logico.md) |
+| **INC-76** | Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link | ⏳ Planificado | [inc-76-proveedor-correo-transaccional.md](inc-76-proveedor-correo-transaccional.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

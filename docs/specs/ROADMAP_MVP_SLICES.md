@@ -710,6 +710,15 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 76: Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link y Notificaciones
+- **Identificador SDD:** `change-76-proveedor-correo-transaccional`
+- **Objetivo Principal:** Conectar un proveedor real de correo transaccional vía HTTP API (Resend / Brevo con `HttpClientFactory`) para la entrega real en producción de enlaces de acceso Magic Link sin contraseñas y notificaciones críticas del sistema, superando la restricción del puerto SMTP 25 en Google Cloud Run con fallback automático a simulación en desarrollo.
+- **Estado:** ⏳ **Planificado** (Backlog futuro).
+- **Documento:** [`inc-76-proveedor-correo-transaccional.md`](file:///c:/repos/Ludeka/docs/increments/inc-76-proveedor-correo-transaccional.md).
+- **Módulos del Sistema:** [`40-acceso-por-correo-magic-link.md`](file:///c:/repos/Ludeka/docs/specs/sistema/40-acceso-por-correo-magic-link.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
