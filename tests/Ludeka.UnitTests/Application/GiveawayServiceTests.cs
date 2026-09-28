@@ -134,4 +134,91 @@ public class GiveawayServiceTests
         Assert.Equal("Sorteo Activo", activeOnly[0].Title);
         Assert.Equal(2, all.Count);
     }
+
+    [Fact]
+    public async Task UpdateGiveawayAsync_ExistingGiveaway_UpdatesAllFields()
+    {
+        // Arrange
+        var repo = new FakeGiveawayRepository();
+        var giveaway = new Giveaway("Original Title", "Original Organizer", "https://original.com", GiveawayPlatform.Instagram, DateTimeOffset.UtcNow.AddDays(2));
+        repo.Items.Add(giveaway);
+        var service = new GiveawayService(repo);
+
+        var newDeadline = DateTimeOffset.UtcNow.AddDays(10);
+        var request = new UpdateGiveawayRequest(
+            Id: giveaway.Id,
+            Title: "Updated Title",
+            Organizer: "Updated Organizer",
+            Collaborator: "Updated Collaborator",
+            Url: "https://updated.com",
+            Platform: GiveawayPlatform.YouTube,
+            DeadlineAt: newDeadline,
+            Country: "Francia",
+            GameId: Guid.NewGuid(),
+            GameTitle: "Brass Birmingham",
+            ThumbnailUrl: "https://pub-r2/new-thumb.webp",
+            IsCommunityExclusive: true,
+            IsPromoted: true);
+
+        // Act
+        var result = await service.UpdateGiveawayAsync(request);
+
+        // Assert
+        Assert.Equal("Updated Title", result.Title);
+        Assert.Equal("Updated Organizer", result.Organizer);
+        Assert.Equal("Updated Collaborator", result.Collaborator);
+        Assert.Equal("https://updated.com", result.Url);
+        Assert.Equal(GiveawayPlatform.YouTube, result.Platform);
+        Assert.Equal("Francia", result.Country);
+        Assert.Equal("Brass Birmingham", result.GameTitle);
+        Assert.Equal("https://pub-r2/new-thumb.webp", result.ThumbnailUrl);
+        Assert.True(result.IsCommunityExclusive);
+        Assert.True(result.IsPromoted);
+    }
+
+    [Fact]
+    public async Task UpdateGiveawayAsync_NonExistingGiveaway_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var repo = new FakeGiveawayRepository();
+        var service = new GiveawayService(repo);
+        var request = new UpdateGiveawayRequest(
+            Id: Guid.NewGuid(),
+            Title: "Title",
+            Organizer: "Organizer",
+            Collaborator: null,
+            Url: "https://test.com",
+            Platform: GiveawayPlatform.Instagram,
+            DeadlineAt: DateTimeOffset.UtcNow.AddDays(1));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UpdateGiveawayAsync(request));
+    }
+
+    [Fact]
+    public async Task DeleteGiveawayAsync_ExistingGiveaway_RemovesFromRepository()
+    {
+        // Arrange
+        var repo = new FakeGiveawayRepository();
+        var giveaway = new Giveaway("To Delete", "Organizer", "https://test.com", GiveawayPlatform.Instagram, DateTimeOffset.UtcNow.AddDays(2));
+        repo.Items.Add(giveaway);
+        var service = new GiveawayService(repo);
+
+        // Act
+        await service.DeleteGiveawayAsync(giveaway.Id);
+
+        // Assert
+        Assert.Empty(repo.Items);
+    }
+
+    [Fact]
+    public async Task DeleteGiveawayAsync_NonExistingGiveaway_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var repo = new FakeGiveawayRepository();
+        var service = new GiveawayService(repo);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.DeleteGiveawayAsync(Guid.NewGuid()));
+    }
 }

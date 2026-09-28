@@ -39,8 +39,10 @@ Ubicación: `src/Ludeka.Core/Entities/BoardGameEvent.cs`
 
 ### 2.2 Entidad `Giveaway`
 Ubicación: `src/Ludeka.Core/Entities/Giveaway.cs`
-- **Atributos Clave:** `IsPromoted` (booleano), `ThumbnailUrl`, `DeadlineAt`, `Platform`, `IsCommunityExclusive`.
-- **Método:** `SetPromoted(bool isPromoted)` para conmutar estado de patrocinio con marca `UpdatedAt`.
+- **Atributos Clave:** `IsPromoted` (booleano), `ThumbnailUrl`, `DeadlineAt`, `Platform`, `IsCommunityExclusive`, `Country`, `GameId`, `GameTitle`.
+- **Métodos:**
+  - `SetPromoted(bool isPromoted)` para conmutar estado de patrocinio con marca `UpdatedAt`.
+  - `Update(...)` (INC-79) para mutación determinista de todos los campos con normalización de país y actualización de `UpdatedAt`.
 
 ### 2.3 Entidad `WeeklyRelease`
 Ubicación: `src/Ludeka.Core/Entities/WeeklyRelease.cs`
@@ -58,11 +60,15 @@ Ubicación: `src/Ludeka.Core/Entities/WeeklyRelease.cs`
   - `UpdateEventAsync(Guid id, UpdateBoardGameEventRequest request)`: Actualización de datos.
   - `DeleteEventAsync(Guid id)`: Eliminación del evento.
 - **`IGiveawayService` / `GiveawayService`:**
-  - `GetGiveawaysAsync(bool includeExpired)`: Orden prioritario estricto: `IsPromoted DESC`, seguido de `DeadlineAt ASC`.
+  - `GetGiveawaysAsync(bool includeExpired, string? country)`: Orden prioritario estricto: `IsPromoted DESC`, seguido de `DeadlineAt ASC`.
+  - `GetByIdAsync(Guid id)`: Consulta individual de sorteo para la ficha de detalle.
+  - `UpdateGiveawayAsync(UpdateGiveawayRequest request)` (INC-79): Actualización de sorteo con verificación de permisos de moderación (`CanApproveMedia` o Mesa Fundadora).
+  - `DeleteGiveawayAsync(Guid id)` (INC-79): Eliminación controlada de sorteo.
   - `SetPromotedAsync(Guid id, bool isPromoted)`: Mutación inmediata del flag de patrocinio.
 - **`IWeeklyReleaseService` / `WeeklyReleaseService`:**
   - `CreateReleaseAsync(CreateWeeklyReleaseRequest request)`: Alta manual por moderación.
 - **`IImageStorageService`:**
+  - `UploadOptimizedImageAsync(...)` (INC-40 / INC-79): Optimización WebP y subida a Cloudflare R2 (`giveaways/{id:N}/cover.webp`) o fallback local/simulado.
   - `SaveEventPosterAsync(...)`: Guarda carteles en `wwwroot/images/events/`.
   - `SaveCommunityImageAsync(...)`: Guarda imágenes en subcarpetas de comunidad (`draws`, `releases`).
 
@@ -75,15 +81,21 @@ Ubicación: `src/Ludeka.Core/Entities/WeeklyRelease.cs`
    - Botón directo de administración `/admin/eventos` para usuarios con roles `FoundingTeam` o `Moderator`.
 2. **`Radar.razor` (`/sorteos` y alias `/radar`):**
    - Especializado exclusivamente en sorteos. Si el usuario accede por `/radar`, muestra banner informativo hacia novedades y eventos.
-   - Conmutación en 1 clic de `IsPromoted` para moderadores y badge destacado "⭐ Promocionado".
-   - INC-36: cabecera compartida `PageHeaderEditorial` (badge «Radar de Sorteos Comunitarios» + `gift`; h1 «Sorteos de Juegos de Mesa»; acción «Proponer Sorteo»), modal de alta sobre `EditorialModal` (shell compartido con foco accesible: entrada al abrir, restauración al cerrar y Escape), filtros territoriales y chips con tokens de estado y `--on-brand`.
-3. **`News.razor` (`/novedades`):**
+   - Conmutación en 1 clic de `IsPromoted` para moderadores y badge destacado con `<Icon Name="star" />`.
+   - INC-36: cabecera compartida `PageHeaderEditorial`, modal de alta sobre `EditorialModal`, filtros territoriales.
+   - INC-79: Cuadrícula responsive de catálogo (`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4`) coherente con la sección de juegos.
+3. **`GiveawayDetail.razor` (`/sorteos/{Id:guid}` y `/sorteo/{Id:guid}`) (INC-79):**
+   - Ficha inteligente de detalle con cartel en alta resolución, fallback anti-CLS por dominio (`DefaultImageDomain.Sorteo` / `sorteo-default.svg`).
+   - Botón CTA destacado de participación externa hacia enlace oficial verificado (`target="_blank" rel="noopener noreferrer"`).
+   - Metadatos territoriales dinámicos (`CountryCatalog.GetFlag`), plataforma, plazos y tarjeta del juego asociado de catálogo si existe.
+   - Panel modal de edición `EditorialModal` para moderadores/fundadores con selector `<InputFile>` para optimizar y subir carátula a R2 y modal de confirmación de borrado.
+4. **`GiveawayCard.razor` (`Components/Shared/`):**
+   - Tarjeta de catálogo para sorteos en el radar: INC-79 la rediseña a proporción vertical compacta de catálogo con portada cuadrada 1:1 (`rail-cover--square` / 240x240), badges flotantes de tiempo restante, país y plataforma, y enlaces directos a la ficha `/sorteos/{id}` y botón «Participar &rarr;».
+5. **`HomeGiveawayCard.razor` (`Components/Home/`):**
+   - Tarjeta del carril de portada: INC-79 la unifica con `HomeGameCard` en proporción vertical compacta (192x192, `rail-cover--square`), badges flotantes y enlace a la ficha de sorteo.
+6. **`News.razor` (`/novedades`):**
    - Cronología editorial de lanzamientos de viernes, buscador por texto, filtro por editorial y modal para alta manual de novedades.
-   - INC-36: cabecera compartida (badge «Calendario de Estrenos» + `newspaper`; h1 «Novedades de los Viernes & Lanzamientos»), modal sobre `EditorialModal` con los pies de acción como `Footer`, zona de imagen SIEMPRE renderizada (sin URL → `DefaultImage` dominio novedad; URL externa → `width`/`height` y `onerror` hacia `novedad-default.svg`), tarjetas `.rail-card` y eliminación de las variantes `dark:` muertas.
-4. **`Events.razor` (`/eventos`):**
+7. **`Events.razor` (`/eventos`):**
    - Calendario con dos pestañas ("Próximas Citas" e "Histórico de Ediciones"), tarjetas con carteles, fecha formateada, cuenta atrás y enlace directo a la web oficial (`rel="noopener noreferrer"`).
-   - INC-36: cabecera compartida (badge «Calendario Oficial del Sector» + `tent`), tarjetas `.rail-card` con `rail-cover`, badges de urgencia tokenizados (`--state-error`/`--state-warning` + `--on-brand`), pestañas con `role="tabpanel"`/`aria-controls` (`panel-upcoming`/`panel-past`) y botones de marca con `--on-brand`.
-5. **`GiveawayCard.razor` (`Components/Shared/`):**
-   - Tarjeta de sorteo reutilizada por `/sorteos`: INC-36 la pasa a `.rail-card` + `rail-cover`, con `DefaultImage` dominio sorteo ante miniatura ausente, `width`/`height` + `onerror` hacia `sorteo-default.svg` ante URL externa caída y tokens de estado (`--state-warning`/`--state-highlight`/`--state-info`/`--state-error`).
-6. **`EventsManagement.razor` (`/admin/eventos`):**
+8. **`EventsManagement.razor` (`/admin/eventos`):**
    - Panel de control CRUD protegido por roles para la Mesa Fundadora y moderadores, con subida directa de carteles locales (`InputFile`) y vista previa.

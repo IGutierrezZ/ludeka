@@ -173,9 +173,9 @@ public class WebMarkupContractTests
           new[] { "rail-card", "rail-cover--square", "game-placeholder.svg", "expansion-placeholder.svg", "loading=\"lazy\"", "onerror" },
           EmojisDePortada },
 
-        // HomeGiveawayCard: carril Sorteos; estrena render de ThumbnailUrl con fallback por dominio
+        // HomeGiveawayCard (INC-79): carril Sorteos; formato vertical catálogo con rail-cover--square
         { "HomeGiveawayCard (Sorteos)", "src/Ludeka.Web/Components/Home/HomeGiveawayCard.razor",
-          new[] { "rail-card", "rail-cover--wide", "sorteo-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror" },
+          new[] { "rail-card", "rail-cover--square", "sorteo-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror" },
           EmojisDePortada },
 
         // HomeReleaseCard: carril Novedades; estrena render de CoverImageUrl con fallback por dominio

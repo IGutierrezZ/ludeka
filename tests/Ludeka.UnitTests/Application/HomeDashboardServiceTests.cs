@@ -40,7 +40,9 @@ public class HomeDashboardServiceTests
 
         public Task<GiveawayDto?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<GiveawayDto?>(null);
         public Task<GiveawayDto> CreateOrMergeGiveawayAsync(CreateGiveawayRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<GiveawayDto> UpdateGiveawayAsync(UpdateGiveawayRequest request, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SetPromotedAsync(Guid id, bool isPromoted, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteGiveawayAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private class FakeWeeklyReleaseService : IWeeklyReleaseService

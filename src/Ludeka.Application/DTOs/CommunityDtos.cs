@@ -41,6 +41,21 @@ public record CreateGiveawayRequest(
     bool IsPromoted = false,
     string Country = "España");
 
+public record UpdateGiveawayRequest(
+    Guid Id,
+    string Title,
+    string Organizer,
+    string? Collaborator,
+    string Url,
+    GiveawayPlatform Platform,
+    DateTimeOffset DeadlineAt,
+    string Country = "España",
+    Guid? GameId = null,
+    string? GameTitle = null,
+    string? ThumbnailUrl = null,
+    bool IsCommunityExclusive = false,
+    bool IsPromoted = false);
+
 public record WeeklyReleaseDto(
     Guid Id,
     string Title,
