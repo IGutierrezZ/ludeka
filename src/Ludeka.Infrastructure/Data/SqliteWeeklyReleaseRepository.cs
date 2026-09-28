@@ -24,7 +24,7 @@ public class SqliteWeeklyReleaseRepository : DbContextRepositoryBase, IWeeklyRel
     {
         await using var scope = await CreateScopeAsync(ct);
         var query = scope.Context.WeeklyReleases
-            .Include(r => r.Game)
+            .AsNoTracking()
             .AsQueryable();
 
         if (fromDate.HasValue)
@@ -42,22 +42,32 @@ public class SqliteWeeklyReleaseRepository : DbContextRepositoryBase, IWeeklyRel
     {
         await using var scope = await CreateScopeAsync(ct);
         return await scope.Context.WeeklyReleases
-            .Include(r => r.Game)
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
     public async Task AddAsync(WeeklyRelease release, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(release);
         await using var scope = await CreateScopeAsync(ct);
         await scope.Context.WeeklyReleases.AddAsync(release, ct);
+        if (release.Game != null)
+        {
+            scope.Context.Entry(release.Game).State = EntityState.Unchanged;
+        }
         await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(WeeklyRelease release, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(release);
         await using var scope = await CreateScopeAsync(ct);
-        scope.Context.WeeklyReleases.Update(release);
-        await scope.Context.SaveChangesAsync(ct);
+        var existing = await scope.Context.WeeklyReleases.FirstOrDefaultAsync(r => r.Id == release.Id, ct);
+        if (existing != null)
+        {
+            scope.Context.Entry(existing).CurrentValues.SetValues(release);
+            await scope.Context.SaveChangesAsync(ct);
+        }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

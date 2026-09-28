@@ -93,16 +93,26 @@ public class SqliteMediaRepository : DbContextRepositoryBase, IMediaRepository
 
     public async Task AddAsync(MediaItem item, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(item);
         await using var scope = await CreateScopeAsync(ct);
         await scope.Context.MediaItems.AddAsync(item, ct);
+        if (item.Game != null)
+        {
+            scope.Context.Entry(item.Game).State = EntityState.Unchanged;
+        }
         await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(MediaItem item, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(item);
         await using var scope = await CreateScopeAsync(ct);
-        scope.Context.MediaItems.Update(item);
-        await scope.Context.SaveChangesAsync(ct);
+        var existing = await scope.Context.MediaItems.FirstOrDefaultAsync(m => m.Id == item.Id, ct);
+        if (existing != null)
+        {
+            scope.Context.Entry(existing).CurrentValues.SetValues(item);
+            await scope.Context.SaveChangesAsync(ct);
+        }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
