@@ -719,6 +719,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 77: Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador
+- **Identificador SDD:** `change-77-calidad-ingesta-bgg`
+- **Objetivo Principal:** Erradicar 4 defectos críticos de calidad en la ingesta y catálogo de BGG:
+  1. **Años Históricos Fuera de Rango:** Flexibilización del rango de año de publicación a [-5000, AñoActual + 10] en `Game`, desbloqueando juegos milenarios (-2200, -3500) y prototipos futuros sin excepciones `ArgumentOutOfRangeException`.
+  2. **Inferencia Determinista de ADN Lúdico:** Inferencia de estilo (`Thematic`, `Wargame`, `Party`, `Abstract`, `Eurogame`) y confrontación desde subdominios y categorías de BGG con precedencia semicooperativa corregida, evitando la homogeneización artificial a Eurogame.
+  3. **Duración Real por Jugador:** Mapeo de `PlayingTimeMinutes` de BGG a la duración total en staging y cálculo proporcional `EstimatedPerPlayerMinutes = maxPlay / maxPlayers` evitando el colapso sistemático a 15 min.
+  4. **Preservación de Escalabilidad y Fundas:** Actualización completa en `SqliteGameRepository.UpdateAsync` de `Scalability`, `Sleeves`, `SpanishPublisher` y `RegionalPublishers`, ampliando el filtro de backfill para sanear registros legados sin votos comunitarios.
+- **Estado:** ✅ **Completado y Archivado** (2.032 tests en verde al 100%: 2.022 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-77-calidad-ingesta-bgg.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-77-calidad-ingesta-bgg.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`05-integracion-bgg.md`](file:///c:/repos/Ludeka/docs/specs/sistema/05-integracion-bgg.md), [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md) y [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](file:///c:/repos/Ludeka/docs/specs/sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

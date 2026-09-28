@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
 
@@ -261,6 +262,32 @@ public class BggCatalogStagingItem
         {
             return [];
         }
+    }
+
+    public GameStyle GetInferredStyle()
+    {
+        if (!string.IsNullOrWhiteSpace(RawThingXml))
+        {
+            var match = Regex.Match(RawThingXml, @"style=""([^""]+)""");
+            if (match.Success && Enum.TryParse<GameStyle>(match.Groups[1].Value, out var s))
+            {
+                return s;
+            }
+        }
+        return GameStyle.Eurogame;
+    }
+
+    public ConfrontationType GetInferredConfrontation()
+    {
+        if (!string.IsNullOrWhiteSpace(RawThingXml))
+        {
+            var match = Regex.Match(RawThingXml, @"confrontation=""([^""]+)""");
+            if (match.Success && Enum.TryParse<ConfrontationType>(match.Groups[1].Value, out var c))
+            {
+                return c;
+            }
+        }
+        return ConfrontationType.Competitive;
     }
 
     public void MarkImagesInProgress()

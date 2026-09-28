@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Xml.Linq;
 using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Bgg;
@@ -139,4 +139,75 @@ public class BggXmlParserTests
         Assert.Equal(10, game.Age.CommunityAge);
         Assert.Equal(LanguageDependence.High, game.Language); // Level 3/4 = High
     }
+
+    [Theory]
+    [InlineData("Thematic Games", GameStyle.Ameritrash)]
+    [InlineData("Wargames", GameStyle.Ameritrash)]
+    [InlineData("Party Games", GameStyle.PartyGame)]
+    [InlineData("Children's Games", GameStyle.PartyGame)]
+    [InlineData("Abstract Games", GameStyle.FillerAbstract)]
+    [InlineData("Strategy Games", GameStyle.Eurogame)]
+    public void InferGameDna_Subdomains_InferCorrectGameStyle(string subdomain, GameStyle expectedStyle)
+    {
+        // Arrange
+        string xml = $@"
+        <item type=""boardgame"" id=""100"">
+            <link type=""boardgamesubdomain"" id=""1"" value=""{subdomain}"" />
+        </item>";
+        var element = XElement.Parse(xml);
+
+        // Act
+        var (_, style, _) = BggXmlParser.InferGameDna(element, []);
+
+        // Assert
+        Assert.Equal(expectedStyle, style);
+    }
+
+    [Theory]
+    [InlineData("boardgamecategory", "Miniatures", GameStyle.Ameritrash)]
+    [InlineData("boardgamecategory", "Zombies", GameStyle.Ameritrash)]
+    [InlineData("boardgamemechanic", "Dungeon Crawl", GameStyle.Ameritrash)]
+    [InlineData("boardgamecategory", "Trivia", GameStyle.PartyGame)]
+    [InlineData("boardgamecategory", "Word Game", GameStyle.PartyGame)]
+    [InlineData("boardgamemechanic", "Legacy Game", GameStyle.NarrativeCampaign)]
+    [InlineData("boardgamemechanic", "Campaign", GameStyle.NarrativeCampaign)]
+    [InlineData("boardgamecategory", "Abstract Strategy", GameStyle.FillerAbstract)]
+    public void InferGameDna_CategoriesAndMechanics_InferCorrectGameStyle(string linkType, string linkValue, GameStyle expectedStyle)
+    {
+        // Arrange
+        string xml = $@"
+        <item type=""boardgame"" id=""200"">
+            <link type=""{linkType}"" id=""1"" value=""{linkValue}"" />
+        </item>";
+        var element = XElement.Parse(xml);
+
+        // Act
+        var (_, style, _) = BggXmlParser.InferGameDna(element, []);
+
+        // Assert
+        Assert.Equal(expectedStyle, style);
+    }
+
+    [Theory]
+    [InlineData("Cooperative Game", ConfrontationType.Cooperative)]
+    [InlineData("Semi-Cooperative Game", ConfrontationType.SemiCooperative)]
+    [InlineData("Traitor Game", ConfrontationType.HiddenRolesOrTeams)]
+    [InlineData("Secret Identity", ConfrontationType.HiddenRolesOrTeams)]
+    [InlineData("Worker Placement", ConfrontationType.Competitive)]
+    public void InferGameDna_ConfrontationMechanics_InferCorrectConfrontation(string mechanic, ConfrontationType expectedConfrontation)
+    {
+        // Arrange
+        string xml = $@"
+        <item type=""boardgame"" id=""300"">
+            <link type=""boardgamemechanic"" id=""1"" value=""{mechanic}"" />
+        </item>";
+        var element = XElement.Parse(xml);
+
+        // Act
+        var (confrontation, _, _) = BggXmlParser.InferGameDna(element, []);
+
+        // Assert
+        Assert.Equal(expectedConfrontation, confrontation);
+    }
 }
+

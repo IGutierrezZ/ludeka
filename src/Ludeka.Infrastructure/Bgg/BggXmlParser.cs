@@ -306,32 +306,75 @@ public static class BggXmlParser
         return entries;
     }
 
-    private static (ConfrontationType Confrontation, GameStyle Style, bool IsSolo) InferGameDna(
+    public static (ConfrontationType Confrontation, GameStyle Style, bool IsSolo) InferGameDna(
         XElement item, List<ScalabilityEntry> scalability)
     {
+        var subdomains = item.Elements("link")
+            .Where(l => l.Attribute("type")?.Value == "boardgamesubdomain")
+            .Select(l => l.Attribute("value")?.Value ?? string.Empty)
+            .ToList();
+
         var categories = item.Elements("link")
             .Where(l => l.Attribute("type")?.Value is "boardgamecategory" or "boardgamemechanic")
             .Select(l => l.Attribute("value")?.Value ?? string.Empty)
             .ToList();
 
-        bool isCoop = categories.Any(c => c.Contains("Cooperative", StringComparison.OrdinalIgnoreCase));
-        bool isTeams = categories.Any(c => c.Contains("Team-Based", StringComparison.OrdinalIgnoreCase) || c.Contains("Secret Identity", StringComparison.OrdinalIgnoreCase));
         bool isSemiCoop = categories.Any(c => c.Contains("Semi-Cooperative", StringComparison.OrdinalIgnoreCase));
+        bool isCoop = categories.Any(c => c.Contains("Cooperative", StringComparison.OrdinalIgnoreCase));
+        bool isTeams = categories.Any(c => c.Contains("Team-Based", StringComparison.OrdinalIgnoreCase) ||
+                                          c.Contains("Secret Identity", StringComparison.OrdinalIgnoreCase) ||
+                                          c.Contains("Traitor", StringComparison.OrdinalIgnoreCase));
 
-        var confrontation = isCoop ? ConfrontationType.Cooperative
-            : isSemiCoop ? ConfrontationType.SemiCooperative
+        var confrontation = isSemiCoop ? ConfrontationType.SemiCooperative
+            : isCoop ? ConfrontationType.Cooperative
             : isTeams ? ConfrontationType.HiddenRolesOrTeams
             : ConfrontationType.Competitive;
 
-        bool isParty = categories.Any(c => c.Contains("Party Game", StringComparison.OrdinalIgnoreCase));
-        bool isAbstract = categories.Any(c => c.Contains("Abstract Strategy", StringComparison.OrdinalIgnoreCase));
-        bool isCampaign = categories.Any(c => c.Contains("Campaign", StringComparison.OrdinalIgnoreCase) || c.Contains("Legacy", StringComparison.OrdinalIgnoreCase));
-        bool isThematic = categories.Any(c => c.Contains("Thematic", StringComparison.OrdinalIgnoreCase) || c.Contains("Wargame", StringComparison.OrdinalIgnoreCase));
+        // Evaluación de Estilo de Juego (GameStyle)
+        // 1. Narrativa y campaña (Legacy / Campaign)
+        bool isCampaign = categories.Any(c => c.Contains("Campaign", StringComparison.OrdinalIgnoreCase) ||
+                                              c.Contains("Legacy", StringComparison.OrdinalIgnoreCase) ||
+                                              c.Contains("Storytelling", StringComparison.OrdinalIgnoreCase));
 
-        var style = isParty ? GameStyle.PartyGame
-            : isCampaign ? GameStyle.NarrativeCampaign
-            : isThematic ? GameStyle.Ameritrash
-            : isAbstract ? GameStyle.FillerAbstract
+        // 2. Juegos de fiesta / familiares ligeros
+        bool isParty = subdomains.Any(s => s.Contains("Party", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Children", StringComparison.OrdinalIgnoreCase)) ||
+                        categories.Any(c => c.Contains("Party Game", StringComparison.OrdinalIgnoreCase) ||
+                                           c.Contains("Trivia", StringComparison.OrdinalIgnoreCase) ||
+                                           c.Contains("Word Game", StringComparison.OrdinalIgnoreCase) ||
+                                           c.Contains("Humor", StringComparison.OrdinalIgnoreCase));
+
+        // 3. Subdominios temáticos / wargames (Ameritrash)
+        bool isThematicSubdomain = subdomains.Any(s => s.Contains("Thematic", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Wargame", StringComparison.OrdinalIgnoreCase));
+
+        // 4. Subdominios abstractos
+        bool isAbstractSubdomain = subdomains.Any(s => s.Contains("Abstract", StringComparison.OrdinalIgnoreCase));
+
+        // 5. Subdominios de estrategia (Eurogame)
+        bool isStrategySubdomain = subdomains.Any(s => s.Contains("Strategy", StringComparison.OrdinalIgnoreCase));
+
+        // 6. Categorías y mecánicas secundarias si no hay subdominio concluyente
+        bool isThematicCategory = categories.Any(c => c.Contains("Thematic", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Wargame", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Miniatures", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Dungeon Crawl", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Horror", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Fighting", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Zombies", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Adventure", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Sci-Fi", StringComparison.OrdinalIgnoreCase));
+
+        bool isAbstractCategory = categories.Any(c => c.Contains("Abstract Strategy", StringComparison.OrdinalIgnoreCase) ||
+                                                      c.Contains("Abstract", StringComparison.OrdinalIgnoreCase));
+
+        var style = isCampaign ? GameStyle.NarrativeCampaign
+            : isParty ? GameStyle.PartyGame
+            : isThematicSubdomain ? GameStyle.Ameritrash
+            : isAbstractSubdomain ? GameStyle.FillerAbstract
+            : isStrategySubdomain ? GameStyle.Eurogame
+            : isThematicCategory ? GameStyle.Ameritrash
+            : isAbstractCategory ? GameStyle.FillerAbstract
             : GameStyle.Eurogame;
 
         bool isSolo = scalability.Any(s => s.PlayerCount == 1 && s.Status != ScalabilityStatus.NotRecommended);

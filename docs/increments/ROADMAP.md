@@ -89,6 +89,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-74** | Curación y Saneamiento Integral del Directorio Lúdico Español | ✅ Archivado | [inc-74-curacion-directorio-ludico.md](archive/inc-74-curacion-directorio-ludico.md) |
 | **INC-75** | Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido) | ✅ Archivado | [inc-75-baja-usuarios-borrado-logico.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-75-baja-usuarios-borrado-logico.md) |
 | **INC-76** | Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link | ⏳ Planificado | [inc-76-proveedor-correo-transaccional.md](inc-76-proveedor-correo-transaccional.md) |
+| **INC-77** | Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador | ✅ Archivado | [inc-77-calidad-ingesta-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-77-calidad-ingesta-bgg.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -118,7 +119,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno activo)* | — | — | — | Todos los incrementos completados y archivados |
+| *(Ninguno)* | — | — | — | — |
+
+*(INC-77 entregó su verificación con 2.032 pruebas automáticas [2.022 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-28. Implementa la flexibilización de años históricos [-5000 a +10 años] en `Game`, inferencia determinista de estilo [Thematic, Wargame, Party, Abstract, Eurogame] y confrontación desde subdominios y categorías BGG con precedencia semicooperativa, corrección de duración por jugador evitando el colapso a 15 min, preservación de escalabilidad comunitaria y fundas en actualización de repositorio y backfill de calidad).*
 
 *(INC-75 entregó su verificación con 2.001 pruebas automáticas [1.991 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-28. Implementa la baja de usuarios, borrado lógico y anonimización irreversible RGPD [AppUser.AnonymizeAndClose], purga atómica de ExternalLogins liberando proveedores OAuth, preservación referencial comunitaria con autoría anónima «Usuario eliminado», autoservicio en /cuenta/privacidad con confirmación obligatoria «DAR DE BAJA», baja administrativa auditada en /admin/usuarios, endpoint POST /cuenta/baja e invalidación reactiva de sesiones).*
 

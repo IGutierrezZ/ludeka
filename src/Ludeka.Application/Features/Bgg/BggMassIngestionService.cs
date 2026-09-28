@@ -143,19 +143,25 @@ public class BggMassIngestionService : IBggMassIngestionService
                 var fetchedGame = await _bggClient.FetchGameByBggIdAsync(item.BggId, ct);
                 if (fetchedGame != null)
                 {
+                    int totalPlayTime = (fetchedGame.Duration != null && fetchedGame.Duration.MaxMinutes > 0)
+                        ? fetchedGame.Duration.MaxMinutes
+                        : (fetchedGame.Duration != null && fetchedGame.Duration.MinMinutes > 0 ? fetchedGame.Duration.MinMinutes : 30);
+
+                    string dnaXml = $"<dna style=\"{fetchedGame.Style}\" confrontation=\"{fetchedGame.Confrontation}\" solo=\"{fetchedGame.IsOfficialSolo}\" />";
+
                     item.MarkFetched(
-                        rawXml: fetchedGame.Description,
+                        rawXml: dnaXml,
                         spanishTitle: fetchedGame.SpanishTitle,
                         designer: fetchedGame.Designer,
                         publisher: fetchedGame.Publisher,
                         description: fetchedGame.Description,
                         minPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Min(s => s.PlayerCount) : 1,
                         maxPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Max(s => s.PlayerCount) : 4,
-                        playingTimeMinutes: fetchedGame.Duration.EstimatedPerPlayerMinutes,
+                        playingTimeMinutes: totalPlayTime,
                         minAge: fetchedGame.Age.BoxAge,
                         bggRating: fetchedGame.BggRating,
-                        minPlayTimeMinutes: fetchedGame.Duration.MinMinutes,
-                        maxPlayTimeMinutes: fetchedGame.Duration.MaxMinutes,
+                        minPlayTimeMinutes: fetchedGame.Duration?.MinMinutes ?? 0,
+                        maxPlayTimeMinutes: fetchedGame.Duration?.MaxMinutes ?? 0,
                         inferredFootprint: fetchedGame.Footprint,
                         scalability: fetchedGame.Scalability,
                         sleeves: fetchedGame.Sleeves,
@@ -408,6 +414,9 @@ public class BggMassIngestionService : IBggMassIngestionService
                 int maxPlay = item.MaxPlayTimeMinutes > 0 ? item.MaxPlayTimeMinutes : (item.PlayingTimeMinutes > 0 ? (int)(item.PlayingTimeMinutes * 1.5) : 60);
                 int estPerPlayer = Math.Max(15, (item.PlayingTimeMinutes > 0 ? item.PlayingTimeMinutes : maxPlay) / Math.Max(1, item.MaxPlayers));
                 var footprint = item.InferredFootprint;
+                var confrontation = item.GetInferredConfrontation();
+                var style = item.GetInferredStyle();
+                bool isSolo = scalability.Any(s => s.PlayerCount == 1 && s.Status != ScalabilityStatus.NotRecommended) || item.MinPlayers == 1;
 
                 if (existing == null)
                 {
@@ -424,9 +433,9 @@ public class BggMassIngestionService : IBggMassIngestionService
                         bggRating: item.AverageRating > 0 ? item.AverageRating : item.BayesAverage,
                         bggRank: item.BggRank,
                         ludistRating: 0.0,
-                        confrontation: ConfrontationType.Competitive,
-                        style: GameStyle.Eurogame,
-                        isOfficialSolo: item.MinPlayers == 1,
+                        confrontation: confrontation,
+                        style: style,
+                        isOfficialSolo: isSolo,
                         age: new AgeRating(item.MinAge > 0 ? item.MinAge : 10, item.MinAge > 0 ? item.MinAge : 10),
                         language: LanguageDependence.Low,
                         footprint: footprint,
@@ -475,7 +484,9 @@ public class BggMassIngestionService : IBggMassIngestionService
                         item.TableImageUrl ?? existing.TableImageUrl
                     );
 
-                    if (existing.Scalability.Count == 0 && scalability.Count > 0)
+                    bool hasCorruptOrEmptyExistingScalability = existing.Scalability.Count == 0 ||
+                                                              existing.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0);
+                    if ((hasCorruptOrEmptyExistingScalability || scalability.Any(s => s.TotalVotes > 0)) && scalability.Count > 0)
                     {
                         existing.UpdateScalability(scalability);
                     }
@@ -496,6 +507,16 @@ public class BggMassIngestionService : IBggMassIngestionService
                     }
 
                     existing.UpdateFootprint(item.InferredFootprint);
+
+                    if (existing.Duration == null || existing.Duration.MinMinutes == 0)
+                    {
+                        existing.UpdateDuration(new GameDuration(minPlay, maxPlay, estPerPlayer));
+                    }
+
+                    if (style != GameStyle.Eurogame || existing.Style == GameStyle.Eurogame)
+                    {
+                        existing.UpdateDna(style, confrontation, isSolo);
+                    }
 
                     if (existing.AiSummary == null && !string.IsNullOrWhiteSpace(item.AiSummaryJson))
                     {
@@ -869,6 +890,10 @@ public class BggMassIngestionService : IBggMassIngestionService
                     int max = staging.MaxPlayTimeMinutes > 0 ? staging.MaxPlayTimeMinutes : min;
                     int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4));
                     game.UpdateDuration(new GameDuration(min, max, est));
+                    if (staging.GetInferredStyle() != GameStyle.Eurogame || game.Style == GameStyle.Eurogame)
+                    {
+                        game.UpdateDna(staging.GetInferredStyle(), staging.GetInferredConfrontation(), game.IsOfficialSolo);
+                    }
                     enriched = true;
                 }
                 else
@@ -891,25 +916,27 @@ public class BggMassIngestionService : IBggMassIngestionService
                             scalability = fallbackList;
                         }
 
-                        if (game.Scalability.Count == 0 && scalability.Count > 0)
+                        bool hasCorruptOrEmptyScalability = game.Scalability.Count == 0 ||
+                                                           game.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0);
+                        if ((hasCorruptOrEmptyScalability || scalability.Any(s => s.TotalVotes > 0)) && scalability.Count > 0)
                         {
                             game.UpdateScalability(scalability);
                             enriched = true;
                         }
 
-                        if (game.Sleeves.Count == 0 && fetched.Sleeves.Count > 0)
+                        if (fetched.Sleeves.Count > 0 && (game.Sleeves.Count == 0 || game.Sleeves.Count != fetched.Sleeves.Count))
                         {
                             game.UpdateSleeves(fetched.Sleeves);
                             enriched = true;
                         }
 
-                        if (string.IsNullOrWhiteSpace(game.SpanishPublisher) && !string.IsNullOrWhiteSpace(fetched.SpanishPublisher))
+                        if (!string.IsNullOrWhiteSpace(fetched.SpanishPublisher))
                         {
                             game.UpdateSpanishPublisher(fetched.SpanishPublisher);
                             enriched = true;
                         }
 
-                        if (game.RegionalPublishers.Count == 0 && fetched.RegionalPublishers.Count > 0)
+                        if (fetched.RegionalPublishers.Count > 0)
                         {
                             game.UpdateRegionalPublishers(fetched.RegionalPublishers);
                             enriched = true;
@@ -918,23 +945,32 @@ public class BggMassIngestionService : IBggMassIngestionService
                         game.UpdateFootprint(fetched.Footprint);
                         enriched = true;
 
-                        if (fetched.Duration != null && (game.Duration == null || game.Duration.MinMinutes == 0))
+                        if (fetched.Duration != null)
                         {
                             game.UpdateDuration(fetched.Duration);
                             enriched = true;
                         }
 
+                        game.UpdateDna(fetched.Style, fetched.Confrontation, fetched.IsOfficialSolo);
+                        enriched = true;
+
                         if (staging != null)
                         {
+                            int totalPlayTime = (fetched.Duration != null && fetched.Duration.MaxMinutes > 0)
+                                ? fetched.Duration.MaxMinutes
+                                : (fetched.Duration != null && fetched.Duration.MinMinutes > 0 ? fetched.Duration.MinMinutes : 30);
+
+                            string dnaXml = $"<dna style=\"{fetched.Style}\" confrontation=\"{fetched.Confrontation}\" solo=\"{fetched.IsOfficialSolo}\" />";
+
                             staging.MarkFetched(
-                                rawXml: fetched.Description,
+                                rawXml: dnaXml,
                                 spanishTitle: fetched.SpanishTitle,
                                 designer: fetched.Designer,
                                 publisher: fetched.Publisher,
                                 description: fetched.Description,
                                 minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
                                 maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
-                                playingTimeMinutes: fetched.Duration?.EstimatedPerPlayerMinutes ?? 30,
+                                playingTimeMinutes: totalPlayTime,
                                 minAge: fetched.Age.BoxAge,
                                 bggRating: fetched.BggRating,
                                 minPlayTimeMinutes: fetched.Duration?.MinMinutes ?? 0,
