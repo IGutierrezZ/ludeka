@@ -31,7 +31,30 @@ public static class ExternalLoginEvents
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        options.Events ??= new RemoteAuthenticationEvents();
         options.Events.OnTicketReceived = context => HandleTicketReceivedAsync(providerName, context);
+        options.Events.OnRemoteFailure = context => HandleRemoteFailureAsync(providerName, context);
+    }
+
+    /// <summary>
+    /// Maneja los fallos y cancelaciones remotas devueltas por los proveedores OAuth (Facebook, Discord, Google).
+    /// Evita que ASP.NET Core lance un AuthenticationFailureException no controlado (500) y redirige
+    /// limpiamente a la pantalla de origen (conexiones o acceso) con el aviso correspondiente.
+    /// </summary>
+    public static Task HandleRemoteFailureAsync(string providerName, RemoteFailureContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var isLink = ExternalLoginIntent.TryReadLink(context.Properties, out _)
+            || string.Equals(context.Properties?.RedirectUri, AccountConnectionRoutes.Page, StringComparison.OrdinalIgnoreCase);
+
+        var redirectUri = isLink
+            ? AccountConnectionRoutes.PageWithCancellation
+            : AccountConnectionRoutes.LoginWithCancellation;
+
+        context.HandleResponse();
+        context.Response.Redirect(redirectUri);
+        return Task.CompletedTask;
     }
 
     public static async Task HandleTicketReceivedAsync(string providerName, TicketReceivedContext context)

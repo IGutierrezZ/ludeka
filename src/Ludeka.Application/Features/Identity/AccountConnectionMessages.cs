@@ -93,4 +93,16 @@ public static class AccountConnectionMessages
     /// </summary>
     public const string MagicLinkExpiredNotice =
         "El enlace de acceso ha caducado (validez de 15 minutos). Solicita uno nuevo a continuación.";
+
+    /// <summary>
+    /// Aviso fijo cuando la vinculación se cancela en el proveedor externo (código <c>cancelado</c>).
+    /// </summary>
+    public const string LinkCancelledNotice =
+        "Has cancelado la vinculación con el proveedor o el acceso fue denegado. No se ha realizado ningún cambio en tu cuenta.";
+
+    /// <summary>
+    /// Aviso fijo cuando el acceso externo se cancela o deniega en el inicio de sesión.
+    /// </summary>
+    public const string LoginCancelledNotice =
+        "El acceso con el proveedor fue cancelado o denegado. Puedes intentarlo de nuevo o acceder con otro método.";
 }

@@ -64,6 +64,7 @@ public static class LoginRedirect
         "cuenta-existente" => AccountConnectionMessages.LoginCollisionNotice,
         "magic-link-invalido" => AccountConnectionMessages.MagicLinkInvalidNotice,
         "magic-link-expirado" => AccountConnectionMessages.MagicLinkExpiredNotice,
+        "cancelado" => AccountConnectionMessages.LoginCancelledNotice,
         _ => null
     };
 

@@ -112,6 +112,14 @@ public class LoginRedirectTests
         Assert.Equal(AccountConnectionMessages.MagicLinkExpiredNotice, expired);
     }
 
+    [Fact]
+    public void ResolveAccountCollisionNotice_WithCancellationCode_ReturnsExpectedMessage()
+    {
+        var cancelled = LoginRedirect.ResolveAccountCollisionNotice("cancelado");
+
+        Assert.Equal(AccountConnectionMessages.LoginCancelledNotice, cancelled);
+    }
+
     [Theory]
     [InlineData("/")]
     [InlineData("/cuenta")]

@@ -33,6 +33,16 @@ public static class AccountConnectionRoutes
     public const string LoginWithAccountCollision = "/login?aviso=cuenta-existente";
 
     /// <summary>
+    /// La vinculación fue cancelada por el usuario en el proveedor externo o se produjo un fallo remoto.
+    /// </summary>
+    public const string PageWithCancellation = $"{Page}?resultado=cancelado";
+
+    /// <summary>
+    /// El acceso normal fue cancelado por el usuario en el proveedor externo o se produjo un fallo remoto.
+    /// </summary>
+    public const string LoginWithCancellation = "/login?aviso=cancelado";
+
+    /// <summary>
     /// Traduce el resultado de <see cref="IExternalLoginService.LinkAsync"/> al código cerrado de
     /// <c>?resultado=</c> que <c>AccountConnections.razor</c> (PR #4) interpreta en servidor.
     /// </summary>
