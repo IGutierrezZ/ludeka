@@ -438,6 +438,32 @@ app.MapPost("/cuenta/conexiones/vincular", async (
     return Results.Challenge(properties, [registration.Scheme]);
 }).RequireAuthorization();
 
+// Incremento 75: autoservicio de baja voluntaria y derecho al olvido (RGPD art. 17).
+// Exige sesión autenticada previa, token antiforgery y cierra la cookie antes de redirigir.
+app.MapPost("/cuenta/baja", async (
+    HttpContext httpContext,
+    [FromServices] IAntiforgery antiforgery,
+    [FromServices] IUserAccountService accountService) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(httpContext);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.BadRequest(new { error = "Token antiforgery ausente o inválido." });
+    }
+
+    var result = await accountService.CloseOwnAccountAsync(httpContext.RequestAborted);
+    if (!result.Success)
+    {
+        return Results.BadRequest(new { error = result.Message });
+    }
+
+    await httpContext.SignOutAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
+    return Results.Redirect("/?aviso=cuenta-eliminada");
+}).RequireAuthorization();
+
 // Endpoint de entrega de tarjeta vectorial para Instagram (Incremento 28)
 app.MapGet("/api/instagram/card/{draftId:guid}.svg", async (Guid draftId, IInstagramPublisherService publisherService) =>
 {

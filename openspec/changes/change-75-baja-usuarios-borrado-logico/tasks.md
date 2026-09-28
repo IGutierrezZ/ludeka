@@ -17,8 +17,8 @@
 - [x] 3.4 Crear pruebas unitarias de aplicación para `UserManagementService.AnonymizeUserAsync` y `UserAccountService.CloseOwnAccountAsync`.
 
 ## Fase 4: Endpoints HTTP y Capa Web
-- [ ] 4.1 Añadir endpoint POST `/cuenta/baja` con antiforgery, llamada a `CloseOwnAccountAsync`, cierre de cookie (`SignOutAsync`) y redirección a `/?aviso=cuenta-eliminada`.
-- [ ] 4.2 Añadir pruebas de integración/rutas web para el endpoint de baja.
+- [x] 4.1 Añadir endpoint POST `/cuenta/baja` con antiforgery, llamada a `CloseOwnAccountAsync`, cierre de cookie (`SignOutAsync`) y redirección a `/?aviso=cuenta-eliminada`.
+- [x] 4.2 Añadir pruebas de integración/rutas web para el endpoint de baja.
 
 ## Fase 5: Interfaz de Usuario Blazor
 - [ ] 5.1 Incorporar la sección «Zona de peligro / Dar de baja mi cuenta» en `AccountPrivacy.razor` con diálogo modal accesible que requiera confirmación explícita mediante la frase `"DAR DE BAJA"`.
