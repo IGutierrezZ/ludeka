@@ -25,7 +25,7 @@ public static class ModeratorPermissionRules
         ModeratorPermission mask,
         ModeratorPermission required)
     {
-        if (status == UserStatus.Suspended)
+        if (status != UserStatus.Active)
         {
             return false;
         }

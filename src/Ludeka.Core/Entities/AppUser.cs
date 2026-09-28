@@ -134,4 +134,22 @@ public class AppUser
             UpdatedAt = DateTimeOffset.UtcNow;
         }
     }
+
+    /// <summary>
+    /// Anonimiza de forma irreversible los datos personales identificables (PII) del usuario,
+    /// revoca todos los permisos y asigna el estado Deleted en cumplimiento del derecho al olvido (RGPD).
+    /// </summary>
+    public void AnonymizeAndClose(string? reason = null)
+    {
+        if (Role == UserRole.FoundingTeam)
+            throw new InvalidOperationException("No está permitido dar de baja a un miembro de la Mesa Fundadora.");
+
+        Status = UserStatus.Deleted;
+        Role = UserRole.CommunityUser;
+        Permissions = ModeratorPermission.None;
+        UserName = "Usuario eliminado";
+        Email = $"deleted-{Guid.NewGuid():N}@deleted.ludeka.es";
+        Country = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

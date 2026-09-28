@@ -1,9 +1,9 @@
 # Checklist de Tareas: INC-75 — Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido)
 
 ## Fase 1: Dominio y Entidad `AppUser`
-- [ ] 1.1 Añadir el valor `Deleted` a `src/Ludeka.Core/Enums/UserStatus.cs`.
-- [ ] 1.2 Implementar el método de dominio `AnonymizeAndClose(string? reason = null)` en `src/Ludeka.Core/Entities/AppUser.cs` con validación de blindaje para `FoundingTeam`.
-- [ ] 1.3 Crear pruebas unitarias de dominio en `tests/Ludeka.UnitTests/Domain/AppUserTests.cs` verificando la anonimización de PII, generación de correo sintético único y protección de la Mesa Fundadora.
+- [x] 1.1 Añadir el valor `Deleted` a `src/Ludeka.Core/Enums/UserStatus.cs`.
+- [x] 1.2 Implementar el método de dominio `AnonymizeAndClose(string? reason = null)` en `src/Ludeka.Core/Entities/AppUser.cs` con validación de blindaje para `FoundingTeam`.
+- [x] 1.3 Crear pruebas unitarias de dominio en `tests/Ludeka.UnitTests/Domain/AppUserTests.cs` verificando la anonimización de PII, generación de correo sintético único y protección de la Mesa Fundadora.
 
 ## Fase 2: Infraestructura y Repositorios
 - [ ] 2.1 Extender `IExternalLoginRepository` con `DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)`.
