@@ -91,7 +91,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-76** | Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link | ⏳ Planificado | [inc-76-proveedor-correo-transaccional.md](inc-76-proveedor-correo-transaccional.md) |
 | **INC-77** | Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador | ✅ Archivado | [inc-77-calidad-ingesta-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-77-calidad-ingesta-bgg.md) |
 | **INC-78** | Barrido Completo de Calidad de Catálogo (~10.000 Juegos Promovidos) | ✅ Archivado | [inc-78-barrido-calidad-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-78-barrido-calidad-catalogo.md) |
-| **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](inc-79-sorteos-ficha-redimension-y-edicion.md) |
+| **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](archive/inc-79-sorteos-ficha-redimension-y-edicion.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
