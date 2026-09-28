@@ -60,6 +60,10 @@ if (!string.IsNullOrWhiteSpace(cloudRunPort) && int.TryParse(cloudRunPort, out v
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
+{
+    options.MaximumReceiveMessageSize = 32 * 1024 * 1024; // 32 MB para transferencias de carátulas e imágenes
+});
 
 // Composición completa de dominio e infraestructura (INC-47, diseño §4 D1): extraída a
 // Ludeka.Infrastructure.DependencyInjection.LudekaServiceCollectionExtensions para que el futuro
