@@ -121,6 +121,23 @@ public class UserManagementAndAuditServiceTests
         }
     }
 
+    private class FakeExternalLoginRepository : IExternalLoginRepository
+    {
+        public List<string> DeletedUserIds = [];
+
+        public Task AddAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<ExternalLogin?> GetByProviderKeyAsync(string provider, string providerKey, CancellationToken cancellationToken = default) => Task.FromResult<ExternalLogin?>(null);
+        public Task<IReadOnlyList<ExternalLogin>> ListByUserIdAsync(string userId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ExternalLogin>>([]);
+        public Task RemoveAsync(ExternalLogin externalLogin, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DeleteByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            DeletedUserIds.Add(userId);
+            return Task.CompletedTask;
+        }
+    }
+
+
     [Fact]
     public async Task UserManagementService_NonFounder_ThrowsUnauthorized()
     {
@@ -350,4 +367,97 @@ public class UserManagementAndAuditServiceTests
         Assert.NotEqual("Operación", displayName);
         Assert.NotEqual(AuditService.GetActionDisplayName(AuditAction.LinkedProvider), displayName);
     }
+
+    [Fact]
+    public async Task UserManagementService_AnonymizeUserAsync_ShouldAnonymizeUser_PurgeExternalLogins_AuditAndInvalidateSession()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+        var invalidator = new RecordingSessionInvalidator();
+        var externalLoginRepo = new FakeExternalLoginRepository();
+
+        var targetUser = new AppUser(
+            id: "user_to_anonymize",
+            userName: "Carlos Moderador",
+            email: "carlos.mod@ludeka.es",
+            role: UserRole.Moderator,
+            permissions: ModeratorPermission.CanEditGames | ModeratorPermission.CanUploadImages
+        );
+        await userRepo.AddAsync(targetUser);
+
+        var auditService = new AuditService(auditRepo, currentUser);
+        var userService = new UserManagementService(userRepo, auditService, currentUser, invalidator, externalLoginRepo);
+
+        var result = await userService.AnonymizeUserAsync(targetUser.Id, "Solicitud RGPD derecho al olvido");
+
+        Assert.Equal(UserStatus.Deleted, result.Status);
+        Assert.Equal("Usuario eliminado", result.UserName);
+        Assert.Equal("Eliminado", result.StatusDisplayName);
+        Assert.StartsWith("deleted-", result.Email);
+        Assert.EndsWith("@deleted.ludeka.es", result.Email);
+        Assert.Equal(UserRole.CommunityUser, result.Role);
+        Assert.Empty(result.PermissionNames);
+
+        // Verifica repositorio externo
+        Assert.Contains(targetUser.Id, externalLoginRepo.DeletedUserIds);
+
+        // Verifica invalidación de sesión
+        Assert.Contains(targetUser.Id, invalidator.InvalidatedUserIds);
+
+        // Verifica auditoría
+        var audit = Assert.Single(auditRepo.Entries);
+        Assert.Equal(AuditAction.Deleted, audit.Action);
+        Assert.Equal(AuditEntityType.User, audit.EntityType);
+        Assert.Equal(targetUser.Id, audit.EntityId);
+        Assert.Contains("Carlos Moderador", audit.Summary);
+        Assert.Contains("Solicitud RGPD derecho al olvido", audit.Summary);
+    }
+
+    [Fact]
+    public async Task UserManagementService_AnonymizeUserAsync_NonFounder_ThrowsUnauthorized()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+        currentUser.RolesList = ["User"];
+
+        var auditService = new AuditService(auditRepo, currentUser);
+        var userService = new UserManagementService(userRepo, auditService, currentUser);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => userService.AnonymizeUserAsync("target", "Motivo"));
+    }
+
+    [Fact]
+    public async Task UserManagementService_AnonymizeUserAsync_NotFound_ThrowsKeyNotFoundException()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+
+        var auditService = new AuditService(auditRepo, currentUser);
+        var userService = new UserManagementService(userRepo, auditService, currentUser);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => userService.AnonymizeUserAsync("non_existent", "Motivo"));
+    }
+
+    [Fact]
+    public async Task UserManagementService_AnonymizeUserAsync_AlreadyDeleted_ReturnsIdempotentlyWithoutReauditing()
+    {
+        var userRepo = new FakeUserRepository();
+        var auditRepo = new FakeAuditLogRepository();
+        var currentUser = new FakeCurrentUserService();
+
+        var user = new AppUser("deleted_user", "Usuario eliminado", "deleted-123@deleted.ludeka.es", status: UserStatus.Deleted);
+        await userRepo.AddAsync(user);
+
+        var auditService = new AuditService(auditRepo, currentUser);
+        var userService = new UserManagementService(userRepo, auditService, currentUser);
+
+        var result = await userService.AnonymizeUserAsync(user.Id, "Intento repetido");
+
+        Assert.Equal(UserStatus.Deleted, result.Status);
+        Assert.Empty(auditRepo.Entries);
+    }
 }
+

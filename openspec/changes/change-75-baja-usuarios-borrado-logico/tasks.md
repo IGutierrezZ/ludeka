@@ -11,10 +11,10 @@
 - [x] 2.3 Crear o ampliar pruebas unitarias de repositorios en `tests/Ludeka.UnitTests/Infrastructure/ExternalLoginRepositoryTests.cs`.
 
 ## Fase 3: Casos de Uso y Servicios de Aplicación
-- [ ] 3.1 Extender `IUserManagementService` con `AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default)` e implementarlo en `UserManagementService.cs` con purga de logins, registro de auditoría (`AuditAction.Deleted`, `AuditEntityType.User`) e invalidación de sesión.
-- [ ] 3.2 Crear contrato `IUserAccountService` e implementarlo en `src/Ludeka.Application/Features/Account/UserAccountService.cs` para el autoservicio de baja voluntaria del usuario autenticado en sesión.
-- [ ] 3.3 Registrar `IUserAccountService` en el contenedor de dependencias (`Program.cs`).
-- [ ] 3.4 Crear pruebas unitarias de aplicación para `UserManagementService.AnonymizeUserAsync` y `UserAccountService.CloseOwnAccountAsync`.
+- [x] 3.1 Extender `IUserManagementService` con `AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default)` e implementarlo en `UserManagementService.cs` con purga de logins, registro de auditoría (`AuditAction.Deleted`, `AuditEntityType.User`) e invalidación de sesión.
+- [x] 3.2 Crear contrato `IUserAccountService` e implementarlo en `src/Ludeka.Application/Features/Account/UserAccountService.cs` para el autoservicio de baja voluntaria del usuario autenticado en sesión.
+- [x] 3.3 Registrar `IUserAccountService` en el contenedor de dependencias (`Program.cs` / DI extensions).
+- [x] 3.4 Crear pruebas unitarias de aplicación para `UserManagementService.AnonymizeUserAsync` y `UserAccountService.CloseOwnAccountAsync`.
 
 ## Fase 4: Endpoints HTTP y Capa Web
 - [ ] 4.1 Añadir endpoint POST `/cuenta/baja` con antiforgery, llamada a `CloseOwnAccountAsync`, cierre de cookie (`SignOutAsync`) y redirección a `/?aviso=cuenta-eliminada`.
