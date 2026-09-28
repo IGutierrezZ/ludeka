@@ -1,11 +1,11 @@
 # INC-75: Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido)
 
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Fecha de Creación:** 2026-09-28  
-> **Rama Prevista:** `inc/baja-usuarios-borrado-logico`  
-> **Worktree Previsto:** `C:\repos\ludeka-wt\baja-usuarios-borrado-logico`  
+> **Rama:** `inc/baja-usuarios-borrado-logico`  
+> **Worktree:** `F:\repos\ludeka-wt\baja-usuarios-borrado-logico`  
 > **Dependencias:** INC-20 (Gestión de usuarios y auditoría), INC-46 (Autenticación real e invalidación de sesiones), INC-49/63 (Conexiones OAuth y ExternalLogins), INC-62 (Área de cuenta y privacidad)  
-> **Especificación Viva Prevista:** `docs/specs/sistema/45-baja-usuarios-y-derecho-al-olvido.md`
+> **Especificación Viva:** `docs/specs/sistema/44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md`
 
 ---
 
@@ -101,29 +101,29 @@ Tras la detección de colisiones de cuentas secundarias creadas accidentalmente 
 
 ## 8. Plan de Tareas ODD (Work Units)
 
-- [ ] **Tarea 1 (Dominio y Estado de Usuario):**
+- [x] **Tarea 1 (Dominio y Estado de Usuario):**
   - Añadir `UserStatus.Deleted` a `src/Ludeka.Core/Enums/UserStatus.cs`.
-  - Incorporar método de dominio `Anonymize()` en `AppUser.cs`.
-  - Pruebas unitarias de dominio en `tests/Ludeka.UnitTests/Domain/AppUserTests.cs`.
-- [ ] **Tarea 2 (Contratos y Casos de Uso de Aplicación):**
+  - Incorporar método de dominio `AnonymizeAndClose()` en `AppUser.cs`.
+  - Pruebas unitarias de dominio en `tests/Ludeka.UnitTests/Domain/UserManagementDomainTests.cs`.
+- [x] **Tarea 2 (Contratos y Casos de Uso de Aplicación):**
   - Extender `IUserManagementService` con `AnonymizeUserAsync(string userId, string reason, CancellationToken ct)`.
-  - Crear `IUserAccountService` (o ampliar en `IAccountConnectionsService`) con `CloseOwnAccountAsync(CancellationToken ct)`.
+  - Crear `IUserAccountService` con `CloseOwnAccountAsync(CancellationToken ct)`.
   - Pruebas unitarias de aplicación con mocks de repositorios y validación de orquestación.
-- [ ] **Tarea 3 (Implementación de Repositorios y Purgado de Credenciales):**
+- [x] **Tarea 3 (Implementación de Repositorios y Purgado de Credenciales):**
   - Implementar borrado por `UserId` en `IExternalLoginRepository` (`DeleteByUserIdAsync`).
   - Implementar lógica en `UserManagementService` para orquestar la anonimización, purga de logins y llamada a `IUserSessionInvalidator`.
   - Pruebas de integración/unitarias de repositorios en SQLite.
-- [ ] **Tarea 4 (Migración de Base de Datos EF Core):**
-  - Crear migración `AddDeletedUserStatus` (o sincronización de enum/constraints si aplica) para SQLite y PostgreSQL.
+- [x] **Tarea 4 (Persistencia y Compatibilidad EF Core):**
+  - Verificar compatibilidad de `UserStatus.Deleted = 2` y unicidad del correo sintético para SQLite y PostgreSQL.
   - Verificar idempotencia y compatibilidad del índice único de correos.
-- [ ] **Tarea 5 (UI Autoservicio en Área de Cuenta):**
-  - Añadir sección «Zona de peligro / Dar de baja mi cuenta» en `AccountPrivacy.razor` (o subpestaña dedicada en `/cuenta`).
-  - Modal interactivo de confirmación con teclado accesible y región aria.
-  - Endpoint o acción de cierre de sesión interactivo con redirección limpia.
-- [ ] **Tarea 6 (UI Administrativa en Gestión de Usuarios):**
+- [x] **Tarea 5 (UI Autoservicio en Área de Cuenta):**
+  - Añadir sección «Zona de peligro / Dar de baja mi cuenta» en `AccountPrivacy.razor`.
+  - Modal interactivo de confirmación con teclado accesible y requerimiento textual "DAR DE BAJA".
+  - Endpoint `POST /cuenta/baja` con antiforgery y cierre de sesión interactivo con redirección limpia a `/?aviso=cuenta-eliminada`.
+- [x] **Tarea 6 (UI Administrativa en Gestión de Usuarios):**
   - Añadir botón de «Dar de baja» en `UserManagement.razor` para usuarios no fundadores.
   - Modal de confirmación administrativa e integración con registro de auditoría.
-- [ ] **Tarea 7 (Cierre, Documentación Viva y Verificación):**
-  - Ejecución de la suite completa de pruebas unitarias (`dotnet test`).
-  - Redacción de la especificación viva `docs/specs/sistema/45-baja-usuarios-y-derecho-al-olvido.md`.
+- [x] **Tarea 7 (Cierre, Documentación Viva y Verificación):**
+  - Ejecución de la suite completa de pruebas (`dotnet test`, 2.001 pruebas superadas al 100%).
+  - Redacción de la especificación viva `docs/specs/sistema/44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md`.
   - Actualización de `ROADMAP.md` y `docs/specs/sistema/README.md`.

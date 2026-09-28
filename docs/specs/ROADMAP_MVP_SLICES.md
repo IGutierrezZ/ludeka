@@ -704,9 +704,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 ## Incremento 75: Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido)
 - **Identificador SDD:** `change-75-baja-usuarios-borrado-logico`
 - **Objetivo Principal:** Implementar la baja y supresión de cuentas (RGPD art. 17) mediante borrado lógico y anonimización irreversible de PII (`UserStatus.Deleted`, correo sintético y seudónimo anónimo) preservando la integridad referencial comunitaria, con purgado de credenciales en `ExternalLogins`, expulsión inmediata de sesiones (`IUserSessionInvalidator`), autoservicio en área personal (`/cuenta/privacidad`) y acción administrativa en `/admin/usuarios`.
-- **Estado:** ⏳ **En progreso**.
-- **Documento:** [`inc-75-baja-usuarios-borrado-logico.md`](file:///c:/repos/Ludeka/docs/increments/inc-75-baja-usuarios-borrado-logico.md).
-- **Módulos del Sistema:** [`14-gestion-usuarios-permisos-auditoria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-auditoria.md), `45-baja-usuarios-y-derecho-al-olvido.md`.
+- **Estado:** ✅ **Completado y Archivado** (2.001 tests en verde al 100%: 1.991 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-75-baja-usuarios-borrado-logico.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-75-baja-usuarios-borrado-logico.md).
+- **Módulos del Sistema:** [`14-gestion-usuarios-permisos-y-auditoria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md), [`44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md`](file:///c:/repos/Ludeka/docs/specs/sistema/44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md).
 
 ---
 

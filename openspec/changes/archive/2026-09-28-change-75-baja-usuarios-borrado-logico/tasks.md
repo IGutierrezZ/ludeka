@@ -26,4 +26,4 @@
 - [x] 5.3 Añadir pruebas de componentes Razor para `AccountPrivacy.razor` y `UserManagement.razor`.
 
 ## Fase 6: Verificación Integral y Suite de Pruebas
-- [ ] 6.1 Ejecutar `dotnet test` y constatar el 100% de la suite de pruebas en verde sin regresiones.
+- [x] 6.1 Ejecutar `dotnet test` y constatar el 100% de la suite de pruebas en verde sin regresiones (2.001 pruebas superadas: 1.991 unitarias + 10 de integración).
