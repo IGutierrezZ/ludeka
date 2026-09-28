@@ -25,7 +25,7 @@ public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayReposi
         await using var scope = await CreateScopeAsync(ct);
         // En SQLite cargamos en memoria para realizar el filtrado y ordenación por DateTimeOffset
         var list = await scope.Context.Giveaways
-            .Include(g => g.Game)
+            .AsNoTracking()
             .ToListAsync(ct);
 
         if (!includeExpired)
@@ -40,7 +40,7 @@ public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayReposi
     {
         await using var scope = await CreateScopeAsync(ct);
         return await scope.Context.Giveaways
-            .Include(g => g.Game)
+            .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Id == id, ct);
     }
 
@@ -50,7 +50,9 @@ public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayReposi
         var cleanOrganizer = organizer.Trim().ToLowerInvariant();
 
         await using var scope = await CreateScopeAsync(ct);
-        var candidates = await scope.Context.Giveaways.ToListAsync(ct);
+        var candidates = await scope.Context.Giveaways
+            .AsNoTracking()
+            .ToListAsync(ct);
 
         return candidates.FirstOrDefault(g =>
             !g.IsExpired &&
@@ -62,16 +64,26 @@ public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayReposi
 
     public async Task AddAsync(Giveaway giveaway, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(giveaway);
         await using var scope = await CreateScopeAsync(ct);
         await scope.Context.Giveaways.AddAsync(giveaway, ct);
+        if (giveaway.Game != null)
+        {
+            scope.Context.Entry(giveaway.Game).State = EntityState.Unchanged;
+        }
         await scope.Context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Giveaway giveaway, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(giveaway);
         await using var scope = await CreateScopeAsync(ct);
-        scope.Context.Giveaways.Update(giveaway);
-        await scope.Context.SaveChangesAsync(ct);
+        var existing = await scope.Context.Giveaways.FirstOrDefaultAsync(g => g.Id == giveaway.Id, ct);
+        if (existing != null)
+        {
+            scope.Context.Entry(existing).CurrentValues.SetValues(giveaway);
+            await scope.Context.SaveChangesAsync(ct);
+        }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

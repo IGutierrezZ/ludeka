@@ -25,7 +25,6 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
         await using var scope = await CreateScopeAsync(ct);
         var items = await scope.Context.SocialInboxItems
             .AsNoTracking()
-            .Include(i => i.Game)
             .Where(i => i.Status == SocialInboxStatus.PendingReview)
             .ToListAsync(ct);
 
@@ -47,7 +46,6 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
         await using var scope = await CreateScopeAsync(ct);
         var items = await scope.Context.SocialInboxItems
             .AsNoTracking()
-            .Include(i => i.Game)
             .ToListAsync(ct);
 
         if (statusFilter.HasValue)
@@ -72,7 +70,6 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
         await using var scope = await CreateScopeAsync(ct);
         return await scope.Context.SocialInboxItems
             .AsNoTracking()
-            .Include(i => i.Game)
             .FirstOrDefaultAsync(i => i.Id == id, ct);
     }
 
@@ -89,6 +86,10 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
         ArgumentNullException.ThrowIfNull(item);
         await using var scope = await CreateScopeAsync(ct);
         await scope.Context.SocialInboxItems.AddAsync(item, ct);
+        if (item.Game != null)
+        {
+            scope.Context.Entry(item.Game).State = EntityState.Unchanged;
+        }
         await scope.Context.SaveChangesAsync(ct);
         return item;
     }
@@ -97,8 +98,12 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
     {
         ArgumentNullException.ThrowIfNull(item);
         await using var scope = await CreateScopeAsync(ct);
-        scope.Context.SocialInboxItems.Update(item);
-        await scope.Context.SaveChangesAsync(ct);
+        var existing = await scope.Context.SocialInboxItems.FirstOrDefaultAsync(i => i.Id == item.Id, ct);
+        if (existing != null)
+        {
+            scope.Context.Entry(existing).CurrentValues.SetValues(item);
+            await scope.Context.SaveChangesAsync(ct);
+        }
     }
 
     public async Task<bool> ExistsBySourceUrlAsync(string sourceUrl, CancellationToken ct = default)
