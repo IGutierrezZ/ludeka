@@ -186,9 +186,14 @@ Al aprobar un ítem en `SocialIngestionService`:
 - Menú de moderación de `MainLayout.razor` con enlaces a la bandeja y al directorio de canales.
 - Botones de acción rápida `[ ⚡ Alta Exprés ]` en las cabeceras de `Radar.razor`, `News.razor` y `Events.razor` para moderadores y fundadores.
 
+### 4.5. Persistencia Aislada y Blindaje ante Colecciones JSON Propias en EF Core (PR #139)
+- **Desacoplamiento de Lecturas:** Eliminados los `.Include(i => i.Game)` de `SqliteSocialInboxRepository`, `SqliteGiveawayRepository` y `SqliteWeeklyReleaseRepository`. Las entidades de moderación y radar almacenan directamente `GameId` y `GameTitle`, sin requerir la carga en memoria del agregado `Game`.
+- **Actualización Atómica y Aislada en `UpdateAsync`:** Los repositorios `SqliteSocialInboxRepository`, `SqliteGiveawayRepository`, `SqliteWeeklyReleaseRepository` y `SqliteMediaRepository` recuperan la entidad existente en el `scope` del DbContext y actualizan exclusivamente sus valores escalares mediante `scope.Context.Entry(existing).CurrentValues.SetValues(entity)`. Esto erradica el fallo de claves sombra ordinales (`ScalabilityEntry.__synthesizedOrdinal`) cuando se actualizan o aprueban elementos asociados a juegos con colecciones JSON propias (`OwnsMany(..., b => b.ToJson())`).
+- **Protección en `AddAsync`:** Ante entidades que conserven una referencia no nula a `Game`, se establece de forma explícita `Entry(game).State = EntityState.Unchanged`, evitando que EF Core intente registrarlas como dependencias nuevas del contexto.
+
 ---
 
 ## 6. Pruebas y Validación
 
-- **Suite Automatizada de la Solución:** 1.938 pruebas unitarias en verde (100% superado), incluyendo pruebas específicas para el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
+- **Suite Automatizada de la Solución:** 2.048 pruebas unitarias en verde (100% superado), incluyendo la suite específica `SqliteSocialInboxRepositoryTests` para validar los flujos de actualización, edición y aprobación de ítems y sorteos vinculados a juegos con escalabilidad por consenso, junto con el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
 - **Pruebas de Componente y Contratos de Marcado:** Verificación con `WebMarkupContractTests` garantizando la ausencia total de emojis prohibidos y el uso riguroso del sistema de diseño editorial con Lucide Icons.
