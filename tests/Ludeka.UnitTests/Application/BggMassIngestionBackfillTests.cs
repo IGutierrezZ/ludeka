@@ -254,6 +254,162 @@ public class BggMassIngestionBackfillTests
         Assert.Equal(0, secondResult.UpdatedCount);
     }
 
+    [Fact]
+    public async Task PromoteReadyToCatalogBatchAsync_WhenPromotingNewGame_AssignsInferredStyleAndCalculatesDurationWithoutCollapse()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var bggClient = new FakeBggClient();
+        var geekDo = new FakeGeekDoClient();
+        var images = new FakeImageStorageService();
+        var ai = new FakeAiSummaryService();
+        var gameRepo = new FakeGameRepo();
+        using var httpClient = new HttpClient();
+        var options = Options.Create(new BggMassIngestionOptions());
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            geekDo,
+            images,
+            ai,
+            gameRepo,
+            httpClient,
+            options,
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Juego temático de 120 minutos para 4 jugadores (ej. Dune: Imperium)
+        var stagingItem = new BggCatalogStagingItem(316554, "Dune: Imperium", 2020, 10, 50000, 8.3, 8.4);
+        stagingItem.MarkFetched(
+            rawXml: "<dna style=\"Ameritrash\" confrontation=\"Competitive\" solo=\"True\" />",
+            spanishTitle: "Dune: Imperium",
+            designer: "Paul Dennen",
+            publisher: "Dire Wolf",
+            description: "Juego de construcción de mazos y colocación de trabajadores.",
+            minPlayers: 1,
+            maxPlayers: 4,
+            playingTimeMinutes: 120, // Duración total de 120 minutos
+            minAge: 14,
+            bggRating: 8.3,
+            minPlayTimeMinutes: 60,
+            maxPlayTimeMinutes: 120,
+            inferredFootprint: TableFootprint.StandardTable,
+            scalability: new List<ScalabilityEntry>
+            {
+                new(1, "1", ScalabilityStatus.Recommended, 200, 300, 20),
+                new(4, "4", ScalabilityStatus.MustPlay, 1500, 100, 10)
+            }
+        );
+        stagingItem.MarkImagesCompleted("https://cdn.ludeka.com/dune.jpg", "https://cdn.ludeka.com/dune_thumb.jpg");
+        stagingRepo.Items.Add(stagingItem);
+
+        // Act
+        int promotedCount = await service.PromoteReadyToCatalogBatchAsync(batchSize: 10);
+
+        // Assert
+        Assert.Equal(1, promotedCount);
+        var created = Assert.Single(gameRepo.Games);
+        Assert.Equal(GameStyle.Ameritrash, created.Style); // Inferido desde staging, no Eurogame
+        Assert.Equal(120, created.Duration.MaxMinutes);
+        Assert.Equal(30, created.Duration.EstimatedPerPlayerMinutes); // 120 / 4 = 30, no colapsado a 15
+        Assert.True(created.IsOfficialSolo);
+    }
+
+    [Fact]
+    public async Task BackfillCatalogQualityBatchAsync_WhenGameHasEurogameAndCollapsedDuration_UpdatesDnaAndDuration()
+    {
+        // Arrange
+        var stagingRepo = new FakeStagingRepo();
+        var bggClient = new FakeBggClient();
+        var geekDo = new FakeGeekDoClient();
+        var images = new FakeImageStorageService();
+        var ai = new FakeAiSummaryService();
+        var gameRepo = new FakeGameRepo();
+        using var httpClient = new HttpClient();
+        var options = Options.Create(new BggMassIngestionOptions());
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            geekDo,
+            images,
+            ai,
+            gameRepo,
+            httpClient,
+            options,
+            NullLogger<BggMassIngestionService>.Instance
+        );
+
+        // Juego en catálogo con Eurogame y duración colapsada (15 min/jugador)
+        var dune = new Game(
+            bggId: 316554,
+            originalTitle: "Dune: Imperium",
+            spanishTitle: "Dune: Imperium",
+            designer: "Paul Dennen",
+            publisher: "Dire Wolf",
+            yearPublished: 2020,
+            coverImageUrl: "https://cdn.ludeka.com/dune.jpg",
+            thumbnailUrl: "https://cdn.ludeka.com/dune_thumb.jpg",
+            description: "Desc",
+            bggRating: 8.3,
+            bggRank: 10,
+            ludistRating: 8.3,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame, // Estilo incorrecto legacy
+            isOfficialSolo: false,
+            age: new AgeRating(14, 14),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(60, 120, 15), // Duración colapsada previa
+            scalability: new List<ScalabilityEntry>
+            {
+                new(1, "1", ScalabilityStatus.Recommended, 0, 0, 0), // 0 votos sintéticos
+                new(4, "4", ScalabilityStatus.Recommended, 0, 0, 0)
+            }
+        );
+        gameRepo.Games.Add(dune);
+
+        // BGG devuelve datos enriquecidos con Ameritrash, votos comunitarios y duración adecuada
+        var fetchedDune = new Game(
+            bggId: 316554,
+            originalTitle: "Dune: Imperium",
+            spanishTitle: "Dune: Imperium",
+            designer: "Paul Dennen",
+            publisher: "Dire Wolf",
+            yearPublished: 2020,
+            coverImageUrl: "https://cdn.ludeka.com/dune.jpg",
+            thumbnailUrl: "https://cdn.ludeka.com/dune_thumb.jpg",
+            description: "Desc",
+            bggRating: 8.3,
+            bggRank: 10,
+            ludistRating: 8.3,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Ameritrash,
+            isOfficialSolo: true,
+            age: new AgeRating(14, 14),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(60, 120, 30),
+            scalability: new List<ScalabilityEntry>
+            {
+                new(1, "1", ScalabilityStatus.Recommended, 150, 200, 10),
+                new(4, "4", ScalabilityStatus.MustPlay, 2500, 100, 5)
+            }
+        );
+        bggClient.Games[316554] = fetchedDune;
+
+        // Act
+        var result = await service.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 10);
+
+        // Assert
+        Assert.Equal(1, result.UpdatedCount);
+        Assert.Equal(GameStyle.Ameritrash, dune.Style); // ADN actualizado
+        Assert.True(dune.IsOfficialSolo);
+        Assert.Equal(30, dune.Duration.EstimatedPerPlayerMinutes); // Duración actualizada
+        Assert.Contains(dune.Scalability, s => s.BestVotes > 0); // Escalabilidad comunitaria restaurada
+    }
+
     #region Fakes
 
     private class FakeStagingRepo : IBggCatalogStagingRepository
@@ -359,9 +515,9 @@ public class BggMassIngestionBackfillTests
         public Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Array.Empty<Game>());
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Games);
         public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
-            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.Scalability.Count == 0).Take(limit).ToList());
+            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0)).Take(limit).ToList());
         public Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
-            => Task.FromResult(Games.Count(g => g.Scalability.Count == 0));
+            => Task.FromResult(Games.Count(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0)));
     }
 
     #endregion
