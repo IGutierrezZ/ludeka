@@ -68,6 +68,42 @@ public class GiveawayService : IGiveawayService
         await _repository.UpdateAsync(giveaway, ct);
     }
 
+    public async Task<GiveawayDto> UpdateGiveawayAsync(UpdateGiveawayRequest request, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var giveaway = await _repository.GetByIdAsync(request.Id, ct)
+            ?? throw new KeyNotFoundException($"No se encontró ningún sorteo con el identificador '{request.Id}'.");
+
+        giveaway.Update(
+            title: request.Title,
+            organizer: request.Organizer,
+            collaborator: request.Collaborator,
+            url: request.Url,
+            platform: request.Platform,
+            deadlineAt: request.DeadlineAt,
+            country: request.Country,
+            gameId: request.GameId,
+            gameTitle: request.GameTitle,
+            thumbnailUrl: request.ThumbnailUrl,
+            isCommunityExclusive: request.IsCommunityExclusive,
+            isPromoted: request.IsPromoted);
+
+        await _repository.UpdateAsync(giveaway, ct);
+        return MapToDto(giveaway);
+    }
+
+    public async Task DeleteGiveawayAsync(Guid id, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var giveaway = await _repository.GetByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No se encontró ningún sorteo con el identificador '{id}'.");
+
+        await _repository.DeleteAsync(id, ct);
+    }
+
     public async Task<GiveawayDto> CreateOrMergeGiveawayAsync(CreateGiveawayRequest request, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);

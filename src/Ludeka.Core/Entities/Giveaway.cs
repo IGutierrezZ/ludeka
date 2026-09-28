@@ -147,4 +147,42 @@ public class Giveaway
         InstagramPermalink = permalink.Trim();
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void Update(
+        string title,
+        string organizer,
+        string? collaborator,
+        string url,
+        GiveawayPlatform platform,
+        DateTimeOffset deadlineAt,
+        string country = "España",
+        Guid? gameId = null,
+        string? gameTitle = null,
+        string? thumbnailUrl = null,
+        bool isCommunityExclusive = false,
+        bool isPromoted = false)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título del sorteo no puede estar vacío.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(organizer))
+            throw new ArgumentException("El organizador del sorteo no puede estar vacío.", nameof(organizer));
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("La URL del sorteo no puede estar vacía.", nameof(url));
+
+        Title = title.Trim();
+        Organizer = organizer.Trim();
+        Collaborator = string.IsNullOrWhiteSpace(collaborator) ? null : collaborator.Trim();
+        Url = url.Trim();
+        Platform = platform;
+        DeadlineAt = deadlineAt;
+        Country = string.IsNullOrWhiteSpace(country) ? "España" : CountryCatalog.Normalize(country);
+        GameId = gameId;
+        GameTitle = string.IsNullOrWhiteSpace(gameTitle) ? null : gameTitle.Trim();
+        ThumbnailUrl = string.IsNullOrWhiteSpace(thumbnailUrl) ? null : thumbnailUrl.Trim();
+        IsCommunityExclusive = isCommunityExclusive;
+        IsPromoted = isPromoted;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }
