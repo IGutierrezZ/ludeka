@@ -87,7 +87,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ✅ Archivado | [inc-72-ux-catalogo-filtros-multiseleccion.md](archive/inc-72-ux-catalogo-filtros-multiseleccion.md) |
 | **INC-73** | Ingesta Masiva BGG (>100 opiniones), Anti-Duplicados y Enriquecimiento Integral (Escalabilidad, Fundas, Tiempos, Huella y Localización Multipaís) | ✅ Archivado | [inc-73-ingesta-enriquecimiento-catalogo.md](archive/inc-73-ingesta-enriquecimiento-catalogo.md) |
 | **INC-74** | Curación y Saneamiento Integral del Directorio Lúdico Español | ✅ Archivado | [inc-74-curacion-directorio-ludico.md](archive/inc-74-curacion-directorio-ludico.md) |
-| **INC-75** | Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido) | ⏳ Planificado | [inc-75-baja-usuarios-borrado-logico.md](inc-75-baja-usuarios-borrado-logico.md) |
+| **INC-75** | Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido) | ⏳ En progreso | [inc-75-baja-usuarios-borrado-logico.md](inc-75-baja-usuarios-borrado-logico.md) |
 | **INC-76** | Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link | ⏳ Planificado | [inc-76-proveedor-correo-transaccional.md](inc-76-proveedor-correo-transaccional.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -116,7 +116,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Actualmente no hay incrementos en curso. Todos los incrementos del backlog se encuentran archivados o completados).*
+| Incremento | Rama | Worktree | Estado | Propósito |
+|---|---|---|---|---|
+| **INC-75** | `inc/baja-usuarios-borrado-logico` | `F:\repos\ludeka-wt\baja-usuarios-borrado-logico` | ⏳ En progreso | Baja de usuarios, anonimización y borrado lógico (RGPD / Derecho al Olvido) |
 
 *(INC-74 entregó su verificación con 1.969 pruebas unitarias en verde al 100%, y quedó archivado el 2026-09-27. Implementa la auditoría exhaustiva concurrente y curación del padrón canónico `seed-directory.json` corrigiendo 101 enlaces caídos o desactualizados [24,3% de fallos]: dominios canónicos contrastados para 46 editoriales, 37 tiendas y 35 creadores de contenido, canales oficiales @handle de YouTube, erradicación total de la redundancia `{ "platform": "Website" }` en `socialLinks` y preservación incondicional de los 118 `slug` para garantizar idempotencia y compatibilidad).*
 

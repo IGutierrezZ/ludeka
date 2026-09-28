@@ -1,6 +1,6 @@
 # INC-75: Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido)
 
-> **Estado:** ⏳ Planificado (Listo para implementación)  
+> **Estado:** ⏳ En progreso  
 > **Fecha de Creación:** 2026-09-28  
 > **Rama Prevista:** `inc/baja-usuarios-borrado-logico`  
 > **Worktree Previsto:** `C:\repos\ludeka-wt\baja-usuarios-borrado-logico`  
