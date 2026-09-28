@@ -155,3 +155,16 @@ public record BggQualityBackfillResultDto(
 {
     public int EvaluatedCount => ProcessedCount;
 }
+
+/// <summary>
+/// Resultado de un lote del barrido completo y determinista de calidad de catálogo (~10.000 juegos).
+/// </summary>
+public record BggQualitySweepBatchResultDto(
+    int EvaluatedCount,
+    int UpdatedCount,
+    int SkippedCount,
+    int FailedCount,
+    int LastBggIdProcessed,
+    bool HasMore,
+    string Message
+);

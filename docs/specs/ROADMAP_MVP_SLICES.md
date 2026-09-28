@@ -739,9 +739,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Servicio de Barrido Integral:** `SweepCatalogQualityBatchAsync` y `RunScheduledSweepCatalogQualityBatchAsync` en `BggMassIngestionService`, con estrategia *Staging-First* (actualización ultrarrápida en memoria si staging ya contiene `<dna `) y fallback a BGG XMLAPI2 con caché retroactiva.
   3. **Escritura Idempotente:** Contabilización de `SkippedCount` y omisión de escrituras en base de datos para títulos que ya tienen estilo, duración y escalabilidad correctos.
   4. **Superficie de Control:** Botón interactivo de barrido continuo en `/admin/cola-catalogacion` con contador en vivo (`Evaluados X/Total`) y ejecución desatendida en `BackfillQualityJobRunner`.
-- **Estado:** ⏳ **En progreso** (Worktree `barrido-calidad-catalogo`).
-- **Documento:** [`inc-78-barrido-calidad-catalogo.md`](../increments/inc-78-barrido-calidad-catalogo.md).
-- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md) y [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md).
+- **Estado:** ✅ **Completado y Archivado** (2.037 tests en verde al 100%: 2.027 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-78-barrido-calidad-catalogo.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-78-barrido-calidad-catalogo.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/27-ingesta-masiva-bgg-galeria-geekdo-ia-lotes.md) y [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](file:///c:/repos/Ludeka/docs/specs/sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md).
 
 ---
 

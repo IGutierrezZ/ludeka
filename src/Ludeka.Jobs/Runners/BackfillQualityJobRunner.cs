@@ -36,23 +36,29 @@ public sealed class BackfillQualityJobRunner : IJobRunner
             windowKey,
             async (_, workCt) =>
             {
+                int totalEvaluated = 0;
                 int totalUpdated = 0;
+                int totalSkipped = 0;
                 int totalFailed = 0;
+                int currentAfterBggId = 0;
 
                 while (!workCt.IsCancellationRequested)
                 {
-                    var result = await _service.RunScheduledBackfillCatalogQualityBatchAsync(50, workCt);
+                    var result = await _service.RunScheduledSweepCatalogQualityBatchAsync(currentAfterBggId, 50, workCt);
+                    totalEvaluated += result.EvaluatedCount;
                     totalUpdated += result.UpdatedCount;
+                    totalSkipped += result.SkippedCount;
                     totalFailed += result.FailedCount;
+                    currentAfterBggId = result.LastBggIdProcessed;
 
-                    // Si no se evaluó ningún título o no hubo progreso ni errores, finalizar
-                    if (result.EvaluatedCount == 0 || (result.UpdatedCount == 0 && result.FailedCount == 0))
+                    if (!result.HasMore || result.EvaluatedCount == 0)
                     {
                         break;
                     }
                 }
 
-                return new JobWorkResult(totalUpdated, totalFailed, "Completed");
+                string summary = $"Barrido de calidad completado: {totalEvaluated} evaluados ({totalUpdated} actualizados, {totalSkipped} ya correctos, {totalFailed} errores).";
+                return new JobWorkResult(totalEvaluated, totalFailed, summary);
             },
             ct);
     }
