@@ -67,4 +67,31 @@ public class AccountConnectionMessagesTests
         Assert.Contains("Ajustes", message, System.StringComparison.Ordinal);
         Assert.Contains("Conexiones", message, System.StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void LinkCancelledMessage_ShouldNotPromiseAnAutomaticResolutionAndShouldConfirmNoChanges()
+    {
+        var message = AccountConnectionMessages.LinkCancelledNotice;
+
+        foreach (var forbidden in ForbiddenWords)
+        {
+            Assert.DoesNotContain(forbidden, message, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        Assert.Contains("cancelado", message, System.StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("No se ha realizado ningún cambio", message, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LoginCancelledMessage_ShouldNotPromiseAnAutomaticResolutionAndSuggestAlternative()
+    {
+        var message = AccountConnectionMessages.LoginCancelledNotice;
+
+        foreach (var forbidden in ForbiddenWords)
+        {
+            Assert.DoesNotContain(forbidden, message, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        Assert.Contains("cancelado", message, System.StringComparison.OrdinalIgnoreCase);
+    }
 }
