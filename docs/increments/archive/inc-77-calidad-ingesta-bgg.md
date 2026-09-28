@@ -1,7 +1,7 @@
 # INC-77: Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador
 
-> **Estado:** ⏳ En progreso  
-> **Fecha de Inicio:** 2026-09-28 · **Fecha de Cierre:** Pendiente  
+> **Estado:** ✅ Archivado  
+> **Fecha de Inicio:** 2026-09-28 · **Fecha de Cierre:** 2026-09-28  
 > **Rama de Trabajo:** `inc/calidad-ingesta-bgg`  
 > **Worktree:** `C:\repos\ludeka-wt\calidad-ingesta-bgg`  
 > **Dependencias:** INC-41/INC-53 (Staging y Ranks Dump BGG), INC-71/INC-73 (Calidad de Datos BGG y Enriquecimiento)  
