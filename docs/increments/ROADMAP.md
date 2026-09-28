@@ -87,6 +87,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-72** | UX y Catálogo: Retirada de Texto BGG, Carrusel de Fotos, Menú Móvil y Filtros Avanzados Multiselección | ✅ Archivado | [inc-72-ux-catalogo-filtros-multiseleccion.md](archive/inc-72-ux-catalogo-filtros-multiseleccion.md) |
 | **INC-73** | Ingesta Masiva BGG (>100 opiniones), Anti-Duplicados y Enriquecimiento Integral (Escalabilidad, Fundas, Tiempos, Huella y Localización Multipaís) | ✅ Archivado | [inc-73-ingesta-enriquecimiento-catalogo.md](archive/inc-73-ingesta-enriquecimiento-catalogo.md) |
 | **INC-74** | Curación y Saneamiento Integral del Directorio Lúdico Español | ✅ Archivado | [inc-74-curacion-directorio-ludico.md](archive/inc-74-curacion-directorio-ludico.md) |
+| **INC-75** | Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido) | ⏳ Planificado | [inc-75-baja-usuarios-borrado-logico.md](inc-75-baja-usuarios-borrado-logico.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
