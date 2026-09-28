@@ -106,6 +106,24 @@ public class AuthorizationPipelineContractTests
     }
 
     [Fact]
+    public void DeleteAccountEndpoint_ShouldDeclareRequireAuthorizationAndAntiforgery()
+    {
+        // INC-75: el endpoint de baja de cuenta exige sesión autenticada previa, validación antiforgery y cierre de sesión.
+        var source = ReadSource("src/Ludeka.Web/Program.cs");
+
+        var index = source.IndexOf("\"/cuenta/baja\"", StringComparison.Ordinal);
+        Assert.True(index > 0, "No se encontró el endpoint /cuenta/baja en Program.cs.");
+
+        var nextEndpoint = source.IndexOf("app.Map", index + "/cuenta/baja".Length, StringComparison.Ordinal);
+        var block = nextEndpoint > index ? source[index..nextEndpoint] : source[index..];
+        Assert.Contains(".RequireAuthorization()", block, StringComparison.Ordinal);
+        Assert.Contains("antiforgery.ValidateRequestAsync", block, StringComparison.Ordinal);
+        Assert.Contains("accountService.CloseOwnAccountAsync", block, StringComparison.Ordinal);
+        Assert.Contains("httpContext.SignOutAsync", block, StringComparison.Ordinal);
+        Assert.Contains("/?aviso=cuenta-eliminada", block, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Routes_ShouldUseAuthorizeRouteViewWithRedirectToLogin()
     {
         var routes = ReadSource("src/Ludeka.Web/Components/Routes.razor");

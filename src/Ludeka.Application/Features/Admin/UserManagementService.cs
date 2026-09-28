@@ -16,17 +16,20 @@ public class UserManagementService : IUserManagementService
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUserSessionInvalidator? _sessionInvalidator;
+    private readonly IExternalLoginRepository? _externalLoginRepository;
 
     public UserManagementService(
         IUserRepository userRepository,
         IAuditService auditService,
         ICurrentUserService currentUserService,
-        IUserSessionInvalidator? sessionInvalidator = null)
+        IUserSessionInvalidator? sessionInvalidator = null,
+        IExternalLoginRepository? externalLoginRepository = null)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _sessionInvalidator = sessionInvalidator;
+        _externalLoginRepository = externalLoginRepository;
     }
 
     public async Task<IReadOnlyList<AppUserDto>> GetUsersAsync(UserFilterDto? filter = null, CancellationToken ct = default)
@@ -159,6 +162,54 @@ public class UserManagementService : IUserManagementService
         return MapToDto(user);
     }
 
+    public async Task<AppUserDto> AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default)
+    {
+        EnsureFoundingTeam();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("El identificador de usuario no puede estar vacío.", nameof(userId));
+
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Debe proporcionar un motivo o justificación para la baja del usuario.", nameof(reason));
+
+        var user = await _userRepository.GetByIdAsync(userId.Trim().ToLowerInvariant(), ct)
+            ?? throw new KeyNotFoundException($"No se encontró ningún usuario con ID '{userId}'.");
+
+        if (user.Status == UserStatus.Deleted)
+            return MapToDto(user);
+
+        var oldUserName = user.UserName;
+        var oldRole = user.Role;
+        var oldStatus = user.Status;
+
+        user.AnonymizeAndClose(reason);
+        await _userRepository.UpdateAsync(user, ct);
+
+        if (_externalLoginRepository != null)
+        {
+            await _externalLoginRepository.DeleteByUserIdAsync(user.Id, ct);
+        }
+
+        // Auditoría
+        await _auditService.RecordChangeAsync(new RecordAuditCommand(
+            UserId: _currentUserService.UserId,
+            UserName: _currentUserService.UserName,
+            Action: AuditAction.Deleted,
+            EntityType: AuditEntityType.User,
+            EntityId: user.Id,
+            EntityName: "Usuario eliminado",
+            Summary: $"Baja y anonimización del usuario '{oldUserName}' tramitada por {_currentUserService.UserName}. Motivo: {reason.Trim()}",
+            Changes: [
+                new FieldChangeDto("Status", oldStatus.ToString(), UserStatus.Deleted.ToString()),
+                new FieldChangeDto("Role", oldRole.ToString(), UserRole.CommunityUser.ToString())
+            ]
+        ), ct);
+
+        InvalidateSession(user.Id);
+
+        return MapToDto(user);
+    }
+
     /// <summary>
     /// Avisa a los circuitos del usuario afectado para que reevalúen su identidad: la suspensión o
     /// el cambio de permisos debe surtir efecto sin esperar al cierre de sesión.
@@ -205,6 +256,7 @@ public class UserManagementService : IUserManagementService
     {
         UserStatus.Active => "Activo",
         UserStatus.Suspended => "Suspendido",
+        UserStatus.Deleted => "Eliminado",
         _ => "Desconocido"
     };
 

@@ -1,5 +1,6 @@
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Account;
 using Ludeka.Application.Features.Admin;
 using Ludeka.Application.Features.Affiliates;
 using Ludeka.Application.Features.Bgg;
@@ -96,6 +97,7 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IExternalLoginRepository, ExternalLoginRepository>();
         services.AddScoped<IExternalLoginService, ExternalLoginService>();
         services.AddScoped<IAccountConnectionsService, AccountConnectionsService>();
+        services.AddScoped<IUserAccountService, UserAccountService>();
 
         // Incremento 64: acceso por correo mediante Magic Link.
         services.Configure<MagicLinkOptions>(configuration.GetSection(MagicLinkOptions.SectionName));

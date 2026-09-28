@@ -300,4 +300,45 @@ public class ExternalLoginPersistenceTests : IAsyncLifetime
         var indexCount = Convert.ToInt32(await indexCmd.ExecuteScalarAsync());
         Assert.Equal(2, indexCount);
     }
+
+    [Fact]
+    public async Task DeleteByUserIdAsync_ShouldRemoveAllLoginsForGivenUser()
+    {
+        // Arrange
+        var user1 = await SeedUserAsync("user-del-1");
+        var user2 = await SeedUserAsync("user-del-2");
+
+        var repo = new ExternalLoginRepository(_context);
+        await repo.AddAsync(new ExternalLogin(user1.Id, "Google", "g-1", "u1@gmail.com"));
+        await repo.AddAsync(new ExternalLogin(user1.Id, "Discord", "d-1", "u1@discord.com"));
+        await repo.AddAsync(new ExternalLogin(user2.Id, "Google", "g-2", "u2@gmail.com"));
+
+        // Act
+        await repo.DeleteByUserIdAsync(user1.Id);
+
+        // Assert
+        var user1Logins = await repo.ListByUserIdAsync(user1.Id);
+        var user2Logins = await repo.ListByUserIdAsync(user2.Id);
+
+        Assert.Empty(user1Logins);
+        Assert.Single(user2Logins);
+        Assert.Equal("g-2", user2Logins[0].ProviderKey);
+
+        // Proveedor liberado para re-registro
+        var lookup = await repo.GetByProviderKeyAsync("Google", "g-1");
+        Assert.Null(lookup);
+    }
+
+    [Fact]
+    public async Task DeleteByUserIdAsync_WhenUserHasNoLoginsOrWhitespace_ShouldNotThrow()
+    {
+        // Arrange
+        var repo = new ExternalLoginRepository(_context);
+
+        // Act & Assert
+        await repo.DeleteByUserIdAsync("non-existent-user");
+        await repo.DeleteByUserIdAsync("   ");
+        await repo.DeleteByUserIdAsync(string.Empty);
+    }
 }
+

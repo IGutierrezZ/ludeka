@@ -195,4 +195,71 @@ public class UserManagementDomainTests
             Assert.True(seenValues.Add((int)value), $"El valor {(int)value} de {value} está duplicado.");
         }
     }
+
+    [Fact]
+    public void UserStatus_Deleted_IsAppendedWithoutRenumbering()
+    {
+        Assert.Equal(0, (int)UserStatus.Active);
+        Assert.Equal(1, (int)UserStatus.Suspended);
+        Assert.Equal(2, (int)UserStatus.Deleted);
+    }
+
+    [Fact]
+    public void AppUser_AnonymizeAndClose_ShouldAnonymizePII_RevokePermissions_AndSetDeletedStatus()
+    {
+        var user = new AppUser(
+            id: "user-to-delete",
+            userName: "Carlos Jugador",
+            email: "carlos.jugador@ejemplo.com",
+            role: UserRole.Moderator,
+            permissions: ModeratorPermission.CanEditGames | ModeratorPermission.CanApproveMedia,
+            country: "ES"
+        );
+
+        user.AnonymizeAndClose("Solicitud de baja voluntaria por RGPD");
+
+        Assert.Equal(UserStatus.Deleted, user.Status);
+        Assert.Equal("Usuario eliminado", user.UserName);
+        Assert.StartsWith("deleted-", user.Email);
+        Assert.EndsWith("@deleted.ludeka.es", user.Email);
+        Assert.Null(user.Country);
+        Assert.Equal(UserRole.CommunityUser, user.Role);
+        Assert.Equal(ModeratorPermission.None, user.Permissions);
+        Assert.NotNull(user.UpdatedAt);
+        Assert.False(user.HasPermission(ModeratorPermission.CanEditGames));
+    }
+
+    [Fact]
+    public void AppUser_AnonymizeAndClose_OnFoundingTeam_ShouldThrowInvalidOperationException()
+    {
+        var founder = new AppUser(
+            id: "founder-1",
+            userName: "Fundador Principal",
+            email: "founder@ludeka.es",
+            role: UserRole.FoundingTeam
+        );
+
+        var ex = Assert.Throws<InvalidOperationException>(() => founder.AnonymizeAndClose());
+        Assert.Contains("Mesa Fundadora", ex.Message);
+        Assert.Equal(UserStatus.Active, founder.Status);
+    }
+
+    [Fact]
+    public void ModeratorPermissionRules_DeletedUser_ShouldDenyAllPermissions()
+    {
+        Assert.False(ModeratorPermissionRules.Grants(
+            UserRole.Moderator,
+            UserStatus.Deleted,
+            ModeratorPermission.All,
+            ModeratorPermission.CanEditGames
+        ));
+
+        Assert.False(ModeratorPermissionRules.Grants(
+            UserRole.FoundingTeam,
+            UserStatus.Deleted,
+            ModeratorPermission.All,
+            ModeratorPermission.CanEditGames
+        ));
+    }
 }
+

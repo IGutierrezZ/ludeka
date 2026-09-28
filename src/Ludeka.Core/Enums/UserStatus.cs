@@ -13,5 +13,10 @@ public enum UserStatus
     /// <summary>
     /// Cuenta suspendida. Se inhabilitan inmediatamente todos los privilegios y accesos de moderación.
     /// </summary>
-    Suspended
+    Suspended = 1,
+
+    /// <summary>
+    /// Cuenta dada de baja con datos personales anonimizados de forma irreversible (RGPD art. 17).
+    /// </summary>
+    Deleted = 2
 }

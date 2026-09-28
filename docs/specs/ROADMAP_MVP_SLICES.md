@@ -701,6 +701,24 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 75: Baja de Usuarios, Anonimización y Borrado Lógico (RGPD / Derecho al Olvido)
+- **Identificador SDD:** `change-75-baja-usuarios-borrado-logico`
+- **Objetivo Principal:** Implementar la baja y supresión de cuentas (RGPD art. 17) mediante borrado lógico y anonimización irreversible de PII (`UserStatus.Deleted`, correo sintético y seudónimo anónimo) preservando la integridad referencial comunitaria, con purgado de credenciales en `ExternalLogins`, expulsión inmediata de sesiones (`IUserSessionInvalidator`), autoservicio en área personal (`/cuenta/privacidad`) y acción administrativa en `/admin/usuarios`.
+- **Estado:** ✅ **Completado y Archivado** (2.001 tests en verde al 100%: 1.991 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-75-baja-usuarios-borrado-logico.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-75-baja-usuarios-borrado-logico.md).
+- **Módulos del Sistema:** [`14-gestion-usuarios-permisos-y-auditoria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md), [`44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md`](file:///c:/repos/Ludeka/docs/specs/sistema/44-baja-usuarios-anonimizacion-y-derecho-al-olvido.md).
+
+---
+
+## Incremento 76: Proveedor de Correo Transaccional (Resend / Brevo) para Magic Link y Notificaciones
+- **Identificador SDD:** `change-76-proveedor-correo-transaccional`
+- **Objetivo Principal:** Conectar un proveedor real de correo transaccional vía HTTP API (Resend / Brevo con `HttpClientFactory`) para la entrega real en producción de enlaces de acceso Magic Link sin contraseñas y notificaciones críticas del sistema, superando la restricción del puerto SMTP 25 en Google Cloud Run con fallback automático a simulación en desarrollo.
+- **Estado:** ⏳ **Planificado** (Backlog futuro).
+- **Documento:** [`inc-76-proveedor-correo-transaccional.md`](file:///c:/repos/Ludeka/docs/increments/inc-76-proveedor-correo-transaccional.md).
+- **Módulos del Sistema:** [`40-acceso-por-correo-magic-link.md`](file:///c:/repos/Ludeka/docs/specs/sistema/40-acceso-por-correo-magic-link.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

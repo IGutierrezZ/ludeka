@@ -54,7 +54,11 @@ public class UserPermissionsModalTests
 
         public Task<AppUserDto> UpdateUserStatusAsync(UpdateUserStatusCommand command, CancellationToken ct = default)
             => throw new NotSupportedException("El modal de permisos no cambia el estado de la cuenta.");
+
+        public Task<AppUserDto> AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default)
+            => throw new NotSupportedException("El modal de permisos no da de baja usuarios.");
     }
+
 
     private static AppUserDto BuildDto(string id, UserRole role, ModeratorPermission permissions)
         => new(

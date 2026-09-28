@@ -16,4 +16,11 @@ public interface IUserManagementService
     Task<AppUserDto> CreateUserAsync(CreateUserCommand command, CancellationToken ct = default);
     Task<AppUserDto> UpdateUserRoleAndPermissionsAsync(UpdateUserRoleAndPermissionsCommand command, CancellationToken ct = default);
     Task<AppUserDto> UpdateUserStatusAsync(UpdateUserStatusCommand command, CancellationToken ct = default);
+
+    /// <summary>
+    /// Anonimiza de forma irreversible los datos personales identificables (PII) de un usuario,
+    /// purga sus credenciales en ExternalLogins e invalida su sesión activa (RGPD art. 17).
+    /// </summary>
+    Task<AppUserDto> AnonymizeUserAsync(string userId, string reason, CancellationToken ct = default);
 }
+
