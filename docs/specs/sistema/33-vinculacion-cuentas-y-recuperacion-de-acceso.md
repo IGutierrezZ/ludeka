@@ -1,7 +1,7 @@
 # 33. Vinculación de Cuentas entre Proveedores y Recuperación de Acceso
 
-> **Estado:** Implementado y Verificado (1.711 pruebas unitarias en verde, 0 errores, 0 omitidas)
-> **Incremento:** [INC-49](file:///c:/repos/Ludeka/docs/increments/archive/inc-49-vinculacion-cuentas.md) e [INC-63](file:///c:/repos/Ludeka/docs/increments/archive/inc-63-conexiones-oauth.md)
+> **Estado:** Implementado y Verificado (2.043 pruebas unitarias en verde, 0 errores, 0 omitidas)
+> **Incremento:** [INC-49](file:///c:/repos/Ludeka/docs/increments/archive/inc-49-vinculacion-cuentas.md), [INC-63](file:///c:/repos/Ludeka/docs/increments/archive/inc-63-conexiones-oauth.md) y PR #137 (Manejo de cancelaciones OAuth)
 > **Dependencia:** INC-46, Autenticación Real (archivado) — ver módulo 32
 > **Módulos relacionados:** [32. Autenticación Social, Autorización por Permisos y Política de Anonimia](file:///c:/repos/Ludeka/docs/specs/sistema/32-autenticacion-y-autorizacion.md) · [14. Gestión de Usuarios, Permisos y Auditoría](file:///c:/repos/Ludeka/docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md) · [37. Área de Cuenta y Puerta de Acceso](file:///c:/repos/Ludeka/docs/specs/sistema/37-area-de-cuenta-y-puerta-de-acceso.md)
 
@@ -195,4 +195,24 @@ La suite `MultiProviderLifecycleTests.cs` (`7ba4227`) garantiza de extremo a ext
 2. **Reversibilidad y retención de acceso:** Si se registra con Discord, vincula Google y posteriormente desvincula Discord, el acceso mediante Google permanece operativo y exclusivo.
 3. **Protección anti-colisión estricta:** Si se intenta vincular un proveedor ya asignado a otra cuenta, se rechaza de forma determinista mediante `ExternalLoginCollisionException`, preservando invariantes y evitando asignaciones ilícitas.
 4. **Idempotencia:** Re-vincular el mismo proveedor bajo la misma cuenta no altera el estado.
+
+---
+
+## 14. Manejo de Cancelaciones y Fallos Remotos OAuth (PR #137)
+
+### 14.1 Diagnóstico de la Fuga de Excepciones 500
+En el flujo OAuth2/OIDC estándar, cuando el usuario pulsa «Cancelar» o rechaza permisos en la ventana de autorización externa (por ejemplo Facebook, Discord o Google), el proveedor redirige a la URL de retorno de Ludeka (`/signin-facebook`, `/signin-discord` o `/signin-google`) con parámetros de error (`error=access_denied`, `error_reason=user_denied`, etc.).
+
+El manejador `RemoteAuthenticationHandler` de ASP.NET Core detecta este error y dispara el evento `Events.RemoteFailure`. Al no encontrarse suscrito este evento ni invocarse `context.HandleResponse()`, el framework lanzaba por defecto una excepción `AuthenticationFailureException` no controlada, que escalaba al middleware global `app.UseExceptionHandler("/Error")` y mostraba la pantalla de error genérica 500 al usuario.
+
+### 14.2 Intercepción y Redirección Contextual
+La solución implementada en `ExternalLoginEvents.cs` suscribe `options.Events.OnRemoteFailure`:
+1. **Neutralización del 500:** Se invoca de inmediato `context.HandleResponse()`, indicando a ASP.NET Core que el fallo ha sido consumido y no debe propagarse como excepción.
+2. **Detección contextual de origen:**
+   - Si la petición provenía de un desafío de vinculación de cuentas (`ExternalLoginIntent.TryReadLink` o `RedirectUri == AccountConnectionRoutes.Page`), redirige a `AccountConnectionRoutes.PageWithCancellation` (`/cuenta/conexiones?resultado=cancelado`). La pantalla `AccountConnections.razor` renderiza el banner de advertencia con `AccountConnectionMessages.LinkCancelledNotice` («Has cancelado la vinculación con el proveedor o el acceso fue denegado. No se ha realizado ningún cambio en tu cuenta.»).
+   - Si provenía de un inicio de sesión regular (`/login`), redirige a `AccountConnectionRoutes.LoginWithCancellation` (`/login?aviso=cancelado`), renderizado por `LoginRedirect.cs` y `Login.razor` con `AccountConnectionMessages.LoginCancelledNotice`.
+3. **Resiliencia defensiva:** Si `context.Properties` es nulo o no puede descifrarse por pérdida de `state`, degrada limpiamente a la redirección de login seguro sin lanzar excepciones.
+
+### 14.3 Cobertura y Batería de Pruebas
+Se incorporó la suite de pruebas unitarias `ExternalLoginEventsRemoteFailureTests.cs` (5 escenarios automatizados), complementada con pruebas de honestidad y traducción en `AccountConnectionMessagesTests.cs` y `LoginRedirectTests.cs`.
 
