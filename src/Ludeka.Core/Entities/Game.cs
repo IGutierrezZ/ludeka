@@ -229,8 +229,9 @@ public partial class Game
             throw new ArgumentException("El título en español no puede estar vacío.", nameof(spanishTitle));
         if (string.IsNullOrWhiteSpace(originalTitle))
             throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
-        if (yearPublished < 1900 || yearPublished > 2100)
-            throw new ArgumentOutOfRangeException(nameof(yearPublished), "El año de publicación debe estar entre 1900 y 2100.");
+        int maxAllowedYear = DateTime.UtcNow.Year + 10;
+        if (yearPublished < -5000 || yearPublished > maxAllowedYear)
+            throw new ArgumentOutOfRangeException(nameof(yearPublished), $"El año de publicación debe situarse entre -5000 y {maxAllowedYear}.");
         if (minPlayers <= 0)
             throw new ArgumentOutOfRangeException(nameof(minPlayers), "El número mínimo de jugadores debe ser mayor a 0.");
         if (maxPlayers < minPlayers)
@@ -250,7 +251,23 @@ public partial class Game
         Footprint = footprint;
         Duration = duration ?? throw new ArgumentNullException(nameof(duration));
 
-        AdjustScalability(minPlayers, maxPlayers);
+        // INC-77: Solo ajustar la escalabilidad sintética si la entidad carece de datos comunitarios con votos reales
+        if (!Scalability.Any(s => s.TotalVotes > 0))
+        {
+            AdjustScalability(minPlayers, maxPlayers);
+        }
+    }
+
+    public void UpdateDna(GameStyle style, ConfrontationType confrontation, bool isOfficialSolo)
+    {
+        Style = style;
+        Confrontation = confrontation;
+        IsOfficialSolo = isOfficialSolo;
+    }
+
+    public void UpdateStyle(GameStyle style)
+    {
+        Style = style;
     }
 
     public void AdjustScalability(int minPlayers, int maxPlayers)

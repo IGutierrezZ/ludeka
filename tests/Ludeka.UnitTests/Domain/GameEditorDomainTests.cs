@@ -105,12 +105,79 @@ public class GameEditorDomainTests
             new AgeRating(10, 10), LanguageDependence.None, TableFootprint.SmallTable,
             new GameDuration(30, 60, 15), 5, 4));
 
-        // Act & Assert: Year published out of range
+        // Act & Assert: Year published out of range (< -5000 o > año actual + 10)
         Assert.Throws<ArgumentOutOfRangeException>(() => game.UpdateCatalogInformation(
-            "Título", "Original", "Designer", "Publisher", 1850, "Desc",
+            "Título", "Original", "Designer", "Publisher", -6000, "Desc",
             ConfrontationType.Competitive, GameStyle.Eurogame, false,
             new AgeRating(10, 10), LanguageDependence.None, TableFootprint.SmallTable,
             new GameDuration(30, 60, 15), 2, 4));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => game.UpdateCatalogInformation(
+            "Título", "Original", "Designer", "Publisher", DateTime.UtcNow.Year + 50, "Desc",
+            ConfrontationType.Competitive, GameStyle.Eurogame, false,
+            new AgeRating(10, 10), LanguageDependence.None, TableFootprint.SmallTable,
+            new GameDuration(30, 60, 15), 2, 4));
+    }
+
+    [Theory]
+    [InlineData(-2200)] // Go / Weiqi
+    [InlineData(-3500)] // Senet
+    [InlineData(1475)]  // Ajedrez moderno
+    [InlineData(1876)]  // Crokinole
+    [InlineData(0)]     // Sin año formal asignado en BGG
+    [InlineData(2026)]  // Año contemporáneo
+    public void UpdateCatalogInformation_HistoricalAndSpecialYears_Succeeds(int year)
+    {
+        // Arrange
+        var game = CreateSampleGame();
+
+        // Act
+        game.UpdateCatalogInformation(
+            "Catán", "Catan", "Klaus Teuber", "Devir", year, "Desc",
+            ConfrontationType.Competitive, GameStyle.Eurogame, false,
+            new AgeRating(10, 10), LanguageDependence.None, TableFootprint.SmallTable,
+            new GameDuration(30, 60, 15), 2, 4);
+
+        // Assert
+        Assert.Equal(year, game.YearPublished);
+    }
+
+    [Fact]
+    public void UpdateDna_UpdatesStyleAndConfrontationCorrectly()
+    {
+        // Arrange
+        var game = CreateSampleGame();
+
+        // Act
+        game.UpdateDna(GameStyle.Ameritrash, ConfrontationType.Cooperative, true);
+
+        // Assert
+        Assert.Equal(GameStyle.Ameritrash, game.Style);
+        Assert.Equal(ConfrontationType.Cooperative, game.Confrontation);
+        Assert.True(game.IsOfficialSolo);
+    }
+
+    [Fact]
+    public void UpdateCatalogInformation_PreservesScalabilityWithCommunityVotes()
+    {
+        // Arrange
+        var game = CreateSampleGame(); // sample game has 3J (Recommended) and 4J (MustPlay) with votes
+        game.UpdateScalability([
+            new ScalabilityEntry(3, "3J", ScalabilityStatus.MustPlay, 100, 20, 5),
+            new ScalabilityEntry(4, "4J", ScalabilityStatus.MustPlay, 200, 10, 2)
+        ]);
+
+        // Act: update catalog info with range 1 to 4
+        game.UpdateCatalogInformation(
+            "Catán", "Catan", "Klaus Teuber", "Devir", 1995, "Desc",
+            ConfrontationType.Competitive, GameStyle.Eurogame, false,
+            new AgeRating(10, 10), LanguageDependence.None, TableFootprint.SmallTable,
+            new GameDuration(30, 60, 15), 1, 4);
+
+        // Assert: scalability with community votes was preserved, not overwritten with dummy recommended
+        Assert.Equal(2, game.Scalability.Count);
+        Assert.Contains(game.Scalability, s => s.PlayerCount == 3 && s.Status == ScalabilityStatus.MustPlay && s.BestVotes == 100);
+        Assert.Contains(game.Scalability, s => s.PlayerCount == 4 && s.Status == ScalabilityStatus.MustPlay && s.BestVotes == 200);
     }
 
     [Fact]
