@@ -3,7 +3,7 @@
 > **ID:** INC-80  
 > **Slug:** `moderacion-social-carteles-ia`  
 > **Rama:** `inc/moderacion-social-carteles-ia`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Módulos Impactados:** Módulo 28 (`docs/specs/sistema/28-hub-ingesta-social-moderacion.md`), Módulo 30 (`docs/specs/sistema/30-recolector-canales-sociales.md`)  
 > **Dependencias:** INC-42 (Bandeja de moderación), INC-44 (Worker recolector), INC-70 (Ingesta multimodal), PR #139 (Aislamiento EF Core en updates).
 
@@ -20,6 +20,9 @@
    - No existía un botón para abrir el enlace de la publicación original en nueva pestaña y capturar otra foto o comprobar datos.
    - No se informaba si una publicación no había sido procesada por IA ni se ofrecía mecanismo para reintentar el análisis con Gemini.
    - No era posible aprobar directamente desde el modal de edición tras corregir los datos.
+6. **Vigencia y ámbito territorial en moderación de sorteos:**
+   - La aprobación no debe inventar fechas `+7 días`, sino exigir explícitamente una fecha de fin igual o posterior a hoy (`rawDeadline >= UtcNow.Date`).
+   - El ámbito territorial debe resolverse de forma automática si no viene en el texto consultando si la editorial, tienda o creador organizador o colaborador está dado de alta en la plataforma.
 
 ---
 
@@ -44,6 +47,9 @@
    - Botón directo para navegar a la URL original de la publicación en nueva pestaña.
    - Banner de advertencia de extracción heurística + botón de reintento con IA.
    - Botón de aprobación y publicación directa desde el propio modal.
+6. **Reglas de negocio de sorteos y territorio:**
+   - Bloqueo estricto de aprobación de sorteos sin fecha fin válida (hoy o posterior) y apertura asistida de edición.
+   - Resolución automática de país desde `Publisher`, `Store` y `Creator` para organizador y colaborador.
 
 ---
 
@@ -52,4 +58,5 @@
 - **Test 1:** `SocialIngestionService` rechaza la ingesta duplicada cuando la URL ya existe en la bandeja para todas las modalidades (Exprés, Multimodal y Manual).
 - **Test 2:** `SocialIngestionService.ReanalyzeWithAiAsync` actualiza metadatos y notas cuando el servicio de IA responde exitosamente.
 - **Test 3:** `SocialInboxItemDto.IsAiProcessed` identifica con precisión si el ítem proviene de IA o de fallback heurístico/manual.
-- **Test 4:** Las pruebas unitarias de regresión pasan al 100% (2.048+ pruebas).
+- **Test 4:** `SocialIngestionService.ApproveAndPublishAsync` rechaza sorteos sin fecha o con fecha pasada, y resuelve el país desde repositorios de directorio.
+- **Test 5:** Las pruebas unitarias de regresión pasan al 100% (2.079 unitarias + 10 integración = 2.089 pruebas).

@@ -116,9 +116,12 @@ public class MonitoredSocialAccount
 
 ### 3.2. Aprobación Atómica y Despacho por Tipología
 Al aprobar un ítem en `SocialIngestionService`:
-1. **`Giveaway`**: Genera la entidad `Giveaway` mediante `IGiveawayService.CreateOrMergeGiveawayAsync`, haciéndose visible en `/sorteos`.
-2. **`WeeklyRelease`**: Genera `WeeklyRelease` mediante `IWeeklyReleaseService.CreateReleaseAsync`, integrándose en el calendario `/novedades`.
-3. **`BoardGameEvent`**: Genera `BoardGameEvent` mediante `IBoardGameEventService.CreateEventAsync`, mostrándose en `/eventos`.
+1. **`Giveaway`**:
+   - **Validación Estricta de Vigencia (INC-80):** Requiere obligatoriamente que `EventEndDate` o `EventOrReleaseDate` esté informado y sea igual o posterior a la fecha actual (`rawDeadline >= UtcNow.Date`). Se descartan extensiones artificiales (`+7 días`): si no hay fecha o está vencida, el servicio arroja `InvalidOperationException` y la UI abre automáticamente la edición. Si la fecha cae en el día de hoy, se normaliza al fin del día (23:59:59 UTC) para evitar caducidad inmediata.
+   - **Resolución Territorial Inteligente (INC-80):** Si el ítem no trae país o ámbito geográfico explícito, consulta secuencialmente si el organizador o colaborador coincide con una editorial (`Publisher.Country`), tienda (`Store.Country`) o creador (`Creator.Nationality`) registrado en la plataforma, normalizándolo con `CountryCatalog` antes de recurrir a `"España"` como fallback.
+   - Genera la entidad `Giveaway` mediante `IGiveawayRepository.AddAsync` (o fusiona colaboradores y extiende plazo si ya existe con `FindDuplicateOrCollaborativeAsync`), haciéndose visible en `/sorteos`.
+2. **`WeeklyRelease`**: Genera `WeeklyRelease` mediante `IWeeklyReleaseRepository.AddAsync`, integrándose en el calendario `/novedades`.
+3. **`BoardGameEvent`**: Resuelve el país del evento mediante `ResolveCountryAsync` y genera `BoardGameEvent` mediante `IBoardGameEventRepository.AddAsync`, mostrándose en `/eventos`.
 4. **`MediaItem`**: Si tiene `GameId`, genera la entidad `MediaItem` vinculada al juego con estado `Approved`, disponible en `/multimedia` y en la ficha técnica del juego.
 5. El registro en la bandeja queda marcado como `Approved`, con auditoría de usuario revisor (`ReviewedByUserId`), marca de tiempo (`ReviewedAt`) y referencia foránea al recurso creado (`CreatedEntityId`).
 
@@ -165,7 +168,9 @@ Al aprobar un ítem en `SocialIngestionService`:
   - Distribución responsiva en cuadrícula compacta: 2 columnas en móvil, 3 en pantallas pequeñas, 4 en medianas y 5 a 6 en pantallas grandes (`grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6`).
   - Tarjetas verticales con proporción de cartel (`aspect-[3/4]`), portada con zoom sutil al pasar el cursor y badges compactos en esquinas superiores.
   - Alerta visual destacada cuando la publicación no fue procesada por IA (`!item.IsAiProcessed`), mostrando un badge de aviso («Sin IA»).
+  - Estado visual de vigencia en sorteos: badge rojo destacado si carece de fecha («Sin fecha») o si está en el pasado («Vencido: dd/MM»), o ámbar si está vigente («Fin: dd/MM»), junto con el distintivo de ámbito territorial (`🌍 País`).
   - Interacción táctil y de ratón directa: pulsar o hacer clic en cualquier parte del cartel abre el modal de edición completa.
+  - Al pulsar «Aprobar» sobre un sorteo sin fecha o vencido, se abre directamente la edición avisando del requisito.
   - Acciones compactas al pie de la tarjeta: Editar, Descartar (con diálogo de confirmación y motivo) y Aprobar.
   - Botón administrativo **"Purgar Simulados"** en la cabecera para limpiar de forma determinista publicaciones de prueba (`sim_*` o `/simulated/`) generadas por entornos de desarrollo.
 
@@ -184,6 +189,7 @@ Al aprobar un ítem en `SocialIngestionService`:
   - Formulario de edición completa de borradores antes de su aprobación definitiva, con soporte para ámbito territorial (ej. Península, España, Internacional).
   - **Aviso de Extracción sin IA y Botón «Reintentar con IA»:** Si la publicación cayó en fallback heurístico o alta manual, muestra un banner explicativo y permite ejecutar `ReanalyzeWithAiAsync` al vuelo.
   - **Panel de Texto Original Extraído (`OriginalCaption`):** Muestra el texto capturado para que el moderador coteje bases, fechas y condiciones directamente sin salir de la ventana.
+  - **Validación Visual de Fecha Fin:** Indicador en rojo y bloqueo de aprobación si el sorteo carece de fecha válida de hoy o posterior.
   - **Botón «Ver Original»:** Enlace seguro con `target="_blank"` a la URL de la publicación original en Instagram, YouTube o web.
   - **Botón «Aprobar y Publicar» directo:** Permite guardar cualquier cambio y publicar la entidad en el catálogo/radar en una sola interacción desde el propio modal.
 
@@ -200,5 +206,5 @@ Al aprobar un ítem en `SocialIngestionService`:
 
 ## 6. Pruebas y Validación
 
-- **Suite Automatizada de la Solución:** 2.048 pruebas unitarias en verde (100% superado), incluyendo la suite específica `SqliteSocialInboxRepositoryTests` para validar los flujos de actualización, edición y aprobación de ítems y sorteos vinculados a juegos con escalabilidad por consenso, junto con el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
+- **Suite Automatizada de la Solución:** 2.079 pruebas unitarias y 10 de integración en verde (100% superado), incluyendo la suite específica `SocialIngestionServiceTests` para validar los flujos de actualización, edición, rechazo de duplicados, validación estricta de fecha fin y resolución de país desde directorio, junto con el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
 - **Pruebas de Componente y Contratos de Marcado:** Verificación con `WebMarkupContractTests` garantizando la ausencia total de emojis prohibidos y el uso riguroso del sistema de diseño editorial con Lucide Icons.
