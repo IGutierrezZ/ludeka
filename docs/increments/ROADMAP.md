@@ -95,6 +95,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-80** | Rediseño de Moderación Social a Carteles Compactos, Resiliencia y Reintento IA, y Limpieza de Simulación | ✅ Archivado | [inc-80-moderacion-social-carteles-ia.md](archive/inc-80-moderacion-social-carteles-ia.md) |
 | **INC-81** | Inyección de Fecha de Referencia y Directivas Temporales en Prompts de Gemini AI | ✅ Archivado | [inc-81-fecha-referencia-prompts-ia.md](archive/inc-81-fecha-referencia-prompts-ia.md) |
 | **INC-82** | Optimización de Rendimiento en Catálogo, Paginación Nativa SQL y Búsqueda Resiliente con Debounce | ✅ Archivado | [inc-82-opt-catalogo-busqueda.md](archive/inc-82-opt-catalogo-busqueda.md) |
+| **INC-83** | Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA | ✅ Archivado | [inc-83-icono-navegador-favicon.md](archive/inc-83-icono-navegador-favicon.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -126,6 +127,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
 | *(Ninguno)* | — | — | — | Todos los incrementos en curso han sido integrados y archivados |
+
+*(INC-83 entregó su PR #146, verificada con 2.118 pruebas automáticas [2.108 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Incorpora el favicon oficial de Ludeka con squircle charcoal #18181b, borde ámbar #d97706 e isotipo LDK con dado 3D en formatos favicon.ico multi-resolución 16/32/48px, favicon.svg, favicon-16/32/48.png, apple-touch-icon.png 180px e iconos PWA 192/512px y maskable. Añade enlaces en el <head> de App.razor, precaché en service-worker.js, mapeo en manifest.webmanifest, aísla la prueba de serialización de semillas SeedGamesExporter y custodia la entrega con la suite FaviconAndBrandIconsContractTests).*
 
 *(INC-82 entregó su PR #144, verificada con 2.106 pruebas automáticas [2.096 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Añade `QuickSearchAsync` con consulta SQL directa `LIMIT 5` en `SqliteGameRepository`, paginación SQL nativa `Skip`/`Take` en `SearchAsync` cuando no hay filtros en memoria reduciendo la latencia de ~800ms a ~2ms, e introduce temporizador debounce de 250ms con cancelación cooperativa `CancellationTokenSource` y `IDisposable` en modales de búsqueda de YouTube y RRSS y en `Home.razor`, erradicando la saturación de SignalR y la desconexión del circuito en Cloud Run).*
 

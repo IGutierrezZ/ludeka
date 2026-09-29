@@ -72,16 +72,23 @@ Ludeka opera bajo **.NET 10 (C# 13)** estructurado en Clean Architecture con cap
 
 ---
 
-## 6. Arquitectura PWA y Modo Consulta Offline
+## 6. Arquitectura PWA, Modo Consulta Offline y Activos de Marca (Favicon e Iconografía)
 
+- **Favicon Oficial y Metadatos de Navegador (INC-83):**
+  - Declaración en `<head>` de [`src/Ludeka.Web/Components/App.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/App.razor):
+    - `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />` (vectorial moderno con escalabilidad infinita).
+    - `<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />`, `32x32` y `16x16`.
+    - `<link rel="shortcut icon" href="/favicon.ico" />` (archivo ICO multi-resolución de 16, 32 y 48 px).
+    - `<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />` (icono de contacto táctil de 180×180 px con fondo opaco para iOS/iPadOS).
+  - *Diseño de Identidad Lúdica:* Squircle de fondo Charcoal (`#18181b`), orlado fino en ámbar de marca (`#d97706`) e isotipo oficial en alto contraste (hexágono cian `#0ea5e9` con siglas «LDK» en blanco y dado 3D isométrico central con puntos naranjas), garantizando visibilidad óptima sobre cualquier pestaña clara u oscura.
 - **Manifiesto Web Estándar W3C:**
   - Archivo: [`src/Ludeka.Web/wwwroot/manifest.webmanifest`](file:///c:/repos/Ludeka/src/Ludeka.Web/wwwroot/manifest.webmanifest)
-  - Configuración: `display: standalone`, orientación responsiva portrait/any, color temático `#d97706` y fondo `#0f172a`.
-  - Iconografía: Iconos vectoriales SVG y rasterizados PNG (192x192, 512x512) y variante `maskable` con margen de seguridad del 15% para compatibilidad total con el recorte de iconos adaptativos en Android e iOS.
+  - Configuración: `display: standalone`, orientación responsiva portrait/any, color temático `#d97706` y fondo `#18181b`.
+  - Iconografía: Iconos vectoriales SVG y rasterizados PNG cuadrados (192×192, 512×512) y variante `maskable` con margen de seguridad del 15% para compatibilidad total con el recorte de iconos adaptativos en Android e iOS.
 - **Service Worker con Estrategia Dual:**
   - Archivo: [`src/Ludeka.Web/wwwroot/service-worker.js`](file:///c:/repos/Ludeka/src/Ludeka.Web/wwwroot/service-worker.js)
   - Estrategia:
-    - *Cache-First:* Para recursos estáticos versionados (`.css`, `.js`, fuentes, iconos, imágenes).
+    - *Cache-First:* Para recursos estáticos versionados (`.css`, `.js`, fuentes, iconos, imágenes, favicons y manifiesto en `PRECACHE_ASSETS`).
     - *Network-First:* Para peticiones de navegación y páginas HTML, con degradación elegante a [`offline.html`](file:///c:/repos/Ludeka/src/Ludeka.Web/wwwroot/offline.html) cuando la red o el servidor están inaccesibles.
     - *Purga Automática:* En el evento `activate`, elimina cachés obsoletas asegurando consistencia entre versiones.
 - **Instantánea Local de Ludoteca (`localStorage`):**
