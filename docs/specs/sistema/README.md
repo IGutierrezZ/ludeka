@@ -24,8 +24,8 @@ graph TD
 - **`src/Ludeka.Infrastructure`:** Persistencia dual (SQLite con auto-migración en local / PostgreSQL Npgsql en Supabase para producción), cliente HTTP BGG XMLAPI2, webhooks de Discord/Telegram y semillado controlado.
 - **`src/Ludeka.Web`:** Interfaz Blazor Web App interactiva con Tailwind CSS, renderizado híbrido (SSR + InteractiveServer), Output Caching y componentes accesibles WCAG 2.2 AA.
 - **`src/Ludeka.Jobs`:** Host independiente de consola para Cloud Run Jobs, con resolución de trabajos por nombre, ejecución de unidades de trabajo de vida corta, observabilidad y reversión.
-- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (2.096 pruebas pasando al 100%).
-- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (10 pruebas pasando al 100%). Total verificado: 2.106 pruebas.
+- **`tests/Ludeka.UnitTests`:** Suite completa de pruebas unitarias xUnit (2.108 pruebas pasando al 100%).
+- **`tests/Ludeka.IntegrationTests`:** Pruebas de integración contra PostgreSQL real con Testcontainers (10 pruebas pasando al 100%). Total verificado: 2.118 pruebas.
 
 ---
 
@@ -39,7 +39,7 @@ graph TD
 6. [**06. Comunidad, Sorteos y Reglas Q&A**](file:///c:/repos/Ludeka/docs/specs/sistema/06-comunidad-sorteos-y-qa.md): Radar de Sorteos con expiración, Novedades de viernes, Consultorio de Reglas estilo StackOverflow y Tarjetas de marca 1:1.
 7. [**07. Expansiones y Mezclador de Mesa**](file:///c:/repos/Ludeka/docs/specs/sistema/07-expansiones-y-mezclador.md): Modelo polimórfico en `Game`, Matriz de sinergias par-a-par, Recetas prediseñadas y Mezclador interactivo con detección de sobrecarga.
 8. [**08. Notificaciones y Webhooks**](file:///c:/repos/Ludeka/docs/specs/sistema/08-notificaciones-y-webhooks.md): Patrón Outbox asíncrono en segundo plano (`Channel<T>`), Integración con Discord y Telegram, y Alertas automáticas.
-9. [**09. Arquitectura y Despliegue**](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md): Persistencia dual (SQLite local / PostgreSQL Npgsql en Supabase), AdminUserSeeder garantizado, cero datos mock en producción, script DDL canónico de Supabase, Dockerfile multi-stage, backups automáticos y Health Checks.
+9. [**09. Arquitectura y Despliegue**](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md): Persistencia dual (SQLite local / PostgreSQL Npgsql en Supabase), AdminUserSeeder garantizado, cero datos mock en producción, script DDL canónico de Supabase, Dockerfile multi-stage, backups automáticos, Health Checks y Arquitectura PWA con Favicon Oficial Multi-Resolución, Touch Icons e Iconos Adaptativos Maskable (INC-83).
 10. [**10. Síntesis Inteligente con IA**](file:///c:/repos/Ludeka/docs/specs/sistema/10-sintesis-ia.md): Resúmenes estructurados con Google Gemini y heurística desacoplada.
 11. [**11. Reportes Comunitarios y Moderación de Fichas**](file:///c:/repos/Ludeka/docs/specs/sistema/11-reportes-y-moderacion-comunitaria.md): Canal de reporte en 2 clics para la comunidad, 8 tipologías de fallo y bandeja de triaje y moderación rápida (`/moderacion/reportes`).
 12. [**12. Editor Editorial de Fichas y Carga de Imágenes**](file:///c:/repos/Ludeka/docs/specs/sistema/12-editor-editorial-y-imagenes.md): Edición integral de catálogo y parámetros de mesa, subida y validación física de imágenes, resolución en 1 clic de incidencias y auditoría editorial.

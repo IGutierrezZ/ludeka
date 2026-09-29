@@ -784,6 +784,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 83: Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA
+- **Identificador SDD:** `change-83-icono-navegador-favicon`
+- **Objetivo Principal:** Erradicar los iconos genéricos por defecto en todos los navegadores y dispositivos:
+  1. **Activos Oficiales de Marca:** Squircle charcoal `#18181b` con borde ámbar `#d97706` y el isotipo oficial LDK con dado 3D en `favicon.ico` multi-resolución (16, 32, 48 px), `favicon.svg`, `favicon-16/32/48.png`, `apple-touch-icon.png` (180 px) e iconos PWA `icon-192.png`, `icon-512.png` e `icon-maskable.png`.
+  2. **Integración Web:** Enlazado en `<head>` de `App.razor`, inclusión en `PRECACHE_ASSETS` de `service-worker.js` y mapeo en `manifest.webmanifest`.
+  3. **Aislamiento de Semillas y Pruebas:** Corrección de `SeedGamesExporter` a archivo temporal para evitar mutar `seed-games.json`, y creación de `FaviconAndBrandIconsContractTests.cs`.
+- **Estado:** ✅ **Completado y Archivado** (2.118 tests en verde al 100%: 2.108 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-83-icono-navegador-favicon.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-83-icono-navegador-favicon.md).
+- **Módulos del Sistema:** [`09-arquitectura-y-despliegue.md`](file:///c:/repos/Ludeka/docs/specs/sistema/09-arquitectura-y-despliegue.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
