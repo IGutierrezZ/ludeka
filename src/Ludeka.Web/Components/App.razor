@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="wood">
 
 <head>
     <meta charset="utf-8" />
@@ -30,9 +30,9 @@
     <script>
         (function() {
             try {
-                // Sin identidad simulada: el tema se resuelve por usuario autenticado o por el tema global.
+                // Sin identidad simulada: el tema se resuelve por usuario autenticado o por el tema global (por defecto 'wood').
                 var activeUserId = localStorage.getItem('ludeka-active-user-id');
-                var theme = localStorage.getItem('ludeka-theme-' + activeUserId) || localStorage.getItem('ludeka-theme') || 'charcoal';
+                var theme = (activeUserId ? localStorage.getItem('ludeka-theme-' + activeUserId) : null) || localStorage.getItem('ludeka-theme') || 'wood';
                 document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}
         })();
@@ -61,9 +61,9 @@
                     var userTheme = localStorage.getItem('ludeka-theme-' + userId);
                     if (userTheme) return userTheme;
                 }
-                return localStorage.getItem('ludeka-theme') || 'charcoal';
+                return localStorage.getItem('ludeka-theme') || 'wood';
             } catch (e) {
-                return 'charcoal';
+                return 'wood';
             }
         };
         window.setActiveUserTheme = function(userId) {

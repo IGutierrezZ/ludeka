@@ -78,6 +78,12 @@
 
                 <OfflineIndicator />
 
+                @* Selector compacto de temas para visitantes (no logueados) *@
+                @if (!HasSession)
+                {
+                    <GuestThemePicker CurrentTheme="@CurrentTheme" OnThemeChanged="SwitchTheme" />
+                }
+
                 @* Menú de cuenta y estado de sesión en cabecera (INC-61/INC-62) *@
                 <AccountMenu />
 
@@ -316,7 +322,7 @@
 </div>
 
 @code {
-    private string CurrentTheme = "charcoal";
+    private string CurrentTheme = "wood";
     private string? _activeCountry;
     private bool _showLocationModal;
     private bool _isAdminMenuOpen;
@@ -358,21 +364,27 @@
         {
             try
             {
-                // Consultar tema guardado en la base de datos para el usuario actual
-                string userDbTheme = await PreferenceService.GetUserThemeAsync(CurrentUserService.UserId);
-
-                // Consultar tema almacenado en localStorage para este usuario
-                string stored = await JS.InvokeAsync<string>("getLudekaTheme", CurrentUserService.UserId);
+                // Consultar tema almacenado en localStorage para este usuario o visitante
+                string stored = await JS.InvokeAsync<string>("getLudekaTheme", HasSession ? CurrentUserService.UserId : null);
 
                 // Priorizar preferencia persistida de usuario si existe y es válida
-                string effectiveTheme = !string.IsNullOrWhiteSpace(userDbTheme) && userDbTheme != "charcoal" 
-                    ? userDbTheme 
-                    : (!string.IsNullOrWhiteSpace(stored) ? stored : userDbTheme);
+                string effectiveTheme;
+                if (HasSession)
+                {
+                    string userDbTheme = await PreferenceService.GetUserThemeAsync(CurrentUserService.UserId);
+                    effectiveTheme = !string.IsNullOrWhiteSpace(userDbTheme)
+                        ? userDbTheme
+                        : (!string.IsNullOrWhiteSpace(stored) ? stored : "wood");
+                }
+                else
+                {
+                    effectiveTheme = !string.IsNullOrWhiteSpace(stored) ? stored : "wood";
+                }
 
                 if (!string.IsNullOrWhiteSpace(effectiveTheme) && effectiveTheme != CurrentTheme)
                 {
                     CurrentTheme = effectiveTheme;
-                    await JS.InvokeVoidAsync("setLudekaTheme", effectiveTheme, CurrentUserService.UserId);
+                    await JS.InvokeVoidAsync("setLudekaTheme", effectiveTheme, HasSession ? CurrentUserService.UserId : null);
                 }
 
                 // Cargar país activo
@@ -412,17 +424,20 @@
         CurrentTheme = theme;
         try
         {
-            await JS.InvokeVoidAsync("setLudekaTheme", theme, CurrentUserService.UserId);
-            await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
+            await JS.InvokeVoidAsync("setLudekaTheme", theme, HasSession ? CurrentUserService.UserId : null);
+            if (HasSession)
+            {
+                await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
+            }
         }
         catch (UnauthorizedAccessException ex)
         {
-            // El tema ya se aplicó localmente; sin sesión la preferencia lleva al acceso (INC-46 F4).
             Navigation.TryRedirectToLogin(ex);
         }
         catch
         {
         }
+        StateHasChanged();
     }
 
     private void HandleCountryChanged(string? country)
