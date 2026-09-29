@@ -111,10 +111,37 @@ public class SqliteSocialInboxRepository : DbContextRepositoryBase, ISocialInbox
         if (string.IsNullOrWhiteSpace(sourceUrl))
             return false;
 
-        var clean = sourceUrl.Trim();
+        var clean = sourceUrl.Trim().ToLowerInvariant();
         await using var scope = await CreateScopeAsync(ct);
         return await scope.Context.SocialInboxItems
             .AsNoTracking()
-            .AnyAsync(i => i.SourceUrl == clean, ct);
+            .AnyAsync(i => i.SourceUrl.ToLower() == clean, ct);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.SocialInboxItems.FirstOrDefaultAsync(i => i.Id == id, ct);
+        if (existing != null)
+        {
+            scope.Context.SocialInboxItems.Remove(existing);
+            await scope.Context.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task<int> PurgeSimulatedAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var simulated = await scope.Context.SocialInboxItems
+            .Where(i => i.Status == SocialInboxStatus.PendingReview &&
+                        (i.SourceUrl.Contains("sim_") || i.SourceUrl.Contains("/simulated/")))
+            .ToListAsync(ct);
+
+        if (simulated.Count == 0)
+            return 0;
+
+        scope.Context.SocialInboxItems.RemoveRange(simulated);
+        await scope.Context.SaveChangesAsync(ct);
+        return simulated.Count;
     }
 }

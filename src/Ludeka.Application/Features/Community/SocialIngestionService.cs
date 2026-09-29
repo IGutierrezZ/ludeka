@@ -8,6 +8,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Ludeka.Application.Features.Community;
@@ -30,6 +31,9 @@ public class SocialIngestionService : ISocialIngestionService
     private readonly ILogger<SocialIngestionService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
     private readonly IGiveawayCoverComposer? _giveawayCoverComposer;
+    private readonly IPublisherRepository? _publisherRepository;
+    private readonly IStoreRepository? _storeRepository;
+    private readonly ICreatorRepository? _creatorRepository;
 
     public SocialIngestionService(
         ISocialInboxRepository inboxRepository,
@@ -44,7 +48,10 @@ public class SocialIngestionService : ISocialIngestionService
         HttpClient httpClient,
         ILogger<SocialIngestionService> logger,
         ISessionPermissionGuard? permissionGuard = null,
-        IGiveawayCoverComposer? giveawayCoverComposer = null)
+        IGiveawayCoverComposer? giveawayCoverComposer = null,
+        IPublisherRepository? publisherRepository = null,
+        IStoreRepository? storeRepository = null,
+        ICreatorRepository? creatorRepository = null)
     {
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
         _metadataExtractor = metadataExtractor ?? throw new ArgumentNullException(nameof(metadataExtractor));
@@ -59,6 +66,9 @@ public class SocialIngestionService : ISocialIngestionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
         _giveawayCoverComposer = giveawayCoverComposer;
+        _publisherRepository = publisherRepository;
+        _storeRepository = storeRepository;
+        _creatorRepository = creatorRepository;
     }
 
     /// <summary>
@@ -92,6 +102,11 @@ public class SocialIngestionService : ISocialIngestionService
         if (!hasCoverImage && !hasBasesImage && !hasText)
         {
             throw new InvalidOperationException("Debes proporcionar al menos la imagen de portada, la captura de bases o el texto descriptivo.");
+        }
+
+        if (await _inboxRepository.ExistsBySourceUrlAsync(input.SourceUrl, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{input.SourceUrl}'.");
         }
 
         _logger.LogInformation("Iniciando alta exprés multimodal para URL: {Url}", input.SourceUrl);
@@ -169,6 +184,11 @@ public class SocialIngestionService : ISocialIngestionService
             ? input.ManualCaption.Trim()
             : metadata?.Description ?? metadata?.Title ?? "Bases capturadas por visión artificial multimodal";
 
+        var rawLocation = analysis.TerritorialScope ?? analysis.Location;
+        var location = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, organizer, analysis.Collaborator, ct)
+            : null;
+
         var item = new SocialInboxItem(
             sourceUrl: input.SourceUrl,
             platform: platform,
@@ -180,7 +200,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: matchedGameTitle,
             eventOrReleaseDate: analysis.EventOrReleaseDate,
             eventEndDate: analysis.EventEndDate,
-            location: analysis.TerritorialScope ?? analysis.Location,
+            location: location,
             estimatedPvp: analysis.EstimatedPvp,
             mediaCategory: analysis.MediaCategory,
             playerCountBadge: analysis.PlayerCountBadge,
@@ -200,6 +220,11 @@ public class SocialIngestionService : ISocialIngestionService
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("La URL no puede estar vacía.", nameof(url));
+
+        if (await _inboxRepository.ExistsBySourceUrlAsync(url, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{url}'.");
+        }
 
         _logger.LogInformation("Iniciando alta exprés para URL: {Url}", url);
 
@@ -245,6 +270,11 @@ public class SocialIngestionService : ISocialIngestionService
             ? analysis.OrganizerOrAuthor
             : authorOrChannel;
 
+        var rawLocation = analysis.Location ?? analysis.TerritorialScope;
+        var location = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, organizer, analysis.Collaborator, ct)
+            : null;
+
         var item = new SocialInboxItem(
             sourceUrl: url,
             platform: platform,
@@ -256,7 +286,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: matchedGameTitle,
             eventOrReleaseDate: analysis.EventOrReleaseDate,
             eventEndDate: analysis.EventEndDate,
-            location: analysis.Location,
+            location: location,
             estimatedPvp: analysis.EstimatedPvp,
             mediaCategory: analysis.MediaCategory,
             playerCountBadge: analysis.PlayerCountBadge,
@@ -295,6 +325,11 @@ public class SocialIngestionService : ISocialIngestionService
         if (string.IsNullOrWhiteSpace(input.OrganizerOrAuthor))
             throw new ArgumentException("El organizador o canal no puede estar vacío.", nameof(input.OrganizerOrAuthor));
 
+        if (await _inboxRepository.ExistsBySourceUrlAsync(input.SourceUrl, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{input.SourceUrl}'.");
+        }
+
         _logger.LogInformation("Iniciando alta manual avanzada para URL: {Url}", input.SourceUrl);
 
         var platform = DetectPlatform(input.SourceUrl);
@@ -316,6 +351,12 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle = game?.SpanishTitle ?? game?.OriginalTitle;
         }
 
+        var location = !string.IsNullOrWhiteSpace(input.Location)
+            ? await ResolveCountryAsync(input.Location, input.OrganizerOrAuthor, null, ct)
+            : ((input.SubmissionType == SocialSubmissionType.Giveaway || input.SubmissionType == SocialSubmissionType.BoardGameEvent)
+                ? await ResolveCountryAsync(null, input.OrganizerOrAuthor, null, ct)
+                : null);
+
         var item = new SocialInboxItem(
             sourceUrl: input.SourceUrl,
             platform: platform,
@@ -327,7 +368,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: gameTitle,
             eventOrReleaseDate: input.EventOrReleaseDate,
             eventEndDate: input.EventEndDate,
-            location: input.Location,
+            location: location,
             estimatedPvp: input.EstimatedPvp,
             mediaCategory: input.MediaCategory,
             playerCountBadge: input.PlayerCountBadge,
@@ -389,6 +430,94 @@ public class SocialIngestionService : ISocialIngestionService
         return SocialInboxItemDto.FromEntity(item);
     }
 
+    public async Task<SocialInboxItemDto> ReanalyzeWithAiAsync(Guid inboxItemId, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var item = await _inboxRepository.GetByIdAsync(inboxItemId, ct)
+            ?? throw new KeyNotFoundException($"No se encontró ningún ítem en la bandeja con ID '{inboxItemId}'.");
+
+        if (item.Status != SocialInboxStatus.PendingReview)
+            throw new InvalidOperationException("Solo se pueden reanalizar publicaciones pendientes de revisión.");
+
+        var textToAnalyze = !string.IsNullOrWhiteSpace(item.OriginalCaption)
+            ? item.OriginalCaption
+            : null;
+
+        if (string.IsNullOrWhiteSpace(textToAnalyze))
+        {
+            var metadata = await _metadataExtractor.ExtractFromUrlAsync(item.SourceUrl, ct);
+            textToAnalyze = metadata?.Description ?? metadata?.Title;
+        }
+
+        if (string.IsNullOrWhiteSpace(textToAnalyze))
+        {
+            throw new InvalidOperationException("La publicación no contiene texto original ni metadatos extraíbles para reanalizar con IA.");
+        }
+
+        var analysis = await _aiAnalysisService.AnalyzeTextAsync(textToAnalyze, item.OrganizerOrAuthor, ct);
+
+        bool isHeuristic = string.IsNullOrWhiteSpace(analysis.Notes) ||
+                           analysis.Notes.Contains("heurística", StringComparison.OrdinalIgnoreCase) ||
+                           analysis.Notes.Contains("heuristica", StringComparison.OrdinalIgnoreCase) ||
+                           analysis.Notes.Contains("manual", StringComparison.OrdinalIgnoreCase);
+
+        if (isHeuristic)
+        {
+            throw new InvalidOperationException("El servicio de IA no está disponible o no tiene clave configurada en este entorno; no se pudo procesar con IA.");
+        }
+
+        Guid? matchedGameId = item.GameId;
+        string? matchedGameTitle = item.GameTitle;
+
+        if (!string.IsNullOrWhiteSpace(analysis.SuggestedGameTitle))
+        {
+            var searchResults = await _gameRepository.SearchAsync(new GameFilterCriteria(SearchTerm: analysis.SuggestedGameTitle), page: 1, pageSize: 1, ct: ct);
+            if (searchResults.Items.Count > 0)
+            {
+                var first = searchResults.Items[0];
+                matchedGameId = first.Id;
+                matchedGameTitle = first.SpanishTitle;
+            }
+        }
+
+        var rawLocation = analysis.TerritorialScope ?? analysis.Location ?? item.Location;
+        var resolvedLocation = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, analysis.OrganizerOrAuthor ?? item.OrganizerOrAuthor, analysis.Collaborator ?? item.Collaborator, ct)
+            : item.Location;
+
+        item.UpdateDetails(
+            title: !string.IsNullOrWhiteSpace(analysis.Title) ? analysis.Title : item.Title,
+            organizerOrAuthor: !string.IsNullOrWhiteSpace(analysis.OrganizerOrAuthor) ? analysis.OrganizerOrAuthor : item.OrganizerOrAuthor,
+            collaborator: analysis.Collaborator ?? item.Collaborator,
+            detectedType: analysis.DetectedType,
+            gameId: matchedGameId,
+            gameTitle: matchedGameTitle,
+            eventOrReleaseDate: analysis.EventOrReleaseDate ?? item.EventOrReleaseDate,
+            eventEndDate: analysis.EventEndDate ?? item.EventEndDate,
+            location: resolvedLocation,
+            estimatedPvp: analysis.EstimatedPvp ?? item.EstimatedPvp,
+            mediaCategory: analysis.MediaCategory ?? item.MediaCategory,
+            playerCountBadge: analysis.PlayerCountBadge ?? item.PlayerCountBadge,
+            thumbnailUrl: item.ThumbnailUrl,
+            moderatorNotes: item.ModeratorNotes);
+
+        item.SetAiAnalysisNotes(analysis.Notes);
+
+        await _inboxRepository.UpdateAsync(item, ct);
+        _logger.LogInformation("Ítem {Id} reanalizado satisfactoriamente con IA. Notas: {Notes}", item.Id, analysis.Notes);
+
+        return SocialInboxItemDto.FromEntity(item);
+    }
+
+    public async Task<int> PurgeSimulatedItemsAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        var count = await _inboxRepository.PurgeSimulatedAsync(ct);
+        _logger.LogInformation("Se han purgado {Count} publicaciones simuladas de la bandeja de moderación.", count);
+        return count;
+    }
+
     public async Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
@@ -412,21 +541,65 @@ public class SocialIngestionService : ISocialIngestionService
                     _ => GiveawayPlatform.Other
                 };
 
-                var giveaway = new Giveaway(
-                    title: item.Title,
-                    organizer: item.OrganizerOrAuthor,
-                    url: item.SourceUrl,
-                    platform: giveawayPlatform,
-                    deadlineAt: item.EventOrReleaseDate ?? DateTimeOffset.UtcNow.AddDays(7),
-                    country: "España",
-                    gameId: item.GameId,
-                    gameTitle: item.GameTitle,
-                    collaborator: item.Collaborator,
-                    thumbnailUrl: item.ThumbnailUrl);
+                // Regla de negocio: No se puede aprobar un sorteo sin fecha límite, ni con fecha anterior a hoy.
+                var rawDeadline = item.EventEndDate ?? item.EventOrReleaseDate;
+                if (!rawDeadline.HasValue)
+                {
+                    throw new InvalidOperationException("Para aprobar un sorteo es obligatorio indicar una fecha de fin igual o posterior a hoy. Por favor, edita la publicación e indica la fecha de fin.");
+                }
 
-                await _giveawayRepository.AddAsync(giveaway, ct);
-                createdEntityId = giveaway.Id;
-                _logger.LogInformation("Sorteo creado desde bandeja con ID {Id}", createdEntityId);
+                if (rawDeadline.Value.Date < DateTime.UtcNow.Date)
+                {
+                    throw new InvalidOperationException($"No se puede aprobar un sorteo con una fecha límite en el pasado ({rawDeadline.Value:dd/MM/yyyy}). Debe ser igual o posterior a hoy. Por favor, edita la publicación y actualiza la fecha.");
+                }
+
+                // Si la fecha cae en el día de hoy pero con hora medianoche (o ya pasada dentro del día), ajustar al fin de hoy (23:59:59 UTC) para que no expire inmediatamente.
+                var deadline = (rawDeadline.Value < DateTimeOffset.UtcNow && rawDeadline.Value.Date == DateTime.UtcNow.Date)
+                    ? new DateTimeOffset(DateTime.UtcNow.Date.AddDays(1).AddSeconds(-1), TimeSpan.Zero)
+                    : rawDeadline.Value;
+
+                var giveawayCountry = await ResolveCountryAsync(item.Location, item.OrganizerOrAuthor, item.Collaborator, ct);
+
+                // Comprobar si ya existe un sorteo idéntico o en colaboración para fusionar colaboradores o extender plazo
+                var existingGiveaway = await _giveawayRepository.FindDuplicateOrCollaborativeAsync(
+                    item.Title,
+                    item.OrganizerOrAuthor,
+                    deadline,
+                    ct);
+
+                if (existingGiveaway != null)
+                {
+                    var collaboratorToMerge = !string.IsNullOrWhiteSpace(item.Collaborator)
+                        ? item.Collaborator
+                        : item.OrganizerOrAuthor;
+
+                    existingGiveaway.MergeCollaborator(collaboratorToMerge);
+                    if (deadline > existingGiveaway.DeadlineAt)
+                    {
+                        existingGiveaway.ExtendDeadline(deadline);
+                    }
+                    await _giveawayRepository.UpdateAsync(existingGiveaway, ct);
+                    createdEntityId = existingGiveaway.Id;
+                    _logger.LogInformation("Sorteo existente {Id} actualizado con colaborador {Collaborator}", existingGiveaway.Id, collaboratorToMerge);
+                }
+                else
+                {
+                    var giveaway = new Giveaway(
+                        title: item.Title,
+                        organizer: item.OrganizerOrAuthor,
+                        url: item.SourceUrl,
+                        platform: giveawayPlatform,
+                        deadlineAt: deadline,
+                        country: giveawayCountry,
+                        gameId: item.GameId,
+                        gameTitle: item.GameTitle,
+                        collaborator: item.Collaborator,
+                        thumbnailUrl: item.ThumbnailUrl);
+
+                    await _giveawayRepository.AddAsync(giveaway, ct);
+                    createdEntityId = giveaway.Id;
+                    _logger.LogInformation("Sorteo creado desde bandeja con ID {Id}", createdEntityId);
+                }
                 break;
 
             case SocialSubmissionType.WeeklyRelease:
@@ -450,6 +623,8 @@ public class SocialIngestionService : ISocialIngestionService
                 var startDate = DateOnly.FromDateTime(item.EventOrReleaseDate?.DateTime ?? DateTime.UtcNow);
                 var endDate = DateOnly.FromDateTime((item.EventEndDate ?? item.EventOrReleaseDate ?? DateTimeOffset.UtcNow).DateTime);
 
+                var eventCountry = await ResolveCountryAsync(item.Location, item.OrganizerOrAuthor, item.Collaborator, ct);
+
                 var boardGameEvent = new BoardGameEvent(
                     title: item.Title,
                     description: item.OriginalCaption ?? item.Title,
@@ -460,7 +635,7 @@ public class SocialIngestionService : ISocialIngestionService
                     websiteUrl: item.SourceUrl,
                     organizer: item.OrganizerOrAuthor,
                     isOfficial: true,
-                    country: "España");
+                    country: eventCountry);
 
                 await _eventRepository.AddAsync(boardGameEvent, ct);
                 createdEntityId = boardGameEvent.Id;
@@ -587,5 +762,73 @@ public class SocialIngestionService : ISocialIngestionService
             _logger.LogWarning(ex, "No se pudo optimizar la imagen remota {Url} a R2. Se usará la URL original.", sourceImageUrl);
             return null;
         }
+    }
+
+    private async Task<string> ResolveCountryAsync(string? explicitLocation, string? organizer, string? collaborator, CancellationToken ct)
+    {
+        // 1. Si el ítem ya trae un ámbito geográfico explícito, normalizarlo con CountryCatalog
+        if (!string.IsNullOrWhiteSpace(explicitLocation))
+        {
+            var matched = CountryCatalog.FindByNameOrCode(explicitLocation);
+            if (matched != null)
+                return matched.Name;
+
+            var lower = explicitLocation.ToLowerInvariant();
+            if (lower.Contains("peninsula") || lower.Contains("españa") || lower.Contains("espana") || lower.Contains("spain") || lower.Contains("baleares") || lower.Contains("canarias"))
+                return "España";
+
+            if (lower.Contains("inter") || lower.Contains("global") || lower.Contains("mundo") || lower.Contains("world"))
+                return "Internacional";
+
+            var normalized = CountryCatalog.Normalize(explicitLocation);
+            if (!string.IsNullOrWhiteSpace(normalized))
+                return normalized;
+        }
+
+        // 2. Si no viene informado el país, consultar si la editorial, tienda o creador está dado de alta en la plataforma
+        var candidates = new[] { organizer, collaborator }
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!.Trim())
+            .ToList();
+
+        foreach (var candidate in candidates)
+        {
+            // A. Editoriales registradas
+            if (_publisherRepository != null)
+            {
+                var publisher = await _publisherRepository.GetByNameAsync(candidate, ct);
+                if (publisher != null && !string.IsNullOrWhiteSpace(publisher.Country))
+                {
+                    _logger.LogInformation("Ámbito territorial resuelto desde la editorial '{Name}': {Country}", publisher.Name, publisher.Country);
+                    return CountryCatalog.Normalize(publisher.Country);
+                }
+            }
+
+            // B. Tiendas especializadas registradas
+            if (_storeRepository != null)
+            {
+                var store = await _storeRepository.GetByNameAsync(candidate, ct);
+                if (store != null && !string.IsNullOrWhiteSpace(store.Country))
+                {
+                    _logger.LogInformation("Ámbito territorial resuelto desde la tienda '{Name}': {Country}", store.Name, store.Country);
+                    return CountryCatalog.Normalize(store.Country);
+                }
+            }
+
+            // C. Creadores de contenido / Divulgadores registrados
+            if (_creatorRepository != null)
+            {
+                var creator = await _creatorRepository.GetByNameAsync(candidate, ct);
+                if (creator != null && !string.IsNullOrWhiteSpace(creator.Nationality))
+                {
+                    var normalizedNat = CountryCatalog.Normalize(creator.Nationality);
+                    _logger.LogInformation("Ámbito territorial resuelto desde el creador '{Name}': {Country}", creator.Name, normalizedNat);
+                    return normalizedNat;
+                }
+            }
+        }
+
+        // 3. Valor por defecto si no hay información explícita ni registro previo
+        return "España";
     }
 }

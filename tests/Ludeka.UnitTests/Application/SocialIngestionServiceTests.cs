@@ -62,6 +62,20 @@ public class SocialIngestionServiceTests
         {
             return Task.FromResult(Items.Any(i => i.SourceUrl.Equals(sourceUrl, StringComparison.OrdinalIgnoreCase)));
         }
+
+        public Task DeleteAsync(Guid id, CancellationToken ct = default)
+        {
+            Items.RemoveAll(i => i.Id == id);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> PurgeSimulatedAsync(CancellationToken ct = default)
+        {
+            var removed = Items.RemoveAll(i =>
+                i.Status == SocialInboxStatus.PendingReview &&
+                (i.SourceUrl.Contains("sim_") || i.SourceUrl.Contains("/simulated/")));
+            return Task.FromResult(removed);
+        }
     }
 
     private class FakeSocialMetadataExtractor : ISocialMetadataExtractor
@@ -154,7 +168,18 @@ public class SocialIngestionServiceTests
         public List<Giveaway> Items { get; } = new();
         public Task<IReadOnlyList<Giveaway>> GetGiveawaysAsync(bool includeExpired = false, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Giveaway>>(Items);
         public Task<Giveaway?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(g => g.Id == id));
-        public Task<Giveaway?> FindDuplicateOrCollaborativeAsync(string title, string organizer, DateTimeOffset deadline, CancellationToken ct = default) => Task.FromResult<Giveaway?>(null);
+        public Task<Giveaway?> FindDuplicateOrCollaborativeAsync(string title, string organizer, DateTimeOffset deadline, CancellationToken ct = default)
+        {
+            var cleanTitle = title.Trim().ToLowerInvariant();
+            var cleanOrganizer = organizer.Trim().ToLowerInvariant();
+            var match = Items.FirstOrDefault(g =>
+                !g.IsExpired &&
+                g.Title.Trim().ToLowerInvariant().Equals(cleanTitle, StringComparison.OrdinalIgnoreCase) &&
+                (g.Organizer.Trim().ToLowerInvariant().Contains(cleanOrganizer) ||
+                 cleanOrganizer.Contains(g.Organizer.Trim().ToLowerInvariant()) ||
+                 (g.Collaborator != null && g.Collaborator.Trim().ToLowerInvariant().Contains(cleanOrganizer))));
+            return Task.FromResult(match);
+        }
         public Task AddAsync(Giveaway giveaway, CancellationToken ct = default) { Items.Add(giveaway); return Task.CompletedTask; }
         public Task UpdateAsync(Giveaway giveaway, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(g => g.Id == id); return Task.CompletedTask; }
@@ -203,6 +228,42 @@ public class SocialIngestionServiceTests
         public Task<IReadOnlyList<MediaItem>> GetFilteredAsync(Guid? gameId, MediaCategory? category, MediaType? type, ModerationStatus? status, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items);
     }
 
+    private class FakePublisherRepository : IPublisherRepository
+    {
+        public List<Publisher> Items { get; } = new();
+        public Task<IReadOnlyList<Publisher>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Publisher>>(Items);
+        public Task<Publisher?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Id == id));
+        public Task<Publisher?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Publisher?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Publisher publisher, CancellationToken ct = default) { Items.Add(publisher); return Task.CompletedTask; }
+        public Task UpdateAsync(Publisher publisher, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(p => p.Id == id); return Task.CompletedTask; }
+    }
+
+    private class FakeStoreRepository : IStoreRepository
+    {
+        public List<Store> Items { get; } = new();
+        public Task<IReadOnlyList<Store>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Store>>(Items);
+        public Task<Store?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Id == id));
+        public Task<Store?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Store?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Store store, CancellationToken ct = default) { Items.Add(store); return Task.CompletedTask; }
+        public Task UpdateAsync(Store store, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(s => s.Id == id); return Task.CompletedTask; }
+    }
+
+    private class FakeCreatorRepository : ICreatorRepository
+    {
+        public List<Creator> Items { get; } = new();
+        public Task<IReadOnlyList<Creator>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Creator>>(Items);
+        public Task<Creator?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Id == id));
+        public Task<Creator?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Creator?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Creator creator, CancellationToken ct = default) { Items.Add(creator); return Task.CompletedTask; }
+        public Task UpdateAsync(Creator creator, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(c => c.Id == id); return Task.CompletedTask; }
+    }
+
     private readonly FakeSocialInboxRepository _inboxRepo = new();
     private readonly FakeSocialMetadataExtractor _metadataExtractor = new();
     private readonly FakeSocialAiAnalysisService _aiService = new();
@@ -225,7 +286,11 @@ public class SocialIngestionServiceTests
 
     private readonly FakeGiveawayCoverComposer _coverComposer = new();
 
-    private SocialIngestionService CreateService(IGiveawayCoverComposer? composer = null)
+    private SocialIngestionService CreateService(
+        IGiveawayCoverComposer? composer = null,
+        IPublisherRepository? publisherRepo = null,
+        IStoreRepository? storeRepo = null,
+        ICreatorRepository? creatorRepo = null)
     {
         return new SocialIngestionService(
             _inboxRepo,
@@ -240,7 +305,10 @@ public class SocialIngestionServiceTests
             new HttpClient(),
             NullLogger<SocialIngestionService>.Instance,
             permissionGuard: null,
-            giveawayCoverComposer: composer ?? _coverComposer);
+            giveawayCoverComposer: composer ?? _coverComposer,
+            publisherRepository: publisherRepo,
+            storeRepository: storeRepo,
+            creatorRepository: creatorRepo);
     }
 
     [Fact]
@@ -381,6 +449,254 @@ public class SocialIngestionServiceTests
     }
 
     [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithPastDeadline_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/past-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Con Fecha Pasada",
+            organizerOrAuthor: "Asmodee",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-3)); // Fecha en el pasado
+
+        _inboxRepo.Items.Add(item);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ApproveAndPublishAsync(item.Id, "admin_user"));
+
+        Assert.Contains("pasado", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutDeadline_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/no-deadline-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Sin Fecha",
+            organizerOrAuthor: "Asmodee",
+            eventOrReleaseDate: null,
+            eventEndDate: null);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ApproveAndPublishAsync(item.Id, "admin_user"));
+
+        Assert.Contains("fecha de fin", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutLocation_ResolvesCountryFromPublisher()
+    {
+        // Arrange
+        var publisherRepo = new FakePublisherRepository();
+        publisherRepo.Items.Add(new Publisher(
+            name: "Devir Argentina",
+            slug: "devir-argentina",
+            country: "Argentina"));
+
+        var service = CreateService(publisherRepo: publisherRepo);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/argentina-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Catan",
+            organizerOrAuthor: "Devir Argentina",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(5),
+            location: null);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, createdId);
+        var created = _giveawayRepo.Items.Find(g => g.Id == createdId);
+        Assert.NotNull(created);
+        Assert.Equal("Argentina", created.Country);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutLocation_ResolvesCountryFromStore()
+    {
+        // Arrange
+        var storeRepo = new FakeStoreRepository();
+        storeRepo.Items.Add(new Store(
+            name: "Dungeon Dice Chile",
+            slug: "dungeon-dice-chile",
+            country: "Chile"));
+
+        var service = CreateService(storeRepo: storeRepo);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/chile-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Dixit",
+            organizerOrAuthor: "Dungeon Dice Chile",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(4),
+            location: null);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, createdId);
+        var created = _giveawayRepo.Items.Find(g => g.Id == createdId);
+        Assert.NotNull(created);
+        Assert.Equal("Chile", created.Country);
+    }
+
+    [Fact]
+    public async Task IngestFromCollectorAsync_GiveawayWithoutLocation_ResolvesCountryFromCreator()
+    {
+        // Arrange
+        var creatorRepo = new FakeCreatorRepository();
+        creatorRepo.Items.Add(new Creator(
+            name: "Meeple Colombia",
+            slug: "meeple-colombia",
+            nationality: "Colombia"));
+
+        var service = CreateService(creatorRepo: creatorRepo);
+        _metadataExtractor.ResultToReturn = new SocialMetadataResultDto(
+            Url: "https://www.youtube.com/watch?v=colombia123",
+            Platform: SocialPlatform.YouTube,
+            Title: "Sorteo Especial",
+            AuthorOrChannel: "Meeple Colombia",
+            Description: "Sorteamos un juego",
+            ImageUrl: null,
+            IsVideo: true);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Especial Meeple Colombia",
+            OrganizerOrAuthor: "Meeple Colombia",
+            Collaborator: null,
+            SuggestedGameTitle: "Carcassonne",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(6),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: null);
+
+        // Act
+        var result = await service.IngestFromCollectorAsync("https://www.youtube.com/watch?v=colombia123");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Colombia", result.Location);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithEventEndDate_PrefersEndDateOverStartDate()
+    {
+        // Arrange
+        var service = CreateService();
+        var futureEnd = DateTimeOffset.UtcNow.AddDays(12);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/with-end-date",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Con Fin Explícito",
+            organizerOrAuthor: "Devir",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-2),
+            eventEndDate: futureEnd);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.Single(_giveawayRepo.Items);
+        var created = _giveawayRepo.Items[0];
+        Assert.Equal(futureEnd, created.DeadlineAt);
+        Assert.False(created.IsExpired);
+    }
+
+    [Theory]
+    [InlineData("Península", "España", false)]
+    [InlineData("Baleares", "España", false)]
+    [InlineData("Canarias", "España", false)]
+    [InlineData("Internacional", "Internacional", true)]
+    [InlineData("Mundial", "Internacional", true)]
+    [InlineData("México", "México", false)]
+    public async Task ApproveAndPublishAsync_GiveawayWithRegionalLocation_NormalizesCountryCorrectly(
+        string rawLocation, string expectedCountry, bool expectedInternational)
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: $"https://instagram.com/p/location-{Guid.NewGuid():N}",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo con Ámbito Territorial",
+            organizerOrAuthor: "TCG Factory",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(7),
+            location: rawLocation);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        var created = _giveawayRepo.Items.Last();
+        Assert.Equal(expectedCountry, created.Country);
+        Assert.Equal(expectedInternational, created.IsInternational);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayDuplicateOrCollaborative_MergesCollaboratorAndExtendsDeadline()
+    {
+        // Arrange
+        var service = CreateService();
+        var existingDeadline = DateTimeOffset.UtcNow.AddDays(3);
+        var existingGiveaway = new Giveaway(
+            title: "Sorteo Cascadia",
+            organizer: "Devir",
+            url: "https://instagram.com/p/first",
+            platform: GiveawayPlatform.Instagram,
+            deadlineAt: existingDeadline,
+            collaborator: "Meepletopia");
+        _giveawayRepo.Items.Add(existingGiveaway);
+
+        var laterDeadline = DateTimeOffset.UtcNow.AddDays(8);
+        var newItem = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/second",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Cascadia",
+            organizerOrAuthor: "Devir",
+            collaborator: "Análisis Parálisis",
+            eventEndDate: laterDeadline);
+
+        _inboxRepo.Items.Add(newItem);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(newItem.Id, "admin_user");
+
+        // Assert: Reutiliza el ID del sorteo existente sin duplicar la entidad
+        Assert.Equal(existingGiveaway.Id, createdId);
+        Assert.Single(_giveawayRepo.Items);
+        Assert.Contains("Meepletopia", existingGiveaway.Collaborator);
+        Assert.Contains("Análisis Parálisis", existingGiveaway.Collaborator);
+        Assert.Equal(laterDeadline, existingGiveaway.DeadlineAt);
+    }
+
+    [Fact]
     public async Task ApproveAndPublishAsync_BoardGameEventItem_CreatesEventAndSetsApproved()
     {
         // Arrange
@@ -492,5 +808,219 @@ public class SocialIngestionServiceTests
             service.IngestFromCollectorAsync("https://www.instagram.com/reel/blocked123/", manualCaption: null));
 
         Assert.Contains("Alta Exprés Multimodal", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Análisis Gemini Flash Vision", true)]
+    [InlineData("Gemini 1.5 Flash completado con éxito", true)]
+    [InlineData("Detección heurística de patrones editoriales en español", false)]
+    [InlineData("Detección heuristica sin acento", false)]
+    [InlineData("Alta asistida manual avanzada", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void SocialInboxItemDto_IsAiProcessed_IdentifiesAiCorrectly(string? notes, bool expected)
+    {
+        var item = new SocialInboxItem(
+            sourceUrl: "https://example.com/post",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Test",
+            organizerOrAuthor: "Test Org",
+            aiAnalysisNotes: notes);
+
+        var dto = SocialInboxItemDto.FromEntity(item);
+
+        Assert.Equal(expected, dto.IsAiProcessed);
+    }
+
+    [Fact]
+    public async Task IngestFromUrlAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-post-123/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestFromUrlAsync(existingUrl, "Texto manual"));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-multimodal/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: existingUrl,
+            ManualCaption: "Texto descriptivo",
+            CoverImageBytes: new byte[] { 1, 2, 3 });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestMultimodalAsync(input));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task IngestManualAdvancedAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-manual/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var input = new SocialInboxManualInputDto(
+            SourceUrl: existingUrl,
+            SubmissionType: SocialSubmissionType.Giveaway,
+            Title: "Manual Nuevo",
+            OrganizerOrAuthor: "Editorial");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestManualAdvancedAsync(input));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_ItemNotFound_ThrowsKeyNotFoundException()
+    {
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.ReanalyzeWithAiAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_ItemNotPendingReview_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/approved/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo",
+            organizerOrAuthor: "devir");
+        item.Approve(Guid.NewGuid(), "admin");
+        _inboxRepo.Items.Add(item);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ReanalyzeWithAiAsync(item.Id));
+
+        Assert.Contains("Solo se pueden reanalizar publicaciones pendientes", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_AiReturnsHeuristicFallback_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/heuristic/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo inicial",
+            organizerOrAuthor: "devir",
+            originalCaption: "Participa en el sorteo de Catan",
+            aiAnalysisNotes: "Detección heurística de patrones editoriales en español");
+        _inboxRepo.Items.Add(item);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Catan",
+            OrganizerOrAuthor: "devir",
+            Collaborator: null,
+            SuggestedGameTitle: "Catan",
+            EventOrReleaseDate: null,
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: "Detección heurística de patrones editoriales en español");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ReanalyzeWithAiAsync(item.Id));
+
+        Assert.Contains("El servicio de IA no está disponible", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_AiSucceeds_UpdatesItemAndReturnsAiProcessedTrue()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/real-ai/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo antiguo",
+            organizerOrAuthor: "editorial",
+            originalCaption: "¡Sorteamos un ejemplar exclusivo de Ark Nova!",
+            aiAnalysisNotes: "Detección heurística de patrones editoriales en español");
+        _inboxRepo.Items.Add(item);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Oficial de Ark Nova",
+            OrganizerOrAuthor: "Maldito Games",
+            Collaborator: "@ludocreador",
+            SuggestedGameTitle: "Ark Nova",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(7),
+            EventEndDate: null,
+            Location: "España Peninsular",
+            EstimatedPvp: 65m,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: "Extracción Gemini Flash 1.5 con alta certidumbre");
+
+        var result = await service.ReanalyzeWithAiAsync(item.Id);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsAiProcessed);
+        Assert.Equal("Sorteo Oficial de Ark Nova", result.Title);
+        Assert.Equal("Maldito Games", result.OrganizerOrAuthor);
+        Assert.Equal("@ludocreador", result.Collaborator);
+        Assert.Equal("España", result.Location);
+        Assert.Equal("Extracción Gemini Flash 1.5 con alta certidumbre", result.AiAnalysisNotes);
+    }
+
+    [Fact]
+    public async Task PurgeSimulatedItemsAsync_CallsRepositoryAndReturnsPurgedCount()
+    {
+        var service = CreateService();
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/sim_123/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Simulado 1",
+            organizerOrAuthor: "org"));
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/real_post/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Real",
+            organizerOrAuthor: "org"));
+
+        var count = await service.PurgeSimulatedItemsAsync();
+
+        Assert.Equal(1, count);
+        Assert.Single(_inboxRepo.Items);
+        Assert.Equal("Real", _inboxRepo.Items[0].Title);
     }
 }

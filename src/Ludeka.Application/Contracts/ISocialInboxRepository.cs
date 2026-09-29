@@ -15,5 +15,7 @@ public interface ISocialInboxRepository
     Task<int> GetPendingCountAsync(CancellationToken ct = default);
     Task<SocialInboxItem> AddAsync(SocialInboxItem item, CancellationToken ct = default);
     Task UpdateAsync(SocialInboxItem item, CancellationToken ct = default);
+    Task DeleteAsync(Guid id, CancellationToken ct = default);
     Task<bool> ExistsBySourceUrlAsync(string sourceUrl, CancellationToken ct = default);
+    Task<int> PurgeSimulatedAsync(CancellationToken ct = default);
 }

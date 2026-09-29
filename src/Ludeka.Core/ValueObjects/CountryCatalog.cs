@@ -62,8 +62,17 @@ public static class CountryCatalog
         return All.FirstOrDefault(c =>
             string.Equals(c.Code, query.Trim(), StringComparison.OrdinalIgnoreCase) ||
             string.Equals(RemoveDiacritics(c.Name), clean, StringComparison.OrdinalIgnoreCase) ||
-            (c.Code == "INT" && (clean.Equals("global", StringComparison.OrdinalIgnoreCase) || clean.Equals("mundial", StringComparison.OrdinalIgnoreCase))) ||
-            (c.Code == "ES" && clean.Equals("espana", StringComparison.OrdinalIgnoreCase)) ||
+            (c.Code == "INT" && (clean.Equals("global", StringComparison.OrdinalIgnoreCase) ||
+                                 clean.Equals("mundial", StringComparison.OrdinalIgnoreCase) ||
+                                 clean.Equals("worldwide", StringComparison.OrdinalIgnoreCase) ||
+                                 clean.Equals("internacional", StringComparison.OrdinalIgnoreCase) ||
+                                 clean.Equals("todos", StringComparison.OrdinalIgnoreCase))) ||
+            (c.Code == "ES" && (clean.Equals("espana", StringComparison.OrdinalIgnoreCase) ||
+                                clean.Equals("spain", StringComparison.OrdinalIgnoreCase) ||
+                                clean.Equals("peninsula", StringComparison.OrdinalIgnoreCase) ||
+                                clean.Equals("peninsula iberica", StringComparison.OrdinalIgnoreCase) ||
+                                clean.Equals("baleares", StringComparison.OrdinalIgnoreCase) ||
+                                clean.Equals("canarias", StringComparison.OrdinalIgnoreCase))) ||
             (c.Code == "MX" && clean.Equals("mexico", StringComparison.OrdinalIgnoreCase)) ||
             (c.Code == "PE" && clean.Equals("peru", StringComparison.OrdinalIgnoreCase)));
     }

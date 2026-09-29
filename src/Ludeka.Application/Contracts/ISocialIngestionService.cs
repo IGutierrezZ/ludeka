@@ -23,6 +23,8 @@ public interface ISocialIngestionService
 
     Task<SocialInboxItemDto> IngestManualAdvancedAsync(SocialInboxManualInputDto input, CancellationToken ct = default);
     Task<SocialInboxItemDto> UpdateItemAsync(SocialInboxUpdateDto dto, CancellationToken ct = default);
+    Task<SocialInboxItemDto> ReanalyzeWithAiAsync(Guid inboxItemId, CancellationToken ct = default);
+    Task<int> PurgeSimulatedItemsAsync(CancellationToken ct = default);
     Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default);
     Task RejectItemAsync(Guid inboxItemId, string reason, string reviewerUserId, CancellationToken ct = default);
     Task<IReadOnlyList<SocialInboxItemDto>> GetPendingItemsAsync(SocialSubmissionType? typeFilter = null, CancellationToken ct = default);
