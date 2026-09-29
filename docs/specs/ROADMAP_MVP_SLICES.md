@@ -796,6 +796,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 84: Tema Madera Clara por Defecto y Selector Minimalista para Visitantes
+- **Identificador SDD:** `change-84-tema-madera-clara-selector-invitados`
+- **Objetivo Principal:** Establecer el tema Madera Clara (`wood`) como diseño predeterminado para usuarios sin sesión y dotar a la cabecera de un selector de temas accesible y sin fricción:
+  1. **Madera Clara Zero-FOUC:** Inyección de `<html lang="es" data-theme="wood">` en `App.razor`, sincronización de fallbacks de JavaScript y estado inicial en `MainLayout.razor`.
+  2. **Selector para Visitantes (`GuestThemePicker.razor`):** Componente minimalista sin texto con disparador de paleta y menú flotante con las 5 muestras circulares de color puro (Blanco, Madera Clara, Madera Oscura, Azul Oscuro y Carbón). Cumplimiento WCAG 2.2 AA (roles semánticos, `aria-label`, tecla `Escape` y telón exterior).
+  3. **Navegación Anónima sin Redirecciones:** Conmutación local inmediata en DOM y `localStorage` sin llamadas a base de datos ni redirección a `/login`.
+- **Estado:** ✅ **Completado y Archivado** (2.123 tests en verde al 100%: 2.113 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-84-tema-madera-clara-selector-invitados.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-84-tema-madera-clara-selector-invitados.md).
+- **Módulos del Sistema:** [`39-preferencias-de-usuario-privacidad-y-navegacion.md`](file:///c:/repos/Ludeka/docs/specs/sistema/39-preferencias-de-usuario-privacidad-y-navegacion.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
