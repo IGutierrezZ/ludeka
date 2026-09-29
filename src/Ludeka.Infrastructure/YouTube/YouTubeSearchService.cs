@@ -64,7 +64,7 @@ public class YouTubeSearchService : IYouTubeSearchService
 
     public async Task<IReadOnlyList<YouTubeSearchResultDto>> SearchVideosForGameAsync(Guid gameId, CancellationToken ct = default)
     {
-        var game = await _gameRepository.GetByIdAsync(gameId, ct);
+        var game = await _gameRepository.GetByIdAsync(gameId, ct).ConfigureAwait(false);
         if (game == null)
         {
             return Array.Empty<YouTubeSearchResultDto>();
@@ -76,7 +76,7 @@ public class YouTubeSearchService : IYouTubeSearchService
         var tutTask = SearchTutorialsAsync(searchTitle, ct);
         var playTask = SearchPlaythroughsAsync(searchTitle, game.Id, ct);
 
-        await Task.WhenAll(quickTask, tutTask, playTask);
+        await Task.WhenAll(quickTask, tutTask, playTask).ConfigureAwait(false);
 
         var combined = new List<YouTubeSearchResultDto>();
         combined.AddRange(quickTask.Result);
@@ -93,7 +93,7 @@ public class YouTubeSearchService : IYouTubeSearchService
     public async Task<IReadOnlyList<YouTubeSearchResultDto>> SearchQuickOverviewsAsync(string gameTitle, CancellationToken ct = default)
     {
         var query = $"{gameTitle} cómo funciona mecánicas en 2 minutos";
-        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.QuickOverview, null, ct);
+        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.QuickOverview, null, ct).ConfigureAwait(false);
 
         // Filtrar y priorizar vídeos breves (<= 180s / 3 min)
         return results
@@ -110,7 +110,7 @@ public class YouTubeSearchService : IYouTubeSearchService
     public async Task<IReadOnlyList<YouTubeSearchResultDto>> SearchTutorialsAsync(string gameTitle, CancellationToken ct = default)
     {
         var query = $"{gameTitle} cómo jugar tutorial español";
-        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.Tutorial, null, ct);
+        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.Tutorial, null, ct).ConfigureAwait(false);
 
         // Ponderar rango de 8 a 25 min (480s a 1500s)
         return results
@@ -129,11 +129,18 @@ public class YouTubeSearchService : IYouTubeSearchService
         Game? game = null;
         if (gameId.HasValue)
         {
-            game = await _gameRepository.GetByIdAsync(gameId.Value, ct);
+            try
+            {
+                game = await _gameRepository.GetByIdAsync(gameId.Value, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo cargar el juego '{GameId}' para inferir el escalado de jugadores en YouTube", gameId.Value);
+            }
         }
 
         var query = $"{gameTitle} partida completa español";
-        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.Playthrough, game, ct);
+        var results = await ExecuteSearchAsync(query, gameTitle, MediaType.Playthrough, game, ct).ConfigureAwait(false);
 
         return results
             .Select(r =>
@@ -291,7 +298,7 @@ public class YouTubeSearchService : IYouTubeSearchService
         {
             // 1. Llamada a YouTube search
             var searchUrl = $"search?part=snippet&q={Uri.EscapeDataString(query)}&type=video&relevanceLanguage=es&maxResults=5&key={Uri.EscapeDataString(_options.ApiKey!)}";
-            var searchResponse = await _httpClient.GetFromJsonAsync<YouTubeSearchListResponse>(searchUrl, ct);
+            var searchResponse = await _httpClient.GetFromJsonAsync<YouTubeSearchListResponse>(searchUrl, ct).ConfigureAwait(false);
 
             if (searchResponse?.Items == null || searchResponse.Items.Count == 0)
             {
@@ -302,6 +309,7 @@ public class YouTubeSearchService : IYouTubeSearchService
             var videoIds = searchResponse.Items
                 .Where(i => i.Id?.VideoId != null)
                 .Select(i => i.Id!.VideoId!)
+                .Distinct()
                 .ToList();
 
             if (videoIds.Count == 0)
@@ -312,15 +320,21 @@ public class YouTubeSearchService : IYouTubeSearchService
             // 2. Llamada a YouTube videos para obtener duration exacta e info enriquecida
             var idsJoined = string.Join(",", videoIds);
             var videosUrl = $"videos?part=snippet,contentDetails&id={idsJoined}&key={Uri.EscapeDataString(_options.ApiKey!)}";
-            var videosResponse = await _httpClient.GetFromJsonAsync<YouTubeVideoListResponse>(videosUrl, ct);
+            var videosResponse = await _httpClient.GetFromJsonAsync<YouTubeVideoListResponse>(videosUrl, ct).ConfigureAwait(false);
 
             var videoDetailsMap = (videosResponse?.Items ?? [])
                 .Where(v => !string.IsNullOrWhiteSpace(v.Id))
-                .ToDictionary(v => v.Id!, v => v);
+                .GroupBy(v => v.Id!)
+                .ToDictionary(g => g.Key, g => g.First());
 
             var results = new List<YouTubeSearchResultDto>();
 
-            foreach (var item in searchResponse.Items)
+            var distinctSearchItems = searchResponse.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.Id?.VideoId))
+                .GroupBy(i => i.Id!.VideoId!)
+                .Select(g => g.First());
+
+            foreach (var item in distinctSearchItems)
             {
                 var vId = item.Id?.VideoId;
                 if (string.IsNullOrWhiteSpace(vId)) continue;

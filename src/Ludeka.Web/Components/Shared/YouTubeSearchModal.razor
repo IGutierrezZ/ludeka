@@ -92,7 +92,7 @@
                     else
                     {
                         <button type="button"
-                                @onclick="() => PerformSearch()"
+                                @onclick="PerformSearch"
                                 disabled="@(string.IsNullOrWhiteSpace(_searchQuery))"
                                 class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-md">
                             <Icon Name="search" Size="14" />
@@ -404,21 +404,44 @@
         // No auto-disparar búsqueda: el usuario decide cuándo pulsar "Buscar en YouTube" o dar a Enter.
     }
 
-    private void CancelSearch()
+    private async Task CancelSearch()
     {
-        if (!_isSearching) return;
         _isUserCancelled = true;
-        _activeSearchCts?.Cancel();
         _isSearching = false;
         _isNotificationError = false;
         _notificationMessage = "Búsqueda cancelada.";
+
+        try
+        {
+            if (_activeSearchCts is { IsCancellationRequested: false })
+            {
+                _activeSearchCts.Cancel();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // CTS ya desechado
+        }
+        catch (Exception)
+        {
+            // Salvaguarda defensiva
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ClearSelectedGame()
     {
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
-        _activeSearchCts?.Cancel();
+        try
+        {
+            if (_activeSearchCts is { IsCancellationRequested: false })
+            {
+                _activeSearchCts.Cancel();
+            }
+        }
+        catch {}
         _selectedGame = null;
         _searchQuery = string.Empty;
         _matchingGames = [];
@@ -427,14 +450,23 @@
         _tutorials = [];
         _playthroughs = [];
         _notificationMessage = null;
+        _isSearching = false;
     }
 
     private async Task PerformSearch()
     {
         if (string.IsNullOrWhiteSpace(_searchQuery)) return;
 
-        _activeSearchCts?.Cancel();
-        _activeSearchCts?.Dispose();
+        try
+        {
+            if (_activeSearchCts is { IsCancellationRequested: false })
+            {
+                _activeSearchCts.Cancel();
+            }
+            _activeSearchCts?.Dispose();
+        }
+        catch {}
+
         _activeSearchCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var ct = _activeSearchCts.Token;
 
@@ -444,6 +476,8 @@
         _isNotificationError = false;
         _matchingGames = [];
         _notificationMessage = null;
+
+        await InvokeAsync(StateHasChanged);
 
         try
         {
@@ -486,6 +520,7 @@
         finally
         {
             _isSearching = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -554,8 +589,21 @@
     private async Task CloseModal()
     {
         _debounceTimer?.Dispose();
-        _searchCts?.Cancel();
-        _activeSearchCts?.Cancel();
+        try
+        {
+            _searchCts?.Cancel();
+        }
+        catch {}
+
+        try
+        {
+            if (_activeSearchCts is { IsCancellationRequested: false })
+            {
+                _activeSearchCts.Cancel();
+            }
+        }
+        catch {}
+
         _matchingGames = [];
         _notificationMessage = null;
         _isSearching = false;
@@ -565,9 +613,21 @@
     public void Dispose()
     {
         _debounceTimer?.Dispose();
-        _searchCts?.Cancel();
-        _searchCts?.Dispose();
-        _activeSearchCts?.Cancel();
-        _activeSearchCts?.Dispose();
+        try
+        {
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
+        }
+        catch {}
+
+        try
+        {
+            if (_activeSearchCts is { IsCancellationRequested: false })
+            {
+                _activeSearchCts.Cancel();
+            }
+            _activeSearchCts?.Dispose();
+        }
+        catch {}
     }
 }
