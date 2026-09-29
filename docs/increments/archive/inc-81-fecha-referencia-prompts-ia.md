@@ -3,7 +3,7 @@
 > **ID:** INC-81  
 > **Slug:** `fecha-referencia-prompts-ia`  
 > **Rama:** `inc/fecha-referencia-prompts-ia`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Módulos Impactados:** Módulo 28 (`docs/specs/sistema/28-hub-ingesta-social-moderacion.md`), Módulo 13 (`docs/specs/sistema/13-sintesis-ia-resumen.md`)  
 > **Dependencias:** INC-80 (Rediseño de moderación social a carteles compactos y reintento IA).
 
