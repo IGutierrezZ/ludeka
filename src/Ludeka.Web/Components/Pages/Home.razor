@@ -995,60 +995,82 @@
         await LoadCatalogAsync();
     }
 
+    private CancellationTokenSource? _catalogCts;
+
     private async Task LoadCatalogAsync()
     {
+        _catalogCts?.Cancel();
+        _catalogCts?.Dispose();
+        _catalogCts = new CancellationTokenSource();
+        var ct = _catalogCts.Token;
+
         _isLoading = true;
         StateHasChanged();
 
-        GameType? presetTypeFilter = _activePreset switch
+        try
         {
-            Preset.JuegosBase => GameType.BaseGame,
-            Preset.Expansiones => GameType.Expansion,
-            _ => null
-        };
+            GameType? presetTypeFilter = _activePreset switch
+            {
+                Preset.JuegosBase => GameType.BaseGame,
+                Preset.Expansiones => GameType.Expansion,
+                _ => null
+            };
 
-        var typesToFilter = _selectedTypes.Count > 0 
-            ? _selectedTypes.ToList() 
-            : (presetTypeFilter.HasValue ? new List<GameType> { presetTypeFilter.Value } : null);
+            var typesToFilter = _selectedTypes.Count > 0 
+                ? _selectedTypes.ToList() 
+                : (presetTypeFilter.HasValue ? new List<GameType> { presetTypeFilter.Value } : null);
 
-        var criteria = new GameFilterCriteria(
-            SearchTerm: _searchTerm,
-            PlayerCounts: _selectedPlayerCounts.Count > 0 ? _selectedPlayerCounts.ToList() : null,
-            PlayerCountsMatchAll: true,
-            Footprints: _selectedFootprints.Count > 0 ? _selectedFootprints.ToList() : null,
-            Complexities: _selectedComplexities.Count > 0 ? _selectedComplexities.ToList() : null,
-            Styles: _selectedStyles.Count > 0 ? _selectedStyles.ToList() : null,
-            Confrontations: _selectedConfrontations.Count > 0 ? _selectedConfrontations.ToList() : null,
-            Types: typesToFilter,
-            MaxDurations: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.ToList() : null,
-            MaxDurationMinutes: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.Max() : (_activePreset == Preset.PartidasRapidas ? 45 : null),
-            EspecialParejas: _activePreset == Preset.EspecialParejas,
-            MesaFamiliar: _activePreset == Preset.MesaFamiliar,
-            SoloTop: _activePreset == Preset.SoloTop,
-            TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null
-        );
+            var criteria = new GameFilterCriteria(
+                SearchTerm: _searchTerm,
+                PlayerCounts: _selectedPlayerCounts.Count > 0 ? _selectedPlayerCounts.ToList() : null,
+                PlayerCountsMatchAll: true,
+                Footprints: _selectedFootprints.Count > 0 ? _selectedFootprints.ToList() : null,
+                Complexities: _selectedComplexities.Count > 0 ? _selectedComplexities.ToList() : null,
+                Styles: _selectedStyles.Count > 0 ? _selectedStyles.ToList() : null,
+                Confrontations: _selectedConfrontations.Count > 0 ? _selectedConfrontations.ToList() : null,
+                Types: typesToFilter,
+                MaxDurations: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.ToList() : null,
+                MaxDurationMinutes: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.Max() : (_activePreset == Preset.PartidasRapidas ? 45 : null),
+                EspecialParejas: _activePreset == Preset.EspecialParejas,
+                MesaFamiliar: _activePreset == Preset.MesaFamiliar,
+                SoloTop: _activePreset == Preset.SoloTop,
+                TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null
+            );
 
-        var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize);
-        _games = result.Games;
-        _totalCount = result.TotalCount;
-        _totalPages = result.TotalPages;
-
-        if (_totalPages > 0 && _currentPage > _totalPages)
-        {
-            _currentPage = _totalPages;
-            SyncUrl();
-            result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize);
+            var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize, ct: ct);
             _games = result.Games;
             _totalCount = result.TotalCount;
             _totalPages = result.TotalPages;
-        }
 
-        _isLoading = false;
-        StateHasChanged();
+            if (_totalPages > 0 && _currentPage > _totalPages)
+            {
+                _currentPage = _totalPages;
+                SyncUrl();
+                result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize, ct: ct);
+                _games = result.Games;
+                _totalCount = result.TotalCount;
+                _totalPages = result.TotalPages;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelado por una interacción posterior más reciente
+            return;
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
     }
 
     public void Dispose()
     {
+        _catalogCts?.Cancel();
+        _catalogCts?.Dispose();
         Navigation.LocationChanged -= OnLocationChanged;
     }
 }

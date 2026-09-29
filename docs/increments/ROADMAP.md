@@ -94,6 +94,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](archive/inc-79-sorteos-ficha-redimension-y-edicion.md) |
 | **INC-80** | Rediseño de Moderación Social a Carteles Compactos, Resiliencia y Reintento IA, y Limpieza de Simulación | ✅ Archivado | [inc-80-moderacion-social-carteles-ia.md](archive/inc-80-moderacion-social-carteles-ia.md) |
 | **INC-81** | Inyección de Fecha de Referencia y Directivas Temporales en Prompts de Gemini AI | ✅ Archivado | [inc-81-fecha-referencia-prompts-ia.md](archive/inc-81-fecha-referencia-prompts-ia.md) |
+| **INC-82** | Optimización de Rendimiento en Catálogo, Paginación Nativa SQL y Búsqueda Resiliente con Debounce | ⏳ En progreso | [inc-82-opt-catalogo-busqueda.md](inc-82-opt-catalogo-busqueda.md) |
+
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

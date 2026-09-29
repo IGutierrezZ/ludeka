@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +27,7 @@ public class CatalogServiceTests
         public Task<Game?> GetByBggIdAsync(int bggId, CancellationToken ct = default) =>
             Task.FromResult(Store.Find(g => g.BggId == bggId));
 
-        public Task<(IReadOnlyList<Game> Items, int TotalCount)> SearchAsync(GameFilterCriteria criteria, int page = 1, int pageSize = 20, CancellationToken ct = default)
+        public virtual Task<(IReadOnlyList<Game> Items, int TotalCount)> SearchAsync(GameFilterCriteria criteria, int page = 1, int pageSize = 20, CancellationToken ct = default)
         {
             var filtered = Store.FindAll(g =>
                 string.IsNullOrEmpty(criteria.SearchTerm) ||
@@ -36,6 +36,9 @@ public class CatalogServiceTests
 
             return Task.FromResult(((IReadOnlyList<Game>)filtered, filtered.Count));
         }
+
+        public virtual Task<IReadOnlyList<Game>> QuickSearchAsync(string term, int limit = 5, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Game>>([]);
 
         public Task AddRangeAsync(IEnumerable<Game> games, CancellationToken ct = default)
         {
@@ -105,5 +108,56 @@ public class CatalogServiceTests
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetQuickSearchAsync_WithEmptyTerm_ReturnsEmptyList()
+    {
+        // Arrange
+        var fakeRepo = new FakeGameRepository();
+        var service = new CatalogService(fakeRepo);
+
+        // Act
+        var result = await service.GetQuickSearchAsync("   ");
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetQuickSearchAsync_WhenQuickSearchReturnsItems_ReturnsSummaryDtosWithoutFallback()
+    {
+        // Arrange
+        var customRepo = new QuickSearchTestRepository();
+        var service = new CatalogService(customRepo);
+
+        // Act
+        var results = await service.GetQuickSearchAsync("Terraforming", 3);
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("Terraforming Mars", results[0].SpanishTitle);
+        Assert.True(customRepo.QuickSearchCalled);
+        Assert.False(customRepo.SearchAsyncCalled);
+    }
+
+    private class QuickSearchTestRepository : FakeGameRepository
+    {
+        public bool QuickSearchCalled { get; private set; }
+        public bool SearchAsyncCalled { get; private set; }
+
+        public override Task<IReadOnlyList<Game>> QuickSearchAsync(string term, int limit = 5, CancellationToken ct = default)
+        {
+            QuickSearchCalled = true;
+            var game = new Game(167791, "Terraforming Mars", "Terraforming Mars", "Jacob Fryxelius", "FryxGames", 2016, "", "", "", 8.4, 6, 8.8,
+                ConfrontationType.Competitive, GameStyle.Eurogame, true, new AgeRating(12, 12), LanguageDependence.Low, TableFootprint.StandardTable, new GameDuration(90, 120, 30));
+            return Task.FromResult<IReadOnlyList<Game>>([game]);
+        }
+
+        public override Task<(IReadOnlyList<Game> Items, int TotalCount)> SearchAsync(GameFilterCriteria criteria, int page = 1, int pageSize = 20, CancellationToken ct = default)
+        {
+            SearchAsyncCalled = true;
+            return base.SearchAsync(criteria, page, pageSize, ct);
+        }
     }
 }

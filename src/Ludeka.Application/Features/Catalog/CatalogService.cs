@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -35,6 +35,12 @@ public class CatalogService : ICatalogService
     public async Task<IReadOnlyList<GameSummaryDto>> GetQuickSearchAsync(string term, int limit = 5, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(term)) return Array.Empty<GameSummaryDto>();
+
+        var quickItems = await _repository.QuickSearchAsync(term.Trim(), limit, ct);
+        if (quickItems.Count > 0)
+        {
+            return quickItems.Select(GameSummaryDto.FromEntity).ToList();
+        }
 
         var criteria = new GameFilterCriteria(SearchTerm: term.Trim());
         var (items, _) = await _repository.SearchAsync(criteria, page: 1, pageSize: limit, ct);
