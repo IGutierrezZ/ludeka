@@ -132,3 +132,10 @@ Ubicación: [`src/Ludeka.Web/Components/Shared/StoreOffersCard.razor`](file:///c
 - **Botón de Compra Diferenciado:** Para ofertas agotadas, el botón se atenúa y cambia el texto a "Agotado / Ver tienda".
 - **Timestamp Relativo:** Muestra la frescura del dato ("Comprobado hace 5 min", "hace instantes").
 - **Botón de Refresco:** Botón "🔄" por oferta para forzar la re-verificación e invalidación de caché.
+
+### 5.2 Presentación Honesta en Fallback de Búsqueda (Sin Falsos Positivos)
+- **Activación de Fallback:** Cuando un juego no dispone de ofertas comerciales vinculadas directamente (`_isReferenceFallback == true`), se generan enlaces deterministas de búsqueda en catálogo para tiendas de referencia de España (Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra).
+- **Tratamiento Honesto Anti-Frustración:**
+  - Se suprime la generación de tarjetas simuladas con semáforos verdes o precios ficticios.
+  - Se omiten las comprobaciones HTTP en segundo plano contra URLs de búsqueda para evitar bloqueos de cortafuegos (Cloudflare 403) y degradaciones erróneas a *«Verificar en web»*.
+  - Se despliega un contenedor sobrio e informativo con el estado *«Sin precios ni stock confirmados»* y enlaces directos de búsqueda rápida en un clic (`[Buscar en {Tienda} ↗]`).
