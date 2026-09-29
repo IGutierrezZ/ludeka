@@ -122,135 +122,65 @@ else
         </div>
     }
 
-    @* Hero Section (Lectura en 3 segundos) *@
-    <div class="detail-hero-backdrop">
-        <div class="container-ludeka">
-            <div class="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                @* Carátula oficial BGG y selector interactivo de imágenes *@
-                <div class="w-full sm:w-64 md:w-72 shrink-0 flex flex-col gap-2">
-                    <div class="w-full aspect-square rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-[var(--bg-surface-elevated)] relative">
-                        @{
-                            var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
-                            var currentImgUrl = CurrentHeroImageUrl;
-                        }
+    @* Maquetación Editorial a Dos Columnas (INC-85) *@
+    <div class="container-ludeka py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                        @* Badge flotante en carátula para reconocimiento instantáneo *@
+            @* Columna Principal (Izquierda, 8 cols en desktop): Inmersión lúdica y mesa *@
+            <div class="lg:col-span-8 space-y-6">
+
+                @* Cabecera de Título y Metadatos *@
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 flex-wrap">
                         @if (Game.IsExpansion)
                         {
-                            <div class="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5">
-                                <Icon Name="puzzle" Size="12" />
-                                <span>Expansión Oficial</span>
-                            </div>
+                            <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30 flex items-center gap-1">
+                                <Icon Name="puzzle" Size="12" /> Expansión Oficial
+                            </span>
                         }
-
-                        @if (!string.IsNullOrWhiteSpace(currentImgUrl))
+                        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                            @Game.YearPublished
+                        </span>
+                        @if (Game.BggRank.HasValue)
                         {
-                            <img src="@currentImgUrl"
-                                 alt="@GetHeroImageAlt()"
-                                 fetchpriority="high"
-                                 decoding="async"
-                                 width="320"
-                                 height="320"
-                                 onerror="this.onerror=null; this.src='@placeholderUrl';"
-                                 class="w-full h-full object-cover transition-all duration-300" />
+                            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
+                                <Icon Name="trophy" Size="12" /> #@Game.BggRank Global BGG
+                            </span>
                         }
-                        else
+                        @if (Game.BggId > 0)
                         {
-                            <img src="@placeholderUrl"
-                                 alt="Carátula de @Game.SpanishTitle no disponible"
-                                 width="320"
-                                 height="320"
-                                 class="w-full h-full object-cover opacity-90" />
+                            <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               title="Ver en BoardGameGeek"
+                               class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--brand-primary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1">
+                                <Icon Name="globe" Size="12" /> Ver en BGG
+                            </a>
                         }
                     </div>
 
-                    @* Selector de vista de imágenes (Portada, Trasera, Mesa) *@
-                    @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl) || !string.IsNullOrWhiteSpace(Game.TableImageUrl))
-                    {
-                        <div class="flex items-center justify-center gap-1.5 p-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
-                            <button type="button"
-                                    @onclick='() => _selectedHeroImageKey = "cover"'
-                                    class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "cover" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
-                                    title="Ver portada principal">
-                                <Icon Name="image" Size="12" />
-                                <span>Portada</span>
-                            </button>
-                            @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl))
-                            {
-                                <button type="button"
-                                        @onclick='() => _selectedHeroImageKey = "back"'
-                                        class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "back" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
-                                        title="Ver contraportada">
-                                    <Icon Name="rotate-cw" Size="12" />
-                                    <span>Trasera</span>
-                                </button>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
-                            {
-                                <button type="button"
-                                        @onclick='() => _selectedHeroImageKey = "table"'
-                                        class="flex-1 py-1 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 @(_selectedHeroImageKey == "table" ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")"
-                                        title="Ver componentes en mesa">
-                                    <Icon Name="layout-grid" Size="12" />
-                                    <span>En mesa</span>
-                                </button>
-                            }
-                        </div>
+                    @{
+                        var titleForCountry = Game.GetTitleForCountry(_userCountryCode);
+                        var publisherForCountry = Game.GetPublisherForCountry(_userCountryCode);
+                        bool hasLocalPublisher = !string.IsNullOrWhiteSpace(publisherForCountry);
+                        bool differsFromOriginal = hasLocalPublisher && !string.Equals(publisherForCountry, Game.Publisher, StringComparison.OrdinalIgnoreCase);
+                        var localPubSlug = hasLocalPublisher ? Ludeka.Core.Entities.Game.GenerateSlug(publisherForCountry) : null;
+                        var origPubSlug = !string.IsNullOrWhiteSpace(Game.Publisher) ? Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher) : null;
                     }
-                </div>
 
-                @* Bloque de Identidad y Ratings *@
-                <div class="flex-1 space-y-4">
                     <div>
-                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                            @if (Game.IsExpansion)
-                            {
-                                <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30">
-                                    <Icon Name="puzzle" Size="12" /> Expansión Oficial
-                                </span>
-                            }
-                            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                                @Game.YearPublished
-                            </span>
-                            @if (Game.BggRank.HasValue)
-                            {
-                                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                                    <Icon Name="trophy" Size="12" /> #@Game.BggRank Global BGG
-                                </span>
-                            }
-                            @if (Game.BggId > 0)
-                            {
-                                <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   title="Ver en BoardGameGeek"
-                                   class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--brand-primary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1">
-                                    <Icon Name="globe" Size="12" /> Ver en BGG
-                                </a>
-                            }
-                        </div>
-
-                        @{
-                            var titleForCountry = Game.GetTitleForCountry(_userCountryCode);
-                            var publisherForCountry = Game.GetPublisherForCountry(_userCountryCode);
-                            bool hasLocalPublisher = !string.IsNullOrWhiteSpace(publisherForCountry);
-                            bool differsFromOriginal = hasLocalPublisher && !string.Equals(publisherForCountry, Game.Publisher, StringComparison.OrdinalIgnoreCase);
-                            var localPubSlug = hasLocalPublisher ? Ludeka.Core.Entities.Game.GenerateSlug(publisherForCountry) : null;
-                            var origPubSlug = !string.IsNullOrWhiteSpace(Game.Publisher) ? Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher) : null;
-                        }
-
-                        <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+                        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
                             @titleForCountry
                         </h1>
 
                         @if (!string.Equals(titleForCountry, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
                         {
-                            <p class="text-sm text-[var(--text-secondary)] italic">
+                            <p class="text-sm text-[var(--text-secondary)] italic mt-1">
                                 Título original: @Game.OriginalTitle
                             </p>
                         }
 
-                        <p class="text-xs text-[var(--text-secondary)] mt-1">
+                        <p class="text-xs text-[var(--text-secondary)] mt-2">
                             Diseñado por
                             @if (!string.IsNullOrWhiteSpace(Game.Designer))
                             {
@@ -282,7 +212,7 @@ else
 
                         @if (Game.RegionalPublishers != null && Game.RegionalPublishers.Count > 0)
                         {
-                            <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                            <div class="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                                 <span class="text-[var(--text-muted)] font-semibold text-[0.7rem] uppercase tracking-wider">Ediciones territoriales:</span>
                                 @foreach (var reg in Game.RegionalPublishers)
                                 {
@@ -303,29 +233,229 @@ else
                             </div>
                         }
                     </div>
+                </div>
 
-                    @* Doble Rating (BGG vs Ludist) *@
-                    <div class="flex items-center gap-4 py-3 px-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] max-w-md">
-                        <div class="flex-1">
-                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Rating BGG</span>
-                            <div class="flex items-baseline gap-1 text-[var(--brand-primary)]">
-                                <span class="text-xl font-black">★ @Game.BggRating.ToString("0.0")</span>
-                                <span class="text-xs text-[var(--text-muted)]">/ 10</span>
-                            </div>
+                @* Carrusel Fotográfico Interactivo (INC-85) *@
+                <GameImageCarousel
+                    CoverImageUrl="@Game.CoverImageUrl"
+                    BackCoverImageUrl="@Game.BackCoverImageUrl"
+                    TableImageUrl="@Game.TableImageUrl"
+                    GameTitle="@Game.SpanishTitle"
+                    IsExpansion="@Game.IsExpansion"
+                    @bind-SelectedKey="_selectedHeroImageKey" />
+
+                @* Mensaje de IA si aplica *@
+                @if (!string.IsNullOrWhiteSpace(_aiSummaryMessage))
+                {
+                    <div class="p-3 rounded-xl bg-[var(--state-info-bg)] border border-[var(--state-info-border)] text-xs text-[var(--state-info)] flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="bot" Size="14" />
+                            <span>@_aiSummaryMessage</span>
                         </div>
-                        <div class="w-px h-8 bg-[var(--border-subtle)]"></div>
-                        <div class="flex-1">
-                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Consenso Ludeka</span>
-                            <div class="flex items-baseline gap-1 text-[var(--text-primary)]">
-                                <span class="text-xl font-black">★ @Game.LudistRating.ToString("0.0")</span>
-                                <span class="text-xs text-[var(--text-muted)]">/ 10</span>
+                        <button type="button" @onclick="() => _aiSummaryMessage = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                    </div>
+                }
+
+                @* Bloque Editorial: Veredicto Fundador o Resumen IA *@
+                @if (_foundingVerdict != null)
+                {
+                    <FoundingVerdictCard Verdict="@_foundingVerdict" />
+                }
+                else if (_aiSummary != null)
+                {
+                    <AiSummaryCard Summary="@_aiSummary" />
+                }
+                else if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
+                {
+                    <div class="rounded-xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] p-5 text-center space-y-3">
+                        <div><Icon Name="bot" Size="24" /></div>
+                        <h3 class="text-sm font-bold text-[var(--text-primary)]">Ficha pendiente de síntesis editorial</h3>
+                        <p class="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                            Este título aún no cuenta con síntesis de IA ni veredicto de la mesa fundadora. Puedes generar su síntesis ahora bajo demanda.
+                        </p>
+                        <button type="button"
+                                @onclick="HandleRequestAiSummary"
+                                disabled="@_isGeneratingAiSummary"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50">
+                            @if (_isGeneratingAiSummary)
+                            {
+                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
+                                <span>Generando síntesis con IA...</span>
+                            }
+                            else
+                            {
+                                <Icon Name="zap" Size="12" />
+                                <span>Generar Síntesis con IA Ahora</span>
+                            }
+                        </button>
+                    </div>
+                }
+
+                @* Semáforo Dinámico de Escalabilidad *@
+                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+                    <h2 class="text-lg font-black text-[var(--text-primary)] mb-1">
+                        Semáforo Dinámico de Escalabilidad (1 a 7+ jugadores)
+                    </h2>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        Basado en miles de partidas y votaciones del hobby para saber si el juego realmente escala bien antes de sacarlo a mesa.
+                    </p>
+                    <ScalabilityTrafficLight Entries="@Game.Scalability" IdealText="@Game.IdealPlayerCountText" />
+                </div>
+
+                @* MÓDULO DE EXPANSIÓN / ECOSISTEMA *@
+                @if (Game.IsExpansion)
+                {
+                    <ExpansionAporteCard
+                        Necessity="@Game.ExpansionNecessity"
+                        ImpactTags="@Game.ImpactTags"
+                        WhatItBringsSummary="@Game.WhatItBringsSummary"
+                        ExtraPlayerCount="@Game.ExtraPlayerCount"
+                        ExtraDurationMinutes="@Game.ExtraDurationMinutes" />
+
+                    @if (_sisterExpansions.Count > 0)
+                    {
+                        <ExpansionSisterList
+                            CurrentExpansionId="@Game.Id"
+                            BaseGameTitle="@(_parentGame?.SpanishTitle ?? "Juego Base")"
+                            Sisters="@_sisterExpansions"
+                            Synergies="@_sisterSynergies" />
+                    }
+                }
+                else if (_expansions.Count > 0)
+                {
+                    <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
+                }
+
+                @* Módulo de Pestañas Secundarias (Fundas, Vídeos, Reglas) *@
+                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
+                    @* Barra de Pestañas *@
+                    <div class="flex items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-1.5 gap-1 overflow-x-auto">
+                        <button type="button"
+                                @onclick='() => _activeSecondaryTab = "sleeves"'
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "sleeves" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            <Icon Name="shield" Size="14" />
+                            <span>Guía de Fundas</span>
+                            @if (Game.Sleeves != null && Game.Sleeves.Count > 0)
+                            {
+                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                                    @Game.Sleeves.Count
+                                </span>
+                            }
+                        </button>
+                        <button type="button"
+                                @onclick='() => _activeSecondaryTab = "media"'
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "media" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            <Icon Name="play-circle" Size="14" />
+                            <span>Hub Multimedia</span>
+                            @if (_mediaHub != null && _mediaHub.TotalCount > 0)
+                            {
+                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                                    @_mediaHub.TotalCount
+                                </span>
+                            }
+                        </button>
+                        <button type="button"
+                                @onclick='() => _activeSecondaryTab = "rules"'
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "rules" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            <Icon Name="help-circle" Size="14" />
+                            <span>Consultorio de Reglas</span>
+                        </button>
+                    </div>
+
+                    @* Contenido de la Pestaña Activa *@
+                    <div class="p-2 sm:p-4">
+                        @if (_activeSecondaryTab == "sleeves")
+                        {
+                            <SleeveGuideCard Sleeves="@Game.Sleeves" />
+                        }
+                        else if (_activeSecondaryTab == "media")
+                        {
+                            <MultimediaHub MediaHub="@_mediaHub" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
+                        }
+                        else if (_activeSecondaryTab == "rules")
+                        {
+                            <RuleQuestionsSection GameId="@Game.Id" GameTitle="@Game.SpanishTitle" />
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            @* Columna Lateral Fija (Derecha, 4 cols en desktop): Acción y Compra *@
+            <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
+
+                @* 1. Tu Ludoteca Personal (Acciones) *@
+                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4 sm:p-5 shadow-sm space-y-3">
+                    <h3 class="text-xs font-extrabold text-[var(--text-secondary)] uppercase tracking-wider">Tu Ludoteca Personal</h3>
+                    <CollectionActionBar
+                        CurrentItem="@_collectionItem"
+                        ActiveLoan="@_activeLoan"
+                        PlayCount="@_userPlaysCount"
+                        IsSessionActive="@HasSession"
+                        OnStatusSelected="HandleStatusSelected"
+                        OnTogglePlayed="HandleTogglePlayed"
+                        OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
+                        OnLoanClicked="() => _isLoanModalOpen = true" />
+
+                    @if (!string.IsNullOrWhiteSpace(_actionFeedbackMessage))
+                    {
+                        <div class="p-3 rounded-xl border flex items-center justify-between text-xs transition-all @(_actionFeedbackType == "error" ? "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)]" : "bg-[var(--state-success-bg)] border-[var(--state-success-border)] text-[var(--state-success)]")">
+                            <div class="flex items-center gap-2">
+                                <Icon Name="@(_actionFeedbackType == "error" ? "alert-circle" : "check-circle-2")" Size="16" />
+                                <span>@_actionFeedbackMessage</span>
+                            </div>
+                            <button type="button" @onclick="() => _actionFeedbackMessage = null" class="opacity-75 hover:opacity-100 p-1" aria-label="Cerrar notificación">
+                                <Icon Name="x" Size="14" />
+                            </button>
+                        </div>
+                    }
+
+                    @if (_activeLoan != null)
+                    {
+                        <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                            <div class="flex items-center gap-2">
+                                <Icon Name="package" Size="14" />
+                                <span>Prestado a <strong class="text-[var(--text-primary)]">@_activeLoan.BorrowerName</strong></span>
+                            </div>
+                            <button type="button"
+                                    @onclick="() => _isLoanModalOpen = true"
+                                    class="px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-primary)] font-bold text-[0.65rem] border border-[var(--border-subtle)]">
+                                Ver &rarr;
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @* 2. Dónde Comprar & Radar de Precios (SIEMPRE VISIBLE) *@
+                <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameId="@Game.Id" IsSidebar="true" />
+
+                @* 3. Ficha Técnica Express (ADN Lúdico y Ratings) *@
+                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 space-y-4 shadow-sm">
+                    @* Doble Rating (BGG vs Ludist) *@
+                    <div>
+                        <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1.5">Puntuación & Consenso</span>
+                        <div class="flex items-center gap-4 py-2 px-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
+                            <div class="flex-1">
+                                <span class="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Rating BGG</span>
+                                <div class="flex items-baseline gap-1 text-[var(--brand-primary)]">
+                                    <span class="text-xl font-black">★ @Game.BggRating.ToString("0.0")</span>
+                                    <span class="text-xs text-[var(--text-muted)]">/ 10</span>
+                                </div>
+                            </div>
+                            <div class="w-px h-8 bg-[var(--border-subtle)]"></div>
+                            <div class="flex-1">
+                                <span class="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Consenso Ludeka</span>
+                                <div class="flex items-baseline gap-1 text-[var(--text-primary)]">
+                                    <span class="text-xl font-black">★ @Game.LudistRating.ToString("0.0")</span>
+                                    <span class="text-xs text-[var(--text-muted)]">/ 10</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     @* ADN Lúdico *@
                     <div>
-                        <span class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">ADN Lúdico</span>
+                        <span class="text-[0.68rem] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">ADN Lúdico</span>
                         <QuickBadges
                             Confrontation="@Game.Confrontation"
                             Style="@Game.Style"
@@ -336,189 +466,16 @@ else
                             Footprint="@Game.Footprint" />
                     </div>
                 </div>
+
+                @* 4. Tu Valoración y Reseña *@
+                <UserReviewCard
+                    Review="@_userReview"
+                    CanReview="@CanUserReview()"
+                    DisabledReviewReason="@GetDisabledReviewReason()"
+                    OnEditClicked="OpenReviewModal" />
+
             </div>
         </div>
-    </div>
-
-    @* Bloque de Interacción de Usuario: Colección, Estados y Préstamos *@
-    <div class="container-ludeka pt-6">
-<CollectionActionBar
-    CurrentItem="@_collectionItem"
-    ActiveLoan="@_activeLoan"
-    PlayCount="@_userPlaysCount"
-    IsSessionActive="@HasSession"
-    OnStatusSelected="HandleStatusSelected"
-    OnTogglePlayed="HandleTogglePlayed"
-    OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
-    OnLoanClicked="() => _isLoanModalOpen = true" />
-
-        @if (!string.IsNullOrWhiteSpace(_actionFeedbackMessage))
-        {
-            <div class="mt-3 p-3 rounded-xl border flex items-center justify-between text-xs transition-all @(_actionFeedbackType == "error" ? "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)]" : "bg-[var(--state-success-bg)] border-[var(--state-success-border)] text-[var(--state-success)]")">
-                <div class="flex items-center gap-2">
-                    <Icon Name="@(_actionFeedbackType == "error" ? "alert-circle" : "check-circle-2")" Size="16" />
-                    <span>@_actionFeedbackMessage</span>
-                </div>
-                <button type="button" @onclick="() => _actionFeedbackMessage = null" class="opacity-75 hover:opacity-100 p-1" aria-label="Cerrar notificación">
-                    <Icon Name="x" Size="14" />
-                </button>
-            </div>
-        }
-
-        @if (_activeLoan != null)
-        {
-            <div class="mt-3 p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                <div class="flex items-center gap-2">
-                    <Icon Name="package" Size="14" />
-                    <span>
-                        Actualmente prestado a <strong class="text-[var(--text-primary)]">@_activeLoan.BorrowerName</strong> desde el @_activeLoan.LoanDate.ToString("dd/MM/yyyy").
-                    </span>
-                </div>
-                <button type="button"
-                        @onclick="() => _isLoanModalOpen = true"
-                        class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-[0.68rem] transition-colors shadow-sm">
-                    Ver préstamo &rarr;
-                </button>
-            </div>
-        }
-    </div>
-
-    @* Bloque de Análisis Editorial y Consenso *@
-    <div class="container-ludeka py-6 space-y-8">
-        @if (!string.IsNullOrWhiteSpace(_aiSummaryMessage))
-        {
-            <div class="p-3 rounded-xl bg-[var(--state-info-bg)] border border-[var(--state-info-border)] text-xs text-[var(--state-info)] flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2">
-                    <Icon Name="bot" Size="14" />
-                    <span>@_aiSummaryMessage</span>
-                </div>
-                <button type="button" @onclick="() => _aiSummaryMessage = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
-            </div>
-        }
-
-        @* 1. Bloque Editorial: Veredicto Fundador (Fase 2) o Resumen IA (Fase 1) *@
-        @if (_foundingVerdict != null)
-        {
-            <FoundingVerdictCard Verdict="@_foundingVerdict" />
-        }
-        else if (_aiSummary != null)
-        {
-            <AiSummaryCard Summary="@_aiSummary" />
-        }
-        else if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
-        {
-            <div class="rounded-xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] p-5 text-center space-y-3">
-                <div><Icon Name="bot" Size="24" /></div>
-                <h3 class="text-sm font-bold text-[var(--text-primary)]">Ficha pendiente de síntesis editorial</h3>
-                <p class="text-xs text-[var(--text-muted)] max-w-md mx-auto">
-                    Este título aún no cuenta con síntesis de IA ni veredicto de la mesa fundadora. Puedes generar su síntesis ahora bajo demanda.
-                </p>
-                <button type="button"
-                        @onclick="HandleRequestAiSummary"
-                        disabled="@_isGeneratingAiSummary"
-                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50">
-                    @if (_isGeneratingAiSummary)
-                    {
-                        <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
-                        <span>Generando síntesis con IA...</span>
-                    }
-                    else
-                    {
-                        <Icon Name="zap" Size="12" />
-                        <span>Generar Síntesis con IA Ahora</span>
-                    }
-                </button>
-            </div>
-        }
-
-        @* MÓDULO DE EXPANSIÓN: ¿Qué aporta al Juego Base? *@
-        @if (Game.IsExpansion)
-        {
-            <ExpansionAporteCard
-                Necessity="@Game.ExpansionNecessity"
-                ImpactTags="@Game.ImpactTags"
-                WhatItBringsSummary="@Game.WhatItBringsSummary"
-                ExtraPlayerCount="@Game.ExtraPlayerCount"
-                ExtraDurationMinutes="@Game.ExtraDurationMinutes" />
-        }
-        else if (_expansions.Count > 0)
-        {
-            @* MÓDULO DE JUEGO BASE: Ecosistema de Expansiones y Mezclador de Mesa *@
-            <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
-        }
-
-        @* 2. Tarjeta de Valoración Propia y Acceso a Review *@
-        <UserReviewCard
-            Review="@_userReview"
-            CanReview="@CanUserReview()"
-            DisabledReviewReason="@GetDisabledReviewReason()"
-            OnEditClicked="OpenReviewModal" />
-
-        @* 3. Semáforo Dinámico *@
-        <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-            <h2 class="text-lg font-black text-[var(--text-primary)] mb-1">
-                Semáforo Dinámico de Escalabilidad (1 a 7+ jugadores)
-            </h2>
-            <p class="text-xs text-[var(--text-secondary)] mb-4">
-                Basado en miles de partidas y votaciones del hobby para saber si el juego realmente escala bien antes de sacarlo a mesa.
-            </p>
-
-            <ScalabilityTrafficLight Entries="@Game.Scalability" IdealText="@Game.IdealPlayerCountText" />
-        </div>
-
-        @* MÓDULO DE EXPANSIÓN: Expansiones Hermanas del mismo Ecosistema *@
-        @if (Game.IsExpansion && _sisterExpansions.Count > 0)
-        {
-            <ExpansionSisterList
-                CurrentExpansionId="@Game.Id"
-                BaseGameTitle="@(_parentGame?.SpanishTitle ?? "Juego Base")"
-                Sisters="@_sisterExpansions"
-                Synergies="@_sisterSynergies" />
-        }
-
-        @* 4. Dónde Comprar (Tiendas Especializadas y Afiliados) *@
-        <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameId="@Game.Id" />
-
-        @* 5. Guía de Fundas *@
-        <SleeveGuideCard Sleeves="@Game.Sleeves" />
-
-        @* 6. Hub Multimedia (YouTube e Instagram) *@
-        <MultimediaHub MediaHub="@_mediaHub" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
-
-        @* 7. Consultorio de Reglas Q&A *@
-        <RuleQuestionsSection GameId="@Game.Id" GameTitle="@Game.SpanishTitle" />
-
-        @* 8. Galería Visual Comunitaria (Contraportada y Foto en Mesa) *@
-        @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl) || !string.IsNullOrWhiteSpace(Game.TableImageUrl))
-        {
-            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-                <div class="flex items-center gap-2">
-                    <Icon Name="image" Size="18" class="text-[var(--brand-primary)]" />
-                    <h2 class="text-base font-bold text-[var(--text-primary)]">Galería Visual & Componentes</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl))
-                    {
-                        <div class="space-y-2">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Contraportada oficial</span>
-                            <div class="rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] max-h-80 flex items-center justify-center">
-                                <img src="@Game.BackCoverImageUrl" alt="Contraportada de @Game.SpanishTitle" loading="lazy" decoding="async" class="w-full h-auto object-contain max-h-80" />
-                            </div>
-                        </div>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
-                    {
-                        <div class="space-y-2">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)]">En mesa y componentes</span>
-                            <div class="rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] max-h-80 flex items-center justify-center">
-                                <img src="@Game.TableImageUrl" alt="Componentes en mesa de @Game.SpanishTitle" loading="lazy" decoding="async" class="w-full h-auto object-contain max-h-80" />
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
-
     </div>
 
     @* Modales *@
@@ -638,6 +595,7 @@ else
     private string _selectedHeroImageKey = "cover";
     private string? _userCountryCode;
     private string _userCountryName = "España";
+    private string _activeSecondaryTab = "sleeves";
 
     private string CurrentHeroImageUrl => _selectedHeroImageKey switch
     {

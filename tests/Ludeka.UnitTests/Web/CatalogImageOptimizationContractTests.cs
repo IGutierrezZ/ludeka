@@ -22,6 +22,7 @@ public class CatalogImageOptimizationContractTests
     private const string ExpansionSisterListPath = "src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor";
     private const string ExpansionEcosystemSectionPath = "src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor";
     private const string GameDetailPath = "src/Ludeka.Web/Components/Pages/GameDetail.razor";
+    private const string GameImageCarouselPath = "src/Ludeka.Web/Components/Shared/GameImageCarousel.razor";
 
     [Fact]
     public void GameCard_ShouldPrioritizeThumbnailUrlAndIncludeAntiClsAttributes()
@@ -99,14 +100,22 @@ public class CatalogImageOptimizationContractTests
     {
         var source = ReadSource(GameDetailPath);
 
-        // Carátula principal del hero: fetchpriority="high" para LCP y dimensiones fijas
-        Assert.Contains("fetchpriority=\"high\"", source, StringComparison.Ordinal);
-        Assert.Contains("width=\"320\"", source, StringComparison.Ordinal);
-        Assert.Contains("height=\"320\"", source, StringComparison.Ordinal);
+        // Ficha editorial delega en el carrusel fotográfico interactivo
+        Assert.Contains("<GameImageCarousel", source, StringComparison.Ordinal);
+        Assert.Contains("CoverImageUrl=\"@Game.CoverImageUrl\"", source, StringComparison.Ordinal);
+        Assert.Contains("BackCoverImageUrl=\"@Game.BackCoverImageUrl\"", source, StringComparison.Ordinal);
+        Assert.Contains("TableImageUrl=\"@Game.TableImageUrl\"", source, StringComparison.Ordinal);
 
-        // Imágenes de galería (contraportada y mesa): deben usar decoding="async" y loading="lazy"
-        Assert.Contains("alt=\"Contraportada de @Game.SpanishTitle\" loading=\"lazy\" decoding=\"async\"", source, StringComparison.Ordinal);
-        Assert.Contains("alt=\"Componentes en mesa de @Game.SpanishTitle\" loading=\"lazy\" decoding=\"async\"", source, StringComparison.Ordinal);
+        var carouselSource = ReadSource(GameImageCarouselPath);
+
+        // Carátula principal del visor: fetchpriority="high" para LCP y dimensiones anti-CLS
+        Assert.Contains("fetchpriority=\"high\"", carouselSource, StringComparison.Ordinal);
+        Assert.Contains("width=\"320\"", carouselSource, StringComparison.Ordinal);
+        Assert.Contains("height=\"320\"", carouselSource, StringComparison.Ordinal);
+
+        // Miniaturas y galería secundaria: deben usar decoding="async" y loading="lazy"
+        Assert.Contains("loading=\"lazy\"", carouselSource, StringComparison.Ordinal);
+        Assert.Contains("decoding=\"async\"", carouselSource, StringComparison.Ordinal);
     }
 
     [Fact]

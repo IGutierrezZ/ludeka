@@ -48,7 +48,9 @@ public static class BggSimulationDataset
         List<ExpansionImpactTag>? ImpactTags = null,
         string? WhatItBringsSummary = null,
         int ExtraPlayerCount = 0,
-        int ExtraDurationMinutes = 0
+        int ExtraDurationMinutes = 0,
+        string? BackCoverImageUrl = null,
+        string? TableImageUrl = null
     );
 
     private static readonly List<GameBlueprint> Blueprints = [];
@@ -104,7 +106,9 @@ public static class BggSimulationDataset
             whatItBringsSummary: b.WhatItBringsSummary,
             extraPlayerCount: b.ExtraPlayerCount,
             extraDurationMinutes: b.ExtraDurationMinutes,
-            purchaseLinks: linkCopies
+            purchaseLinks: linkCopies,
+            backCoverImageUrl: b.BackCoverImageUrl,
+            tableImageUrl: b.TableImageUrl
         );
     }
 
@@ -522,7 +526,13 @@ public static class BggSimulationDataset
                 new(4, "4J", ScalabilityStatus.MustPlay, 1850, 190, 10)
             ],
             [new("Chimera Standard", 57, 89, 70, null)],
-            [new("Zacatrus", "https://zacatrus.es/brass-birmingham.html?ref=ludeka", 79.95m, "€", true, "Envío Gratis", "Direct")]);
+            [
+                new("Zacatrus", "https://zacatrus.es/brass-birmingham.html?ref=ludeka", 79.95m, "€", true, "Envío Gratis", "Direct"),
+                new("Cuarto de Juegos", "https://cuartodejuegos.es/buscar?controller=search&s=Brass+Birmingham", 76.95m, "€", true, "Especializada", "Direct"),
+                new("Dracotienda", "https://www.dracotienda.com/buscar?controller=search&s=Brass+Birmingham", 74.95m, "€", true, "Oferta", "Direct")
+            ],
+            backCover: "https://cf.geekdo-images.com/x3zxCWVIubAnNmHgHGaKLw__original/img/O8r1A0Kszn0Vj8l6x7xP41iL3zM=/0x0/filters:format(jpeg)/pic3968318.jpg",
+            tableImg: "https://cf.geekdo-images.com/7k_nOxpO9OGIjhLqPaLnjA__original/img/E2pXGqG3B-yX3e0H8rXh0y8t7n8=/0x0/filters:format(jpeg)/pic4235948.jpg");
 
         // 18. Clank! (201808)
         AddBase(201808, "Clank!: A Deck-Building Adventure", "Clank!", "Paul Dennen", "Devir", 2016,
@@ -873,7 +883,8 @@ public static class BggSimulationDataset
         ConfrontationType confrontation, GameStyle style, bool solo,
         int boxAge, int commAge, LanguageDependence lang, TableFootprint footprint,
         int minMin, int maxMin, int perPlayer,
-        List<ScalabilityEntry> scalability, List<SleeveItem> sleeves, List<GamePurchaseLink> links)
+        List<ScalabilityEntry> scalability, List<SleeveItem> sleeves, List<GamePurchaseLink> links,
+        string? backCover = null, string? tableImg = null)
     {
         Blueprints.Add(new GameBlueprint(
             BggId: bggId,
@@ -900,7 +911,9 @@ public static class BggSimulationDataset
             EstimatedPerPlayerMinutes: perPlayer,
             Scalability: scalability,
             Sleeves: sleeves,
-            PurchaseLinks: links
+            PurchaseLinks: links,
+            BackCoverImageUrl: backCover,
+            TableImageUrl: tableImg
         ));
     }
 
@@ -912,7 +925,8 @@ public static class BggSimulationDataset
         int minMin, int maxMin, int perPlayer,
         List<ScalabilityEntry> scalability, List<SleeveItem> sleeves, List<GamePurchaseLink> links,
         string customSlug, ExpansionNecessity necessity, List<ExpansionImpactTag> tags,
-        string whatItBrings, int extraPlayers, int extraMinutes, GameType type = GameType.Expansion)
+        string whatItBrings, int extraPlayers, int extraMinutes, GameType type = GameType.Expansion,
+        string? backCover = null, string? tableImg = null)
     {
         Blueprints.Add(new GameBlueprint(
             BggId: bggId,
@@ -946,7 +960,9 @@ public static class BggSimulationDataset
             ImpactTags: tags,
             WhatItBringsSummary: whatItBrings,
             ExtraPlayerCount: extraPlayers,
-            ExtraDurationMinutes: extraMinutes
+            ExtraDurationMinutes: extraMinutes,
+            BackCoverImageUrl: backCover,
+            TableImageUrl: tableImg
         ));
     }
 }
