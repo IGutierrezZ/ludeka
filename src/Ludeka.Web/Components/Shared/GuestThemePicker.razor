@@ -1,0 +1,96 @@
+@using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
+
+@*
+    Mini menú selector de tema visual para usuarios visitantes / no logueados.
+    - Sin texto: solo muestras circulares con el color representativo de cada tema.
+    - Los 5 temas canónicos: Blanco (editorial), Madera Clara (wood), Madera Oscura (tabletop), Azul Oscuro (midnight) y Carbón (charcoal).
+    - Desplegable accesible con tecla Escape, telón de fondo y roles WCAG 2.2 AA.
+*@
+
+<div class="relative" @onkeydown="HandleKeyDown">
+    <button type="button"
+            @onclick="ToggleMenu"
+            aria-expanded="@_isOpen"
+            aria-haspopup="true"
+            aria-label="Seleccionar tema de color"
+            title="Seleccionar tema de color"
+            class="px-2 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(_isOpen ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "")">
+        <Icon Name="palette" Size="14" />
+        <span class="w-2.5 h-2.5 rounded-full shrink-0 border border-black/15 shadow-xs" style="background-color: @CurrentThemeDotColor;"></span>
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="fixed inset-0 z-40" @onclick="CloseMenu"></div>
+        <div class="absolute right-0 top-full mt-2 p-1.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-2xl z-50 flex items-center gap-2 animate-fade-in"
+             role="menu"
+             aria-label="Temas visuales">
+            @foreach (var theme in AvailableThemes)
+            {
+                var isActive = string.Equals(CurrentTheme, theme.Key, StringComparison.OrdinalIgnoreCase);
+                <button type="button"
+                        role="menuitem"
+                        @onclick="() => SelectThemeAsync(theme.Key)"
+                        title="@theme.Name"
+                        aria-label="@theme.Name"
+                        aria-current="@(isActive ? "true" : null)"
+                        class="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 transform hover:scale-115 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-card)] @(isActive ? "ring-2 ring-[var(--brand-primary)] scale-110 shadow-sm" : "opacity-85 hover:opacity-100")"
+                        style="background-color: @theme.BgColor; border: 1px solid @theme.BorderColor;">
+                    <span class="w-2 h-2 rounded-full inline-block shadow-xs" style="background-color: @theme.AccentColor;"></span>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string CurrentTheme { get; set; } = "wood";
+    [Parameter] public EventCallback<string> OnThemeChanged { get; set; }
+
+    private bool _isOpen;
+
+    private readonly record struct ThemeOption(string Key, string Name, string BgColor, string BorderColor, string AccentColor);
+
+    private static readonly ThemeOption[] AvailableThemes =
+    [
+        new("editorial", "Blanco (Papel & Tinta)", "#F8F7F4", "rgba(0, 0, 0, 0.15)", "#B8432F"),
+        new("wood", "Madera Clara (Arce & Haya)", "#F5EFEB", "rgba(120, 80, 45, 0.25)", "#B85323"),
+        new("tabletop", "Madera Oscura (Mesa Cálida)", "#241D1A", "rgba(245, 235, 225, 0.20)", "#D97736"),
+        new("midnight", "Azul Oscuro (Medianoche)", "#10182D", "rgba(56, 189, 248, 0.25)", "#06B6D4"),
+        new("charcoal", "Carbón (Terracota)", "#1F262D", "rgba(255, 255, 255, 0.18)", "#E05A38")
+    ];
+
+    private string CurrentThemeDotColor => CurrentTheme switch
+    {
+        "editorial" => "#F8F7F4",
+        "tabletop" => "#241D1A",
+        "midnight" => "#10182D",
+        "charcoal" => "#1F262D",
+        _ => "#D4743B" // wood
+    };
+
+    private void ToggleMenu() => _isOpen = !_isOpen;
+    private void CloseMenu() => _isOpen = false;
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && _isOpen)
+        {
+            CloseMenu();
+        }
+    }
+
+    private async Task SelectThemeAsync(string themeKey)
+    {
+        CloseMenu();
+        if (OnThemeChanged.HasDelegate)
+        {
+            await OnThemeChanged.InvokeAsync(themeKey);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("setLudekaTheme", themeKey, null);
+        }
+    }
+}
