@@ -168,7 +168,18 @@ public class SocialIngestionServiceTests
         public List<Giveaway> Items { get; } = new();
         public Task<IReadOnlyList<Giveaway>> GetGiveawaysAsync(bool includeExpired = false, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Giveaway>>(Items);
         public Task<Giveaway?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(g => g.Id == id));
-        public Task<Giveaway?> FindDuplicateOrCollaborativeAsync(string title, string organizer, DateTimeOffset deadline, CancellationToken ct = default) => Task.FromResult<Giveaway?>(null);
+        public Task<Giveaway?> FindDuplicateOrCollaborativeAsync(string title, string organizer, DateTimeOffset deadline, CancellationToken ct = default)
+        {
+            var cleanTitle = title.Trim().ToLowerInvariant();
+            var cleanOrganizer = organizer.Trim().ToLowerInvariant();
+            var match = Items.FirstOrDefault(g =>
+                !g.IsExpired &&
+                g.Title.Trim().ToLowerInvariant().Equals(cleanTitle, StringComparison.OrdinalIgnoreCase) &&
+                (g.Organizer.Trim().ToLowerInvariant().Contains(cleanOrganizer) ||
+                 cleanOrganizer.Contains(g.Organizer.Trim().ToLowerInvariant()) ||
+                 (g.Collaborator != null && g.Collaborator.Trim().ToLowerInvariant().Contains(cleanOrganizer))));
+            return Task.FromResult(match);
+        }
         public Task AddAsync(Giveaway giveaway, CancellationToken ct = default) { Items.Add(giveaway); return Task.CompletedTask; }
         public Task UpdateAsync(Giveaway giveaway, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(g => g.Id == id); return Task.CompletedTask; }
@@ -392,6 +403,128 @@ public class SocialIngestionServiceTests
         Assert.Equal(createdId, item.CreatedEntityId);
         Assert.Single(_giveawayRepo.Items);
         Assert.Equal("Sorteo Brass Birmingham", _giveawayRepo.Items[0].Title);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithPastOrNullDeadline_SetsFutureDeadlineSoGiveawayIsActive()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/past-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Con Fecha Pasada",
+            organizerOrAuthor: "Asmodee",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-3)); // Fecha en el pasado (ej. fecha del post)
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, createdId);
+        Assert.Single(_giveawayRepo.Items);
+        var created = _giveawayRepo.Items[0];
+        Assert.False(created.IsExpired);
+        Assert.True(created.DeadlineAt > DateTimeOffset.UtcNow.AddDays(5));
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithEventEndDate_PrefersEndDateOverStartDate()
+    {
+        // Arrange
+        var service = CreateService();
+        var futureEnd = DateTimeOffset.UtcNow.AddDays(12);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/with-end-date",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Con Fin Explícito",
+            organizerOrAuthor: "Devir",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-2),
+            eventEndDate: futureEnd);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.Single(_giveawayRepo.Items);
+        var created = _giveawayRepo.Items[0];
+        Assert.Equal(futureEnd, created.DeadlineAt);
+        Assert.False(created.IsExpired);
+    }
+
+    [Theory]
+    [InlineData("Península", "España", false)]
+    [InlineData("Baleares", "España", false)]
+    [InlineData("Canarias", "España", false)]
+    [InlineData("Internacional", "Internacional", true)]
+    [InlineData("Mundial", "Internacional", true)]
+    [InlineData("México", "México", false)]
+    public async Task ApproveAndPublishAsync_GiveawayWithRegionalLocation_NormalizesCountryCorrectly(
+        string rawLocation, string expectedCountry, bool expectedInternational)
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: $"https://instagram.com/p/location-{Guid.NewGuid():N}",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo con Ámbito Territorial",
+            organizerOrAuthor: "TCG Factory",
+            location: rawLocation);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        var created = _giveawayRepo.Items.Last();
+        Assert.Equal(expectedCountry, created.Country);
+        Assert.Equal(expectedInternational, created.IsInternational);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayDuplicateOrCollaborative_MergesCollaboratorAndExtendsDeadline()
+    {
+        // Arrange
+        var service = CreateService();
+        var existingDeadline = DateTimeOffset.UtcNow.AddDays(3);
+        var existingGiveaway = new Giveaway(
+            title: "Sorteo Cascadia",
+            organizer: "Devir",
+            url: "https://instagram.com/p/first",
+            platform: GiveawayPlatform.Instagram,
+            deadlineAt: existingDeadline,
+            collaborator: "Meepletopia");
+        _giveawayRepo.Items.Add(existingGiveaway);
+
+        var laterDeadline = DateTimeOffset.UtcNow.AddDays(8);
+        var newItem = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/second",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Cascadia",
+            organizerOrAuthor: "Devir",
+            collaborator: "Análisis Parálisis",
+            eventEndDate: laterDeadline);
+
+        _inboxRepo.Items.Add(newItem);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(newItem.Id, "admin_user");
+
+        // Assert: Reutiliza el ID del sorteo existente sin duplicar la entidad
+        Assert.Equal(existingGiveaway.Id, createdId);
+        Assert.Single(_giveawayRepo.Items);
+        Assert.Contains("Meepletopia", existingGiveaway.Collaborator);
+        Assert.Contains("Análisis Parálisis", existingGiveaway.Collaborator);
+        Assert.Equal(laterDeadline, existingGiveaway.DeadlineAt);
     }
 
     [Fact]

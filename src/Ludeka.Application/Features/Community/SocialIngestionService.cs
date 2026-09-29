@@ -8,6 +8,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Ludeka.Application.Features.Community;
@@ -510,21 +511,56 @@ public class SocialIngestionService : ISocialIngestionService
                     _ => GiveawayPlatform.Other
                 };
 
-                var giveaway = new Giveaway(
-                    title: item.Title,
-                    organizer: item.OrganizerOrAuthor,
-                    url: item.SourceUrl,
-                    platform: giveawayPlatform,
-                    deadlineAt: item.EventOrReleaseDate ?? DateTimeOffset.UtcNow.AddDays(7),
-                    country: "España",
-                    gameId: item.GameId,
-                    gameTitle: item.GameTitle,
-                    collaborator: item.Collaborator,
-                    thumbnailUrl: item.ThumbnailUrl);
+                // Si la publicación indica fecha de fin explícita, se usa con prioridad frente a la fecha de inicio/publicación.
+                // Garantizamos siempre que el sorteo nazca con fecha de fin activa (futura): si viene en el pasado o nula,
+                // se extiende automáticamente a UtcNow + 7 días para que aparezca visible inmediatamente en el radar de sorteos.
+                var rawDeadline = item.EventEndDate ?? item.EventOrReleaseDate;
+                var deadline = (rawDeadline.HasValue && rawDeadline.Value > DateTimeOffset.UtcNow)
+                    ? rawDeadline.Value
+                    : DateTimeOffset.UtcNow.AddDays(7);
 
-                await _giveawayRepository.AddAsync(giveaway, ct);
-                createdEntityId = giveaway.Id;
-                _logger.LogInformation("Sorteo creado desde bandeja con ID {Id}", createdEntityId);
+                var giveawayCountry = ResolveGiveawayCountry(item.Location);
+
+                // Comprobar si ya existe un sorteo idéntico o en colaboración para fusionar colaboradores o extender plazo
+                var existingGiveaway = await _giveawayRepository.FindDuplicateOrCollaborativeAsync(
+                    item.Title,
+                    item.OrganizerOrAuthor,
+                    deadline,
+                    ct);
+
+                if (existingGiveaway != null)
+                {
+                    var collaboratorToMerge = !string.IsNullOrWhiteSpace(item.Collaborator)
+                        ? item.Collaborator
+                        : item.OrganizerOrAuthor;
+
+                    existingGiveaway.MergeCollaborator(collaboratorToMerge);
+                    if (deadline > existingGiveaway.DeadlineAt)
+                    {
+                        existingGiveaway.ExtendDeadline(deadline);
+                    }
+                    await _giveawayRepository.UpdateAsync(existingGiveaway, ct);
+                    createdEntityId = existingGiveaway.Id;
+                    _logger.LogInformation("Sorteo existente {Id} actualizado con colaborador {Collaborator}", existingGiveaway.Id, collaboratorToMerge);
+                }
+                else
+                {
+                    var giveaway = new Giveaway(
+                        title: item.Title,
+                        organizer: item.OrganizerOrAuthor,
+                        url: item.SourceUrl,
+                        platform: giveawayPlatform,
+                        deadlineAt: deadline,
+                        country: giveawayCountry,
+                        gameId: item.GameId,
+                        gameTitle: item.GameTitle,
+                        collaborator: item.Collaborator,
+                        thumbnailUrl: item.ThumbnailUrl);
+
+                    await _giveawayRepository.AddAsync(giveaway, ct);
+                    createdEntityId = giveaway.Id;
+                    _logger.LogInformation("Sorteo creado desde bandeja con ID {Id}", createdEntityId);
+                }
                 break;
 
             case SocialSubmissionType.WeeklyRelease:
@@ -548,6 +584,8 @@ public class SocialIngestionService : ISocialIngestionService
                 var startDate = DateOnly.FromDateTime(item.EventOrReleaseDate?.DateTime ?? DateTime.UtcNow);
                 var endDate = DateOnly.FromDateTime((item.EventEndDate ?? item.EventOrReleaseDate ?? DateTimeOffset.UtcNow).DateTime);
 
+                var eventCountry = ResolveGiveawayCountry(item.Location);
+
                 var boardGameEvent = new BoardGameEvent(
                     title: item.Title,
                     description: item.OriginalCaption ?? item.Title,
@@ -558,7 +596,7 @@ public class SocialIngestionService : ISocialIngestionService
                     websiteUrl: item.SourceUrl,
                     organizer: item.OrganizerOrAuthor,
                     isOfficial: true,
-                    country: "España");
+                    country: eventCountry);
 
                 await _eventRepository.AddAsync(boardGameEvent, ct);
                 createdEntityId = boardGameEvent.Id;
@@ -685,5 +723,24 @@ public class SocialIngestionService : ISocialIngestionService
             _logger.LogWarning(ex, "No se pudo optimizar la imagen remota {Url} a R2. Se usará la URL original.", sourceImageUrl);
             return null;
         }
+    }
+
+    private static string ResolveGiveawayCountry(string? location)
+    {
+        if (string.IsNullOrWhiteSpace(location))
+            return "España";
+
+        var matched = CountryCatalog.FindByNameOrCode(location);
+        if (matched != null)
+            return matched.Name;
+
+        var lower = location.ToLowerInvariant();
+        if (lower.Contains("peninsula") || lower.Contains("españa") || lower.Contains("espana") || lower.Contains("spain") || lower.Contains("baleares") || lower.Contains("canarias"))
+            return "España";
+
+        if (lower.Contains("inter") || lower.Contains("global") || lower.Contains("mundo") || lower.Contains("world"))
+            return "Internacional";
+
+        return CountryCatalog.Normalize(location);
     }
 }

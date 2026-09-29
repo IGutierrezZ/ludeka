@@ -86,12 +86,23 @@
         @* Notificación de éxito o alerta *@
         @if (!string.IsNullOrWhiteSpace(_actionSuccessMessage))
         {
-            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between animate-fade-in">
+            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between flex-wrap gap-2 animate-fade-in">
                 <div class="flex items-center gap-2">
                     <Icon Name="check" Size="18" />
                     <span>@_actionSuccessMessage</span>
                 </div>
-                <button type="button" @onclick="() => _actionSuccessMessage = null" class="text-xs opacity-70 hover:opacity-100">&times;</button>
+                <div class="flex items-center gap-2">
+                    @if (!string.IsNullOrWhiteSpace(_actionSuccessUrl))
+                    {
+                        <a href="@_actionSuccessUrl"
+                           target="_blank"
+                           class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="external-link" Size="13" />
+                            <span>Ver Publicado</span>
+                        </a>
+                    }
+                    <button type="button" @onclick="() => { _actionSuccessMessage = null; _actionSuccessUrl = null; }" class="text-xs opacity-70 hover:opacity-100">&times;</button>
+                </div>
             </div>
         }
 
@@ -332,9 +343,22 @@
                                 }
                                 else if (item.Status == SocialInboxStatus.Approved)
                                 {
-                                    <span class="inline-flex items-center gap-1 text-[0.62rem] text-emerald-500 font-bold truncate">
-                                        <Icon Name="check-check" Size="12" /> Publicado
-                                    </span>
+                                    var publishedUrl = GetPublishedEntityUrl(item.DetectedType, item.CreatedEntityId);
+                                    if (!string.IsNullOrWhiteSpace(publishedUrl))
+                                    {
+                                        <a href="@publishedUrl"
+                                           target="_blank"
+                                           class="inline-flex items-center gap-1 text-[0.62rem] text-emerald-500 hover:text-emerald-400 font-bold truncate transition-colors">
+                                            <Icon Name="external-link" Size="11" />
+                                            <span>Ver Publicado</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 text-[0.62rem] text-emerald-500 font-bold truncate">
+                                            <Icon Name="check-check" Size="12" /> Publicado
+                                        </span>
+                                    }
                                 }
                                 else
                                 {
@@ -423,6 +447,7 @@
     private string _rejectReason = string.Empty;
 
     private string? _actionSuccessMessage;
+    private string? _actionSuccessUrl;
     private string? _actionErrorMessage;
     private bool _isCollecting;
     private bool _isPurging;
@@ -432,13 +457,14 @@
         if (_isCollecting) return;
         _isCollecting = true;
         _actionSuccessMessage = null;
+        _actionSuccessUrl = null;
         _actionErrorMessage = null;
 
         try
         {
             var result = await CollectorService.CollectAllAccountsAsync();
             _actionSuccessMessage = $"Sondeo completado: {result.AccountsScanned} canales examinados. {result.ItemsImported} publicaciones nuevas agregadas a la bandeja ({result.ItemsSkippedDuplicates} omitidas por duplicado).";
-            await LoadItemsAsync();
+            await LoadItemsAsync(preserveSuccessNotice: true);
         }
         catch (Exception ex)
         {
@@ -460,10 +486,16 @@
         await LoadItemsAsync();
     }
 
-    private async Task LoadItemsAsync()
+    private Task LoadItemsAsync() => LoadItemsAsync(false);
+
+    private async Task LoadItemsAsync(bool preserveSuccessNotice)
     {
         _isLoading = true;
-        _actionSuccessMessage = null;
+        if (!preserveSuccessNotice)
+        {
+            _actionSuccessMessage = null;
+            _actionSuccessUrl = null;
+        }
         _actionErrorMessage = null;
 
         try
@@ -517,6 +549,7 @@
     {
         _isProcessingApproval = true;
         _actionSuccessMessage = null;
+        _actionSuccessUrl = null;
         _actionErrorMessage = null;
 
         try
@@ -525,8 +558,9 @@
             string reviewerId = SessionIdentity.Require(CurrentUserService);
             var createdEntityId = await IngestionService.ApproveAndPublishAsync(item.Id, reviewerId);
 
-            _actionSuccessMessage = $"¡Publicación aprobada con éxito! (ID Creado: {createdEntityId})";
-            await LoadItemsAsync();
+            _actionSuccessUrl = GetPublishedEntityUrl(item.DetectedType, createdEntityId);
+            _actionSuccessMessage = $"¡Publicación \"{item.Title}\" aprobada y publicada con éxito!";
+            await LoadItemsAsync(preserveSuccessNotice: true);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -551,8 +585,9 @@
             string reviewerId = SessionIdentity.Require(CurrentUserService);
             await IngestionService.RejectItemAsync(_itemToReject.Id, _rejectReason, reviewerId);
             _actionSuccessMessage = "Publicación descartada correctamente.";
+            _actionSuccessUrl = null;
             _itemToReject = null;
-            await LoadItemsAsync();
+            await LoadItemsAsync(preserveSuccessNotice: true);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -567,25 +602,29 @@
     private async Task HandleItemCreated(SocialInboxItemDto newItem)
     {
         _actionSuccessMessage = "Nueva publicación capturada e introducida en la bandeja.";
-        await LoadItemsAsync();
+        _actionSuccessUrl = null;
+        await LoadItemsAsync(preserveSuccessNotice: true);
     }
 
     private async Task HandleItemSaved(SocialInboxItemDto updatedItem)
     {
         _actionSuccessMessage = "Borrador actualizado con éxito.";
-        await LoadItemsAsync();
+        _actionSuccessUrl = null;
+        await LoadItemsAsync(preserveSuccessNotice: true);
     }
 
     private async Task HandleItemApproved(SocialInboxItemDto approvedItem)
     {
+        _actionSuccessUrl = GetPublishedEntityUrl(approvedItem.DetectedType, approvedItem.CreatedEntityId);
         _actionSuccessMessage = $"¡Publicación \"{approvedItem.Title}\" aprobada y publicada correctamente!";
-        await LoadItemsAsync();
+        await LoadItemsAsync(preserveSuccessNotice: true);
     }
 
     private async Task PurgeSimulatedAsync()
     {
         _isPurging = true;
         _actionSuccessMessage = null;
+        _actionSuccessUrl = null;
         _actionErrorMessage = null;
 
         try
@@ -599,7 +638,7 @@
             {
                 _actionSuccessMessage = "No se encontraron publicaciones simuladas pendientes de moderación.";
             }
-            await LoadItemsAsync();
+            await LoadItemsAsync(preserveSuccessNotice: true);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -613,6 +652,21 @@
         {
             _isPurging = false;
         }
+    }
+
+    private static string? GetPublishedEntityUrl(SocialSubmissionType type, Guid? entityId)
+    {
+        if (!entityId.HasValue || entityId.Value == Guid.Empty)
+            return null;
+
+        return type switch
+        {
+            SocialSubmissionType.Giveaway => $"/sorteos/{entityId.Value}",
+            SocialSubmissionType.WeeklyRelease => "/novedades",
+            SocialSubmissionType.BoardGameEvent => "/eventos",
+            SocialSubmissionType.MediaItem => "/comunidad",
+            _ => null
+        };
     }
 
     private static string GetTypeLabel(SocialSubmissionType type) => type switch
