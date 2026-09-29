@@ -808,6 +808,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 85: Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias
+- **Identificador SDD:** `change-85-ficha-editorial-carrusel-tiendas`
+- **Objetivo Principal:** Transformar radicalmente la experiencia visual y funcional de la ficha de juego (`/juegos/{slug}`) erradicando la monotonía vertical y el cementerio de cajas vacías:
+  1. **Maquetación Editorial a Dos Columnas en Escritorio (`lg:grid-cols-12`):** Columna principal inmersiva de 8 columnas (Hero con títulos y autoría, Carrusel fotográfico, Veredicto Fundacional / Resumen IA, Semáforo de Escalabilidad, Ecosistema de Expansiones y pestañas secundarias en la base) y columna lateral fija derecha de 4 columnas (`lg:sticky lg:top-20`) para acciones inmediatas (Tu Ludoteca, Dónde Comprar & Radar, Ficha técnica express y tu Reseña).
+  2. **Carrusel Fotográfico Interactivo (`GameImageCarousel.razor`):** Visor con soporte para portada oficial, contraportada y fotos de componentes en mesa, contador de diapositivas (`1 / 3`), navegación por botones y flechas táctiles, tira inferior de miniaturas, visor a pantalla completa (**Lightbox modal**) y optimizaciones anti-CLS (`fetchpriority="high"`, `width="320"`, `height="320"`, `loading="lazy"` en miniaturas).
+  3. **Módulo Permanente de Dónde Comprar con Fallback Nacional:** Integración permanente en la columna lateral (`IsSidebar="true"`) con fallback determinista a tiendas especializadas de España (Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra) mediante URLs de búsqueda en catálogo, evitando estados vacíos y facilitando la compra y el rastreo de precios.
+  4. **Pestañas Secundarias Agrupadas:** Integración de la Guía de Fundas, Hub Multimedia y Consultorio de Reglas Q&A en una barra de pestañas compacta con estado honesto de ausencia de datos.
+- **Estado:** ✅ **Completado y Archivado** (2.130 tests en verde al 100%: 2.120 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-85-ficha-editorial-carrusel-tiendas.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-85-ficha-editorial-carrusel-tiendas.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

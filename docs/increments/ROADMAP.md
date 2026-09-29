@@ -97,7 +97,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-82** | Optimización de Rendimiento en Catálogo, Paginación Nativa SQL y Búsqueda Resiliente con Debounce | ✅ Archivado | [inc-82-opt-catalogo-busqueda.md](archive/inc-82-opt-catalogo-busqueda.md) |
 | **INC-83** | Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA | ✅ Archivado | [inc-83-icono-navegador-favicon.md](archive/inc-83-icono-navegador-favicon.md) |
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
-| **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ⏳ En progreso | [inc-85-ficha-editorial-carrusel-tiendas.md](inc-85-ficha-editorial-carrusel-tiendas.md) |
+| **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -129,6 +129,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
 | *(Ninguno)* | — | — | — | Todos los incrementos en curso han sido integrados y archivados |
+
+*(INC-85 entregó su PR #152, verificada con 2.130 pruebas automáticas [2.120 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Implementa el rediseño editorial completo de la ficha de juego `/juegos/{slug}` con maquetación asimétrica a dos columnas [8 cols para contenido inmersivo y 4 cols fijas para acción y compra], carrusel fotográfico interactivo `GameImageCarousel.razor` con soporte de portada, trasera y mesa, contador `1 / 3`, navegación táctil/flechas, tira de miniaturas y visor Lightbox modal a pantalla completa con optimizaciones anti-CLS [width/height 320px, fetchpriority="high"], módulo permanente de «Dónde Comprar» en la columna lateral fija con fallback automático a tiendas de referencia españolas [Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra] para garantizar cero estados vacíos y enlazar con el radar de precios, y barra compacta de pestañas secundarias [Guía de Fundas, Hub Multimedia y Consultorio de Reglas Q&A] respaldado por la suite `GameDetailEditorialContractTests`).*
 
 *(INC-84 entregó su PR, verificada con 2.123 pruebas automáticas [2.113 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Establece el tema Madera Clara ['wood'] por defecto para usuarios sin sesión con soporte Zero-FOUC y logotipo adaptativo claro en App.razor, e incorpora el componente de cabecera GuestThemePicker.razor con disparador de paleta y menú flotante sin texto con 5 muestras circulares puras [blanco, madera clara, madera oscura, azul medianoche y carbón], preservando la navegación anónima sin redirecciones al login y custodiado por la suite GuestThemePickerContractTests).*
 

@@ -3,8 +3,8 @@
 > **ID:** INC-85  
 > **Slug:** `ficha-editorial-carrusel-tiendas`  
 > **Rama:** `inc/ficha-editorial-carrusel-tiendas`  
-> **Estado:** ⏳ En progreso  
-> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-juegos.md`), `src/Ludeka.Web/Components/Pages/GameDetail.razor`, `src/Ludeka.Web/Components/Shared/GameImageCarousel.razor`, `src/Ludeka.Web/Components/Shared/StoreOffersCard.razor`, `src/Ludeka.Infrastructure/Bgg/BggSimulationDataset.cs`  
+> **Estado:** ✅ Archivado  
+> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), `src/Ludeka.Web/Components/Pages/GameDetail.razor`, `src/Ludeka.Web/Components/Shared/GameImageCarousel.razor`, `src/Ludeka.Web/Components/Shared/StoreOffersCard.razor`, `src/Ludeka.Infrastructure/Bgg/BggSimulationDataset.cs`  
 > **Dependencias:** INC-72 (UX Catálogo y Selector 3 Vistas), INC-84 (Tema Madera Clara)
 
 ---
@@ -22,26 +22,27 @@ Tras la auditoría visual y de experiencia de usuario en la ficha de detalle de 
 ## 2. Solución Arquitectónica y Objetivos
 
 1. **Maquetación Editorial a Dos Columnas en Escritorio (`lg:grid lg:grid-cols-12`):**
-   - **Columna Principal (Izquierda, `lg:col-span-8`):** Centrada en la inmersión lúdica: carrusel fotográfico de alto impacto, veredicto y síntesis editorial ágil, semáforo dinámico de escalabilidad, y pestañas secundarias en la base.
-   - **Columna Lateral Fija (Derecha, `lg:col-span-4`):** Centrada en la acción del usuario: barra ergonómica de Mi Ludoteca (*Tengo, Jugado, Quiero comprar, Registrar partida*), módulo permanente de **Dónde Comprar & Radar de Precios**, y ficha técnica rápida de mesa.
+   - **Columna Principal (Izquierda, `lg:col-span-8`):** Centrada en la inmersión lúdica: carrusel fotográfico de alto impacto, veredicto y síntesis editorial ágil, semáforo dinámico de escalabilidad, ecosistema de expansiones y pestañas secundarias en la base.
+   - **Columna Lateral Fija (Derecha, `lg:col-span-4`):** Centrada en la acción del usuario: barra ergonómica de Mi Ludoteca (*Tengo, Jugado, Quiero comprar, Registrar partida*), módulo permanente de **Dónde Comprar & Radar de Precios**, ficha técnica express de mesa y reseña del usuario.
 2. **Componente de Carrusel Fotográfico Interactivo (`GameImageCarousel.razor`):**
    - Visor principal amplio con transiciones suaves, contador de diapositivas (`1 / 3`), flechas anterior/siguiente, atajos de teclado y tira inferior de miniaturas (portada oficial, trasera, componentes en mesa).
    - Modal Lightbox para visualización a alta resolución al hacer clic.
+   - Optimización anti-CLS estricta con `fetchpriority="high"`, dimensiones explícitas `width="320"` y `height="320"`, y carga diferida en miniaturas.
    - Preservación estricta de las variables de contrato (`_selectedHeroImageKey`, `CurrentHeroImageUrl`, `BackCoverImageUrl`, `TableImageUrl`).
-3. **Módulo Permanente de Dónde Comprar con Fallback de Tiendas Españolas:**
+3. **Módulo Permanente de Dónde Comprar con Fallback de Tiendas Españolas (`StoreOffersCard.razor`):**
    - Si un juego no tiene enlaces específicos mapeados, `StoreOffersCard` ofrece automáticamente enlaces directos de búsqueda en comercios especializados de referencia (Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra), evitando la caja vacía y permitiendo al usuario consultar disponibilidad inmediata y registrar lecturas en el Radar de Precios.
 4. **Pestañas Secundarias en la Base:**
    - Agrupación modular de `Fundas de Cartas`, `Hub Multimedia` y `Consultorio de Reglas Q&A` mediante una barra de pestañas compacta. Los estados vacíos se presentan con microtextos sugerentes y llamadas a la acción, sin saturar la página.
 5. **Enriquecimiento del Catálogo Canónico:**
-   - Inclusión de imágenes de trasera, mesa y ofertas de tiendas en `BggSimulationDataset.cs` para títulos de referencia.
+   - Inclusión de imágenes de trasera, mesa y ofertas de tiendas en `BggSimulationDataset.cs` para títulos de referencia como *Brass: Birmingham*.
 
 ---
 
-## 3. Criterios de Aceptación
+## 3. Criterios de Aceptación Verificados
 
-- [ ] La ficha de juego implementa maquetación a dos columnas en escritorio y flujo adaptativo en móvil.
-- [ ] El carrusel fotográfico soporta navegación por botones, miniaturas, contador de diapositivas y modal ampliado.
-- [ ] La sección «Dónde Comprar» permanece siempre visible en la columna lateral derecha sin requerir scroll kilométrico.
-- [ ] Para juegos sin ofertas específicas, se proveen enlaces directos de búsqueda a tiendas de referencia.
-- [ ] Fundas, vídeos y dudas de reglas se integran en un componente de pestañas secundarias en la base.
-- [ ] 100% de las pruebas unitarias y de contrato pasando en verde.
+- [x] La ficha de juego implementa maquetación a dos columnas en escritorio y flujo adaptativo en móvil.
+- [x] El carrusel fotográfico soporta navegación por botones, miniaturas, contador de diapositivas y modal ampliado.
+- [x] La sección «Dónde Comprar» permanece siempre visible en la columna lateral derecha sin requerir scroll kilométrico.
+- [x] Para juegos sin ofertas específicas, se proveen enlaces directos de búsqueda a tiendas de referencia.
+- [x] Fundas, vídeos y dudas de reglas se integran en un componente de pestañas secundarias en la base.
+- [x] 100% de las pruebas unitarias y de contrato pasando en verde (2.120 pruebas unitarias + 10 de integración).
