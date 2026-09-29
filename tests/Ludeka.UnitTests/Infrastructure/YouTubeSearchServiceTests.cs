@@ -274,6 +274,70 @@ public class YouTubeSearchServiceTests : IAsyncLifetime
         Assert.True(first.RelevanceScore >= 120, "Debe recibir bonus de canal de referencia y duración óptima");
     }
 
+    [Fact]
+    public async Task ExecuteSearchAsync_WhenApiReturnsForbidden_ThrowsInvalidOperationExceptionWithQuotaExplanation()
+    {
+        var handler = new MockHttpMessageHandler((req) =>
+        {
+            return new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("{\"error\":{\"code\":403,\"message\":\"quotaExceeded\"}}")
+            };
+        });
+
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/")
+        };
+
+        var service = new YouTubeSearchService(
+            httpClient,
+            Options.Create(new YouTubeOptions { ApiKey = "test-key", Simulate = false }),
+            _channelFocus,
+            _gameRepository,
+            _mediaRepository,
+            NullLogger<YouTubeSearchService>.Instance
+        );
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.SearchTutorialsAsync("Wingspan"));
+
+        Assert.Contains("Cuota diaria de YouTube API excedida", ex.Message);
+        Assert.Contains("403", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteSearchAsync_WhenOperationCancelled_ThrowsOperationCanceledException()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel(); // Pre-cancelado
+
+        var handler = new MockHttpMessageHandler((req) =>
+        {
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}")
+            };
+        });
+
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/")
+        };
+
+        var service = new YouTubeSearchService(
+            httpClient,
+            Options.Create(new YouTubeOptions { ApiKey = "test-key", Simulate = false }),
+            _channelFocus,
+            _gameRepository,
+            _mediaRepository,
+            NullLogger<YouTubeSearchService>.Instance
+        );
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.SearchTutorialsAsync("Wingspan", cts.Token));
+    }
+
     private YouTubeSearchService CreateService(YouTubeOptions options)
     {
         var httpClient = new HttpClient { BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/") };

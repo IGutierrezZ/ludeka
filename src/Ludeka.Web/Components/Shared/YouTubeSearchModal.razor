@@ -80,21 +80,25 @@
                         }
                     </div>
 
-                    <button type="button"
-                            @onclick="PerformSearch"
-                            disabled="@(_isSearching || string.IsNullOrWhiteSpace(_searchQuery))"
-                            class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-md">
-                        @if (_isSearching)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="dices" Size="14" /></span>
-                            <span>Buscando...</span>
-                        }
-                        else
-                        {
+                    @if (_isSearching)
+                    {
+                        <button type="button"
+                                @onclick="CancelSearch"
+                                class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-md">
+                            <Icon Name="x" Size="14" />
+                            <span>Cancelar Búsqueda</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="() => PerformSearch()"
+                                disabled="@(string.IsNullOrWhiteSpace(_searchQuery))"
+                                class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-md">
                             <Icon Name="search" Size="14" />
                             <span>Buscar en YouTube</span>
-                        }
-                    </button>
+                        </button>
+                    }
 
                     @if (_selectedGame != null)
                     {
@@ -121,9 +125,12 @@
 
                 @if (!string.IsNullOrWhiteSpace(_notificationMessage))
                 {
-                    <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between animate-fade-in">
-                        <span>@_notificationMessage</span>
-                        <button type="button" @onclick="() => _notificationMessage = null" class="text-xs font-bold"><Icon Name="x" Size="12" /></button>
+                    <div class="p-3 rounded-xl @(_isNotificationError ? "bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400") text-xs flex items-center justify-between animate-fade-in">
+                        <span class="inline-flex items-center gap-1.5">
+                            <Icon Name="@(_isNotificationError ? "triangle-alert" : "circle-check")" Size="14" />
+                            <span>@_notificationMessage</span>
+                        </span>
+                        <button type="button" @onclick="() => _notificationMessage = null" class="text-xs font-bold hover:opacity-75"><Icon Name="x" Size="12" /></button>
                     </div>
                 }
             </div>
@@ -168,11 +175,18 @@
             <div class="flex-1 overflow-y-auto p-5 space-y-4">
                 @if (_isSearching)
                 {
-                    <div class="py-16 text-center space-y-3">
+                    <div class="py-16 text-center space-y-4">
                         <div class="inline-block animate-spin"><Icon Name="dices" Size="36" /></div>
                         <p class="text-xs text-[var(--text-muted)]">
                             Consultando YouTube en vivo y ponderando canales oficiales de referencia...
                         </p>
+                        <div>
+                            <button type="button"
+                                    @onclick="CancelSearch"
+                                    class="px-3.5 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="x" Size="12" /> Cancelar búsqueda
+                            </button>
+                        </div>
                     </div>
                 }
                 else if (!_hasSearched)
@@ -305,6 +319,8 @@
     private bool _isAutoIngesting;
     private string _activeCategory = "tutorials";
     private string? _notificationMessage;
+    private bool _isNotificationError;
+    private bool _isUserCancelled;
 
     private GameSummaryDto? _selectedGame;
     private IReadOnlyList<GameSummaryDto> _matchingGames = [];
@@ -315,6 +331,7 @@
 
     private System.Threading.Timer? _debounceTimer;
     private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _activeSearchCts;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -377,20 +394,31 @@
         }
     }
 
-    private async Task SelectGame(GameSummaryDto game)
+    private void SelectGame(GameSummaryDto game)
     {
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
         _selectedGame = game;
         _searchQuery = game.SpanishTitle;
         _matchingGames = [];
-        await PerformSearch();
+        // No auto-disparar búsqueda: el usuario decide cuándo pulsar "Buscar en YouTube" o dar a Enter.
+    }
+
+    private void CancelSearch()
+    {
+        if (!_isSearching) return;
+        _isUserCancelled = true;
+        _activeSearchCts?.Cancel();
+        _isSearching = false;
+        _isNotificationError = false;
+        _notificationMessage = "Búsqueda cancelada.";
     }
 
     private void ClearSelectedGame()
     {
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
+        _activeSearchCts?.Cancel();
         _selectedGame = null;
         _searchQuery = string.Empty;
         _matchingGames = [];
@@ -398,21 +426,30 @@
         _quickOverviews = [];
         _tutorials = [];
         _playthroughs = [];
+        _notificationMessage = null;
     }
 
     private async Task PerformSearch()
     {
         if (string.IsNullOrWhiteSpace(_searchQuery)) return;
 
+        _activeSearchCts?.Cancel();
+        _activeSearchCts?.Dispose();
+        _activeSearchCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var ct = _activeSearchCts.Token;
+
         _isSearching = true;
         _hasSearched = true;
+        _isUserCancelled = false;
+        _isNotificationError = false;
         _matchingGames = [];
+        _notificationMessage = null;
 
         try
         {
-            var qOverviewsTask = YouTubeSearchService.SearchQuickOverviewsAsync(_searchQuery);
-            var tutorialsTask = YouTubeSearchService.SearchTutorialsAsync(_searchQuery);
-            var playthroughsTask = YouTubeSearchService.SearchPlaythroughsAsync(_searchQuery, _selectedGame?.Id);
+            var qOverviewsTask = YouTubeSearchService.SearchQuickOverviewsAsync(_searchQuery, ct);
+            var tutorialsTask = YouTubeSearchService.SearchTutorialsAsync(_searchQuery, ct);
+            var playthroughsTask = YouTubeSearchService.SearchPlaythroughsAsync(_searchQuery, _selectedGame?.Id, ct);
 
             await Task.WhenAll(qOverviewsTask, tutorialsTask, playthroughsTask);
 
@@ -434,9 +471,17 @@
                 _activeCategory = "playthroughs";
             }
         }
+        catch (OperationCanceledException)
+        {
+            _isNotificationError = !_isUserCancelled;
+            _notificationMessage = _isUserCancelled
+                ? "Búsqueda cancelada."
+                : "La búsqueda en YouTube tardó demasiado tiempo y se canceló por tiempo de espera (10s).";
+        }
         catch (Exception ex)
         {
-            _notificationMessage = $"Error al buscar: {ex.Message}";
+            _isNotificationError = true;
+            _notificationMessage = $"No se pudo completar la búsqueda en YouTube: {ex.Message}";
         }
         finally
         {
@@ -448,6 +493,7 @@
     {
         if (_selectedGame == null)
         {
+            _isNotificationError = true;
             _notificationMessage = "Selecciona primero un juego del catálogo para asociar el vídeo.";
             return;
         }
@@ -468,6 +514,7 @@
             );
 
             await YouTubeSearchService.IngestVideoAsync(request);
+            _isNotificationError = false;
             _notificationMessage = autoApprove
                 ? $"Vídeo de '{candidate.ChannelTitle}' aprobado y publicado en el Hub."
                 : "Vídeo guardado en la bandeja de pendientes de moderación.";
@@ -476,6 +523,7 @@
         }
         catch (Exception ex)
         {
+            _isNotificationError = true;
             _notificationMessage = $"Error al incorporar vídeo: {ex.Message}";
         }
     }
@@ -488,11 +536,13 @@
         try
         {
             var ingested = await YouTubeSearchService.AutoSuggestAndIngestForGameAsync(_selectedGame.Id, autoApprove: false);
+            _isNotificationError = false;
             _notificationMessage = $"Se han incorporado {ingested.Count} vídeos sugeridos a la cola de moderación.";
             await OnVideoIngested.InvokeAsync();
         }
         catch (Exception ex)
         {
+            _isNotificationError = true;
             _notificationMessage = $"Error en auto-ingesta: {ex.Message}";
         }
         finally
@@ -505,8 +555,10 @@
     {
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
+        _activeSearchCts?.Cancel();
         _matchingGames = [];
         _notificationMessage = null;
+        _isSearching = false;
         await OnClose.InvokeAsync();
     }
 
@@ -515,5 +567,7 @@
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
         _searchCts?.Dispose();
+        _activeSearchCts?.Cancel();
+        _activeSearchCts?.Dispose();
     }
 }
