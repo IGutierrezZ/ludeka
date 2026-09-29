@@ -228,6 +228,42 @@ public class SocialIngestionServiceTests
         public Task<IReadOnlyList<MediaItem>> GetFilteredAsync(Guid? gameId, MediaCategory? category, MediaType? type, ModerationStatus? status, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<MediaItem>>(Items);
     }
 
+    private class FakePublisherRepository : IPublisherRepository
+    {
+        public List<Publisher> Items { get; } = new();
+        public Task<IReadOnlyList<Publisher>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Publisher>>(Items);
+        public Task<Publisher?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Id == id));
+        public Task<Publisher?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Publisher?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Publisher publisher, CancellationToken ct = default) { Items.Add(publisher); return Task.CompletedTask; }
+        public Task UpdateAsync(Publisher publisher, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(p => p.Id == id); return Task.CompletedTask; }
+    }
+
+    private class FakeStoreRepository : IStoreRepository
+    {
+        public List<Store> Items { get; } = new();
+        public Task<IReadOnlyList<Store>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Store>>(Items);
+        public Task<Store?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Id == id));
+        public Task<Store?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Store?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Store store, CancellationToken ct = default) { Items.Add(store); return Task.CompletedTask; }
+        public Task UpdateAsync(Store store, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(s => s.Id == id); return Task.CompletedTask; }
+    }
+
+    private class FakeCreatorRepository : ICreatorRepository
+    {
+        public List<Creator> Items { get; } = new();
+        public Task<IReadOnlyList<Creator>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Creator>>(Items);
+        public Task<Creator?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Id == id));
+        public Task<Creator?> GetBySlugAsync(string slug, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)));
+        public Task<Creator?> GetByNameAsync(string name, CancellationToken ct = default) => Task.FromResult(Items.Find(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        public Task AddAsync(Creator creator, CancellationToken ct = default) { Items.Add(creator); return Task.CompletedTask; }
+        public Task UpdateAsync(Creator creator, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) { Items.RemoveAll(c => c.Id == id); return Task.CompletedTask; }
+    }
+
     private readonly FakeSocialInboxRepository _inboxRepo = new();
     private readonly FakeSocialMetadataExtractor _metadataExtractor = new();
     private readonly FakeSocialAiAnalysisService _aiService = new();
@@ -250,7 +286,11 @@ public class SocialIngestionServiceTests
 
     private readonly FakeGiveawayCoverComposer _coverComposer = new();
 
-    private SocialIngestionService CreateService(IGiveawayCoverComposer? composer = null)
+    private SocialIngestionService CreateService(
+        IGiveawayCoverComposer? composer = null,
+        IPublisherRepository? publisherRepo = null,
+        IStoreRepository? storeRepo = null,
+        ICreatorRepository? creatorRepo = null)
     {
         return new SocialIngestionService(
             _inboxRepo,
@@ -265,7 +305,10 @@ public class SocialIngestionServiceTests
             new HttpClient(),
             NullLogger<SocialIngestionService>.Instance,
             permissionGuard: null,
-            giveawayCoverComposer: composer ?? _coverComposer);
+            giveawayCoverComposer: composer ?? _coverComposer,
+            publisherRepository: publisherRepo,
+            storeRepository: storeRepo,
+            creatorRepository: creatorRepo);
     }
 
     [Fact]
@@ -406,7 +449,7 @@ public class SocialIngestionServiceTests
     }
 
     [Fact]
-    public async Task ApproveAndPublishAsync_GiveawayWithPastOrNullDeadline_SetsFutureDeadlineSoGiveawayIsActive()
+    public async Task ApproveAndPublishAsync_GiveawayWithPastDeadline_ThrowsInvalidOperationException()
     {
         // Arrange
         var service = CreateService();
@@ -416,7 +459,59 @@ public class SocialIngestionServiceTests
             detectedType: SocialSubmissionType.Giveaway,
             title: "Sorteo Con Fecha Pasada",
             organizerOrAuthor: "Asmodee",
-            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-3)); // Fecha en el pasado (ej. fecha del post)
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(-3)); // Fecha en el pasado
+
+        _inboxRepo.Items.Add(item);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ApproveAndPublishAsync(item.Id, "admin_user"));
+
+        Assert.Contains("pasado", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutDeadline_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/no-deadline-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Sin Fecha",
+            organizerOrAuthor: "Asmodee",
+            eventOrReleaseDate: null,
+            eventEndDate: null);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ApproveAndPublishAsync(item.Id, "admin_user"));
+
+        Assert.Contains("fecha de fin", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutLocation_ResolvesCountryFromPublisher()
+    {
+        // Arrange
+        var publisherRepo = new FakePublisherRepository();
+        publisherRepo.Items.Add(new Publisher(
+            name: "Devir Argentina",
+            slug: "devir-argentina",
+            country: "Argentina"));
+
+        var service = CreateService(publisherRepo: publisherRepo);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/argentina-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Catan",
+            organizerOrAuthor: "Devir Argentina",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(5),
+            location: null);
 
         _inboxRepo.Items.Add(item);
 
@@ -425,10 +520,83 @@ public class SocialIngestionServiceTests
 
         // Assert
         Assert.NotEqual(Guid.Empty, createdId);
-        Assert.Single(_giveawayRepo.Items);
-        var created = _giveawayRepo.Items[0];
-        Assert.False(created.IsExpired);
-        Assert.True(created.DeadlineAt > DateTimeOffset.UtcNow.AddDays(5));
+        var created = _giveawayRepo.Items.Find(g => g.Id == createdId);
+        Assert.NotNull(created);
+        Assert.Equal("Argentina", created.Country);
+    }
+
+    [Fact]
+    public async Task ApproveAndPublishAsync_GiveawayWithoutLocation_ResolvesCountryFromStore()
+    {
+        // Arrange
+        var storeRepo = new FakeStoreRepository();
+        storeRepo.Items.Add(new Store(
+            name: "Dungeon Dice Chile",
+            slug: "dungeon-dice-chile",
+            country: "Chile"));
+
+        var service = CreateService(storeRepo: storeRepo);
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/chile-giveaway",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Dixit",
+            organizerOrAuthor: "Dungeon Dice Chile",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(4),
+            location: null);
+
+        _inboxRepo.Items.Add(item);
+
+        // Act
+        var createdId = await service.ApproveAndPublishAsync(item.Id, "admin_user");
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, createdId);
+        var created = _giveawayRepo.Items.Find(g => g.Id == createdId);
+        Assert.NotNull(created);
+        Assert.Equal("Chile", created.Country);
+    }
+
+    [Fact]
+    public async Task IngestFromCollectorAsync_GiveawayWithoutLocation_ResolvesCountryFromCreator()
+    {
+        // Arrange
+        var creatorRepo = new FakeCreatorRepository();
+        creatorRepo.Items.Add(new Creator(
+            name: "Meeple Colombia",
+            slug: "meeple-colombia",
+            nationality: "Colombia"));
+
+        var service = CreateService(creatorRepo: creatorRepo);
+        _metadataExtractor.ResultToReturn = new SocialMetadataResultDto(
+            Url: "https://www.youtube.com/watch?v=colombia123",
+            Platform: SocialPlatform.YouTube,
+            Title: "Sorteo Especial",
+            AuthorOrChannel: "Meeple Colombia",
+            Description: "Sorteamos un juego",
+            ImageUrl: null,
+            IsVideo: true);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Especial Meeple Colombia",
+            OrganizerOrAuthor: "Meeple Colombia",
+            Collaborator: null,
+            SuggestedGameTitle: "Carcassonne",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(6),
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: null);
+
+        // Act
+        var result = await service.IngestFromCollectorAsync("https://www.youtube.com/watch?v=colombia123");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Colombia", result.Location);
     }
 
     [Fact]
@@ -476,6 +644,7 @@ public class SocialIngestionServiceTests
             detectedType: SocialSubmissionType.Giveaway,
             title: "Sorteo con Ámbito Territorial",
             organizerOrAuthor: "TCG Factory",
+            eventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(7),
             location: rawLocation);
 
         _inboxRepo.Items.Add(item);
@@ -827,7 +996,7 @@ public class SocialIngestionServiceTests
         Assert.Equal("Sorteo Oficial de Ark Nova", result.Title);
         Assert.Equal("Maldito Games", result.OrganizerOrAuthor);
         Assert.Equal("@ludocreador", result.Collaborator);
-        Assert.Equal("España Peninsular", result.Location);
+        Assert.Equal("España", result.Location);
         Assert.Equal("Extracción Gemini Flash 1.5 con alta certidumbre", result.AiAnalysisNotes);
     }
 

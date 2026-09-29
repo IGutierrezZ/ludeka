@@ -296,11 +296,36 @@
                                         <span class="truncate">@item.GameTitle</span>
                                     </div>
                                 }
-                                else if (item.DetectedType == SocialSubmissionType.Giveaway && item.EventOrReleaseDate.HasValue)
+
+                                @if (item.DetectedType == SocialSubmissionType.Giveaway)
                                 {
-                                    <div class="text-[0.62rem] text-amber-500 font-semibold flex items-center gap-1">
-                                        <Icon Name="calendar" Size="10" />
-                                        <span>Fin: @item.EventOrReleaseDate.Value.ToString("dd/MM")</span>
+                                    var deadline = item.EventEndDate ?? item.EventOrReleaseDate;
+                                    <div class="flex items-center justify-between gap-1 flex-wrap pt-0.5 text-[0.62rem]">
+                                        @if (!deadline.HasValue)
+                                        {
+                                            <span class="inline-flex items-center gap-1 font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded" title="Falta indicar fecha de fin para poder aprobar">
+                                                <Icon Name="triangle-alert" Size="10" /> Sin fecha
+                                            </span>
+                                        }
+                                        else if (deadline.Value.Date < DateTime.UtcNow.Date && deadline.Value.UtcDateTime.Date < DateTime.UtcNow.Date)
+                                        {
+                                            <span class="inline-flex items-center gap-1 font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded" title="Fecha fin en el pasado (@deadline.Value.ToString("dd/MM/yyyy"))">
+                                                <Icon Name="clock" Size="10" /> Vencido: @deadline.Value.ToString("dd/MM")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                <Icon Name="calendar" Size="10" /> Fin: @deadline.Value.ToString("dd/MM")
+                                            </span>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(item.Location))
+                                        {
+                                            <span class="text-[0.6rem] font-medium text-[var(--text-muted)] truncate max-w-[85px]" title="Ámbito: @item.Location">
+                                                🌍 @item.Location
+                                            </span>
+                                        }
                                     </div>
                                 }
                                 else if (item.DetectedType == SocialSubmissionType.BoardGameEvent && !string.IsNullOrWhiteSpace(item.Location))
@@ -547,6 +572,17 @@
 
     private async Task ApproveItemAsync(SocialInboxItemDto item)
     {
+        if (item.DetectedType == SocialSubmissionType.Giveaway)
+        {
+            var rawDeadline = item.EventEndDate ?? item.EventOrReleaseDate;
+            if (!rawDeadline.HasValue || (rawDeadline.Value.Date < DateTime.UtcNow.Date && rawDeadline.Value.UtcDateTime.Date < DateTime.UtcNow.Date))
+            {
+                _actionErrorMessage = "Este sorteo requiere indicar una fecha de fin igual o posterior a hoy para poder aprobarse. Se ha abierto la edición.";
+                OpenEditModal(item);
+                return;
+            }
+        }
+
         _isProcessingApproval = true;
         _actionSuccessMessage = null;
         _actionSuccessUrl = null;

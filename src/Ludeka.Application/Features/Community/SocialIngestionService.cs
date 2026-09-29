@@ -31,6 +31,9 @@ public class SocialIngestionService : ISocialIngestionService
     private readonly ILogger<SocialIngestionService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
     private readonly IGiveawayCoverComposer? _giveawayCoverComposer;
+    private readonly IPublisherRepository? _publisherRepository;
+    private readonly IStoreRepository? _storeRepository;
+    private readonly ICreatorRepository? _creatorRepository;
 
     public SocialIngestionService(
         ISocialInboxRepository inboxRepository,
@@ -45,7 +48,10 @@ public class SocialIngestionService : ISocialIngestionService
         HttpClient httpClient,
         ILogger<SocialIngestionService> logger,
         ISessionPermissionGuard? permissionGuard = null,
-        IGiveawayCoverComposer? giveawayCoverComposer = null)
+        IGiveawayCoverComposer? giveawayCoverComposer = null,
+        IPublisherRepository? publisherRepository = null,
+        IStoreRepository? storeRepository = null,
+        ICreatorRepository? creatorRepository = null)
     {
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
         _metadataExtractor = metadataExtractor ?? throw new ArgumentNullException(nameof(metadataExtractor));
@@ -60,6 +66,9 @@ public class SocialIngestionService : ISocialIngestionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
         _giveawayCoverComposer = giveawayCoverComposer;
+        _publisherRepository = publisherRepository;
+        _storeRepository = storeRepository;
+        _creatorRepository = creatorRepository;
     }
 
     /// <summary>
@@ -175,6 +184,11 @@ public class SocialIngestionService : ISocialIngestionService
             ? input.ManualCaption.Trim()
             : metadata?.Description ?? metadata?.Title ?? "Bases capturadas por visión artificial multimodal";
 
+        var rawLocation = analysis.TerritorialScope ?? analysis.Location;
+        var location = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, organizer, analysis.Collaborator, ct)
+            : null;
+
         var item = new SocialInboxItem(
             sourceUrl: input.SourceUrl,
             platform: platform,
@@ -186,7 +200,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: matchedGameTitle,
             eventOrReleaseDate: analysis.EventOrReleaseDate,
             eventEndDate: analysis.EventEndDate,
-            location: analysis.TerritorialScope ?? analysis.Location,
+            location: location,
             estimatedPvp: analysis.EstimatedPvp,
             mediaCategory: analysis.MediaCategory,
             playerCountBadge: analysis.PlayerCountBadge,
@@ -256,6 +270,11 @@ public class SocialIngestionService : ISocialIngestionService
             ? analysis.OrganizerOrAuthor
             : authorOrChannel;
 
+        var rawLocation = analysis.Location ?? analysis.TerritorialScope;
+        var location = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, organizer, analysis.Collaborator, ct)
+            : null;
+
         var item = new SocialInboxItem(
             sourceUrl: url,
             platform: platform,
@@ -267,7 +286,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: matchedGameTitle,
             eventOrReleaseDate: analysis.EventOrReleaseDate,
             eventEndDate: analysis.EventEndDate,
-            location: analysis.Location,
+            location: location,
             estimatedPvp: analysis.EstimatedPvp,
             mediaCategory: analysis.MediaCategory,
             playerCountBadge: analysis.PlayerCountBadge,
@@ -332,6 +351,12 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle = game?.SpanishTitle ?? game?.OriginalTitle;
         }
 
+        var location = !string.IsNullOrWhiteSpace(input.Location)
+            ? await ResolveCountryAsync(input.Location, input.OrganizerOrAuthor, null, ct)
+            : ((input.SubmissionType == SocialSubmissionType.Giveaway || input.SubmissionType == SocialSubmissionType.BoardGameEvent)
+                ? await ResolveCountryAsync(null, input.OrganizerOrAuthor, null, ct)
+                : null);
+
         var item = new SocialInboxItem(
             sourceUrl: input.SourceUrl,
             platform: platform,
@@ -343,7 +368,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: gameTitle,
             eventOrReleaseDate: input.EventOrReleaseDate,
             eventEndDate: input.EventEndDate,
-            location: input.Location,
+            location: location,
             estimatedPvp: input.EstimatedPvp,
             mediaCategory: input.MediaCategory,
             playerCountBadge: input.PlayerCountBadge,
@@ -456,6 +481,11 @@ public class SocialIngestionService : ISocialIngestionService
             }
         }
 
+        var rawLocation = analysis.TerritorialScope ?? analysis.Location ?? item.Location;
+        var resolvedLocation = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
+            ? await ResolveCountryAsync(rawLocation, analysis.OrganizerOrAuthor ?? item.OrganizerOrAuthor, analysis.Collaborator ?? item.Collaborator, ct)
+            : item.Location;
+
         item.UpdateDetails(
             title: !string.IsNullOrWhiteSpace(analysis.Title) ? analysis.Title : item.Title,
             organizerOrAuthor: !string.IsNullOrWhiteSpace(analysis.OrganizerOrAuthor) ? analysis.OrganizerOrAuthor : item.OrganizerOrAuthor,
@@ -465,7 +495,7 @@ public class SocialIngestionService : ISocialIngestionService
             gameTitle: matchedGameTitle,
             eventOrReleaseDate: analysis.EventOrReleaseDate ?? item.EventOrReleaseDate,
             eventEndDate: analysis.EventEndDate ?? item.EventEndDate,
-            location: analysis.TerritorialScope ?? analysis.Location ?? item.Location,
+            location: resolvedLocation,
             estimatedPvp: analysis.EstimatedPvp ?? item.EstimatedPvp,
             mediaCategory: analysis.MediaCategory ?? item.MediaCategory,
             playerCountBadge: analysis.PlayerCountBadge ?? item.PlayerCountBadge,
@@ -511,15 +541,24 @@ public class SocialIngestionService : ISocialIngestionService
                     _ => GiveawayPlatform.Other
                 };
 
-                // Si la publicación indica fecha de fin explícita, se usa con prioridad frente a la fecha de inicio/publicación.
-                // Garantizamos siempre que el sorteo nazca con fecha de fin activa (futura): si viene en el pasado o nula,
-                // se extiende automáticamente a UtcNow + 7 días para que aparezca visible inmediatamente en el radar de sorteos.
+                // Regla de negocio: No se puede aprobar un sorteo sin fecha límite, ni con fecha anterior a hoy.
                 var rawDeadline = item.EventEndDate ?? item.EventOrReleaseDate;
-                var deadline = (rawDeadline.HasValue && rawDeadline.Value > DateTimeOffset.UtcNow)
-                    ? rawDeadline.Value
-                    : DateTimeOffset.UtcNow.AddDays(7);
+                if (!rawDeadline.HasValue)
+                {
+                    throw new InvalidOperationException("Para aprobar un sorteo es obligatorio indicar una fecha de fin igual o posterior a hoy. Por favor, edita la publicación e indica la fecha de fin.");
+                }
 
-                var giveawayCountry = ResolveGiveawayCountry(item.Location);
+                if (rawDeadline.Value.Date < DateTime.UtcNow.Date)
+                {
+                    throw new InvalidOperationException($"No se puede aprobar un sorteo con una fecha límite en el pasado ({rawDeadline.Value:dd/MM/yyyy}). Debe ser igual o posterior a hoy. Por favor, edita la publicación y actualiza la fecha.");
+                }
+
+                // Si la fecha cae en el día de hoy pero con hora medianoche (o ya pasada dentro del día), ajustar al fin de hoy (23:59:59 UTC) para que no expire inmediatamente.
+                var deadline = (rawDeadline.Value < DateTimeOffset.UtcNow && rawDeadline.Value.Date == DateTime.UtcNow.Date)
+                    ? new DateTimeOffset(DateTime.UtcNow.Date.AddDays(1).AddSeconds(-1), TimeSpan.Zero)
+                    : rawDeadline.Value;
+
+                var giveawayCountry = await ResolveCountryAsync(item.Location, item.OrganizerOrAuthor, item.Collaborator, ct);
 
                 // Comprobar si ya existe un sorteo idéntico o en colaboración para fusionar colaboradores o extender plazo
                 var existingGiveaway = await _giveawayRepository.FindDuplicateOrCollaborativeAsync(
@@ -584,7 +623,7 @@ public class SocialIngestionService : ISocialIngestionService
                 var startDate = DateOnly.FromDateTime(item.EventOrReleaseDate?.DateTime ?? DateTime.UtcNow);
                 var endDate = DateOnly.FromDateTime((item.EventEndDate ?? item.EventOrReleaseDate ?? DateTimeOffset.UtcNow).DateTime);
 
-                var eventCountry = ResolveGiveawayCountry(item.Location);
+                var eventCountry = await ResolveCountryAsync(item.Location, item.OrganizerOrAuthor, item.Collaborator, ct);
 
                 var boardGameEvent = new BoardGameEvent(
                     title: item.Title,
@@ -725,22 +764,71 @@ public class SocialIngestionService : ISocialIngestionService
         }
     }
 
-    private static string ResolveGiveawayCountry(string? location)
+    private async Task<string> ResolveCountryAsync(string? explicitLocation, string? organizer, string? collaborator, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(location))
-            return "España";
+        // 1. Si el ítem ya trae un ámbito geográfico explícito, normalizarlo con CountryCatalog
+        if (!string.IsNullOrWhiteSpace(explicitLocation))
+        {
+            var matched = CountryCatalog.FindByNameOrCode(explicitLocation);
+            if (matched != null)
+                return matched.Name;
 
-        var matched = CountryCatalog.FindByNameOrCode(location);
-        if (matched != null)
-            return matched.Name;
+            var lower = explicitLocation.ToLowerInvariant();
+            if (lower.Contains("peninsula") || lower.Contains("españa") || lower.Contains("espana") || lower.Contains("spain") || lower.Contains("baleares") || lower.Contains("canarias"))
+                return "España";
 
-        var lower = location.ToLowerInvariant();
-        if (lower.Contains("peninsula") || lower.Contains("españa") || lower.Contains("espana") || lower.Contains("spain") || lower.Contains("baleares") || lower.Contains("canarias"))
-            return "España";
+            if (lower.Contains("inter") || lower.Contains("global") || lower.Contains("mundo") || lower.Contains("world"))
+                return "Internacional";
 
-        if (lower.Contains("inter") || lower.Contains("global") || lower.Contains("mundo") || lower.Contains("world"))
-            return "Internacional";
+            var normalized = CountryCatalog.Normalize(explicitLocation);
+            if (!string.IsNullOrWhiteSpace(normalized))
+                return normalized;
+        }
 
-        return CountryCatalog.Normalize(location);
+        // 2. Si no viene informado el país, consultar si la editorial, tienda o creador está dado de alta en la plataforma
+        var candidates = new[] { organizer, collaborator }
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!.Trim())
+            .ToList();
+
+        foreach (var candidate in candidates)
+        {
+            // A. Editoriales registradas
+            if (_publisherRepository != null)
+            {
+                var publisher = await _publisherRepository.GetByNameAsync(candidate, ct);
+                if (publisher != null && !string.IsNullOrWhiteSpace(publisher.Country))
+                {
+                    _logger.LogInformation("Ámbito territorial resuelto desde la editorial '{Name}': {Country}", publisher.Name, publisher.Country);
+                    return CountryCatalog.Normalize(publisher.Country);
+                }
+            }
+
+            // B. Tiendas especializadas registradas
+            if (_storeRepository != null)
+            {
+                var store = await _storeRepository.GetByNameAsync(candidate, ct);
+                if (store != null && !string.IsNullOrWhiteSpace(store.Country))
+                {
+                    _logger.LogInformation("Ámbito territorial resuelto desde la tienda '{Name}': {Country}", store.Name, store.Country);
+                    return CountryCatalog.Normalize(store.Country);
+                }
+            }
+
+            // C. Creadores de contenido / Divulgadores registrados
+            if (_creatorRepository != null)
+            {
+                var creator = await _creatorRepository.GetByNameAsync(candidate, ct);
+                if (creator != null && !string.IsNullOrWhiteSpace(creator.Nationality))
+                {
+                    var normalizedNat = CountryCatalog.Normalize(creator.Nationality);
+                    _logger.LogInformation("Ámbito territorial resuelto desde el creador '{Name}': {Country}", creator.Name, normalizedNat);
+                    return normalizedNat;
+                }
+            }
+        }
+
+        // 3. Valor por defecto si no hay información explícita ni registro previo
+        return "España";
     }
 }
