@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -76,7 +77,38 @@ public class CachedCatalogService : ICatalogService
 
     private static string ComputeCriteriaHash(GameFilterCriteria c)
     {
-        var raw = $"{c.SearchTerm?.Trim().ToLowerInvariant()}|{c.PlayerCount}|{c.Style}|{c.Confrontation}|{c.MaxDurationMinutes}|{c.EspecialParejas}|{c.MesaFamiliar}|{c.SoloTop}|{c.TypeFilter}|{c.Footprint}";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)))[..12];
+        var sb = new StringBuilder();
+        sb.Append(c.SearchTerm?.Trim().ToLowerInvariant()).Append('|');
+        sb.Append(c.PlayerCount).Append('|');
+        if (c.PlayerCounts != null && c.PlayerCounts.Count > 0)
+            sb.Append(string.Join(',', c.PlayerCounts.OrderBy(x => x)));
+        sb.Append('|').Append(c.PlayerCountsMatchAll).Append('|');
+        sb.Append(c.Style).Append('|');
+        if (c.Styles != null && c.Styles.Count > 0)
+            sb.Append(string.Join(',', c.Styles.OrderBy(x => (int)x)));
+        sb.Append('|');
+        sb.Append(c.Confrontation).Append('|');
+        if (c.Confrontations != null && c.Confrontations.Count > 0)
+            sb.Append(string.Join(',', c.Confrontations.OrderBy(x => (int)x)));
+        sb.Append('|');
+        sb.Append(c.MaxDurationMinutes).Append('|');
+        if (c.MaxDurations != null && c.MaxDurations.Count > 0)
+            sb.Append(string.Join(',', c.MaxDurations.OrderBy(x => x)));
+        sb.Append('|');
+        sb.Append(c.EspecialParejas).Append('|');
+        sb.Append(c.MesaFamiliar).Append('|');
+        sb.Append(c.SoloTop).Append('|');
+        sb.Append(c.TypeFilter).Append('|');
+        if (c.Types != null && c.Types.Count > 0)
+            sb.Append(string.Join(',', c.Types.OrderBy(x => (int)x)));
+        sb.Append('|');
+        sb.Append(c.Footprint).Append('|');
+        if (c.Footprints != null && c.Footprints.Count > 0)
+            sb.Append(string.Join(',', c.Footprints.OrderBy(x => (int)x)));
+        sb.Append('|');
+        if (c.Complexities != null && c.Complexities.Count > 0)
+            sb.Append(string.Join(',', c.Complexities.OrderBy(x => (int)x)));
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())))[..16];
     }
 }
