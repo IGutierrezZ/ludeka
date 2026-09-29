@@ -97,6 +97,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-82** | Optimización de Rendimiento en Catálogo, Paginación Nativa SQL y Búsqueda Resiliente con Debounce | ✅ Archivado | [inc-82-opt-catalogo-busqueda.md](archive/inc-82-opt-catalogo-busqueda.md) |
 | **INC-83** | Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA | ✅ Archivado | [inc-83-icono-navegador-favicon.md](archive/inc-83-icono-navegador-favicon.md) |
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
+| **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ⏳ En progreso | [inc-85-ficha-editorial-carrusel-tiendas.md](inc-85-ficha-editorial-carrusel-tiendas.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68

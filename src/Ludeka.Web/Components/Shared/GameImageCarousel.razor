@@ -1,0 +1,267 @@
+@using Ludeka.Core.Enums
+
+<div class="space-y-3">
+    @* Visor Principal del Carrusel *@
+    <div class="relative w-full aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-[var(--bg-surface-elevated)] group select-none">
+        @{
+            var currentSlide = CurrentSlide;
+            var placeholderUrl = IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+        }
+
+        @* Badge de Expansión *@
+        @if (IsExpansion)
+        {
+            <div class="absolute top-3 left-3 z-20 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5 backdrop-blur-sm">
+                <Icon Name="puzzle" Size="13" />
+                <span>Expansión Oficial</span>
+            </div>
+        }
+
+        @* Contador de diapositivas y etiqueta *@
+        <div class="absolute top-3 right-3 z-20 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold shadow-lg flex items-center gap-1.5 backdrop-blur-md">
+            <span>@(CurrentIndex + 1) / @Slides.Count</span>
+            <span class="text-white/60">•</span>
+            <span class="text-white/90">@currentSlide.Label</span>
+        </div>
+
+        @* Imagen Activa con soporte Lightbox *@
+        <div class="w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-black/5 via-transparent to-black/40"
+             @onclick="OpenLightbox"
+             title="Haz clic para ver en grande">
+            @if (!string.IsNullOrWhiteSpace(currentSlide.ImageUrl))
+            {
+                <img src="@currentSlide.ImageUrl"
+                     alt="@currentSlide.Alt"
+                     fetchpriority="high"
+                     decoding="async"
+                     width="320"
+                     height="320"
+                     onerror="this.onerror=null; this.src='@placeholderUrl';"
+                     class="max-w-full max-h-full object-contain rounded-lg drop-shadow-xl transition-all duration-300" />
+            }
+            else
+            {
+                <img src="@placeholderUrl"
+                     alt="Imagen no disponible"
+                     class="max-w-full max-h-full object-contain opacity-80" />
+            }
+        </div>
+
+        @* Botones de navegación (Prev / Next) si hay más de 1 imagen *@
+        @if (Slides.Count > 1)
+        {
+            <button type="button"
+                    @onclick="PreviousSlide"
+                    @onclick:stopPropagation="true"
+                    aria-label="Foto anterior"
+                    title="Foto anterior"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-105 shadow-lg">
+                <Icon Name="chevron-left" Size="22" />
+            </button>
+            <button type="button"
+                    @onclick="NextSlide"
+                    @onclick:stopPropagation="true"
+                    aria-label="Siguiente foto"
+                    title="Siguiente foto"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-105 shadow-lg">
+                <Icon Name="chevron-right" Size="22" />
+            </button>
+        }
+
+        @* Botón flotante para ampliar en pantalla completa *@
+        <button type="button"
+                @onclick="OpenLightbox"
+                @onclick:stopPropagation="true"
+                aria-label="Ver a pantalla completa"
+                title="Ver a pantalla completa"
+                class="absolute bottom-3 right-3 z-20 p-2 rounded-xl bg-black/50 hover:bg-black/80 text-white flex items-center gap-1.5 text-xs font-semibold backdrop-blur-md transition-all shadow-md">
+            <Icon Name="maximize-2" Size="14" />
+            <span class="hidden sm:inline">Ampliar</span>
+        </button>
+    </div>
+
+    @* Tira de Miniaturas Inferiores *@
+    @if (Slides.Count > 1)
+    {
+        <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+            @for (int i = 0; i < Slides.Count; i++)
+            {
+                var index = i;
+                var slide = Slides[index];
+                var isActive = index == CurrentIndex;
+
+                <button type="button"
+                        @onclick="() => SelectSlide(index)"
+                        class="group/thumb relative flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all shrink-0 @(isActive ? "bg-[var(--bg-card)] border-[var(--brand-primary)] text-[var(--brand-primary)] shadow-sm ring-2 ring-[var(--brand-primary)]/20" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+                    <div class="w-8 h-8 rounded-lg overflow-hidden bg-black/10 shrink-0 border border-[var(--border-subtle)] flex items-center justify-center">
+                        @if (!string.IsNullOrWhiteSpace(slide.ImageUrl))
+                        {
+                            <img src="@slide.ImageUrl"
+                                 alt="@slide.Label"
+                                 loading="lazy"
+                                 decoding="async"
+                                 width="32"
+                                 height="32"
+                                 class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <Icon Name="@slide.IconName" Size="14" />
+                        }
+                    </div>
+                    <div class="text-left">
+                        <span class="block text-[0.72rem] leading-tight font-extrabold">@slide.Label</span>
+                        <span class="block text-[0.62rem] opacity-70 font-medium">@slide.Subtext</span>
+                    </div>
+                </button>
+            }
+        </div>
+    }
+
+    @* Modal Lightbox (Ampliación de Fotografía) *@
+    @if (_isLightboxOpen)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Visor ampliado de fotografía"
+             @onclick="CloseLightbox">
+            <div class="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center justify-center" @onclick:stopPropagation="true">
+                @* Botón de cierre *@
+                <button type="button"
+                        @onclick="CloseLightbox"
+                        aria-label="Cerrar visor"
+                        class="absolute -top-12 right-0 p-2 text-white/80 hover:text-white rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                    <Icon Name="x" Size="24" />
+                </button>
+
+                @* Imagen ampliada *@
+                <div class="relative w-full flex items-center justify-center rounded-2xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl p-2">
+                    <img src="@CurrentSlide.ImageUrl"
+                         alt="@CurrentSlide.Alt"
+                         class="max-w-full max-h-[80vh] object-contain rounded-xl" />
+
+                    @if (Slides.Count > 1)
+                    {
+                        <button type="button"
+                                @onclick="PreviousSlide"
+                                aria-label="Anterior"
+                                class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl">
+                            <Icon Name="chevron-left" Size="26" />
+                        </button>
+                        <button type="button"
+                                @onclick="NextSlide"
+                                aria-label="Siguiente"
+                                class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl">
+                            <Icon Name="chevron-right" Size="26" />
+                        </button>
+                    }
+                </div>
+
+                @* Pie de foto en modal *@
+                <div class="mt-3 text-center text-white/90 text-sm font-semibold flex items-center gap-2">
+                    <span>@CurrentSlide.Label — @GameTitle</span>
+                    <span class="text-white/40">•</span>
+                    <span class="text-xs text-white/70">Foto @(CurrentIndex + 1) de @Slides.Count</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? CoverImageUrl { get; set; }
+    [Parameter] public string? BackCoverImageUrl { get; set; }
+    [Parameter] public string? TableImageUrl { get; set; }
+    [Parameter] public string GameTitle { get; set; } = "Juego";
+    [Parameter] public bool IsExpansion { get; set; }
+    [Parameter] public string SelectedKey { get; set; } = "cover";
+    [Parameter] public EventCallback<string> SelectedKeyChanged { get; set; }
+
+    private bool _isLightboxOpen;
+
+    public record SlideItem(string Key, string Label, string Subtext, string? ImageUrl, string Alt, string IconName);
+
+    private List<SlideItem> Slides
+    {
+        get
+        {
+            var list = new List<SlideItem>();
+
+            // 1. Portada oficial
+            list.Add(new SlideItem(
+                Key: "cover",
+                Label: "Portada",
+                Subtext: "Oficial de caja",
+                ImageUrl: CoverImageUrl,
+                Alt: $"Carátula oficial de {GameTitle}",
+                IconName: "image"
+            ));
+
+            // 2. Contraportada / Trasera
+            if (!string.IsNullOrWhiteSpace(BackCoverImageUrl))
+            {
+                list.Add(new SlideItem(
+                    Key: "back",
+                    Label: "Trasera",
+                    Subtext: "Contraportada",
+                    ImageUrl: BackCoverImageUrl,
+                    Alt: $"Contraportada oficial de {GameTitle}",
+                    IconName: "rotate-cw"
+                ));
+            }
+
+            // 3. En mesa y componentes
+            if (!string.IsNullOrWhiteSpace(TableImageUrl))
+            {
+                list.Add(new SlideItem(
+                    Key: "table",
+                    Label: "En mesa",
+                    Subtext: "Componentes",
+                    ImageUrl: TableImageUrl,
+                    Alt: $"Componentes en mesa de {GameTitle}",
+                    IconName: "layout-grid"
+                ));
+            }
+
+            return list;
+        }
+    }
+
+    private int CurrentIndex
+    {
+        get
+        {
+            var idx = Slides.FindIndex(s => s.Key.Equals(SelectedKey, StringComparison.OrdinalIgnoreCase));
+            return idx >= 0 ? idx : 0;
+        }
+    }
+
+    private SlideItem CurrentSlide => Slides.Count > 0 ? Slides[CurrentIndex] : new SlideItem("cover", "Portada", "Oficial", CoverImageUrl, GameTitle, "image");
+
+    private async Task SelectSlide(int index)
+    {
+        if (index >= 0 && index < Slides.Count)
+        {
+            SelectedKey = Slides[index].Key;
+            await SelectedKeyChanged.InvokeAsync(SelectedKey);
+        }
+    }
+
+    private async Task NextSlide()
+    {
+        if (Slides.Count <= 1) return;
+        var next = (CurrentIndex + 1) % Slides.Count;
+        await SelectSlide(next);
+    }
+
+    private async Task PreviousSlide()
+    {
+        if (Slides.Count <= 1) return;
+        var prev = (CurrentIndex - 1 + Slides.Count) % Slides.Count;
+        await SelectSlide(prev);
+    }
+
+    private void OpenLightbox() => _isLightboxOpen = true;
+    private void CloseLightbox() => _isLightboxOpen = false;
+}

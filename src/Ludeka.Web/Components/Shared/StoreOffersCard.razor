@@ -6,12 +6,12 @@
 @inject IAffiliateUrlResolver AffiliateResolver
 @inject IPriceRadarService PriceRadarService
 
-<div id="donde-comprar" class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
+<div id="donde-comprar" class="@(IsSidebar ? "p-4 sm:p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3 shadow-md" : "p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm")">
     <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2.5">
             <Icon Name="shopping-cart" Size="20" />
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-bold text-base text-[var(--text-primary)] leading-tight">Dónde Comprar</h2>
                     @if (!string.IsNullOrWhiteSpace(_effectiveCountry))
                     {
@@ -39,7 +39,14 @@
                         </span>
                     }
                 </div>
-                <p class="text-xs text-[var(--text-secondary)]">Tiendas colaboradoras con verificación de disponibilidad en tiempo real</p>
+                @if (_isReferenceFallback)
+                {
+                    <p class="text-xs text-[var(--text-secondary)]">Compara disponibilidad y precios en directo en tiendas especializadas de España</p>
+                }
+                else
+                {
+                    <p class="text-xs text-[var(--text-secondary)]">Tiendas colaboradoras con verificación de disponibilidad en tiempo real</p>
+                }
             </div>
         </div>
         <a href="/transparencia" class="text-[0.7rem] font-medium text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1">
@@ -49,7 +56,7 @@
 
     @if (_displayedOffers != null && _displayedOffers.Count > 0)
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div class="@(IsSidebar ? "grid grid-cols-1 gap-2.5" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3")">
             @foreach (var offer in _displayedOffers)
             {
                 var stock = GetOfferStock(offer);
@@ -116,7 +123,8 @@
                             }
                             else
                             {
-                                <span class="text-xs text-[var(--text-muted)] italic">Precio en tienda</span>
+                                <span class="text-xs font-bold text-[var(--text-secondary)]">Búsqueda en catálogo</span>
+                                <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">En directo</span>
                             }
                         </div>
 
@@ -189,7 +197,18 @@
                         var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
                     }
                     <div class="flex items-center gap-2 pt-1">
-                        @if (isOutOfStock)
+                        @if (_isReferenceFallback || !offer.Price.HasValue)
+                        {
+                            <a href="@targetPurchaseUrl"
+                               target="_blank"
+                               rel="noopener noreferrer sponsored"
+                               aria-label="Buscar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
+                               class="inline-flex items-center justify-center gap-1.5 flex-1 px-3.5 py-2 rounded-lg text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all shadow-sm group-hover:shadow">
+                                <span>Buscar en tienda</span>
+                                <span class="text-[0.8rem]">&nearr;</span>
+                            </a>
+                        }
+                        else if (isOutOfStock)
                         {
                             <a href="@targetPurchaseUrl"
                                target="_blank"
@@ -269,12 +288,16 @@
     [Parameter]
     public Guid? GameId { get; set; }
 
+    [Parameter]
+    public bool IsSidebar { get; set; }
+
     private string? _effectiveCountry;
     private IReadOnlyList<GamePurchaseLink> _displayedOffers = [];
     private readonly Dictionary<string, StoreStockInfo> _stockByUrl = new(StringComparer.OrdinalIgnoreCase);
     private bool _isCheckingStock;
     private bool _hasLoadedInitialStock;
     private GamePriceMetrics? _priceMetrics;
+    private bool _isReferenceFallback;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -292,22 +315,34 @@
             }
         }
 
-        if (Offers == null || Offers.Count == 0)
+        if (Offers != null && Offers.Count > 0)
         {
-            _displayedOffers = [];
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(_effectiveCountry))
-        {
-            // Filtrado territorial estricto
-            _displayedOffers = Offers.Where(o => o.ShipsTo(_effectiveCountry)).ToList();
+            if (!string.IsNullOrWhiteSpace(_effectiveCountry))
+            {
+                // Filtrado territorial estricto
+                _displayedOffers = Offers.Where(o => o.ShipsTo(_effectiveCountry)).ToList();
+            }
+            else
+            {
+                // Sin filtro excluyente: priorizar por país detectado si existe
+                string? detected = await LocationService.GetDetectedCountryAsync();
+                _displayedOffers = LocationService.PrioritizeByCountry(Offers, detected).ToList();
+            }
         }
         else
         {
-            // Sin filtro excluyente: priorizar por país detectado si existe
-            string? detected = await LocationService.GetDetectedCountryAsync();
-            _displayedOffers = LocationService.PrioritizeByCountry(Offers, detected).ToList();
+            _displayedOffers = [];
+        }
+
+        // Si no hay ofertas registradas para este juego/país, activar fallback automático con tiendas de referencia
+        if (_displayedOffers.Count == 0 && !string.IsNullOrWhiteSpace(GameTitle))
+        {
+            _isReferenceFallback = true;
+            _displayedOffers = GenerateReferenceSearchOffers(GameTitle, _effectiveCountry);
+        }
+        else
+        {
+            _isReferenceFallback = false;
         }
 
         // Sembrar valores iniciales orientativos si no se han cargado todavía
@@ -451,5 +486,49 @@
         {
             StateHasChanged();
         }
+    }
+
+    private static List<GamePurchaseLink> GenerateReferenceSearchOffers(string gameTitle, string? country)
+    {
+        var encoded = Uri.EscapeDataString(gameTitle.Trim());
+        return
+        [
+            new GamePurchaseLink(
+                storeName: "Zacatrus",
+                affiliateUrl: $"https://zacatrus.es/catalogsearch/result/?q={encoded}",
+                price: null,
+                currency: "€",
+                inStock: true,
+                badge: "Especializada",
+                affiliateTag: "Direct",
+                country: "España"),
+            new GamePurchaseLink(
+                storeName: "Cuarto de Juegos",
+                affiliateUrl: $"https://cuartodejuegos.es/buscar?controller=search&s={encoded}",
+                price: null,
+                currency: "€",
+                inStock: true,
+                badge: "Especializada",
+                affiliateTag: "Direct",
+                country: "España"),
+            new GamePurchaseLink(
+                storeName: "Dracotienda",
+                affiliateUrl: $"https://www.dracotienda.com/buscar?controller=search&s={encoded}",
+                price: null,
+                currency: "€",
+                inStock: true,
+                badge: "Especializada",
+                affiliateTag: "Direct",
+                country: "España"),
+            new GamePurchaseLink(
+                storeName: "Jugamos Otra",
+                affiliateUrl: $"https://jugamosotra.com/buscar?controller=search&s={encoded}",
+                price: null,
+                currency: "€",
+                inStock: true,
+                badge: "Especializada",
+                affiliateTag: "Direct",
+                country: "España")
+        ];
     }
 }
