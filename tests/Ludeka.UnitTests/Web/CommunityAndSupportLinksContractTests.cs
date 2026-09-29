@@ -82,6 +82,14 @@ public class CommunityAndSupportLinksContractTests
     }
 
     [Fact]
+    public void CommunityNotificationOptions_ShouldHaveDefaultDiscordInviteUrlConfigured()
+    {
+        var options = new CommunityNotificationOptions();
+
+        Assert.Equal("https://discord.gg/DgGUUEU6gs", options.DiscordInviteUrl);
+    }
+
+    [Fact]
     public void AffiliateOptions_ShouldIncludeAmazonInDefaultRules()
     {
         var rules = AffiliateOptions.CreateDefaultRules();
