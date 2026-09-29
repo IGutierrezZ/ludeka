@@ -39,5 +39,8 @@ public interface IGameRepository
 
     Task<int> GetTotalCatalogCountAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    Task<IReadOnlyList<Game>> QuickSearchAsync(string term, int limit = 5, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
 }
 

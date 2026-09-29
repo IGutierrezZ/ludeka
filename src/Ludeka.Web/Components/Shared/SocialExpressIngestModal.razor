@@ -1,4 +1,5 @@
 @using System.IO
+@using System.Threading
 @using Microsoft.AspNetCore.Components.Forms
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
@@ -6,6 +7,7 @@
 @using Ludeka.Core.Enums
 @inject ISocialIngestionService IngestionService
 @inject ICatalogService CatalogService
+@implements IDisposable
 
 @if (IsOpen)
 {
@@ -299,9 +301,8 @@
                             {
                                 <div class="relative">
                                     <input type="text"
-                                           @bind="_gameSearchInput"
-                                           @bind:event="oninput"
-                                           @onkeyup="OnSearchGameKeyUp"
+                                           value="@_gameSearchInput"
+                                           @oninput="OnSearchGameInput"
                                            placeholder="Escribe el nombre de un juego para buscar en el catálogo..."
                                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
                                     
@@ -419,6 +420,8 @@
     private List<GameSummaryDto> _gameSuggestions = new();
     private MediaCategory _manualMediaCategory = MediaCategory.Tutorial;
     private string _manualPlayerBadge = string.Empty;
+    private System.Threading.Timer? _debounceTimer;
+    private CancellationTokenSource? _searchCts;
 
     protected override void OnParametersSet()
     {
@@ -488,12 +491,43 @@
         _basesImageFileName = null;
     }
 
-    private async Task OnSearchGameKeyUp()
+    private void OnSearchGameInput(ChangeEventArgs e)
     {
-        if (_gameSearchInput.Length >= 2)
+        _gameSearchInput = e.Value?.ToString() ?? string.Empty;
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Threading.Timer(async _ =>
         {
-            var results = await CatalogService.GetQuickSearchAsync(_gameSearchInput, limit: 5);
-            _gameSuggestions = results.ToList();
+            await InvokeAsync(async () =>
+            {
+                await SearchGamesAsync();
+                StateHasChanged();
+            });
+        }, null, 250, Timeout.Infinite);
+    }
+
+    private async Task SearchGamesAsync()
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+
+        var term = _gameSearchInput?.Trim();
+        if (!string.IsNullOrWhiteSpace(term) && term.Length >= 2)
+        {
+            try
+            {
+                var results = await CatalogService.GetQuickSearchAsync(term, limit: 5, ct: ct);
+                _gameSuggestions = results.ToList();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch
+            {
+                _gameSuggestions.Clear();
+            }
         }
         else
         {
@@ -503,6 +537,8 @@
 
     private void SelectGame(GameSummaryDto game)
     {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
         _selectedGameId = game.Id;
         _selectedGameTitle = game.SpanishTitle;
         _gameSuggestions.Clear();
@@ -616,8 +652,17 @@
 
     private async Task HandleClose()
     {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
         _errorMessage = null;
         _successMessage = null;
         await OnClose.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
     }
 }

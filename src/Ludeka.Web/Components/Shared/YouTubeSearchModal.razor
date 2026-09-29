@@ -1,8 +1,10 @@
+@using System.Threading
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @inject IYouTubeSearchService YouTubeSearchService
 @inject ICatalogService CatalogService
+@implements IDisposable
 
 @if (IsOpen)
 {
@@ -55,8 +57,8 @@
                 <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1 relative">
                         <input type="text"
-                               @bind="_searchQuery"
-                               @bind:event="oninput"
+                               value="@_searchQuery"
+                               @oninput="HandleSearchInput"
                                @onkeydown="HandleSearchKeyDown"
                                placeholder="Escribe el nombre del juego (ej. Wingspan, Catan, Carcassonne)..."
                                class="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] focus:border-[var(--brand-primary)] focus:outline-none text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors" />
@@ -311,6 +313,9 @@
     private IReadOnlyList<YouTubeSearchResultDto> _tutorials = [];
     private IReadOnlyList<YouTubeSearchResultDto> _playthroughs = [];
 
+    private System.Threading.Timer? _debounceTimer;
+    private CancellationTokenSource? _searchCts;
+
     protected override async Task OnParametersSetAsync()
     {
         if (IsOpen && !string.IsNullOrWhiteSpace(_searchQuery) && _selectedGame == null)
@@ -319,21 +324,40 @@
         }
     }
 
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _searchQuery = e.Value?.ToString() ?? string.Empty;
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await FilterCatalogGamesAsync();
+                StateHasChanged();
+            });
+        }, null, 250, Timeout.Infinite);
+    }
+
     private async Task HandleSearchKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
+            _debounceTimer?.Dispose();
+            _matchingGames = [];
             await PerformSearch();
-        }
-        else
-        {
-            await FilterCatalogGamesAsync();
         }
     }
 
     private async Task FilterCatalogGamesAsync()
     {
-        if (string.IsNullOrWhiteSpace(_searchQuery) || _searchQuery.Length < 2)
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+
+        var term = _searchQuery?.Trim();
+        if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
         {
             _matchingGames = [];
             return;
@@ -341,7 +365,11 @@
 
         try
         {
-            _matchingGames = await CatalogService.GetQuickSearchAsync(_searchQuery, 5);
+            _matchingGames = await CatalogService.GetQuickSearchAsync(term, 5, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignorado por cancelación activa
         }
         catch
         {
@@ -351,6 +379,8 @@
 
     private async Task SelectGame(GameSummaryDto game)
     {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
         _selectedGame = game;
         _searchQuery = game.SpanishTitle;
         _matchingGames = [];
@@ -359,6 +389,8 @@
 
     private void ClearSelectedGame()
     {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
         _selectedGame = null;
         _searchQuery = string.Empty;
         _matchingGames = [];
@@ -471,8 +503,17 @@
 
     private async Task CloseModal()
     {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
         _matchingGames = [];
         _notificationMessage = null;
         await OnClose.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
     }
 }

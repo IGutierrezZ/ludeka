@@ -125,23 +125,41 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             query = query.Where(g => g.Footprint == criteria.Footprint.Value);
         }
 
-        // Para filtros que evalúan elementos de colecciones JSON complejas en SQLite
-        var list = await query.ToListAsync(ct);
-
-        // Filtro por término de búsqueda (bilingüe y multipaís: títulos, diseñador, editoriales)
+        // Filtro por término de búsqueda (bilingüe y multipaís en SQL: títulos, diseñador, editoriales)
         if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
         {
             string term = criteria.SearchTerm.Trim();
-            list = list.Where(g =>
-                (!string.IsNullOrWhiteSpace(g.SpanishTitle) && g.SpanishTitle.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(g.OriginalTitle) && g.OriginalTitle.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(g.Designer) && g.Designer.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(g.Publisher) && g.Publisher.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(g.SpanishPublisher) && g.SpanishPublisher.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (g.LocalizedTitles != null && g.LocalizedTitles.Any(l => !string.IsNullOrWhiteSpace(l.Title) && l.Title.Contains(term, StringComparison.OrdinalIgnoreCase))) ||
-                (g.RegionalPublishers != null && g.RegionalPublishers.Any(r => !string.IsNullOrWhiteSpace(r.PublisherName) && r.PublisherName.Contains(term, StringComparison.OrdinalIgnoreCase)))
-            ).ToList();
+            string pattern = $"%{term}%";
+            query = query.Where(g =>
+                EF.Functions.Like(g.SpanishTitle, pattern) ||
+                EF.Functions.Like(g.OriginalTitle, pattern) ||
+                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
+                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                (g.Designer != null && EF.Functions.Like(g.Designer, pattern)));
         }
+
+        // Determinar si hay filtros que requieran deserialización de colecciones complejas en memoria (Scalability, Complexities)
+        bool hasInMemoryFilters = criteria.EspecialParejas
+            || (criteria.PlayerCounts != null && criteria.PlayerCounts.Count > 0)
+            || criteria.PlayerCount.HasValue
+            || (criteria.Complexities != null && criteria.Complexities.Count > 0);
+
+        if (!hasInMemoryFilters)
+        {
+            int total = await query.CountAsync(ct);
+            var pagedItems = await query
+                .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            return (pagedItems, total);
+        }
+
+        // Para filtros que evalúan elementos de colecciones JSON complejas en SQLite (Scalability, Complexities)
+        var list = await query.ToListAsync(ct);
 
         if (criteria.EspecialParejas)
         {
@@ -363,6 +381,29 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         return await scope.Context.Games
             .AsNoTracking()
             .OrderBy(g => g.SpanishTitle)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Game>> QuickSearchAsync(string term, int limit = 5, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(term)) return [];
+        if (limit < 1) limit = 5;
+
+        string pattern = $"%{term.Trim()}%";
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g =>
+                EF.Functions.Like(g.SpanishTitle, pattern) ||
+                EF.Functions.Like(g.OriginalTitle, pattern) ||
+                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
+                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                (g.Designer != null && EF.Functions.Like(g.Designer, pattern)))
+            .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
+            .ThenBy(g => g.BggRank ?? int.MaxValue)
+            .ThenByDescending(g => g.BggRating)
+            .Take(limit)
             .ToListAsync(ct);
     }
 

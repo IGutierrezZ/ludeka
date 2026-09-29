@@ -393,6 +393,61 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.True(total >= 3);
     }
 
+    [Fact]
+    public async Task QuickSearchAsync_WithMatchingTitle_ReturnsTopGamesLimitedByLimit()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act
+        var results = await _repository.QuickSearchAsync("Catan", limit: 3);
+
+        // Assert
+        Assert.NotEmpty(results);
+        Assert.True(results.Count <= 3);
+        Assert.All(results, g =>
+            Assert.True(g.SpanishTitle.Contains("Catan", StringComparison.OrdinalIgnoreCase) ||
+                        g.OriginalTitle.Contains("Catan", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task QuickSearchAsync_WithEmptyOrWhitespaceTerm_ReturnsEmpty(string? term)
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act
+        var results = await _repository.QuickSearchAsync(term!, limit: 5);
+
+        // Assert
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithoutInMemoryFilters_ExecutesNativeSqlPagingCorrectly()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act: Página 1 con 5 elementos
+        var criteria = new GameFilterCriteria(Style: GameStyle.Eurogame);
+        var (p1, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 5);
+
+        // Act: Página 2 con 5 elementos
+        var (p2, total2) = await _repository.SearchAsync(criteria, page: 2, pageSize: 5);
+
+        // Assert
+        Assert.Equal(total, total2);
+        Assert.True(total > 5);
+        Assert.Equal(5, p1.Count);
+        Assert.True(p2.Count > 0);
+        // Los elementos de la p1 y p2 no deben solaparse
+        Assert.DoesNotContain(p1, item1 => p2.Any(item2 => item2.Id == item1.Id));
+    }
+
     public void Dispose()
     {
         _context.Dispose();
