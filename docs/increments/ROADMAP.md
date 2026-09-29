@@ -98,6 +98,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-83** | Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA | ✅ Archivado | [inc-83-icono-navegador-favicon.md](archive/inc-83-icono-navegador-favicon.md) |
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
 | **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
+| **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ Planificado | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68

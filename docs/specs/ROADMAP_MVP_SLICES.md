@@ -821,6 +821,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 86: Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos
+- **Identificador SDD:** `change-86-feeds-catalogo-afiliados-ean`
+- **Objetivo Principal:** Dotar al ecosistema de Ludeka de un pipeline industrial y desatendido para sincronizar precios y stock verídico de tiendas comerciales sin recurrir a scraping en caliente:
+  1. **Soporte EAN-13 en Catálogo:** Extensión de la entidad `Game` con código de barras EAN-13 / GTIN principal y colección de códigos por edición/idioma.
+  2. **Panel de Gestión de Afiliados en Moderación (`/admin/afiliados`):** Entidad `AffiliateFeedSource` y UI para que moderadores y fundadores den de alta fuentes de feeds (Google Shopping XML, PrestaShop CSV, Awin API), configuren URLs privadas, prueben la conexión y activen o pausen comercios.
+  3. **Job Desatendido de Sincronización (`CatalogFeedSyncJob`):** Proceso batch en `Ludeka.Jobs` para Cloud Run Jobs que descarga feeds periódicamente, empareja $O(1)$ por EAN contra el catálogo y actualiza de forma idempotente las ofertas en `GamePurchaseLink` con precios, stock real y tags de afiliación.
+- **Estado:** ⏳ **Planificado**
+- **Documento:** [`inc-86-feeds-catalogo-afiliados-ean.md`](file:///c:/repos/Ludeka/docs/increments/inc-86-feeds-catalogo-afiliados-ean.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`20-verificacion-stock-tiempo-real-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/20-verificacion-stock-tiempo-real-tiendas.md), [`25-motor-afiliados-y-atribucion-comunitaria.md`](file:///c:/repos/Ludeka/docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
