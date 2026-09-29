@@ -115,20 +115,21 @@ public class SeedGamesExporter
 
         string json = JsonSerializer.Serialize(models, options);
 
-        // Encontrar la ruta al archivo seed-games.json del proyecto Infrastructure
-        string currentDir = Directory.GetCurrentDirectory();
-        string targetPath = Path.GetFullPath(Path.Combine(currentDir, "..", "..", "..", "..", "src", "Ludeka.Infrastructure", "Seeding", "seed-games.json"));
-
-        if (!File.Exists(targetPath))
+        string tempPath = Path.Combine(Path.GetTempPath(), $"ludeka-seed-test-{Guid.NewGuid()}.json");
+        try
         {
-            targetPath = @"c:\repos\Ludeka\src\Ludeka.Infrastructure\Seeding\seed-games.json";
+            File.WriteAllText(tempPath, json);
+            Assert.True(File.Exists(tempPath));
+            string readBack = File.ReadAllText(tempPath);
+            Assert.Contains("\"BggId\": 13", readBack);
+            Assert.Contains("\"BggId\": 193738", readBack);
         }
-
-        File.WriteAllText(targetPath, json);
-
-        Assert.True(File.Exists(targetPath));
-        string readBack = File.ReadAllText(targetPath);
-        Assert.Contains("\"BggId\": 13", readBack);
-        Assert.Contains("\"BggId\": 193738", readBack);
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
     }
 }
