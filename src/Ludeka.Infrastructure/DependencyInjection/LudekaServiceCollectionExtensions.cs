@@ -365,7 +365,10 @@ public static class LudekaServiceCollectionExtensions
         // Incremento 14: Búsqueda Quirúrgica y Enlace de YouTube en Tiempo Real
         services.Configure<YouTubeOptions>(configuration.GetSection(YouTubeOptions.SectionName));
         services.AddSingleton<IChannelFocusProvider, ChannelFocusProvider>();
-        services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>();
+        services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
         // Incremento 42: Hub de Ingesta Social y Multimedia — solo los clientes de extracción/análisis;
         // el resto (repositorios, ISocialIngestionService, IMonitoredAccountService) ya vive en

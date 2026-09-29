@@ -386,10 +386,27 @@ public class YouTubeSearchService : IYouTubeSearchService
 
             return results.OrderByDescending(r => r.RelevanceScore).ToList();
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Búsqueda en YouTube cancelada o tiempo de espera agotado para query '{Query}'.", query);
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Error HTTP comunicando con YouTube Data API v3 para query '{Query}'. Código: {StatusCode}", query, ex.StatusCode);
+            var detailedMessage = ex.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Forbidden => "Cuota diaria de YouTube API excedida (límite 10.000 unidades) o clave no autorizada (HTTP 403).",
+                System.Net.HttpStatusCode.Unauthorized => "Clave de YouTube Data API v3 no autorizada (HTTP 401).",
+                System.Net.HttpStatusCode.BadRequest => "Parámetros de búsqueda rechazados por YouTube (HTTP 400).",
+                _ => $"Error en la llamada a YouTube ({ex.StatusCode}): {ex.Message}"
+            };
+            throw new InvalidOperationException(detailedMessage, ex);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error comunicando con YouTube Data API v3 para query '{Query}'.", query);
-            return [];
+            throw new InvalidOperationException($"Error comunicando con YouTube: {ex.Message}", ex);
         }
     }
 
