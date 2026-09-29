@@ -1,6 +1,6 @@
 # 28. Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés Multimodal + Directorio de Cuentas Monitorizadas)
 
-> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`), INC-70 (`change-70-ingesta-multimodal-sorteos`), INC-80 (`change-80-moderacion-social-carteles-ia`) e INC-81 (`change-81-fecha-referencia-prompts-ia`)  
+> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`), INC-70 (`change-70-ingesta-multimodal-sorteos`), INC-80 (`change-80-moderacion-social-carteles-ia`), INC-81 (`change-81-fecha-referencia-prompts-ia`) e INC-82 (`change-82-opt-catalogo-busqueda`)  
 > **Estado:** Implementado, Verificado y Documentado  
 > **Módulo:** Radar Comunitario, Ingesta Social Multimodal, Moderación Editorial en Carteles y Directorio de Fuentes  
 
@@ -185,13 +185,15 @@ Al aprobar un ítem en `SocialIngestionService`:
   1. *Sorteos (Multimodal)*: Diseñado específicamente para superar las restricciones de Instagram. Acepta URL de origen, archivo de foto de portada (con recorte y composición 16:9 automática) y bases del sorteo (vía texto plano o captura de pantalla móvil con OCR mediante Gemini Flash Vision). Soporta `@onpaste` para pegar capturas directamente desde el portapapeles.
   2. *Pegar URL y Listo (IA)*: Extracción automática para YouTube, noticias web y blogs.
   3. *Modo Manual Avanzado*: Con buscador predictivo de juegos y selección explícita de tipologías.
-- **`SocialInboxEditModal.razor` (Enriquecido en INC-80)**:
+  - **Optimización INC-82:** Búsqueda predictiva con temporizador debounce de 250 ms, `CancellationTokenSource` y `IDisposable` para cancelar búsquedas en curso mientras el usuario teclea, evitando la saturación del circuito SignalR.
+- **`SocialInboxEditModal.razor` (Enriquecido en INC-80 e INC-82)**:
   - Formulario de edición completa de borradores antes de su aprobación definitiva, con soporte para ámbito territorial (ej. Península, España, Internacional).
   - **Aviso de Extracción sin IA y Botón «Reintentar con IA»:** Si la publicación cayó en fallback heurístico o alta manual, muestra un banner explicativo y permite ejecutar `ReanalyzeWithAiAsync` al vuelo.
   - **Panel de Texto Original Extraído (`OriginalCaption`):** Muestra el texto capturado para que el moderador coteje bases, fechas y condiciones directamente sin salir de la ventana.
   - **Validación Visual de Fecha Fin:** Indicador en rojo y bloqueo de aprobación si el sorteo carece de fecha válida de hoy o posterior.
   - **Botón «Ver Original»:** Enlace seguro con `target="_blank"` a la URL de la publicación original en Instagram, YouTube o web.
   - **Botón «Aprobar y Publicar» directo:** Permite guardar cualquier cambio y publicar la entidad en el catálogo/radar en una sola interacción desde el propio modal.
+  - **Optimización INC-82:** Búsqueda asistida de juegos de catálogo protegida con debounce de 250 ms, CTS y `IDisposable` evitando desconexiones de SignalR.
 
 ### 5.4. Puntos de Entrada Transversales
 - Menú de moderación de `MainLayout.razor` con enlaces a la bandeja y al directorio de canales.
@@ -211,5 +213,5 @@ Al aprobar un ítem en `SocialIngestionService`:
 
 ## 6. Pruebas y Validación
 
-- **Suite Automatizada de la Solución:** 2.081 pruebas unitarias y 10 de integración en verde (100% superado), incluyendo la suite específica `GeminiSocialAnalysisServiceTests` (verificación de inyección temporal y directivas en payloads HTTP a Gemini), `SocialIngestionServiceTests` (flujos de actualización, edición, rechazo de duplicados, validación estricta de fecha fin y resolución de país desde directorio), compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
+- **Suite Automatizada de la Solución:** 2.096 pruebas unitarias y 10 de integración en verde (100% superado), incluyendo la suite específica `GeminiSocialAnalysisServiceTests` (verificación de inyección temporal y directivas en payloads HTTP a Gemini), `SocialIngestionServiceTests` (flujos de actualización, edición, rechazo de duplicados, validación estricta de fecha fin y resolución de país desde directorio), compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
 - **Pruebas de Componente y Contratos de Marcado:** Verificación con `WebMarkupContractTests` garantizando la ausencia total de emojis prohibidos y el uso riguroso del sistema de diseño editorial con Lucide Icons.

@@ -745,6 +745,45 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 79: Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas
+- **Identificador SDD:** `change-79-sorteos-ficha-redimension-y-edicion`
+- **Objetivo Principal:** Ficha enriquecida de sorteos con edición de campos clave, redimensionado proporcional de carátulas a estándar de catálogo y subida persistente a Cloudflare R2 con fallback en disco.
+- **Estado:** ✅ **Completado y Archivado** (2.073 tests en verde al 100%).
+- **Documento:** [`archive/inc-79-sorteos-ficha-redimension-y-edicion.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-79-sorteos-ficha-redimension-y-edicion.md).
+- **Módulos del Sistema:** [`16-segregacion-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-segregacion-sorteos-novedades-y-eventos.md), [`26-almacenamiento-medios-r2-skiasharp.md`](file:///c:/repos/Ludeka/docs/specs/sistema/26-almacenamiento-medios-r2-skiasharp.md).
+
+---
+
+## Incremento 80: Rediseño de Moderación Social a Carteles Compactos, Resiliencia y Reintento IA, y Limpieza de Simulación
+- **Identificador SDD:** `change-80-moderacion-social-carteles-ia`
+- **Objetivo Principal:** Desactivación de simulación social en producción y desarrollo, rediseño de la bandeja de moderación `/admin/ingesta-social` a carteles compactos clicables con edición directa, detección visual de publicaciones sin IA, botón de reintento bajo demanda con Gemini AI, panel de texto original, purga administrativa de publicaciones simuladas, validación estricta de fecha fin no vencida para sorteos y resolución territorial automática desde el directorio.
+- **Estado:** ✅ **Completado y Archivado** (2.089 tests en verde al 100%).
+- **Documento:** [`archive/inc-80-moderacion-social-carteles-ia.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-80-moderacion-social-carteles-ia.md).
+- **Módulos del Sistema:** [`28-hub-ingesta-social-moderacion-canales.md`](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion-canales.md), [`42-ingesta-multimodal-gemini-vision-sorteos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/42-ingesta-multimodal-gemini-vision-sorteos.md).
+
+---
+
+## Incremento 81: Inyección de Fecha de Referencia y Directivas Temporales en Prompts de Gemini AI
+- **Identificador SDD:** `change-81-fecha-referencia-prompts-ia`
+- **Objetivo Principal:** Inyectar fecha de referencia UTC y directivas temporales en prompts de Gemini AI para evitar la inferencia de años pasados y erradicar falsos positivos de sorteos vencidos.
+- **Estado:** ✅ **Completado y Archivado** (2.091 tests en verde al 100%).
+- **Documento:** [`archive/inc-81-fecha-referencia-prompts-ia.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-81-fecha-referencia-prompts-ia.md).
+- **Módulos del Sistema:** [`28-hub-ingesta-social-moderacion-canales.md`](file:///c:/repos/Ludeka/docs/specs/sistema/28-hub-ingesta-social-moderacion-canales.md), [`42-ingesta-multimodal-gemini-vision-sorteos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/42-ingesta-multimodal-gemini-vision-sorteos.md).
+
+---
+
+## Incremento 82: Optimización de Rendimiento en Catálogo, Paginación Nativa SQL y Búsqueda Resiliente con Debounce
+- **Identificador SDD:** `change-82-opt-catalogo-busqueda`
+- **Objetivo Principal:** Erradicar la saturación del circuito SignalR en Cloud Run ("Reconectando con el servidor...") y optimizar la velocidad de carga del catálogo:
+  1. **Búsqueda Quirúrgica SQL (`QuickSearchAsync`):** Método especializado en `IGameRepository` y `SqliteGameRepository` con `EF.Functions.Like` y `LIMIT 5` que ejecuta directamente en el motor SQLite en 1-2 ms.
+  2. **Paginación Nativa SQL en Catálogo:** En `SqliteGameRepository.SearchAsync`, cuando no hay filtros complejos en memoria (comportamiento estándar de navegación por presets y paginación), se ejecutan `CountAsync` y `Skip`/`Take` nativos en base de datos sin materializar 10.000 juegos en memoria.
+  3. **Debounce Resiliente (250 ms) y Cancelación Cooperativa:** Inyección de temporizador de 250 ms con `CancellationTokenSource` y ciclo de vida `IDisposable` en `YouTubeSearchModal.razor`, `SocialExpressIngestModal.razor`, `SocialInboxEditModal.razor` y `Home.razor`, cancelando consultas concurrentes obsoletas mientras el usuario escribe.
+- **Estado:** ✅ **Completado y Archivado** (2.106 tests en verde al 100%: 2.096 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-82-opt-catalogo-busqueda.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-82-opt-catalogo-busqueda.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`14-busqueda-quirurgica-enlace-youtube-tiempo-real.md`](file:///c:/repos/Ludeka/docs/specs/sistema/14-busqueda-quirurgica-enlace-youtube-tiempo-real.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

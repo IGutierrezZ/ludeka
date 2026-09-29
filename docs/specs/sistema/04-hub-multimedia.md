@@ -83,3 +83,4 @@ Ubicación: [`src/Ludeka.Core/Helpers/PlayerCountExtractor.cs`](file:///c:/repos
   - Bandeja centralizada de pendientes y huérfanos con selector de categoría preseleccionado por la heurística de `MediaClassifier`.
 - [`YouTubeSearchModal.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/YouTubeSearchModal.razor):
   - Ingesta quirúrgica en 1 clic con previsualización embebida.
+  - INC-82: Búsqueda reactiva de títulos del catálogo protegida con temporizador de retardo (debounce 250 ms), cancelación cooperativa con `CancellationTokenSource` por cada pulsación continua y ciclo de vida `IDisposable`. Erradica la saturación de eventos SignalR en Cloud Run y previene la desconexión del circuito («Reconectando con el servidor...») y el cierre accidental del modal.
