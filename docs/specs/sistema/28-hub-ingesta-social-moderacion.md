@@ -1,8 +1,8 @@
 # 28. Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés Multimodal + Directorio de Cuentas Monitorizadas)
 
-> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`) e INC-70 (`change-70-ingesta-multimodal-sorteos`)  
+> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`), INC-70 (`change-70-ingesta-multimodal-sorteos`) e INC-80 (`change-80-moderacion-social-carteles-ia`)  
 > **Estado:** Implementado, Verificado y Documentado  
-> **Módulo:** Radar Comunitario, Ingesta Social Multimodal, Moderación Editorial y Directorio de Fuentes  
+> **Módulo:** Radar Comunitario, Ingesta Social Multimodal, Moderación Editorial en Carteles y Directorio de Fuentes  
 
 ---
 
@@ -161,13 +161,13 @@ Al aprobar un ítem en `SocialIngestionService`:
 ### 5.1. Bandeja de Moderación (`/admin/ingesta-social`)
 - **Pestañas por estado:** `Pendientes` (con contador reactivo), `Publicados` y `Descartados`.
 - **Filtros por tipología:** `Sorteos`, `Novedades`, `Eventos`, `Vídeos`.
-- **Tarjetas editoriales responsivas:**
-  - Miniatura con fallback SVG Lucide.
-  - Badges semánticos de plataforma y tipo de contenido.
-  - Título, organizador, colaboradores y juego vinculado.
-  - Enlace externo a la publicación original.
-  - Texto extraído original expandible mediante `<details>`.
-  - Botones de acción: `[ ✏️ Editar ]`, `[ ✕ Descartar ]` y `[ ✅ Aprobar ]`.
+- **Cuadrícula de Carteles Compactos (INC-80):**
+  - Distribución responsiva en cuadrícula compacta: 2 columnas en móvil, 3 en pantallas pequeñas, 4 en medianas y 5 a 6 en pantallas grandes (`grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6`).
+  - Tarjetas verticales con proporción de cartel (`aspect-[3/4]`), portada con zoom sutil al pasar el cursor y badges compactos en esquinas superiores.
+  - Alerta visual destacada cuando la publicación no fue procesada por IA (`!item.IsAiProcessed`), mostrando un badge de aviso («Sin IA»).
+  - Interacción táctil y de ratón directa: pulsar o hacer clic en cualquier parte del cartel abre el modal de edición completa.
+  - Acciones compactas al pie de la tarjeta: Editar, Descartar (con diálogo de confirmación y motivo) y Aprobar.
+  - Botón administrativo **"Purgar Simulados"** en la cabecera para limpiar de forma determinista publicaciones de prueba (`sim_*` o `/simulated/`) generadas por entornos de desarrollo.
 
 ### 5.2. Directorio de Canales (`/admin/canales-monitorizados`)
 - Catálogo de fuentes con filtros por plataforma (`Instagram`, `YouTube`, `Twitter`, `TikTok`, `Web`) y tipología de entidad.
@@ -180,7 +180,12 @@ Al aprobar un ítem en `SocialIngestionService`:
   1. *Sorteos (Multimodal)*: Diseñado específicamente para superar las restricciones de Instagram. Acepta URL de origen, archivo de foto de portada (con recorte y composición 16:9 automática) y bases del sorteo (vía texto plano o captura de pantalla móvil con OCR mediante Gemini Flash Vision). Soporta `@onpaste` para pegar capturas directamente desde el portapapeles.
   2. *Pegar URL y Listo (IA)*: Extracción automática para YouTube, noticias web y blogs.
   3. *Modo Manual Avanzado*: Con buscador predictivo de juegos y selección explícita de tipologías.
-- **`SocialInboxEditModal.razor`**: Formulario de edición completa de borradores antes de su aprobación definitiva, con soporte para ámbito territorial (ej. Península, España, Internacional).
+- **`SocialInboxEditModal.razor` (Enriquecido en INC-80)**:
+  - Formulario de edición completa de borradores antes de su aprobación definitiva, con soporte para ámbito territorial (ej. Península, España, Internacional).
+  - **Aviso de Extracción sin IA y Botón «Reintentar con IA»:** Si la publicación cayó en fallback heurístico o alta manual, muestra un banner explicativo y permite ejecutar `ReanalyzeWithAiAsync` al vuelo.
+  - **Panel de Texto Original Extraído (`OriginalCaption`):** Muestra el texto capturado para que el moderador coteje bases, fechas y condiciones directamente sin salir de la ventana.
+  - **Botón «Ver Original»:** Enlace seguro con `target="_blank"` a la URL de la publicación original en Instagram, YouTube o web.
+  - **Botón «Aprobar y Publicar» directo:** Permite guardar cualquier cambio y publicar la entidad en el catálogo/radar en una sola interacción desde el propio modal.
 
 ### 5.4. Puntos de Entrada Transversales
 - Menú de moderación de `MainLayout.razor` con enlaces a la bandeja y al directorio de canales.

@@ -62,6 +62,20 @@ public class SocialIngestionServiceTests
         {
             return Task.FromResult(Items.Any(i => i.SourceUrl.Equals(sourceUrl, StringComparison.OrdinalIgnoreCase)));
         }
+
+        public Task DeleteAsync(Guid id, CancellationToken ct = default)
+        {
+            Items.RemoveAll(i => i.Id == id);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> PurgeSimulatedAsync(CancellationToken ct = default)
+        {
+            var removed = Items.RemoveAll(i =>
+                i.Status == SocialInboxStatus.PendingReview &&
+                (i.SourceUrl.Contains("sim_") || i.SourceUrl.Contains("/simulated/")));
+            return Task.FromResult(removed);
+        }
     }
 
     private class FakeSocialMetadataExtractor : ISocialMetadataExtractor
@@ -492,5 +506,219 @@ public class SocialIngestionServiceTests
             service.IngestFromCollectorAsync("https://www.instagram.com/reel/blocked123/", manualCaption: null));
 
         Assert.Contains("Alta Exprés Multimodal", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Análisis Gemini Flash Vision", true)]
+    [InlineData("Gemini 1.5 Flash completado con éxito", true)]
+    [InlineData("Detección heurística de patrones editoriales en español", false)]
+    [InlineData("Detección heuristica sin acento", false)]
+    [InlineData("Alta asistida manual avanzada", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void SocialInboxItemDto_IsAiProcessed_IdentifiesAiCorrectly(string? notes, bool expected)
+    {
+        var item = new SocialInboxItem(
+            sourceUrl: "https://example.com/post",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Test",
+            organizerOrAuthor: "Test Org",
+            aiAnalysisNotes: notes);
+
+        var dto = SocialInboxItemDto.FromEntity(item);
+
+        Assert.Equal(expected, dto.IsAiProcessed);
+    }
+
+    [Fact]
+    public async Task IngestFromUrlAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-post-123/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestFromUrlAsync(existingUrl, "Texto manual"));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-multimodal/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: existingUrl,
+            ManualCaption: "Texto descriptivo",
+            CoverImageBytes: new byte[] { 1, 2, 3 });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestMultimodalAsync(input));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task IngestManualAdvancedAsync_WhenSourceUrlAlreadyExists_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var existingUrl = "https://www.instagram.com/p/existing-manual/";
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: existingUrl,
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Ya registrado",
+            organizerOrAuthor: "malditogames"));
+
+        var input = new SocialInboxManualInputDto(
+            SourceUrl: existingUrl,
+            SubmissionType: SocialSubmissionType.Giveaway,
+            Title: "Manual Nuevo",
+            OrganizerOrAuthor: "Editorial");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IngestManualAdvancedAsync(input));
+
+        Assert.Contains("Ya existe una publicación registrada", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_ItemNotFound_ThrowsKeyNotFoundException()
+    {
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.ReanalyzeWithAiAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_ItemNotPendingReview_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/approved/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo",
+            organizerOrAuthor: "devir");
+        item.Approve(Guid.NewGuid(), "admin");
+        _inboxRepo.Items.Add(item);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ReanalyzeWithAiAsync(item.Id));
+
+        Assert.Contains("Solo se pueden reanalizar publicaciones pendientes", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_AiReturnsHeuristicFallback_ThrowsInvalidOperationException()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/heuristic/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo inicial",
+            organizerOrAuthor: "devir",
+            originalCaption: "Participa en el sorteo de Catan",
+            aiAnalysisNotes: "Detección heurística de patrones editoriales en español");
+        _inboxRepo.Items.Add(item);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Catan",
+            OrganizerOrAuthor: "devir",
+            Collaborator: null,
+            SuggestedGameTitle: "Catan",
+            EventOrReleaseDate: null,
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: "Detección heurística de patrones editoriales en español");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ReanalyzeWithAiAsync(item.Id));
+
+        Assert.Contains("El servicio de IA no está disponible", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReanalyzeWithAiAsync_AiSucceeds_UpdatesItemAndReturnsAiProcessedTrue()
+    {
+        var service = CreateService();
+        var item = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/real-ai/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo antiguo",
+            organizerOrAuthor: "editorial",
+            originalCaption: "¡Sorteamos un ejemplar exclusivo de Ark Nova!",
+            aiAnalysisNotes: "Detección heurística de patrones editoriales en español");
+        _inboxRepo.Items.Add(item);
+
+        _aiService.ResultToReturn = new SocialAiAnalysisResultDto(
+            DetectedType: SocialSubmissionType.Giveaway,
+            Title: "Sorteo Oficial de Ark Nova",
+            OrganizerOrAuthor: "Maldito Games",
+            Collaborator: "@ludocreador",
+            SuggestedGameTitle: "Ark Nova",
+            EventOrReleaseDate: DateTimeOffset.UtcNow.AddDays(7),
+            EventEndDate: null,
+            Location: "España Peninsular",
+            EstimatedPvp: 65m,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            Notes: "Extracción Gemini Flash 1.5 con alta certidumbre");
+
+        var result = await service.ReanalyzeWithAiAsync(item.Id);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsAiProcessed);
+        Assert.Equal("Sorteo Oficial de Ark Nova", result.Title);
+        Assert.Equal("Maldito Games", result.OrganizerOrAuthor);
+        Assert.Equal("@ludocreador", result.Collaborator);
+        Assert.Equal("España Peninsular", result.Location);
+        Assert.Equal("Extracción Gemini Flash 1.5 con alta certidumbre", result.AiAnalysisNotes);
+    }
+
+    [Fact]
+    public async Task PurgeSimulatedItemsAsync_CallsRepositoryAndReturnsPurgedCount()
+    {
+        var service = CreateService();
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/sim_123/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Simulado 1",
+            organizerOrAuthor: "org"));
+        _inboxRepo.Items.Add(new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/real_post/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Real",
+            organizerOrAuthor: "org"));
+
+        var count = await service.PurgeSimulatedItemsAsync();
+
+        Assert.Equal(1, count);
+        Assert.Single(_inboxRepo.Items);
+        Assert.Equal("Real", _inboxRepo.Items[0].Title);
     }
 }

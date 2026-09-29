@@ -1,0 +1,28 @@
+# Tareas de Implementación: Moderación Social a Carteles Compactos y Reintento IA
+
+- [x] 1. Configuración de producción y corte de simulación
+  - [x] 1.1 Fijar `SocialCollector:Simulate = false` en `appsettings.json`.
+  - [x] 1.2 Crear `appsettings.Production.json` configurando explícitamente en `false` las simulaciones de BGG, Instagram, Cloudflare R2 y SocialCollector.
+- [x] 2. Anti-duplicados y contrato de reintento IA en Dominio y Aplicación
+  - [x] 2.1 Enriquecer `SocialInboxItemDto` con `IsAiProcessed`.
+  - [x] 2.2 Ampliar `ISocialIngestionService` con `ReanalyzeWithAiAsync(Guid inboxItemId, CancellationToken ct = default)`.
+  - [x] 2.3 Implementar validación de existencia por `SourceUrl` en `SocialIngestionService` (`IngestFromUrlAsync`, `IngestMultimodalAsync`, `IngestManualAdvancedAsync`).
+  - [x] 2.4 Implementar `ReanalyzeWithAiAsync` en `SocialIngestionService`.
+  - [x] 2.5 Añadir método de purga de ítems simulados en `ISocialInboxRepository` y `ISocialIngestionService`.
+- [x] 3. Pruebas unitarias (TDD)
+  - [x] 3.1 Escribir pruebas en `SocialIngestionServiceTests` para rechazo de duplicados en todas las vías de ingesta.
+  - [x] 3.2 Escribir pruebas para `ReanalyzeWithAiAsync` verificando actualización y manejo de errores.
+  - [x] 3.3 Escribir pruebas para `IsAiProcessed`.
+- [x] 4. Rediseño de la bandeja (`SocialInboxModeration.razor`)
+  - [x] 4.1 Convertir listado a cuadrícula compacta tipo cartel (`rail-card` accesible).
+  - [x] 4.2 Hacer toda la tarjeta clicable para abrir el modal de edición.
+  - [x] 4.3 Añadir badge de alerta si la publicación no fue procesada por IA.
+  - [x] 4.4 Añadir botón de mantenimiento para purgar publicaciones de prueba simuladas si existen.
+- [x] 5. Enriquecimiento del modal de edición (`SocialInboxEditModal.razor`)
+  - [x] 5.1 Añadir panel de visualización del texto original extraído (`OriginalCaption`).
+  - [x] 5.2 Añadir botón para abrir enlace de origen en nueva pestaña.
+  - [x] 5.3 Añadir banner de aviso cuando no es IA y botón para «Reintentar con IA».
+  - [x] 5.4 Añadir botón «Aprobar y Publicar» directamente en el modal de edición.
+- [x] 6. Verificación integral y cierre
+  - [x] 6.1 Ejecutar toda la batería de pruebas y asegurar 100% verde (2.066 pruebas superadas).
+  - [x] 6.2 Actualizar documentación viva en `docs/specs/sistema/28-hub-ingesta-social-moderacion.md`.

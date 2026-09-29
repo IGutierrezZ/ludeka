@@ -92,6 +92,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-77** | Saneamiento de Calidad en Ingesta BGG: Años Históricos, Inferencia de Estilo, Escalabilidad Real y Duración por Jugador | ✅ Archivado | [inc-77-calidad-ingesta-bgg.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-77-calidad-ingesta-bgg.md) |
 | **INC-78** | Barrido Completo de Calidad de Catálogo (~10.000 Juegos Promovidos) | ✅ Archivado | [inc-78-barrido-calidad-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-78-barrido-calidad-catalogo.md) |
 | **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](archive/inc-79-sorteos-ficha-redimension-y-edicion.md) |
+| **INC-80** | Rediseño de Moderación Social a Carteles Compactos, Resiliencia y Reintento IA, y Limpieza de Simulación | ⏳ En progreso | [inc-80-moderacion-social-carteles-ia.md](inc-80-moderacion-social-carteles-ia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -121,7 +122,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno activo)* | — | — | — | Todos los incrementos en curso están completados y archivados. |
+| **INC-80** | `inc/moderacion-social-carteles-ia` | `F:\repos\ludeka-wt\moderacion-social-carteles-ia` | ⏳ En progreso | Rediseño de moderación social a carteles compactos, reintento IA, enlace directo y purga de simulación |
 
 *(PR #139 entregó su verificación con 2.058 pruebas automáticas [2.048 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Desacopla la carga del grafo navegable de `Game` en `SqliteSocialInboxRepository`, `SqliteGiveawayRepository` y `SqliteWeeklyReleaseRepository` retirando `.Include(i => i.Game)`, e implementa en sus métodos `UpdateAsync` [así como en `SqliteMediaRepository`] la actualización atómica y aislada de propiedades escalares mediante `CurrentValues.SetValues(item)` sobre la entidad rastreada en el scope. Esto erradica el colapso de claves sombra ordinales `ScalabilityEntry.__synthesizedOrdinal` al editar o aprobar sorteos y publicaciones vinculadas a juegos con colecciones JSON propias en EF Core. Respaldado por la nueva suite `SqliteSocialInboxRepositoryTests.cs`).*
 

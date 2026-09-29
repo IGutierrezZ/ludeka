@@ -155,6 +155,11 @@ public class SocialInboxItem
         ThumbnailUrl = string.IsNullOrWhiteSpace(thumbnailUrl) ? null : thumbnailUrl.Trim();
     }
 
+    public void SetAiAnalysisNotes(string? notes)
+    {
+        AiAnalysisNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+    }
+
     /// <summary>
     /// Marca el ítem como aprobado tras instanciar la entidad definitiva en el catálogo/radar.
     /// </summary>

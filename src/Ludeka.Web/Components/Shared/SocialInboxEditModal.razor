@@ -4,6 +4,7 @@
 @using Ludeka.Core.Enums
 @inject ISocialIngestionService IngestionService
 @inject ICatalogService CatalogService
+@inject ICurrentUserService CurrentUserService
 
 @if (IsOpen && Item != null)
 {
@@ -24,25 +25,86 @@
                             Editar Datos antes de Publicar
                         </h2>
                         <p class="text-[0.7rem] text-[var(--text-muted)]">
-                            Modifica cualquier valor extraído por la IA antes de aprobar en el catálogo o radar
+                            Modifica cualquier valor antes de aprobar en el catálogo o radar
                         </p>
                     </div>
                 </div>
-                <button type="button"
-                        @onclick="HandleClose"
-                        aria-label="Cerrar modal"
-                        class="p-2 rounded-full hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-                    <Icon Name="x" Size="18" />
-                </button>
+                <div class="flex items-center gap-2">
+                    <a href="@Item.SourceUrl"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="px-2.5 py-1.5 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5 text-xs font-semibold"
+                       title="Abrir publicación original en nueva pestaña">
+                        <Icon Name="external-link" Size="14" />
+                        <span class="hidden sm:inline">Ver Original</span>
+                    </a>
+                    <button type="button"
+                            @onclick="HandleClose"
+                            aria-label="Cerrar modal"
+                            class="p-2 rounded-full hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                        <Icon Name="x" Size="18" />
+                    </button>
+                </div>
             </div>
 
             @* Formulario con scroll *@
             <div class="p-6 space-y-4 overflow-y-auto">
+                @if (!string.IsNullOrWhiteSpace(_successMessage))
+                {
+                    <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="check" Size="16" />
+                            <span>@_successMessage</span>
+                        </div>
+                        <button type="button" @onclick="() => _successMessage = null" class="opacity-70 hover:opacity-100">&times;</button>
+                    </div>
+                }
+
                 @if (!string.IsNullOrWhiteSpace(_errorMessage))
                 {
                     <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
                         <Icon Name="triangle-alert" Size="16" />
                         <span>@_errorMessage</span>
+                    </div>
+                }
+
+                @* Aviso de análisis sin IA + Botón de reintento *@
+                @if (!Item.IsAiProcessed)
+                {
+                    <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-start gap-2.5">
+                            <Icon Name="triangle-alert" Size="18" Class="shrink-0 text-amber-500 mt-0.5" />
+                            <div>
+                                <span class="font-bold">Publicación procesada sin IA</span>
+                                <p class="text-[0.7rem] text-amber-600/90 dark:text-amber-400/90 mt-0.5 leading-relaxed">
+                                    @(string.IsNullOrWhiteSpace(Item.AiAnalysisNotes) ? "Esta publicación fue registrada mediante detección heurística o alta manual." : Item.AiAnalysisNotes)
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button"
+                                @onclick="ReanalyzeWithAiAsync"
+                                disabled="@(_isReanalyzing || _isSaving || _isApproving)"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                            <Icon Name="sparkles" Size="14" Class="@(_isReanalyzing ? "animate-spin" : "")" />
+                            <span>@(_isReanalyzing ? "Reanalizando..." : "Reintentar con IA")</span>
+                        </button>
+                    </div>
+                }
+
+                @* Texto original extraído *@
+                @if (!string.IsNullOrWhiteSpace(Item.OriginalCaption))
+                {
+                    <div class="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
+                        <div class="flex items-center justify-between text-xs font-bold text-[var(--text-secondary)]">
+                            <span class="flex items-center gap-1.5">
+                                <Icon Name="file-text" Size="14" />
+                                <span>Texto Original Extraído</span>
+                            </span>
+                            <span class="text-[0.65rem] text-[var(--text-muted)] font-normal">Coteja las bases y requisitos</span>
+                        </div>
+                        <div class="text-[0.75rem] text-[var(--text-secondary)] bg-[var(--bg-surface-elevated)] p-3 rounded-xl border border-[var(--border-subtle)] max-h-36 overflow-y-auto whitespace-pre-line leading-relaxed select-text font-mono">
+                            @Item.OriginalCaption
+                        </div>
                     </div>
                 }
 
@@ -244,28 +306,45 @@
             </div>
 
             @* Botones del footer *@
-            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] shrink-0">
+            <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] shrink-0 flex-wrap">
                 <button type="button"
                         @onclick="HandleClose"
-                        disabled="@_isSaving"
+                        disabled="@(_isSaving || _isApproving || _isReanalyzing)"
                         class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     Cancelar
                 </button>
-                <button type="button"
-                        @onclick="SaveAsync"
-                        disabled="@_isSaving"
-                        class="px-5 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-all shadow-sm flex items-center gap-2 disabled:opacity-50">
-                    @if (_isSaving)
-                    {
-                        <span class="inline-block animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
-                        <span>Guardando...</span>
-                    }
-                    else
-                    {
-                        <Icon Name="check" Size="14" />
-                        <span>Guardar Cambios</span>
-                    }
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            @onclick="SaveAsync"
+                            disabled="@(_isSaving || _isApproving || _isReanalyzing)"
+                            class="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50">
+                        @if (_isSaving)
+                        {
+                            <span class="inline-block animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="check" Size="14" />
+                            <span>Guardar Cambios</span>
+                        }
+                    </button>
+                    <button type="button"
+                            @onclick="ApproveDirectlyAsync"
+                            disabled="@(_isSaving || _isApproving || _isReanalyzing)"
+                            class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50">
+                        @if (_isApproving)
+                        {
+                            <span class="inline-block animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
+                            <span>Aprobando...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="check-check" Size="14" />
+                            <span>Aprobar y Publicar</span>
+                        }
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -276,10 +355,14 @@
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public SocialInboxItemDto? Item { get; set; }
     [Parameter] public EventCallback<SocialInboxItemDto> OnSaved { get; set; }
+    [Parameter] public EventCallback<SocialInboxItemDto> OnApproved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
     private bool _isSaving;
+    private bool _isApproving;
+    private bool _isReanalyzing;
     private string? _errorMessage;
+    private string? _successMessage;
 
     private string _title = string.Empty;
     private string _organizer = string.Empty;
@@ -317,6 +400,8 @@
             _playerCountBadge = Item.PlayerCountBadge;
             _thumbnailUrl = Item.ThumbnailUrl;
             _moderatorNotes = Item.ModeratorNotes;
+            _errorMessage = null;
+            _successMessage = null;
         }
     }
 
@@ -345,6 +430,45 @@
     {
         _gameId = null;
         _gameTitle = null;
+    }
+
+    private async Task ReanalyzeWithAiAsync()
+    {
+        if (Item == null) return;
+        _isReanalyzing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            var updated = await IngestionService.ReanalyzeWithAiAsync(Item.Id);
+            Item = updated;
+            _title = updated.Title;
+            _organizer = updated.OrganizerOrAuthor;
+            _collaborator = updated.Collaborator;
+            _detectedType = updated.DetectedType;
+            _gameId = updated.GameId;
+            _gameTitle = updated.GameTitle;
+            _eventOrReleaseDate = updated.EventOrReleaseDate?.LocalDateTime;
+            _eventEndDate = updated.EventEndDate?.LocalDateTime;
+            _location = updated.Location;
+            _estimatedPvp = updated.EstimatedPvp;
+            _mediaCategory = updated.MediaCategory;
+            _playerCountBadge = updated.PlayerCountBadge;
+            _thumbnailUrl = updated.ThumbnailUrl;
+            _moderatorNotes = updated.ModeratorNotes;
+
+            _successMessage = "Reanálisis con IA completado con éxito. Se han actualizado los campos.";
+            await OnSaved.InvokeAsync(updated);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"No se pudo completar el reanálisis con IA: {ex.Message}";
+        }
+        finally
+        {
+            _isReanalyzing = false;
+        }
     }
 
     private async Task SaveAsync()
@@ -407,9 +531,68 @@
         }
     }
 
+    private async Task ApproveDirectlyAsync()
+    {
+        if (Item == null) return;
+
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_organizer))
+        {
+            _errorMessage = "El título y el organizador son obligatorios para aprobar.";
+            return;
+        }
+
+        _isApproving = true;
+        _errorMessage = null;
+
+        try
+        {
+            DateTimeOffset? startOffset = _eventOrReleaseDate.HasValue
+                ? new DateTimeOffset(_eventOrReleaseDate.Value, TimeSpan.Zero)
+                : null;
+
+            DateTimeOffset? endOffset = _eventEndDate.HasValue
+                ? new DateTimeOffset(_eventEndDate.Value, TimeSpan.Zero)
+                : null;
+
+            var updateDto = new SocialInboxUpdateDto(
+                Id: Item.Id,
+                Title: _title,
+                OrganizerOrAuthor: _organizer,
+                Collaborator: _collaborator,
+                DetectedType: _detectedType,
+                GameId: _gameId,
+                GameTitle: _gameTitle,
+                EventOrReleaseDate: startOffset,
+                EventEndDate: endOffset,
+                Location: _location,
+                EstimatedPvp: _estimatedPvp,
+                MediaCategory: _mediaCategory,
+                PlayerCountBadge: _playerCountBadge,
+                ThumbnailUrl: _thumbnailUrl,
+                ModeratorNotes: _moderatorNotes);
+
+            var updated = await IngestionService.UpdateItemAsync(updateDto);
+
+            var reviewerId = CurrentUserService.UserId ?? "moderador";
+            await IngestionService.ApproveAndPublishAsync(updated.Id, reviewerId);
+
+            await OnApproved.InvokeAsync(updated);
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al aprobar: {ex.Message}";
+        }
+        finally
+        {
+            _isApproving = false;
+        }
+    }
+
     private async Task HandleClose()
     {
         _errorMessage = null;
+        _successMessage = null;
         await OnClose.InvokeAsync();
     }
 }

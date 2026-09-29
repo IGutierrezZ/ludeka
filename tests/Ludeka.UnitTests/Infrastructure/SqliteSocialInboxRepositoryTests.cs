@@ -197,4 +197,73 @@ public class SqliteSocialInboxRepositoryTests : IAsyncLifetime
         Assert.NotNull(updated);
         Assert.True(updated.IsPromoted);
     }
+
+    [Fact]
+    public async Task PurgeSimulatedAsync_RemovesOnlySimulatedPendingItems()
+    {
+        // 1. Arrange: 1 ítem real pendiente, 2 ítems simulados pendientes, 1 ítem simulado ya aprobado
+        var realPending = new SocialInboxItem(
+            sourceUrl: "https://www.instagram.com/p/REAL_POST_123/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Real",
+            organizerOrAuthor: "malditogames");
+
+        var simulatedPending1 = new SocialInboxItem(
+            sourceUrl: "https://www.instagram.com/p/sim_cuartodejuegos_0/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Gran sorteo exclusivo",
+            organizerOrAuthor: "cuartodejuegos");
+
+        var simulatedPending2 = new SocialInboxItem(
+            sourceUrl: "https://youtube.com/simulated/video123",
+            platform: SocialPlatform.YouTube,
+            detectedType: SocialSubmissionType.MediaItem,
+            title: "Vídeo simulado",
+            organizerOrAuthor: "ludocreador");
+
+        var simulatedApproved = new SocialInboxItem(
+            sourceUrl: "https://www.instagram.com/p/sim_aprobado/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo Simulado Aprobado",
+            organizerOrAuthor: "cuartodejuegos");
+        simulatedApproved.Approve(Guid.NewGuid(), "admin");
+
+        await _inboxRepository.AddAsync(realPending);
+        await _inboxRepository.AddAsync(simulatedPending1);
+        await _inboxRepository.AddAsync(simulatedPending2);
+        await _inboxRepository.AddAsync(simulatedApproved);
+
+        // 2. Act
+        var purgedCount = await _inboxRepository.PurgeSimulatedAsync();
+
+        // 3. Assert: 2 eliminados, el real y el aprobado se mantienen
+        Assert.Equal(2, purgedCount);
+
+        var pendingRemaining = await _inboxRepository.GetPendingAsync();
+        Assert.Single(pendingRemaining);
+        Assert.Equal(realPending.Id, pendingRemaining[0].Id);
+
+        var retrievedApproved = await _inboxRepository.GetByIdAsync(simulatedApproved.Id);
+        Assert.NotNull(retrievedApproved);
+    }
+
+    [Fact]
+    public async Task ExistsBySourceUrlAsync_ReturnsTrueForExistingUrl_IgnoringCase()
+    {
+        var item = new SocialInboxItem(
+            sourceUrl: "https://www.instagram.com/p/CASE_SENSITIVE_123/",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.Giveaway,
+            title: "Sorteo URL Check",
+            organizerOrAuthor: "test");
+
+        await _inboxRepository.AddAsync(item);
+
+        Assert.True(await _inboxRepository.ExistsBySourceUrlAsync("https://www.instagram.com/p/CASE_SENSITIVE_123/"));
+        Assert.True(await _inboxRepository.ExistsBySourceUrlAsync("https://www.instagram.com/p/case_sensitive_123/"));
+        Assert.False(await _inboxRepository.ExistsBySourceUrlAsync("https://www.instagram.com/p/otra_cosa/"));
+    }
 }

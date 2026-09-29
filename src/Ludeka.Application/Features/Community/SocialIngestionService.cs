@@ -94,6 +94,11 @@ public class SocialIngestionService : ISocialIngestionService
             throw new InvalidOperationException("Debes proporcionar al menos la imagen de portada, la captura de bases o el texto descriptivo.");
         }
 
+        if (await _inboxRepository.ExistsBySourceUrlAsync(input.SourceUrl, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{input.SourceUrl}'.");
+        }
+
         _logger.LogInformation("Iniciando alta exprés multimodal para URL: {Url}", input.SourceUrl);
 
         var metadata = await _metadataExtractor.ExtractFromUrlAsync(input.SourceUrl, ct);
@@ -201,6 +206,11 @@ public class SocialIngestionService : ISocialIngestionService
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("La URL no puede estar vacía.", nameof(url));
 
+        if (await _inboxRepository.ExistsBySourceUrlAsync(url, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{url}'.");
+        }
+
         _logger.LogInformation("Iniciando alta exprés para URL: {Url}", url);
 
         // 1. Extraer metadatos abiertos (OpenGraph / oEmbed / YouTube)
@@ -295,6 +305,11 @@ public class SocialIngestionService : ISocialIngestionService
         if (string.IsNullOrWhiteSpace(input.OrganizerOrAuthor))
             throw new ArgumentException("El organizador o canal no puede estar vacío.", nameof(input.OrganizerOrAuthor));
 
+        if (await _inboxRepository.ExistsBySourceUrlAsync(input.SourceUrl, ct))
+        {
+            throw new InvalidOperationException($"Ya existe una publicación registrada en la bandeja con la URL '{input.SourceUrl}'.");
+        }
+
         _logger.LogInformation("Iniciando alta manual avanzada para URL: {Url}", input.SourceUrl);
 
         var platform = DetectPlatform(input.SourceUrl);
@@ -387,6 +402,89 @@ public class SocialIngestionService : ISocialIngestionService
         _logger.LogInformation("Ítem {Id} actualizado por moderador", item.Id);
 
         return SocialInboxItemDto.FromEntity(item);
+    }
+
+    public async Task<SocialInboxItemDto> ReanalyzeWithAiAsync(Guid inboxItemId, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var item = await _inboxRepository.GetByIdAsync(inboxItemId, ct)
+            ?? throw new KeyNotFoundException($"No se encontró ningún ítem en la bandeja con ID '{inboxItemId}'.");
+
+        if (item.Status != SocialInboxStatus.PendingReview)
+            throw new InvalidOperationException("Solo se pueden reanalizar publicaciones pendientes de revisión.");
+
+        var textToAnalyze = !string.IsNullOrWhiteSpace(item.OriginalCaption)
+            ? item.OriginalCaption
+            : null;
+
+        if (string.IsNullOrWhiteSpace(textToAnalyze))
+        {
+            var metadata = await _metadataExtractor.ExtractFromUrlAsync(item.SourceUrl, ct);
+            textToAnalyze = metadata?.Description ?? metadata?.Title;
+        }
+
+        if (string.IsNullOrWhiteSpace(textToAnalyze))
+        {
+            throw new InvalidOperationException("La publicación no contiene texto original ni metadatos extraíbles para reanalizar con IA.");
+        }
+
+        var analysis = await _aiAnalysisService.AnalyzeTextAsync(textToAnalyze, item.OrganizerOrAuthor, ct);
+
+        bool isHeuristic = string.IsNullOrWhiteSpace(analysis.Notes) ||
+                           analysis.Notes.Contains("heurística", StringComparison.OrdinalIgnoreCase) ||
+                           analysis.Notes.Contains("heuristica", StringComparison.OrdinalIgnoreCase) ||
+                           analysis.Notes.Contains("manual", StringComparison.OrdinalIgnoreCase);
+
+        if (isHeuristic)
+        {
+            throw new InvalidOperationException("El servicio de IA no está disponible o no tiene clave configurada en este entorno; no se pudo procesar con IA.");
+        }
+
+        Guid? matchedGameId = item.GameId;
+        string? matchedGameTitle = item.GameTitle;
+
+        if (!string.IsNullOrWhiteSpace(analysis.SuggestedGameTitle))
+        {
+            var searchResults = await _gameRepository.SearchAsync(new GameFilterCriteria(SearchTerm: analysis.SuggestedGameTitle), page: 1, pageSize: 1, ct: ct);
+            if (searchResults.Items.Count > 0)
+            {
+                var first = searchResults.Items[0];
+                matchedGameId = first.Id;
+                matchedGameTitle = first.SpanishTitle;
+            }
+        }
+
+        item.UpdateDetails(
+            title: !string.IsNullOrWhiteSpace(analysis.Title) ? analysis.Title : item.Title,
+            organizerOrAuthor: !string.IsNullOrWhiteSpace(analysis.OrganizerOrAuthor) ? analysis.OrganizerOrAuthor : item.OrganizerOrAuthor,
+            collaborator: analysis.Collaborator ?? item.Collaborator,
+            detectedType: analysis.DetectedType,
+            gameId: matchedGameId,
+            gameTitle: matchedGameTitle,
+            eventOrReleaseDate: analysis.EventOrReleaseDate ?? item.EventOrReleaseDate,
+            eventEndDate: analysis.EventEndDate ?? item.EventEndDate,
+            location: analysis.TerritorialScope ?? analysis.Location ?? item.Location,
+            estimatedPvp: analysis.EstimatedPvp ?? item.EstimatedPvp,
+            mediaCategory: analysis.MediaCategory ?? item.MediaCategory,
+            playerCountBadge: analysis.PlayerCountBadge ?? item.PlayerCountBadge,
+            thumbnailUrl: item.ThumbnailUrl,
+            moderatorNotes: item.ModeratorNotes);
+
+        item.SetAiAnalysisNotes(analysis.Notes);
+
+        await _inboxRepository.UpdateAsync(item, ct);
+        _logger.LogInformation("Ítem {Id} reanalizado satisfactoriamente con IA. Notas: {Notes}", item.Id, analysis.Notes);
+
+        return SocialInboxItemDto.FromEntity(item);
+    }
+
+    public async Task<int> PurgeSimulatedItemsAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        var count = await _inboxRepository.PurgeSimulatedAsync(ct);
+        _logger.LogInformation("Se han purgado {Count} publicaciones simuladas de la bandeja de moderación.", count);
+        return count;
     }
 
     public async Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default)

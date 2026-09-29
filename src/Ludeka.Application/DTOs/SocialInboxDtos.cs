@@ -75,6 +75,12 @@ public record SocialInboxItemDto(
     DateTimeOffset? ReviewedAt,
     string? ReviewedByUserId)
 {
+    public bool IsAiProcessed =>
+        !string.IsNullOrWhiteSpace(AiAnalysisNotes) &&
+        !AiAnalysisNotes.Contains("heurística", StringComparison.OrdinalIgnoreCase) &&
+        !AiAnalysisNotes.Contains("heuristica", StringComparison.OrdinalIgnoreCase) &&
+        !AiAnalysisNotes.Contains("manual", StringComparison.OrdinalIgnoreCase);
+
     public static SocialInboxItemDto FromEntity(SocialInboxItem item)
     {
         ArgumentNullException.ThrowIfNull(item);

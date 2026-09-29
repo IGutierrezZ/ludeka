@@ -101,6 +101,20 @@ public class SocialCollectorServiceTests
 
         public Task UpdateAsync(SocialInboxItem item, CancellationToken ct = default)
             => Task.CompletedTask;
+
+        public Task DeleteAsync(Guid id, CancellationToken ct = default)
+        {
+            SavedItems.RemoveAll(i => i.Id == id);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> PurgeSimulatedAsync(CancellationToken ct = default)
+        {
+            var count = SavedItems.RemoveAll(i =>
+                i.Status == SocialInboxStatus.PendingReview &&
+                (i.SourceUrl.Contains("sim_") || i.SourceUrl.Contains("/simulated/")));
+            return Task.FromResult(count);
+        }
     }
 
     private class TestIngestionService : ISocialIngestionService
@@ -125,6 +139,8 @@ public class SocialCollectorServiceTests
         public Task<SocialInboxItemDto> IngestManualAdvancedAsync(SocialInboxManualInputDto input, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<SocialInboxItemDto> IngestMultimodalAsync(SocialExpressMultimodalInputDto input, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<SocialInboxItemDto> UpdateItemAsync(SocialInboxUpdateDto dto, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<SocialInboxItemDto> ReanalyzeWithAiAsync(Guid inboxItemId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> PurgeSimulatedItemsAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<Guid> ApproveAndPublishAsync(Guid inboxItemId, string reviewerUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task RejectItemAsync(Guid inboxItemId, string reason, string reviewerUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SocialInboxItemDto>> GetPendingItemsAsync(SocialSubmissionType? typeFilter = null, CancellationToken ct = default) => throw new NotImplementedException();
