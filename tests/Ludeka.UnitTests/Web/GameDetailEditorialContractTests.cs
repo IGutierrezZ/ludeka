@@ -102,4 +102,17 @@ public class GameDetailEditorialContractTests
         Assert.Contains("Jugamos Otra", source, StringComparison.Ordinal);
         Assert.Contains("_isReferenceFallback", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void StoreOffersCard_ShouldPresentHonestSearchLinksWhenReferenceFallback()
+    {
+        var source = ReadSource(StoreOffersCardPath);
+
+        // Mensaje transparente sin falso stock ni tarjetas engañosas
+        Assert.Contains("Sin precios ni stock confirmados", source, StringComparison.Ordinal);
+        Assert.Contains("Buscar en @offer.StoreName", source, StringComparison.Ordinal);
+
+        // No debe activar comprobación de stock de fondo si es fallback de catálogo
+        Assert.Contains("!_isReferenceFallback", source, StringComparison.Ordinal);
+    }
 }
