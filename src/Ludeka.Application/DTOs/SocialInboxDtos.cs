@@ -34,7 +34,8 @@ public record SocialAiAnalysisResultDto(
     string? PlayerCountBadge,
     string? Notes,
     NormalizedBoundingBoxDto? CropBoundingBox = null,
-    string? TerritorialScope = null
+    string? TerritorialScope = null,
+    string? ExtractedText = null
 );
 
 public record SocialExpressMultimodalInputDto(

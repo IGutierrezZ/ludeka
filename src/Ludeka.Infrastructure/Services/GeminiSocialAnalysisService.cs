@@ -240,7 +240,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             PlayerCountBadge: parsed.PlayerCountBadge,
             Notes: parsed.Notes,
             CropBoundingBox: null,
-            TerritorialScope: parsed.TerritorialScope ?? parsed.Location);
+            TerritorialScope: parsed.TerritorialScope ?? parsed.Location,
+            ExtractedText: !string.IsNullOrWhiteSpace(parsed.ExtractedText) ? parsed.ExtractedText : (!string.IsNullOrWhiteSpace(text) ? text : parsed.Notes));
     }
 
     private async Task<SocialAiAnalysisResultDto?> CallGeminiMultimodalApiAsync(
@@ -265,7 +266,7 @@ Texto adicional proporcionado por el usuario:
 """"""
 
 Instrucciones prioritarias:
-1. Realiza OCR sobre la captura de pantalla de bases o texto si está adjunta. Extrae las condiciones, fecha límite, ámbito territorial y premios.
+1. Realiza OCR fiel y completo sobre la captura de pantalla de bases o texto si está adjunta. Transcribe en 'extractedText' todas las condiciones, requisitos de participación (seguir cuentas, comentar, etc.), fecha límite, ámbito territorial y premios exactamente como aparecen para cotejo editorial.
 2. Si es un sorteo, extrae organizador, colaboradores (@cuentas), premio (juego o accesorio), fecha límite exacta y ámbito geográfico (ej. 'Península', 'España', 'Baleares y Canarias', 'Internacional').
 3. Si el texto o la imagen de bases indica un día y mes sin año explícito (ej. 'hasta el 2 de octubre', 'el 5 de noviembre'), asume el año en curso ({nowUtc.Year}) o el siguiente año ({nowUtc.Year + 1}) si la fecha en el año actual ya hubiese vencido respecto a la fecha actual ({nowUtc:yyyy-MM-dd}). NUNCA infieras o asumas años pasados (como 2024 o anteriores) salvo que figuren expresamente en la publicación. Si es fecha límite sin hora especificada, asigna las 23:59:59Z.
 4. Si hay una imagen del cartel o post, devuelve en 'cropBoundingBox' las 4 coordenadas normalizadas [ymin, xmin, ymax, xmax] (valores enteros entre 0 y 1000) que aíslan la imagen principal del cartel/premio, descartando la barra superior de estado del teléfono (hora, batería) y la barra inferior de navegación de Instagram.
@@ -285,6 +286,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
   ""mediaCategory"": ""Tutorial"" | ""Playthrough"" | ""Review"" | null,
   ""playerCountBadge"": ""Ej. 'Partida a 2' o null"",
   ""notes"": ""Resumen o bases breves del contenido"",
+  ""extractedText"": ""Texto completo u OCR de las bases, requisitos de participación y condiciones transcritos de la imagen o texto para cotejo editorial, o null"",
   ""cropBoundingBox"": [ymin, xmin, ymax, xmax] o null
 }}";
 
@@ -420,7 +422,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             PlayerCountBadge: parsed.PlayerCountBadge,
             Notes: parsed.Notes,
             CropBoundingBox: boundingBox,
-            TerritorialScope: parsed.TerritorialScope ?? parsed.Location);
+            TerritorialScope: parsed.TerritorialScope ?? parsed.Location,
+            ExtractedText: !string.IsNullOrWhiteSpace(parsed.ExtractedText) ? parsed.ExtractedText : parsed.Notes);
     }
 
     public static SocialAiAnalysisResultDto GenerateHeuristic(string text, string? authorOrChannel)
@@ -588,7 +591,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             PlayerCountBadge: playerCountBadge,
             Notes: "Detección heurística de patrones editoriales en español",
             CropBoundingBox: null,
-            TerritorialScope: territorialScope);
+            TerritorialScope: territorialScope,
+            ExtractedText: !string.IsNullOrWhiteSpace(text) ? text : null);
     }
 
     public static SocialAiAnalysisResultDto GenerateHeuristicMultimodal(string? text, string? authorOrChannel, bool hasImages)
@@ -645,6 +649,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         public string? MediaCategory { get; set; }
         public string? PlayerCountBadge { get; set; }
         public string? Notes { get; set; }
+        public string? ExtractedText { get; set; }
         public int[]? CropBoundingBox { get; set; }
     }
 }

@@ -769,6 +769,32 @@ public class SocialIngestionServiceTests
     }
 
     [Fact]
+    public async Task IngestMultimodalAsync_WithoutManualCaption_PopulatesOriginalCaptionFromAiExtractedText()
+    {
+        // Arrange
+        var service = CreateService();
+        _aiService.ResultToReturn = _aiService.ResultToReturn with
+        {
+            Title = "Sorteo Nippon: Zaibatsu",
+            OrganizerOrAuthor = "Turol Games",
+            ExtractedText = "Bases del sorteo:\n1. Seguir a @turolgames y @malditogames\n2. Mencionar a 2 amigos\nFecha fin: 10 de octubre"
+        };
+
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: "https://www.instagram.com/p/nippon-test/",
+            ManualCaption: null,
+            BasesImageBytes: new byte[] { 1, 2, 3 },
+            BasesImageMimeType: "image/jpeg");
+
+        // Act
+        var result = await service.IngestMultimodalAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Bases del sorteo:\n1. Seguir a @turolgames y @malditogames\n2. Mencionar a 2 amigos\nFecha fin: 10 de octubre", result.OriginalCaption);
+    }
+
+    [Fact]
     public async Task IngestMultimodalAsync_MissingAllInputs_ThrowsInvalidOperationException()
     {
         // Arrange

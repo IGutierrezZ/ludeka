@@ -132,6 +132,65 @@ public class GeminiSocialAnalysisServiceTests
     }
 
     [Fact]
+    public async Task AnalyzeMultimodalAsync_ValidGeminiApiResponse_ParsesExtractedText()
+    {
+        // Arrange
+        var innerJson = """
+        {
+          "detectedType": "Giveaway",
+          "title": "Sorteo Nippon: Zaibatsu",
+          "organizerOrAuthor": "Turol Games",
+          "collaborator": "Maldito Games",
+          "suggestedGameTitle": "Nippon: Zaibatsu",
+          "eventOrReleaseDateIso": "2026-10-10T23:59:59Z",
+          "extractedText": "¡Sorteamos una copia de Nippon: Zaibatsu!\nRequisitos:\n1. Seguir a @turolgames y @malditogames\n2. Mencionar a 2 amigos\nFin: 10 de octubre",
+          "notes": "Sorteo conjunto"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "real-format-key",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+        });
+
+        var client = new HttpClient(new FakeHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance);
+
+        // Act
+        var result = await service.AnalyzeMultimodalAsync(
+            text: null,
+            basesImageBytes: [1, 2, 3],
+            basesImageMimeType: "image/jpeg",
+            authorOrChannel: "Turol Games");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("¡Sorteamos una copia de Nippon: Zaibatsu!\nRequisitos:\n1. Seguir a @turolgames y @malditogames\n2. Mencionar a 2 amigos\nFin: 10 de octubre", result.ExtractedText);
+    }
+
+    [Fact]
     public async Task AnalyzeMultimodalAsync_ApiReturnsHttpError_FallsBackToHeuristicWithoutThrowing()
     {
         // Arrange: API falla con 500 Internal Server Error
