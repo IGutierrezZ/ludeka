@@ -115,8 +115,10 @@ public class GeminiSocialAnalysisService : ISocialAiAnalysisService
 
     private async Task<SocialAiAnalysisResultDto?> CallGeminiApiAsync(string text, string? authorOrChannel, CancellationToken ct)
     {
+        var nowUtc = DateTime.UtcNow;
         var prompt = $@"
 Eres el asistente de ingesta social y catalogación de Ludeka, la plataforma comunitaria de juegos de mesa en español.
+Fecha actual de referencia para el análisis: {nowUtc:yyyy-MM-dd} (año en curso: {nowUtc.Year}).
 Analiza la siguiente publicación social de Instagram, YouTube o web del sector lúdico:
 
 Autor/Canal de la publicación: {authorOrChannel ?? "Desconocido"}
@@ -124,6 +126,11 @@ Texto de la publicación:
 """"""
 {text}
 """"""
+
+Instrucciones para fechas:
+- Si la publicación indica un día y mes sin año explícito (ej. 'hasta el 2 de octubre', '5 de noviembre'), asume el año en curso ({nowUtc.Year}) o el siguiente año ({nowUtc.Year + 1}) si la fecha en el año actual ya hubiese vencido respecto a la fecha actual ({nowUtc:yyyy-MM-dd}).
+- NUNCA inventes o asumas años pasados (como 2024 o anteriores) a menos que figuren expresamente en el texto.
+- Devuelve la fecha siempre en formato ISO UTC completo YYYY-MM-DDTHH:mm:ssZ. Si es una fecha límite de sorteo sin hora especificada, asigna las 23:59:59Z.
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
 {{
@@ -245,8 +252,10 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         string? authorOrChannel,
         CancellationToken ct)
     {
+        var nowUtc = DateTime.UtcNow;
         var prompt = $@"
 Eres el asistente de ingesta social y catalogación de Ludeka, la plataforma comunitaria de juegos de mesa en español.
+Fecha actual de referencia para el análisis: {nowUtc:yyyy-MM-dd} (año en curso: {nowUtc.Year}).
 Analiza la siguiente publicación social de Instagram, YouTube o web del sector lúdico, prestando especial atención a las imágenes adjuntas (captura de bases del sorteo, cartel o portada del post):
 
 Autor/Canal de la publicación: {authorOrChannel ?? "Desconocido"}
@@ -258,7 +267,8 @@ Texto adicional proporcionado por el usuario:
 Instrucciones prioritarias:
 1. Realiza OCR sobre la captura de pantalla de bases o texto si está adjunta. Extrae las condiciones, fecha límite, ámbito territorial y premios.
 2. Si es un sorteo, extrae organizador, colaboradores (@cuentas), premio (juego o accesorio), fecha límite exacta y ámbito geográfico (ej. 'Península', 'España', 'Baleares y Canarias', 'Internacional').
-3. Si hay una imagen del cartel o post, devuelve en 'cropBoundingBox' las 4 coordenadas normalizadas [ymin, xmin, ymax, xmax] (valores enteros entre 0 y 1000) que aíslan la imagen principal del cartel/premio, descartando la barra superior de estado del teléfono (hora, batería) y la barra inferior de navegación de Instagram.
+3. Si el texto o la imagen de bases indica un día y mes sin año explícito (ej. 'hasta el 2 de octubre', 'el 5 de noviembre'), asume el año en curso ({nowUtc.Year}) o el siguiente año ({nowUtc.Year + 1}) si la fecha en el año actual ya hubiese vencido respecto a la fecha actual ({nowUtc:yyyy-MM-dd}). NUNCA infieras o asumas años pasados (como 2024 o anteriores) salvo que figuren expresamente en la publicación. Si es fecha límite sin hora especificada, asigna las 23:59:59Z.
+4. Si hay una imagen del cartel o post, devuelve en 'cropBoundingBox' las 4 coordenadas normalizadas [ymin, xmin, ymax, xmax] (valores enteros entre 0 y 1000) que aíslan la imagen principal del cartel/premio, descartando la barra superior de estado del teléfono (hora, batería) y la barra inferior de navegación de Instagram.
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
 {{

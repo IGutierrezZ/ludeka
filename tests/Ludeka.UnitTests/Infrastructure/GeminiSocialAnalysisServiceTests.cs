@@ -163,4 +163,132 @@ public class GeminiSocialAnalysisServiceTests
         Assert.Equal(SocialSubmissionType.Giveaway, result.DetectedType);
         Assert.Equal("Canal Juegos", result.OrganizerOrAuthor);
     }
+
+    [Fact]
+    public async Task AnalyzeTextAsync_WhenCallingGeminiApi_InjectsCurrentDateAndYearReferenceIntoPrompt()
+    {
+        // Arrange
+        string? capturedBody = null;
+        var innerJson = """
+        {
+          "detectedType": "Giveaway",
+          "title": "Sorteo Otoño",
+          "organizerOrAuthor": "Devir",
+          "eventOrReleaseDateIso": "2026-10-02T23:59:59Z"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "test-key",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+        });
+
+        var client = new HttpClient(new FakeHttpHandler(req =>
+        {
+            capturedBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+            };
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance);
+
+        // Act
+        var result = await service.AnalyzeTextAsync("¡Sorteo! Tienes hasta el 2 de octubre.", "Devir");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(capturedBody);
+        var todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var currentYear = DateTime.UtcNow.Year.ToString();
+        Assert.Contains($"Fecha actual de referencia para el an\\u00E1lisis: {todayIso}", capturedBody);
+        Assert.Contains($"(a\\u00F1o en curso: {currentYear})", capturedBody);
+        Assert.Contains("NUNCA inventes o asumas a\\u00F1os pasados", capturedBody);
+    }
+
+    [Fact]
+    public async Task AnalyzeMultimodalAsync_WhenCallingGeminiApi_InjectsCurrentDateAndYearReferenceIntoPrompt()
+    {
+        // Arrange
+        string? capturedBody = null;
+        var innerJson = """
+        {
+          "detectedType": "Giveaway",
+          "title": "Sorteo Cartel",
+          "organizerOrAuthor": "Maldito Games",
+          "eventOrReleaseDateIso": "2026-10-02T23:59:59Z"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "test-key",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+        });
+
+        var client = new HttpClient(new FakeHttpHandler(req =>
+        {
+            capturedBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+            };
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance);
+
+        // Act
+        var result = await service.AnalyzeMultimodalAsync(
+            text: "Cartel con bases del sorteo hasta el 2 de octubre",
+            basesImageBytes: [10, 20],
+            basesImageMimeType: "image/jpeg",
+            coverImageBytes: null,
+            coverImageMimeType: null,
+            authorOrChannel: "Maldito Games");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(capturedBody);
+        var todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var currentYear = DateTime.UtcNow.Year.ToString();
+        Assert.Contains($"Fecha actual de referencia para el an\\u00E1lisis: {todayIso}", capturedBody);
+        Assert.Contains($"(a\\u00F1o en curso: {currentYear})", capturedBody);
+        Assert.Contains("NUNCA infieras o asumas a\\u00F1os pasados", capturedBody);
+    }
 }

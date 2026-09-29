@@ -1,6 +1,6 @@
 # 28. Hub de Ingesta Social y Multimedia (Bandeja de Moderación Editable + Alta Exprés Multimodal + Directorio de Cuentas Monitorizadas)
 
-> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`), INC-70 (`change-70-ingesta-multimodal-sorteos`) e INC-80 (`change-80-moderacion-social-carteles-ia`)  
+> **Incrementos Asociados:** INC-42 (`change-42-ingesta-social-moderacion`), INC-70 (`change-70-ingesta-multimodal-sorteos`), INC-80 (`change-80-moderacion-social-carteles-ia`) e INC-81 (`change-81-fecha-referencia-prompts-ia`)  
 > **Estado:** Implementado, Verificado y Documentado  
 > **Módulo:** Radar Comunitario, Ingesta Social Multimodal, Moderación Editorial en Carteles y Directorio de Fuentes  
 
@@ -202,9 +202,14 @@ Al aprobar un ítem en `SocialIngestionService`:
 - **Actualización Atómica y Aislada en `UpdateAsync`:** Los repositorios `SqliteSocialInboxRepository`, `SqliteGiveawayRepository`, `SqliteWeeklyReleaseRepository` y `SqliteMediaRepository` recuperan la entidad existente en el `scope` del DbContext y actualizan exclusivamente sus valores escalares mediante `scope.Context.Entry(existing).CurrentValues.SetValues(entity)`. Esto erradica el fallo de claves sombra ordinales (`ScalabilityEntry.__synthesizedOrdinal`) cuando se actualizan o aprueban elementos asociados a juegos con colecciones JSON propias (`OwnsMany(..., b => b.ToJson())`).
 - **Protección en `AddAsync`:** Ante entidades que conserven una referencia no nula a `Game`, se establece de forma explícita `Entry(game).State = EntityState.Unchanged`, evitando que EF Core intente registrarlas como dependencias nuevas del contexto.
 
+### 4.6. Inyección de Contexto Temporal y Directivas Anti-Anacronismo en Prompts de Gemini AI (INC-81)
+- **Contexto Temporal Dinámico:** En `CallGeminiApiAsync` (análisis de texto) y `CallGeminiVisionApiAsync` (análisis multimodal con imágenes y OCR), se inyecta dinámicamente en el encabezado del *prompt* la fecha actual UTC de referencia (`DateTime.UtcNow:yyyy-MM-dd`) y el año en curso (`DateTime.UtcNow.Year`).
+- **Resolución de Fechas sin Año:** Se instruye taxativamente al modelo Gemini para que, ante menciones lúdicas habituales como *«hasta el 2 de octubre»* o *«el 5 de noviembre»*, asuma el año en curso o el próximo año si la fecha ya hubiese vencido respecto a la fecha de referencia.
+- **Directiva Anti-Años Pasados:** Se prohíbe explícitamente a la IA inferir o asumir años de su ventana de corte de entrenamiento (como 2024 o anteriores) salvo que figuren expresamente en el texto original, erradicando los falsos positivos de fechas vencidas que bloqueaban la aprobación de sorteos en la bandeja de moderación.
+
 ---
 
 ## 6. Pruebas y Validación
 
-- **Suite Automatizada de la Solución:** 2.079 pruebas unitarias y 10 de integración en verde (100% superado), incluyendo la suite específica `SocialIngestionServiceTests` para validar los flujos de actualización, edición, rechazo de duplicados, validación estricta de fecha fin y resolución de país desde directorio, junto con el compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
+- **Suite Automatizada de la Solución:** 2.081 pruebas unitarias y 10 de integración en verde (100% superado), incluyendo la suite específica `GeminiSocialAnalysisServiceTests` (verificación de inyección temporal y directivas en payloads HTTP a Gemini), `SocialIngestionServiceTests` (flujos de actualización, edición, rechazo de duplicados, validación estricta de fecha fin y resolución de país desde directorio), compositor SkiaSharp (`GiveawayCoverComposerTests`), análisis multimodal con Gemini Vision (`GeminiVisionSocialAnalysisTests`), flujo orquestado de ingesta (`MultimodalGiveawayIngestionTests`) y blindaje anti-vacíos de Instagram (`CommunityWriteGuardTests`).
 - **Pruebas de Componente y Contratos de Marcado:** Verificación con `WebMarkupContractTests` garantizando la ausencia total de emojis prohibidos y el uso riguroso del sistema de diseño editorial con Lucide Icons.

@@ -93,6 +93,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-78** | Barrido Completo de Calidad de Catálogo (~10.000 Juegos Promovidos) | ✅ Archivado | [inc-78-barrido-calidad-catalogo.md](file:///c:/repos/Ludeka/docs/increments/archive/inc-78-barrido-calidad-catalogo.md) |
 | **INC-79** | Ficha Inteligente de Sorteos, Redimensionado a Catálogo y Subida R2 de Carátulas | ✅ Archivado | [inc-79-sorteos-ficha-redimension-y-edicion.md](archive/inc-79-sorteos-ficha-redimension-y-edicion.md) |
 | **INC-80** | Rediseño de Moderación Social a Carteles Compactos, Resiliencia y Reintento IA, y Limpieza de Simulación | ✅ Archivado | [inc-80-moderacion-social-carteles-ia.md](archive/inc-80-moderacion-social-carteles-ia.md) |
+| **INC-81** | Inyección de Fecha de Referencia y Directivas Temporales en Prompts de Gemini AI | ✅ Archivado | [inc-81-fecha-referencia-prompts-ia.md](archive/inc-81-fecha-referencia-prompts-ia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -123,6 +124,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
 | *(Ninguno)* | — | — | — | Todos los incrementos en curso han sido integrados y archivados |
+
+*(INC-81 entregó su PR #142, verificada con 2.091 pruebas automáticas [2.081 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Inyecta la fecha UTC actual de referencia [`DateTime.UtcNow:yyyy-MM-dd`] y el año en curso [`DateTime.UtcNow.Year`] en los prompts de texto y visión de Gemini AI en `GeminiSocialAnalysisService`, añadiendo directivas explícitas para resolver fechas sin año hacia el año en curso o el próximo y prohibiendo taxativamente inferir años pasados como 2024, erradicando los falsos positivos de fechas vencidas en la moderación de sorteos).*
 
 *(INC-80 entregó su PR #141, verificada con 2.089 pruebas automáticas [2.079 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Desactiva la simulación de redes en producción y desarrollo [`SocialCollector:Simulate = false`, `appsettings.Production.json`], rediseña la bandeja de moderación a carteles compactos clicables con apertura de edición directa [`/admin/ingesta-social`], añade detección visual de publicaciones sin IA [`IsAiProcessed`], reanálisis interactivo bajo demanda con Gemini AI, panel de texto original extraído, botón de purga administrativa de publicaciones simuladas, bloqueo estricto de aprobación de sorteos sin fecha fin válida de hoy o posterior, y resolución territorial inteligente automática consultando los registros de editoriales, tiendas y creadores dados de alta en la plataforma).*
 
