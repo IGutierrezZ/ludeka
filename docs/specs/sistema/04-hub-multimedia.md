@@ -84,3 +84,4 @@ Ubicación: [`src/Ludeka.Core/Helpers/PlayerCountExtractor.cs`](file:///c:/repos
 - [`YouTubeSearchModal.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/YouTubeSearchModal.razor):
   - Ingesta quirúrgica en 1 clic con previsualización embebida.
   - INC-82: Búsqueda reactiva de títulos del catálogo protegida con temporizador de retardo (debounce 250 ms), cancelación cooperativa con `CancellationTokenSource` por cada pulsación continua y ciclo de vida `IDisposable`. Erradica la saturación de eventos SignalR en Cloud Run y previene la desconexión del circuito («Reconectando con el servidor...») y el cierre accidental del modal.
+  - Búsqueda manual desacoplada de la selección del catálogo (hacer clic en una sugerencia fija el título sin lanzar búsqueda no deseada), timeout de 10s en cliente HTTP y `CancellationTokenSource` con botón interactivo de «Cancelar Búsqueda» y reporte explícito de errores HTTP de YouTube API (403 cuota / 401 clave).
