@@ -338,6 +338,69 @@ public class YouTubeSearchServiceTests : IAsyncLifetime
             () => service.SearchTutorialsAsync("Wingspan", cts.Token));
     }
 
+    [Fact]
+    public async Task ExecuteSearchAsync_WhenApiResponseContainsDuplicateVideoIds_DeduplicatesWithoutThrowing()
+    {
+        var searchJson = """
+        {
+          "items": [
+            { "id": { "videoId": "dup-vid-1" }, "snippet": { "title": "Vídeo duplicado 1", "channelTitle": "Canal A" } },
+            { "id": { "videoId": "dup-vid-1" }, "snippet": { "title": "Vídeo duplicado 1 repetido", "channelTitle": "Canal A" } },
+            { "id": { "videoId": "dup-vid-2" }, "snippet": { "title": "Vídeo 2", "channelTitle": "Canal B" } }
+          ]
+        }
+        """;
+
+        var videosJson = """
+        {
+          "items": [
+            { "id": "dup-vid-1", "snippet": { "title": "Vídeo duplicado 1", "channelTitle": "Canal A" }, "contentDetails": { "duration": "PT5M" } },
+            { "id": "dup-vid-2", "snippet": { "title": "Vídeo 2", "channelTitle": "Canal B" }, "contentDetails": { "duration": "PT10M" } }
+          ]
+        }
+        """;
+
+        var handler = new MockHttpMessageHandler((req) =>
+        {
+            var uri = req.RequestUri?.ToString() ?? string.Empty;
+            if (uri.Contains("search?"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(searchJson, Encoding.UTF8, "application/json")
+                };
+            }
+            if (uri.Contains("videos?"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(videosJson, Encoding.UTF8, "application/json")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/")
+        };
+
+        var service = new YouTubeSearchService(
+            httpClient,
+            Options.Create(new YouTubeOptions { ApiKey = "fake-key", Simulate = false }),
+            _channelFocus,
+            _gameRepository,
+            _mediaRepository,
+            NullLogger<YouTubeSearchService>.Instance
+        );
+
+        var results = await service.SearchTutorialsAsync("Wingspan");
+
+        Assert.NotEmpty(results);
+        Assert.Equal(2, results.Count);
+    }
+
     private YouTubeSearchService CreateService(YouTubeOptions options)
     {
         var httpClient = new HttpClient { BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/") };
