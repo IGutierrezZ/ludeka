@@ -22,7 +22,7 @@
     @* Filtros prácticos de situación real y tipo de juego *@
     <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none" role="group" aria-label="Filtros del catálogo">
         <button type="button" class="filter-btn @(_activePreset == Preset.Todos ? "active" : "")" @onclick="() => SetPreset(Preset.Todos)">
-            Todos (@_totalCount)
+            @(HasActiveRefinements ? "Todos" : $"Todos ({_totalCount})")
         </button>
         <button type="button" class="filter-btn @(_activePreset == Preset.JuegosBase ? "active" : "")" @onclick="() => SetPreset(Preset.JuegosBase)">
             <Icon Name="dices" Size="12" /> Juegos Base
@@ -108,7 +108,7 @@
                                     class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedPlayerCounts.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
                                     @onclick="() => SetPlayerCount(null)"
                                     aria-label="Cualquier número de jugadores"
-                                    aria-pressed="@(_selectedPlayerCounts.Count == 0 || _selectedPlayerCount == null ? "true" : "false")">
+                                    aria-pressed="@(_selectedPlayerCounts.Count == 0 ? "true" : "false")">
                                 Todos
                             </button>
                             @foreach (var count in new[] { 1, 2, 3, 4, 5, 6, 7 })
@@ -259,7 +259,7 @@
                                     class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprints.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
                                     @onclick="() => SetFootprint(null)"
                                     aria-label="Cualquier tamaño en mesa"
-                                    aria-pressed="@(_selectedFootprints.Count == 0 || _selectedFootprint == null ? "true" : "false")">
+                                    aria-pressed="@(_selectedFootprints.Count == 0 ? "true" : "false")">
                                 Cualquiera
                             </button>
                             <button type="button"
@@ -345,7 +345,7 @@
                                     class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedMaxDurations.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
                                     @onclick="() => SetMaxDuration(null)"
                                     aria-label="Cualquier duración de partida"
-                                    aria-pressed="@(_selectedMaxDurations.Count == 0 || _selectedMaxDuration == null ? "true" : "false")">
+                                    aria-pressed="@(_selectedMaxDurations.Count == 0 ? "true" : "false")">
                                 Cualquiera
                             </button>
                             @foreach (var dur in new[] { 30, 45, 60, 90, 120 })
@@ -824,7 +824,15 @@
 
     private async Task SetPreset(Preset preset)
     {
-        _activePreset = preset;
+        _activePreset = (_activePreset == preset && preset != Preset.Todos) ? Preset.Todos : preset;
+        if (_activePreset == Preset.JuegosBase || _activePreset == Preset.Expansiones)
+        {
+            _selectedTypes.Clear();
+        }
+        if (_activePreset == Preset.PartidasRapidas)
+        {
+            _selectedMaxDurations.Clear();
+        }
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -906,6 +914,10 @@
     {
         if (!_selectedMaxDurations.Add(minutes))
             _selectedMaxDurations.Remove(minutes);
+        if (_activePreset == Preset.PartidasRapidas)
+        {
+            _activePreset = Preset.Todos;
+        }
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -917,6 +929,10 @@
         if (minutes.HasValue)
         {
             _selectedMaxDurations.Add(minutes.Value);
+        }
+        if (_activePreset == Preset.PartidasRapidas)
+        {
+            _activePreset = Preset.Todos;
         }
         _currentPage = 1;
         SyncUrl();
@@ -936,6 +952,10 @@
     {
         if (!_selectedTypes.Add(t))
             _selectedTypes.Remove(t);
+        if (_activePreset == Preset.JuegosBase || _activePreset == Preset.Expansiones)
+        {
+            _activePreset = Preset.Todos;
+        }
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -1005,7 +1025,7 @@
             EspecialParejas: _activePreset == Preset.EspecialParejas,
             MesaFamiliar: _activePreset == Preset.MesaFamiliar,
             SoloTop: _activePreset == Preset.SoloTop,
-            TypeFilter: presetTypeFilter
+            TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null
         );
 
         var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize);

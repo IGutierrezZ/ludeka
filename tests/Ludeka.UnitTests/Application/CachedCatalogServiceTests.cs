@@ -197,4 +197,156 @@ public class CachedCatalogServiceTests
         // Assert: 2 distinct inner calls because TypeFilter produces distinct cache keys
         Assert.Equal(2, inner.GetCatalogCallCount);
     }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectStyles_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaEuro = new GameFilterCriteria(Styles: new[] { GameStyle.Eurogame });
+        var criteriaAmeri = new GameFilterCriteria(Styles: new[] { GameStyle.Ameritrash });
+
+        // Act
+        await service.GetCatalogAsync(criteriaEuro, 1, 20);
+        await service.GetCatalogAsync(criteriaAmeri, 1, 20);
+
+        // Assert: 2 llamadas distintas porque los estilos multiselección producen claves distintas
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectConfrontations_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaComp = new GameFilterCriteria(Confrontations: new[] { ConfrontationType.Competitive });
+        var criteriaCoop = new GameFilterCriteria(Confrontations: new[] { ConfrontationType.Cooperative });
+
+        // Act
+        await service.GetCatalogAsync(criteriaComp, 1, 20);
+        await service.GetCatalogAsync(criteriaCoop, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectPlayerCounts_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteria2P = new GameFilterCriteria(PlayerCounts: new[] { 2 }, PlayerCountsMatchAll: true);
+        var criteria4P = new GameFilterCriteria(PlayerCounts: new[] { 4 }, PlayerCountsMatchAll: true);
+
+        // Act
+        await service.GetCatalogAsync(criteria2P, 1, 20);
+        await service.GetCatalogAsync(criteria4P, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentComplexities_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaLight = new GameFilterCriteria(Complexities: new[] { GameComplexity.Light });
+        var criteriaHeavy = new GameFilterCriteria(Complexities: new[] { GameComplexity.Heavy });
+
+        // Act
+        await service.GetCatalogAsync(criteriaLight, 1, 20);
+        await service.GetCatalogAsync(criteriaHeavy, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectFootprints_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaSmall = new GameFilterCriteria(Footprints: new[] { TableFootprint.SmallTable });
+        var criteriaMonster = new GameFilterCriteria(Footprints: new[] { TableFootprint.TableMonster });
+
+        // Act
+        await service.GetCatalogAsync(criteriaSmall, 1, 20);
+        await service.GetCatalogAsync(criteriaMonster, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectTypes_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaBase = new GameFilterCriteria(Types: new[] { GameType.BaseGame });
+        var criteriaExpansion = new GameFilterCriteria(Types: new[] { GameType.Expansion });
+
+        // Act
+        await service.GetCatalogAsync(criteriaBase, 1, 20);
+        await service.GetCatalogAsync(criteriaExpansion, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_DifferentMultiSelectMaxDurations_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteria30 = new GameFilterCriteria(MaxDurations: new[] { 30 });
+        var criteria60 = new GameFilterCriteria(MaxDurations: new[] { 60 });
+
+        // Act
+        await service.GetCatalogAsync(criteria30, 1, 20);
+        await service.GetCatalogAsync(criteria60, 1, 20);
+
+        // Assert
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
+    public async Task GetCatalogAsync_EmptyVsFilteredCriteria_ShouldDifferentiateCacheKeys()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+
+        var criteriaEmpty = new GameFilterCriteria();
+        var criteriaFiltered = new GameFilterCriteria(Styles: new[] { GameStyle.Eurogame }, Complexities: new[] { GameComplexity.Medium });
+
+        // Act
+        await service.GetCatalogAsync(criteriaEmpty, 1, 20);
+        await service.GetCatalogAsync(criteriaFiltered, 1, 20);
+
+        // Assert: Una llamada para la consulta vacía y otra para la filtrada
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
 }
