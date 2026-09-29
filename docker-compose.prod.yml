@@ -27,7 +27,7 @@ services:
       - CommunityNotifications__Enabled=${CommunityNotifications__Enabled:-true}
       - CommunityNotifications__DryRun=${CommunityNotifications__DryRun:-false}
       - CommunityNotifications__DiscordWebhookUrl=${CommunityNotifications__DiscordWebhookUrl}
-      - CommunityNotifications__DiscordInviteUrl=${CommunityNotifications__DiscordInviteUrl:-https://discord.gg/ludeka}
+      - CommunityNotifications__DiscordInviteUrl=${CommunityNotifications__DiscordInviteUrl:-https://discord.gg/DgGUUEU6gs}
       - CommunityNotifications__TelegramBotToken=${CommunityNotifications__TelegramBotToken}
       - CommunityNotifications__TelegramChatId=${CommunityNotifications__TelegramChatId}
       - CommunityNotifications__TelegramChannelUrl=${CommunityNotifications__TelegramChannelUrl:-https://t.me/ludeka}

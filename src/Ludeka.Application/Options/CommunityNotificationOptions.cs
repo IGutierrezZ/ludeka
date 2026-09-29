@@ -10,7 +10,7 @@ public class CommunityNotificationOptions
     // Discord
     public string? DiscordWebhookUrl { get; set; }
     public bool DiscordEnabled { get; set; } = true;
-    public string DiscordInviteUrl { get; set; } = "https://discord.gg/ludeka";
+    public string DiscordInviteUrl { get; set; } = "https://discord.gg/DgGUUEU6gs";
 
     // Telegram
     public string? TelegramBotToken { get; set; }
