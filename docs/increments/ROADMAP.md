@@ -99,6 +99,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
 | **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
 | **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ Planificado | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
+| **INC-87** | Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos | ⏳ En progreso | [inc-87-opt-consultas-egress-cache.md](inc-87-opt-consultas-egress-cache.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -129,7 +130,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno)* | — | — | — | Todos los incrementos en curso han sido integrados y archivados |
+| **INC-87** | `inc/opt-consultas-egress-cache` | `F:\repos\ludeka-wt\opt-consultas-egress-cache` | ⏳ En progreso | Optimización de consultas SQL, paginación quirúrgica y caché en memoria para erradicación del exceso de egress en base de datos |
 
 *(INC-85 entregó su PR #152, verificada con 2.130 pruebas automáticas [2.120 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Implementa el rediseño editorial completo de la ficha de juego `/juegos/{slug}` con maquetación asimétrica a dos columnas [8 cols para contenido inmersivo y 4 cols fijas para acción y compra], carrusel fotográfico interactivo `GameImageCarousel.razor` con soporte de portada, trasera y mesa, contador `1 / 3`, navegación táctil/flechas, tira de miniaturas y visor Lightbox modal a pantalla completa con optimizaciones anti-CLS [width/height 320px, fetchpriority="high"], módulo permanente de «Dónde Comprar» en la columna lateral fija con fallback automático a tiendas de referencia españolas [Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra] para garantizar cero estados vacíos y enlazar con el radar de precios, y barra compacta de pestañas secundarias [Guía de Fundas, Hub Multimedia y Consultorio de Reglas Q&A] respaldado por la suite `GameDetailEditorialContractTests`).*
 
