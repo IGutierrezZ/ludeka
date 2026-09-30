@@ -865,9 +865,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Acotación de Consultas de Calidad de Catálogo:** Eliminar `ToListAsync` masivo en `GetGamesPendingQualityBackfillAsync` acotando proyecciones con `Take(limit)`.
   3. **Blindaje de Caché L1 en Fichas de Editoriales (`CachedPublisherService`):** Incorporar almacenamiento en `IMemoryCache` con TTL de 30 minutos e invalidación reactiva para `GetBySlugAsync` y `GetByIdAsync`.
   4. **Ordenación SQL en Veredictos Fundadores:** Ordenar en base de datos en PostgreSQL para `SqliteFoundingVerdictRepository.GetAllAsync`.
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-89-opt-consultas-egress-fase2.md`](file:///c:/repos/Ludeka/docs/increments/inc-89-opt-consultas-egress-fase2.md).
-- **Módulos del Sistema:** [`01-catalogo-base.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-base.md), [`19-directorio-editoriales-creadores-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/19-directorio-editoriales-creadores-tiendas.md), [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
+- **Estado:** ✅ **Completado y Archivado** (2.165 tests en verde al 100%: 2.155 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-89-opt-consultas-egress-fase2.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-89-opt-consultas-egress-fase2.md).
+- **Módulos del Sistema:** [`01-catalogo-base.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-base.md), [`13-directorio-editoriales-creadores-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/13-directorio-editoriales-creadores-tiendas.md), [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
 
 ---
 
