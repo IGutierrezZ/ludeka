@@ -331,15 +331,46 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         if (string.IsNullOrWhiteSpace(publisherName)) return Array.Empty<Game>();
 
         var clean = publisherName.Trim();
+        var pattern = $"%{clean}%";
         await using var scope = await CreateScopeAsync(ct);
-        var games = await scope.Context.Games
+
+        // 1. Filtrar en SQL directamente los juegos cuya editorial principal o española coincide
+        var matchedGames = await scope.Context.Games
             .AsNoTracking()
+            .Where(g =>
+                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)))
             .ToListAsync(ct);
 
-        return games
-            .Where(g => (!string.IsNullOrWhiteSpace(g.Publisher) && g.Publisher.Contains(clean, StringComparison.OrdinalIgnoreCase)) ||
-                        (!string.IsNullOrWhiteSpace(g.SpanishPublisher) && g.SpanishPublisher.Contains(clean, StringComparison.OrdinalIgnoreCase)) ||
-                        (g.RegionalPublishers != null && g.RegionalPublishers.Any(r => !string.IsNullOrWhiteSpace(r.PublisherName) && r.PublisherName.Contains(clean, StringComparison.OrdinalIgnoreCase))))
+        var matchedIds = new HashSet<Guid>(matchedGames.Select(g => g.Id));
+
+        // 2. Comprobar juegos restantes proyectando exclusivamente Id y RegionalPublishers
+        var regionalCandidates = await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => !matchedIds.Contains(g.Id))
+            .Select(g => new { g.Id, g.RegionalPublishers })
+            .ToListAsync(ct);
+
+        var regionalMatchedIds = regionalCandidates
+            .Where(c => c.RegionalPublishers != null && c.RegionalPublishers.Any(r =>
+                !string.IsNullOrWhiteSpace(r.PublisherName) &&
+                r.PublisherName.Contains(clean, StringComparison.OrdinalIgnoreCase)))
+            .Select(c => c.Id)
+            .ToList();
+
+        if (regionalMatchedIds.Count > 0)
+        {
+            var additionalGames = await scope.Context.Games
+                .AsNoTracking()
+                .Where(g => regionalMatchedIds.Contains(g.Id))
+                .ToListAsync(ct);
+
+            return matchedGames.Concat(additionalGames)
+                .OrderBy(g => g.SpanishTitle)
+                .ToList();
+        }
+
+        return matchedGames
             .OrderBy(g => g.SpanishTitle)
             .ToList();
     }
@@ -353,11 +384,26 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .AsNoTracking()
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank)
+            .Select(g => new { g.Id, g.Scalability })
             .ToListAsync(ct);
 
-        return candidates
+        var matchingIds = candidates
             .Where(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0))
             .Take(limit)
+            .Select(g => g.Id)
+            .ToList();
+
+        if (matchingIds.Count == 0) return [];
+
+        var pagedItems = await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => matchingIds.Contains(g.Id))
+            .ToListAsync(ct);
+
+        var itemsById = pagedItems.ToDictionary(g => g.Id);
+        return matchingIds
+            .Where(id => itemsById.ContainsKey(id))
+            .Select(id => itemsById[id])
             .ToList();
     }
 

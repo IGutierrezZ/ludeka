@@ -61,9 +61,19 @@ public class SqliteFoundingVerdictRepository : DbContextRepositoryBase, IFoundin
 
     public async Task<IReadOnlyList<FoundingVerdict>> GetAllAsync(CancellationToken ct = default)
     {
-        // En SQLite, el ordenamiento por DateTimeOffset debe realizarse en memoria
         await using var scope = await CreateScopeAsync(ct);
-        var list = await scope.Context.FoundingVerdicts.ToListAsync(ct);
+        if (scope.Context.Database.IsNpgsql())
+        {
+            return await scope.Context.FoundingVerdicts
+                .AsNoTracking()
+                .OrderByDescending(v => v.CreatedAt)
+                .ToListAsync(ct);
+        }
+
+        // En SQLite, el ordenamiento por DateTimeOffset se realiza en memoria defensivamente
+        var list = await scope.Context.FoundingVerdicts
+            .AsNoTracking()
+            .ToListAsync(ct);
         return list.OrderByDescending(v => v.CreatedAt).ToList().AsReadOnly();
     }
 }

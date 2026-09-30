@@ -204,6 +204,59 @@ public class SqliteGameRepositoryOptimizationTests : IDisposable
         Assert.Equal(2, all.Count);
     }
 
+    [Fact]
+    public async Task GetByPublisherAsync_ShouldFilterCorrectlyAcrossPublisherSpanishAndRegional()
+    {
+        // Arrange
+        var g1 = CreateTestGame(301, "Catan", "Kosmos", spanishPublisher: "Devir");
+        var g2 = CreateTestGame(302, "Root", "Leder Games", spanishPublisher: "2 Tomatoes");
+        var g3 = CreateTestGame(303, "Ark Nova", "Feuerland Spiele", spanishPublisher: "Maldito Games");
+        g3.UpdateRegionalPublishers([new RegionalPublisherEntry("ES", "España", "Devir")]);
+
+        await _repository.AddRangeAsync([g1, g2, g3]);
+
+        // Act
+        var devirGames = await _repository.GetByPublisherAsync("Devir");
+        var lederGames = await _repository.GetByPublisherAsync("Leder Games");
+        var nonexistent = await _repository.GetByPublisherAsync("Editorial Inexistente");
+
+        // Assert
+        Assert.Equal(2, devirGames.Count);
+        Assert.Contains(devirGames, g => g.SpanishTitle == "Catan");
+        Assert.Contains(devirGames, g => g.SpanishTitle == "Ark Nova");
+
+        Assert.Single(lederGames);
+        Assert.Equal("Root", lederGames[0].SpanishTitle);
+
+        Assert.Empty(nonexistent);
+    }
+
+    [Fact]
+    public async Task GetGamesPendingQualityBackfillAsync_ShouldOnlyReturnGamesNeedingScalability()
+    {
+        // Arrange
+        var g1 = CreateTestGame(401, "Juego Sin Escalabilidad", "Devir"); // Scalability vacía
+
+        var g2 = CreateTestGame(402, "Juego Con Escalabilidad", "Devir");
+        g2.Scalability.Add(new ScalabilityEntry(2, "2J", ScalabilityStatus.MustPlay, 10, 2));
+
+        var g3 = CreateTestGame(403, "Juego Con Cero Votos", "Devir");
+        g3.Scalability.Add(new ScalabilityEntry(2, "2J", ScalabilityStatus.Recommended, 0, 0));
+
+        await _repository.AddRangeAsync([g1, g2, g3]);
+
+        // Act
+        var pending = await _repository.GetGamesPendingQualityBackfillAsync(limit: 10);
+        var pendingCount = await _repository.GetGamesPendingQualityBackfillCountAsync();
+
+        // Assert
+        Assert.Equal(2, pending.Count);
+        Assert.Contains(pending, g => g.BggId == 401);
+        Assert.Contains(pending, g => g.BggId == 403);
+        Assert.DoesNotContain(pending, g => g.BggId == 402);
+        Assert.Equal(2, pendingCount);
+    }
+
     private static Game CreateTestGame(int bggId, string title, string publisher, string? spanishPublisher = null)
     {
         var game = new Game(

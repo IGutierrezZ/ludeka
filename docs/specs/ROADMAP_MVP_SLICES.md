@@ -858,6 +858,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 89: Saneamiento Integral de Consultas SQL Restantes, Eliminación de Egress O(N) y Blindaje de Caché de Fichas Públicas
+- **Identificador SDD:** `change-89-opt-consultas-egress-fase2`
+- **Objetivo Principal:** Erradicar las últimas consultas residuales no paginadas en memoria y blindar las fichas individuales públicas contra el tráfico de bots y visitantes:
+  1. **Filtrado SQL Nativo en `GetByPublisherAsync`:** Empujar la condición `WHERE` a SQL mediante `EF.Functions.Like` sobre `Publisher` y `SpanishPublisher` para evitar la descarga de la tabla `Games` completa en cada visita a `/editoriales/{slug}`.
+  2. **Acotación de Consultas de Calidad de Catálogo:** Eliminar `ToListAsync` masivo en `GetGamesPendingQualityBackfillAsync` acotando proyecciones con `Take(limit)`.
+  3. **Blindaje de Caché L1 en Fichas de Editoriales (`CachedPublisherService`):** Incorporar almacenamiento en `IMemoryCache` con TTL de 30 minutos e invalidación reactiva para `GetBySlugAsync` y `GetByIdAsync`.
+  4. **Ordenación SQL en Veredictos Fundadores:** Ordenar en base de datos en PostgreSQL para `SqliteFoundingVerdictRepository.GetAllAsync`.
+- **Estado:** ✅ **Completado y Archivado** (2.165 tests en verde al 100%: 2.155 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-89-opt-consultas-egress-fase2.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-89-opt-consultas-egress-fase2.md).
+- **Módulos del Sistema:** [`01-catalogo-base.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-base.md), [`13-directorio-editoriales-creadores-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/13-directorio-editoriales-creadores-tiendas.md), [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
