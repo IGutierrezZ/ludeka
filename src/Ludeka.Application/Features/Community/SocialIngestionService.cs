@@ -182,7 +182,9 @@ public class SocialIngestionService : ISocialIngestionService
 
         var rawCaption = !string.IsNullOrWhiteSpace(input.ManualCaption)
             ? input.ManualCaption.Trim()
-            : metadata?.Description ?? metadata?.Title ?? "Bases capturadas por visión artificial multimodal";
+            : !string.IsNullOrWhiteSpace(analysis.ExtractedText)
+                ? analysis.ExtractedText.Trim()
+                : metadata?.Description ?? metadata?.Title ?? (!string.IsNullOrWhiteSpace(analysis.Notes) ? analysis.Notes.Trim() : "Bases capturadas por visión artificial multimodal");
 
         var rawLocation = analysis.TerritorialScope ?? analysis.Location;
         var location = (analysis.DetectedType == SocialSubmissionType.Giveaway || analysis.DetectedType == SocialSubmissionType.BoardGameEvent || !string.IsNullOrWhiteSpace(rawLocation))
