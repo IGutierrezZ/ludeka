@@ -7,6 +7,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Ludeka.Application.Features.Community;
 
@@ -17,14 +18,20 @@ public class GiveawayService : IGiveawayService
 
     private readonly IGiveawayRepository _repository;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IMemoryCache? _cache;
+    private static int _cacheVersion = 0;
 
     public GiveawayService(
         IGiveawayRepository repository,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IMemoryCache? cache = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _permissionGuard = permissionGuard;
+        _cache = cache;
     }
+
+    private static void InvalidateCache() => Interlocked.Increment(ref _cacheVersion);
 
     /// <summary>
     /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1). Los sorteos se
@@ -37,6 +44,12 @@ public class GiveawayService : IGiveawayService
 
     public async Task<IReadOnlyList<GiveawayDto>> GetGiveawaysAsync(bool includeExpired = false, string? country = null, CancellationToken ct = default)
     {
+        string cacheKey = $"giveaways:v{_cacheVersion}:{includeExpired}:{country?.ToLowerInvariant() ?? "all"}";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out IReadOnlyList<GiveawayDto>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var giveaways = await _repository.GetGiveawaysAsync(includeExpired, ct);
 
         if (!string.IsNullOrWhiteSpace(country))
@@ -44,11 +57,14 @@ public class GiveawayService : IGiveawayService
             giveaways = giveaways.Where(g => g.IsAvailableInCountry(country)).ToList();
         }
 
-        return giveaways
+        var result = giveaways
             .OrderByDescending(g => g.IsPromoted)
             .ThenBy(g => g.DeadlineAt)
             .Select(MapToDto)
             .ToList();
+
+        _cache?.Set(cacheKey, (IReadOnlyList<GiveawayDto>)result, TimeSpan.FromMinutes(5));
+        return result;
     }
 
     public async Task<GiveawayDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -66,6 +82,7 @@ public class GiveawayService : IGiveawayService
 
         giveaway.SetPromoted(isPromoted);
         await _repository.UpdateAsync(giveaway, ct);
+        InvalidateCache();
     }
 
     public async Task<GiveawayDto> UpdateGiveawayAsync(UpdateGiveawayRequest request, CancellationToken ct = default)
@@ -91,6 +108,7 @@ public class GiveawayService : IGiveawayService
             isPromoted: request.IsPromoted);
 
         await _repository.UpdateAsync(giveaway, ct);
+        InvalidateCache();
         return MapToDto(giveaway);
     }
 
@@ -102,6 +120,7 @@ public class GiveawayService : IGiveawayService
             ?? throw new KeyNotFoundException($"No se encontró ningún sorteo con el identificador '{id}'.");
 
         await _repository.DeleteAsync(id, ct);
+        InvalidateCache();
     }
 
     public async Task<GiveawayDto> CreateOrMergeGiveawayAsync(CreateGiveawayRequest request, CancellationToken ct = default)
@@ -125,6 +144,7 @@ public class GiveawayService : IGiveawayService
 
             existing.MergeCollaborator(collaboratorToMerge);
             await _repository.UpdateAsync(existing, ct);
+            InvalidateCache();
             return MapToDto(existing);
         }
 
@@ -143,6 +163,7 @@ public class GiveawayService : IGiveawayService
             isPromoted: request.IsPromoted);
 
         await _repository.AddAsync(newGiveaway, ct);
+        InvalidateCache();
         return MapToDto(newGiveaway);
     }
 
