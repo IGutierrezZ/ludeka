@@ -46,7 +46,8 @@ Tras la exitosa homogeneización de los sorteos en el INC-79, los módulos de **
   - Implementar `DeleteReleaseAsync(id, ct)` con validación de moderación (`CanApproveMedia`).
 - **Persistencia SQLite y EF Core (`Ludeka.Infrastructure`):**
   - Mapear `SourceUrl` en `LudekaDbContext` para `WeeklyReleases` (`HasMaxLength(1000)`).
-  - Actualizar `SqliteWeeklyReleaseRepository` si procede.
+  - Migración EF Core `20260930060047_AddWeeklyReleaseSourceUrl` y reconciliación defensiva en `SqliteSchemaMigrator`.
+  - Canario de esquema PostgreSQL actualizado a 15 migraciones en `PostgresSchemaVerificationTests`.
 
 ### Componente 2: Fichas de Detalle Inteligentes
 - **`ReleaseDetail.razor`:**

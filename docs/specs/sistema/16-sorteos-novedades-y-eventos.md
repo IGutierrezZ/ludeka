@@ -78,6 +78,10 @@ Ubicación: `src/Ludeka.Core/Entities/WeeklyRelease.cs`
 - **`IImageStorageService`:**
   - `UploadOptimizedImageAsync(...)`: Optimización WebP (calidad 85) y almacenamiento en Cloudflare R2 (`giveaways/{id:N}/cover.webp`, `releases/{id:N}/cover.webp` y `events/{id:N}/cover.webp`).
   - Fallback local o simulado en entornos de desarrollo sin credenciales Cloudflare.
+- **Persistencia y Migraciones Duales (INC-87):**
+  - Mapeo de `WeeklyRelease.SourceUrl` en `LudekaDbContext` con longitud máxima 1.000 caracteres.
+  - Migración EF Core PostgreSQL `20260930060047_AddWeeklyReleaseSourceUrl.cs` y reconciliación defensiva de esquema SQLite en `SqliteSchemaMigrator`.
+  - Canario de esquema PostgreSQL actualizado a 15 migraciones en `tests/Ludeka.IntegrationTests/PostgresSchemaVerificationTests.cs`.
 
 ---
 
