@@ -840,9 +840,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Paginación Quirúrgica en Dos Fases en Catálogo (`SearchAsync`):** Al activar filtros de escalabilidad o complejidad, proyectar únicamente identificadores y campos mínimos para filtrar y resolver los 24 IDs paginados, materializando únicamente las 24 entidades finales.
   3. **Filtro de Sorteos en SQL:** Delegar el filtrado de vigencia temporal en `Giveaways` al motor relacional en lugar de evaluar en memoria.
   4. **Capa de Caché en Memoria (`IMemoryCache`):** Políticas de caché en memoria con TTL e invalidación para directorios de tiendas (30 min), editoriales (30 min), alertas de radar (15 min) y sorteos de portada (5 min).
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-87-opt-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/increments/inc-87-opt-consultas-egress-cache.md).
-- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/01-catalogo-y-fichas.md), [`11-enlaces-compra-afiliados.md`](file:///c:/repos/Ludeka/docs/specs/sistema/11-enlaces-compra-afiliados.md), [`19-directorio-editoriales-creadores-tiendas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/19-directorio-editoriales-creadores-tiendas.md), [`26-radar-precios-alertas.md`](file:///c:/repos/Ludeka/docs/specs/sistema/26-radar-precios-alertas.md), [`35-persistencia-produccion-y-medios-con-fallback.md`](file:///c:/repos/Ludeka/docs/specs/sistema/35-persistencia-produccion-y-medios-con-fallback.md).
+- **Estado:** ✅ **Completado y Archivado** (2.144 tests en verde al 100%: 2.134 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-87-opt-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-87-opt-consultas-egress-cache.md).
+- **Módulos del Sistema:** [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
 
 ---
 

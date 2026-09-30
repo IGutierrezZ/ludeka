@@ -3,7 +3,7 @@
 > **ID:** INC-87  
 > **Slug:** `opt-consultas-egress-cache`  
 > **Rama:** `inc/opt-consultas-egress-cache`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-base.md`), Módulo 11 (`docs/specs/sistema/11-enlaces-compra-afiliados.md`), Módulo 19 (`docs/specs/sistema/19-directorio-editoriales-creadores-tiendas.md`), Módulo 26 (`docs/specs/sistema/26-radar-precios-alertas.md`), Módulo 35 (`docs/specs/sistema/35-persistencia-produccion-y-medios-con-fallback.md`)  
 > **Dependencias:** INC-85, INC-86 (planificado).
 
