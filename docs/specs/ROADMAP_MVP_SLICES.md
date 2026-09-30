@@ -833,15 +833,27 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
-## Incremento 87: Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos
-- **Identificador SDD:** `change-87-opt-consultas-egress-cache`
+## Incremento 87: Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial
+- **Identificador SDD:** `change-87-novedades-eventos-fichas-y-tarjetas`
+- **Objetivo Principal:** Equiparar la experiencia y maquetación de Novedades y Eventos con la de Sorteos (INC-79):
+  1. **Fichas de Detalle:** Páginas públicas `/novedades/{id}` y `/eventos/{id}` con presentación editorial rica, botón CTA externo a la fuente original de la novedad (`SourceUrl`) o web oficial del evento (`WebsiteUrl`), y panel modal de edición y subida de carátulas WebP a Cloudflare R2 para moderadores.
+  2. **Contratos y Dominio:** Ampliación de `WeeklyRelease` con `SourceUrl` y mutación, y enriquecimiento de `IWeeklyReleaseService` con `GetByIdAsync`, `UpdateReleaseAsync` y `DeleteReleaseAsync` con validación de moderación (`CanApproveMedia`).
+  3. **Tarjetas Compactas:** Rediseño de `News.razor` y `Events.razor` a rejilla unificada de 2 a 6 columnas con tarjetas cuadradas `rail-cover--square`, y ajuste de `HomeReleaseCard.razor` y `HomeEventCard.razor` al estándar compacto de catálogo (192x192).
+- **Estado:** ✅ **Archivado**
+- **Documento:** [`inc-87-novedades-eventos-fichas-y-tarjetas.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-87-novedades-eventos-fichas-y-tarjetas.md).
+- **Módulos del Sistema:** [`16-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-sorteos-novedades-y-eventos.md).
+
+---
+
+## Incremento 88: Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos
+- **Identificador SDD:** `change-88-opt-consultas-egress-cache`
 - **Objetivo Principal:** Erradicar el consumo excesivo de ancho de banda saliente (egress > 5.5 GB) en Supabase PostgreSQL provocado por materializaciones masivas en memoria (`GetAllGamesAsync` y `ToListAsync` completos) y blindar la aplicación con caché en memoria:
   1. **Erradicación de `GetAllGamesAsync` en Servicios de Negocio:** Consultas agregadas y proyecciones ligeras para conteos de ofertas en tiendas (`StoreService`), juegos por editorial (`PublisherService`) y filtrado en base de datos para el radar de precios (`PriceRadarService`).
   2. **Paginación Quirúrgica en Dos Fases en Catálogo (`SearchAsync`):** Al activar filtros de escalabilidad o complejidad, proyectar únicamente identificadores y campos mínimos para filtrar y resolver los 24 IDs paginados, materializando únicamente las 24 entidades finales.
   3. **Filtro de Sorteos en SQL:** Delegar el filtrado de vigencia temporal en `Giveaways` al motor relacional en lugar de evaluar en memoria.
   4. **Capa de Caché en Memoria (`IMemoryCache`):** Políticas de caché en memoria con TTL e invalidación para directorios de tiendas (30 min), editoriales (30 min), alertas de radar (15 min) y sorteos de portada (5 min).
-- **Estado:** ✅ **Completado y Archivado** (2.144 tests en verde al 100%: 2.134 unitarios + 10 de integración).
-- **Documento:** [`archive/inc-87-opt-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-87-opt-consultas-egress-cache.md).
+- **Estado:** ✅ **Completado y Archivado** (2.161 tests en verde al 100%: 2.151 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-88-opt-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-88-opt-consultas-egress-cache.md).
 - **Módulos del Sistema:** [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
 
 ---

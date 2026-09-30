@@ -1,9 +1,9 @@
 # 46. Optimización de Consultas SQL, Paginación Quirúrgica en Dos Fases y Caché en Memoria L1
 
 > **ID del Módulo:** `46-optimizacion-consultas-egress-cache`  
-> **Incremento Asociado:** INC-87 (`change-87-opt-consultas-egress-cache`)  
+> **Incremento Asociado:** INC-88 (`change-88-opt-consultas-egress-cache`)  
 > **Estado:** ✅ Implementado y Verificado  
-> **Pruebas Automatizadas:** 2.134 pruebas unitarias + 10 de integración (2.144 pruebas totales verificadas al 100%)
+> **Pruebas Automatizadas:** 2.151 pruebas unitarias + 10 de integración (2.161 pruebas totales verificadas al 100%)
 
 ---
 
@@ -52,7 +52,7 @@ Siguiendo el patrón existente de `CachedCatalogService` y `CachedHomeDashboardS
 
 ## 3. Impacto y Ahorro Estimado
 
-| Flujo / Endpoint | Comportamiento Anterior | Comportamiento INC-87 | Reducción de Egress |
+| Flujo / Endpoint | Comportamiento Anterior | Comportamiento INC-88 | Reducción de Egress |
 | :--- | :--- | :--- | :--- |
 | **`/tiendas` (Listado)** | Descarga 100% de `Games` completos | Proyección exclusiva de `PurchaseLinks` + Caché 30m | **>99%** |
 | **`/tiendas/{slug}` (Ficha)** | Descarga 100% de `Games` completos | Descarga solo juegos de esa tienda + Caché 30m | **>95%** |

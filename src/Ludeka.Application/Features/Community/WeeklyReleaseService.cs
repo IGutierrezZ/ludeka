@@ -41,6 +41,12 @@ public class WeeklyReleaseService : IWeeklyReleaseService
         return releases.Select(MapToDto).ToList();
     }
 
+    public async Task<WeeklyReleaseDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var release = await _repository.GetByIdAsync(id, ct);
+        return release is null ? null : MapToDto(release);
+    }
+
     public async Task<WeeklyReleaseDto> CreateReleaseAsync(CreateWeeklyReleaseRequest request, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
@@ -54,10 +60,40 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             coverImageUrl: request.CoverImageUrl,
             estimatedPvp: request.EstimatedPvp,
             isReprint: request.IsReprint,
-            notes: request.Notes);
+            notes: request.Notes,
+            sourceUrl: request.SourceUrl);
 
         await _repository.AddAsync(release, ct);
         return MapToDto(release);
+    }
+
+    public async Task<WeeklyReleaseDto> UpdateReleaseAsync(Guid id, UpdateWeeklyReleaseRequest request, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var existing = await _repository.GetByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No se encontró el lanzamiento con ID {id}.");
+
+        existing.Update(
+            title: request.Title,
+            publisher: request.Publisher,
+            releaseDate: request.ReleaseDate,
+            gameId: request.GameId,
+            coverImageUrl: request.CoverImageUrl,
+            estimatedPvp: request.EstimatedPvp,
+            isReprint: request.IsReprint,
+            notes: request.Notes,
+            sourceUrl: request.SourceUrl);
+
+        await _repository.UpdateAsync(existing, ct);
+        return MapToDto(existing);
+    }
+
+    public async Task DeleteReleaseAsync(Guid id, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        await _repository.DeleteAsync(id, ct);
     }
 
     private static WeeklyReleaseDto MapToDto(WeeklyRelease r)
@@ -73,6 +109,7 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             r.IsReprint,
             r.Notes,
             r.InstagramPermalink,
-            r.IsPublishedOnInstagram);
+            r.IsPublishedOnInstagram,
+            r.SourceUrl);
     }
 }

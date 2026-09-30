@@ -1,0 +1,694 @@
+@page "/novedades/{Id:guid}"
+@page "/novedad/{Id:guid}"
+@rendermode InteractiveServer
+@using System.IO
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Entities
+@using Ludeka.Core.Enums
+@using Ludeka.Core.ValueObjects
+@using Ludeka.Web.Components.Shared
+@inject IWeeklyReleaseService ReleaseService
+@inject IImageStorageService ImageStorageService
+@inject ICurrentUserService CurrentUserService
+@inject IGameRepository GameRepository
+@inject NavigationManager Navigation
+@inject ILogger<ReleaseDetail> Logger
+
+<PageTitle>@(_release != null ? $"{_release.Title} — Novedad Editorial | Ludeka" : "Lanzamiento no encontrado — Ludeka")</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="container-ludeka py-20 text-center text-[var(--text-muted)]">
+        <div class="inline-block animate-spin mb-3">
+            <Icon Name="newspaper" Size="36" />
+        </div>
+        <p class="text-base font-semibold">Cargando ficha del lanzamiento...</p>
+    </div>
+}
+else if (_release == null)
+{
+    <div class="container-ludeka py-20 text-center max-w-lg mx-auto">
+        <span class="inline-block mb-4 text-[var(--text-muted)]">
+            <Icon Name="package" Size="40" />
+        </span>
+        <h1 class="text-2xl font-black text-[var(--text-primary)] mb-2">Lanzamiento no encontrado</h1>
+        <p class="text-sm text-[var(--text-muted)] mb-6">
+            La novedad o lanzamiento que buscas no existe o ha sido retirado del calendario.
+        </p>
+        <a href="/novedades" class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs transition-opacity shadow-sm inline-flex items-center gap-1.5">
+            <span>&larr;</span> Volver al calendario de novedades
+        </a>
+    </div>
+}
+else
+{
+    @* Barra de navegación superior y accesos de moderación *@
+    <div class="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="flex items-center gap-4">
+                <a href="/novedades" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
+                    <span>&larr;</span> Volver al calendario de novedades
+                </a>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                @if (_release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_release.InstagramPermalink))
+                {
+                    <a href="@_release.InstagramPermalink"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="Ver publicación oficial en Instagram"
+                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                        <Icon Name="camera" Size="12" /> Publicación en Instagram <span>↗</span>
+                    </a>
+                }
+                else if (CanModerate)
+                {
+                    <a href="/admin/instagram?sourceType=WeeklyRelease&sourceId=@_release.Id"
+                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                        <Icon Name="camera" Size="12" /> Crear Post Instagram
+                    </a>
+                }
+
+                @if (CanModerate)
+                {
+                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
+                        <button type="button"
+                                @onclick="OpenEditModal"
+                                title="Editar datos y carátula del lanzamiento"
+                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="pen-line" Size="12" /> Editar Novedad
+                        </button>
+                        <button type="button"
+                                @onclick="() => _isDeleteConfirmOpen = true"
+                                title="Eliminar este lanzamiento"
+                                class="px-3 py-1 rounded-lg bg-[var(--state-error-bg)] hover:bg-[var(--state-error-border)] text-[var(--state-error)] border border-[var(--state-error-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="trash-2" Size="12" /> Eliminar
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Contenedor Editorial Principal *@
+    <div class="container-ludeka py-6 sm:py-10">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            @* Columna Izquierda: Carátula y Enlace CTA *@
+            <div class="md:col-span-5 lg:col-span-5 space-y-4">
+                <div class="rail-card flex flex-col p-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl shadow-md overflow-hidden relative">
+                    <div class="relative w-full aspect-square bg-[var(--bg-surface-elevated)] rounded-xl overflow-hidden">
+                        @if (string.IsNullOrWhiteSpace(_release.CoverImageUrl))
+                        {
+                            <DefaultImage Domain="DefaultImageDomain.Novedad"
+                                          Alt="@($"Carátula de {_release.Title}")"
+                                          CssClass="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <img src="@_release.CoverImageUrl"
+                                 alt="Carátula oficial de @_release.Title"
+                                 width="600"
+                                 height="600"
+                                 loading="lazy"
+                                 decoding="async"
+                                 onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';"
+                                 class="w-full h-full object-cover" />
+                        }
+
+                        @* Badges flotantes en la carátula *@
+                        <div class="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 shadow-md @(_release.IsReprint ? "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]" : "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--brand-primary)]")">
+                                @if (_release.IsReprint)
+                                {
+                                    <Icon Name="refresh-cw" Size="12" /> <span>Reimpresión</span>
+                                }
+                                else
+                                {
+                                    <Icon Name="sparkles" Size="12" /> <span>Novedad</span>
+                                }
+                            </span>
+                        </div>
+
+                        @if (_release.EstimatedPvp.HasValue)
+                        {
+                            <div class="absolute bottom-3 right-3 z-10 px-3 py-1 rounded-lg text-xs font-black shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]">
+                                @_release.EstimatedPvp.Value.ToString("0.00") €
+                            </div>
+                        }
+                    </div>
+
+                    @if (CanModerate)
+                    {
+                        <div class="pt-2 px-1 text-center">
+                            <button type="button"
+                                    @onclick="OpenEditModal"
+                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
+                                <Icon Name="pen-line" Size="12" /> Cambiar o subir carátula
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @* Botón de Acción Principal: Ir a la URL de origen *@
+                <div class="space-y-2">
+                    @if (!string.IsNullOrWhiteSpace(_release.SourceUrl))
+                    {
+                        <a href="@_release.SourceUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="w-full py-3.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-sm sm:text-base text-center flex items-center justify-center gap-2 shadow-md transition-all">
+                            <span>Ir a la noticia oficial</span>
+                            <span class="text-base">&rarr;</span>
+                        </a>
+                        <p class="text-center text-[0.72rem] text-[var(--text-muted)] flex items-center justify-center gap-1">
+                            <Icon Name="check-circle" Size="12" />
+                            <span>Fuente original de la información verificada</span>
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2">
+                            <Icon Name="newspaper" Size="14" Class="text-[var(--brand-primary)]" />
+                            <span>Información catalogada directamente por el equipo editorial</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Columna Derecha: Metadatos, Editorial y Juego Asociado *@
+            <div class="md:col-span-7 lg:col-span-7 space-y-6">
+                @* Badges de Cabecera *@
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                        <Icon Name="calendar-days" Size="13" />
+                        <span>Lanzamiento: @_release.ReleaseDate.ToString("dd/MM/yyyy")</span>
+                    </span>
+
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                        <Icon Name="building-2" Size="13" />
+                        <span>Editorial: @_release.Publisher</span>
+                    </span>
+
+                    @if (_release.EstimatedPvp.HasValue)
+                    {
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-emerald-400">
+                            <Icon Name="tag" Size="13" />
+                            <span>PVP aprox: @_release.EstimatedPvp.Value.ToString("0.00") €</span>
+                        </span>
+                    }
+                </div>
+
+                @* Título *@
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                        @_release.Title
+                    </h1>
+                </div>
+
+                @* Ficha de la Editorial *@
+                <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                    <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                        Sello Editorial &amp; Distribución
+                    </h2>
+
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
+                            <Icon Name="building-2" Size="18" />
+                        </div>
+                        <div>
+                            <span class="text-[0.7rem] text-[var(--text-muted)] block">Editorial responsable</span>
+                            <span class="font-extrabold text-sm text-[var(--text-primary)]">@_release.Publisher</span>
+                            <p class="text-xs text-[var(--text-secondary)] mt-0.5">
+                                Publicación prevista para el circuito de tiendas especializadas en español.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                @* Notas Editoriales *@
+                @if (!string.IsNullOrWhiteSpace(_release.Notes))
+                {
+                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                        <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                            Detalles del Lanzamiento
+                        </h2>
+                        <p class="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                            @_release.Notes
+                        </p>
+                    </div>
+                }
+
+                @* Ficha del Juego Vinculado (si existe) *@
+                @if (_associatedGame != null)
+                {
+                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
+                                <Icon Name="dices" Size="14" /> Juego Catalogado en Ludeka
+                            </h2>
+                            <a href="/juegos/@_associatedGame.Slug" class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
+                                Ver Ficha Completa &rarr;
+                            </a>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <a href="/juegos/@_associatedGame.Slug" class="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
+                                @if (!string.IsNullOrWhiteSpace(_associatedGame.ThumbnailUrl))
+                                {
+                                    <img src="@_associatedGame.ThumbnailUrl"
+                                         alt="@_associatedGame.SpanishTitle"
+                                         width="64"
+                                         height="64"
+                                         loading="lazy"
+                                         decoding="async"
+                                         class="w-full h-full object-cover" />
+                                }
+                                else
+                                {
+                                    <img src="/images/game-placeholder.svg"
+                                         alt="@_associatedGame.SpanishTitle"
+                                         width="64"
+                                         height="64"
+                                         loading="lazy"
+                                         decoding="async"
+                                         class="w-full h-full object-cover opacity-80" />
+                                }
+                            </a>
+                            <div class="min-w-0 flex-1">
+                                <a href="/juegos/@_associatedGame.Slug" class="font-extrabold text-sm text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
+                                    @_associatedGame.SpanishTitle
+                                </a>
+                                <p class="text-xs text-[var(--text-secondary)] truncate">
+                                    @_associatedGame.Designer &bull; @_associatedGame.YearPublished
+                                </p>
+                                <div class="flex items-center gap-3 mt-1.5 text-xs text-[var(--text-muted)]">
+                                    <span class="font-bold text-amber-400 flex items-center gap-0.5">
+                                        <Icon Name="star" Size="11" /> @_associatedGame.BggRating.ToString("0.0")
+                                    </span>
+                                    <span>BGG Rank #@_associatedGame.BggRank</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal de Edición de Novedad *@
+@if (CanModerate && _isEditModalOpen)
+{
+    <EditorialModal Open="@_isEditModalOpen"
+                    Title="Editar Novedad Editorial"
+                    TitleIcon="pen-line"
+                    OnClose="@(() => _isEditModalOpen = false)">
+        <ChildContent>
+            <div class="space-y-4 text-xs">
+                @* Título *@
+                <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Título del Juego *</label>
+                    <input type="text"
+                           @bind="_editTitle"
+                           placeholder="Ej. Heat: Lluvia Torrencial"
+                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                </div>
+
+                @* Editorial y Fecha *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Editorial / Distribuidora *</label>
+                        <input type="text"
+                               @bind="_editPublisher"
+                               placeholder="Ej. Asmodee / Days of Wonder"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha de Lanzamiento *</label>
+                        <input type="date"
+                               @bind="_editReleaseDate"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* PVP y Tipo *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">PVP Estimado (€)</label>
+                        <input type="number"
+                               step="0.5"
+                               @bind="_editPvp"
+                               placeholder="Ej. 39.99"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                    <div class="flex items-center pt-5">
+                        <label class="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-secondary)]">
+                            <input type="checkbox"
+                                   @bind="_editIsReprint"
+                                   class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
+                            <span>Es Reimpresión</span>
+                        </label>
+                    </div>
+                </div>
+
+                @* URL de Noticia Oficial / Origen *@
+                <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace a Noticia / Fuente Original (URL)</label>
+                    <input type="url"
+                           @bind="_editSourceUrl"
+                           placeholder="https://..."
+                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    <span class="text-[0.68rem] text-[var(--text-muted)] mt-1 block">
+                        Enlace a la web de la editorial o tienda donde se anunció la novedad.
+                    </span>
+                </div>
+
+                @* Carátula y Subida R2 *@
+                <div class="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                    <label class="font-semibold text-[var(--text-secondary)] block">Carátula de la Novedad</label>
+                    <div class="flex items-center gap-3">
+                        @if (!string.IsNullOrWhiteSpace(_editCoverImageUrl))
+                        {
+                            <img src="@_editCoverImageUrl"
+                                 alt="Vista previa"
+                                 class="w-14 h-14 rounded-lg object-cover border border-[var(--border-subtle)] shrink-0"
+                                 onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';" />
+                        }
+                        else
+                        {
+                            <DefaultImage Domain="DefaultImageDomain.Novedad" CssClass="w-14 h-14 rounded-lg object-cover border border-[var(--border-subtle)] shrink-0" />
+                        }
+
+                        <div class="flex-1 space-y-1.5">
+                            <InputFile OnChange="HandleImageSelected"
+                                       accept="image/png,image/jpeg,image/webp"
+                                       class="text-xs text-[var(--text-muted)] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--brand-primary)] file:text-white hover:file:opacity-90 cursor-pointer" />
+                            <p class="text-[0.65rem] text-[var(--text-muted)]">
+                                Optimizado automático a WebP con compresión y almacenamiento en Cloudflare R2.
+                            </p>
+                            @if (_isUploadingImage)
+                            {
+                                <span class="text-xs text-[var(--brand-primary)] flex items-center gap-1 font-semibold">
+                                    <span class="animate-spin"><Icon Name="refresh-cw" Size="11" /></span> Optimizando y subiendo...
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[0.7rem] text-[var(--text-muted)] block mb-1">O introduce URL directa:</label>
+                        <input type="url"
+                               @bind="_editCoverImageUrl"
+                               placeholder="https://... o /images/..."
+                               class="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* Notas *@
+                <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Notas Editoriales</label>
+                    <textarea rows="3"
+                              @bind="_editNotes"
+                              placeholder="Ej. Edición en español confirmada para el último trimestre..."
+                              class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"></textarea>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_editError))
+                {
+                    <div class="p-2.5 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+                        @_editError
+                    </div>
+                }
+            </div>
+        </ChildContent>
+
+        <Footer>
+            <button type="button"
+                    @onclick="() => _isEditModalOpen = false"
+                    disabled="@_isSaving"
+                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                Cancelar
+            </button>
+            <button type="button"
+                    @onclick="HandleSaveRelease"
+                    disabled="@_isSaving"
+                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                @if (_isSaving)
+                {
+                    <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
+                    <span>Guardando...</span>
+                }
+                else
+                {
+                    <span>Guardar Cambios</span>
+                }
+            </button>
+        </Footer>
+    </EditorialModal>
+}
+
+@* Modal de Confirmación de Eliminación *@
+@if (CanModerate)
+{
+    <EditorialModal Open="@_isDeleteConfirmOpen"
+                    Title="Eliminar Lanzamiento"
+                    TitleIcon="trash-2"
+                    OnClose="@(() => _isDeleteConfirmOpen = false)">
+        <ChildContent>
+            <div class="space-y-3 text-xs">
+                <p class="text-[var(--text-primary)] font-semibold">
+                    ¿Estás seguro de que deseas eliminar definitivamente este lanzamiento?
+                </p>
+                <div class="p-3 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+                    Esta acción retirará la novedad del calendario y de la portada de Ludeka. La operación no se puede deshacer.
+                </div>
+            </div>
+        </ChildContent>
+
+        <Footer>
+            <button type="button"
+                    @onclick="() => _isDeleteConfirmOpen = false"
+                    disabled="@_isDeleting"
+                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                Cancelar
+            </button>
+            <button type="button"
+                    @onclick="HandleDeleteRelease"
+                    disabled="@_isDeleting"
+                    class="px-4 py-2 rounded-xl bg-[var(--state-error)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                @if (_isDeleting)
+                {
+                    <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
+                    <span>Eliminando...</span>
+                }
+                else
+                {
+                    <span>Eliminar Definitivamente</span>
+                }
+            </button>
+        </Footer>
+    </EditorialModal>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private WeeklyReleaseDto? _release;
+    private Game? _associatedGame;
+    private bool _isLoading = true;
+    private bool _isEditModalOpen;
+    private bool _isDeleteConfirmOpen;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _isUploadingImage;
+
+    // Campos de edición
+    private string _editTitle = string.Empty;
+    private string _editPublisher = string.Empty;
+    private DateOnly _editReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private decimal? _editPvp;
+    private bool _editIsReprint;
+    private string? _editCoverImageUrl;
+    private string? _editNotes;
+    private string? _editSourceUrl;
+    private Guid? _editGameId;
+    private string? _editError;
+
+    private bool CanModerate => CurrentUserService.IsFoundingTeam ||
+                               (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReleaseAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_release != null && _release.Id != Id)
+        {
+            await LoadReleaseAsync();
+        }
+    }
+
+    private async Task LoadReleaseAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _release = await ReleaseService.GetByIdAsync(Id);
+            if (_release?.GameId.HasValue == true)
+            {
+                _associatedGame = await GameRepository.GetByIdAsync(_release.GameId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar el lanzamiento {ReleaseId}", Id);
+            _release = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenEditModal()
+    {
+        if (_release == null) return;
+
+        _editTitle = _release.Title;
+        _editPublisher = _release.Publisher;
+        _editReleaseDate = _release.ReleaseDate;
+        _editPvp = _release.EstimatedPvp;
+        _editIsReprint = _release.IsReprint;
+        _editCoverImageUrl = _release.CoverImageUrl;
+        _editNotes = _release.Notes;
+        _editSourceUrl = _release.SourceUrl;
+        _editGameId = _release.GameId;
+        _editError = null;
+        _isEditModalOpen = true;
+    }
+
+    private async Task HandleImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            _editError = "La imagen no debe superar los 10 MB.";
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var objectKey = $"releases/{Id:N}/cover.webp";
+            var publicUrl = await ImageStorageService.UploadOptimizedImageAsync(
+                memoryStream,
+                objectKey,
+                maxWidth: 1200,
+                quality: 85);
+
+            _editCoverImageUrl = publicUrl;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al optimizar y subir carátula para el lanzamiento {ReleaseId}", Id);
+            _editError = "No se pudo subir la imagen. Verifica la conexión o formato del archivo.";
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
+    }
+
+    private async Task HandleSaveRelease()
+    {
+        _editError = null;
+
+        if (string.IsNullOrWhiteSpace(_editTitle))
+        {
+            _editError = "El título del lanzamiento es obligatorio.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editPublisher))
+        {
+            _editError = "La editorial es obligatoria.";
+            return;
+        }
+
+        var request = new UpdateWeeklyReleaseRequest(
+            Id: Id,
+            Title: _editTitle,
+            Publisher: _editPublisher,
+            ReleaseDate: _editReleaseDate,
+            GameId: _editGameId,
+            CoverImageUrl: string.IsNullOrWhiteSpace(_editCoverImageUrl) ? null : _editCoverImageUrl.Trim(),
+            EstimatedPvp: _editPvp,
+            IsReprint: _editIsReprint,
+            Notes: string.IsNullOrWhiteSpace(_editNotes) ? null : _editNotes.Trim(),
+            SourceUrl: string.IsNullOrWhiteSpace(_editSourceUrl) ? null : _editSourceUrl.Trim());
+
+        _isSaving = true;
+        try
+        {
+            _release = await ReleaseService.UpdateReleaseAsync(Id, request);
+            if (_release.GameId.HasValue)
+            {
+                _associatedGame = await GameRepository.GetByIdAsync(_release.GameId.Value);
+            }
+            else
+            {
+                _associatedGame = null;
+            }
+
+            _isEditModalOpen = false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al guardar el lanzamiento {ReleaseId}", Id);
+            _editError = "Ocurrió un error inesperado al guardar los cambios.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleDeleteRelease()
+    {
+        _isDeleting = true;
+        try
+        {
+            await ReleaseService.DeleteReleaseAsync(Id);
+            _isDeleteConfirmOpen = false;
+            Navigation.NavigateTo("/novedades");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar el lanzamiento {ReleaseId}", Id);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}
