@@ -36,7 +36,7 @@ public class StoreService : IStoreService
     public async Task<IReadOnlyList<StoreDto>> GetAllAsync(string? search = null, StoreType? type = null, string? country = null, CancellationToken ct = default)
     {
         var stores = await _storeRepository.GetAllAsync(ct);
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
+        var offerCountsByStore = await _gameRepository.GetOfferCountsByStoreAsync(ct);
         var likesCounts = _userLikeRepository != null
             ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.Store, stores.Select(s => s.Id), ct)
             : new Dictionary<Guid, int>();
@@ -66,8 +66,9 @@ public class StoreService : IStoreService
         return query
             .Select(s =>
             {
-                var activeOffersCount = allGames.Count(g =>
-                    g.PurchaseLinks.Any(l => IsMatchStore(l.StoreName, s.Name)));
+                var activeOffersCount = offerCountsByStore
+                    .Where(kvp => IsMatchStore(kvp.Key, s.Name))
+                    .Sum(kvp => kvp.Value);
                 var likesCount = likesCounts.GetValueOrDefault(s.Id, 0);
 
                 return MapToDto(s, activeOffersCount, likesCount);
@@ -84,8 +85,8 @@ public class StoreService : IStoreService
         var store = await _storeRepository.GetBySlugAsync(slug.Trim().ToLowerInvariant(), ct);
         if (store == null) return null;
 
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
-        var offers = ExtractOffersForStore(store, allGames);
+        var gamesWithOffers = await _gameRepository.GetGamesWithStoreOffersAsync(store.Name, ct);
+        var offers = ExtractOffersForStore(store, gamesWithOffers);
         var likesCount = _userLikeRepository != null
             ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Store, store.Id, ct)
             : 0;
@@ -98,8 +99,8 @@ public class StoreService : IStoreService
         var store = await _storeRepository.GetByIdAsync(id, ct);
         if (store == null) return null;
 
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
-        var offers = ExtractOffersForStore(store, allGames);
+        var gamesWithOffers = await _gameRepository.GetGamesWithStoreOffersAsync(store.Name, ct);
+        var offers = ExtractOffersForStore(store, gamesWithOffers);
         var likesCount = _userLikeRepository != null
             ? await _userLikeRepository.GetLikesCountAsync(LikeTargetType.Store, store.Id, ct)
             : 0;
@@ -215,9 +216,8 @@ public class StoreService : IStoreService
             ), ct);
         }
 
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
-        var activeOffers = allGames.Count(g => g.PurchaseLinks.Any(l => IsMatchStore(l.StoreName, store.Name)));
-        return MapToDto(store, activeOffers);
+        var gamesWithOffers = await _gameRepository.GetGamesWithStoreOffersAsync(store.Name, ct);
+        return MapToDto(store, gamesWithOffers.Count);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

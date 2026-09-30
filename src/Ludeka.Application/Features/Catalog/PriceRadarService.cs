@@ -9,6 +9,7 @@ using Ludeka.Application.Options;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -25,6 +26,7 @@ public class PriceRadarService : IPriceRadarService
     private readonly IStoreStockService _stockService;
     private readonly PriceRadarOptions _options;
     private readonly ILogger<PriceRadarService> _logger;
+    private readonly IMemoryCache? _cache;
 
     public PriceRadarService(
         IGamePriceRepository priceRepository,
@@ -32,7 +34,8 @@ public class PriceRadarService : IPriceRadarService
         IUserCollectionRepository collectionRepository,
         IStoreStockService stockService,
         IOptions<PriceRadarOptions> options,
-        ILogger<PriceRadarService> logger)
+        ILogger<PriceRadarService> logger,
+        IMemoryCache? cache = null)
     {
         _priceRepository = priceRepository ?? throw new ArgumentNullException(nameof(priceRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
@@ -40,16 +43,20 @@ public class PriceRadarService : IPriceRadarService
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
         _options = options?.Value ?? new PriceRadarOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cache = cache;
     }
 
     public async Task<IReadOnlyList<PriceDropAlertDto>> GetTopDiscountsAsync(int limit = 20, string? country = null, CancellationToken ct = default)
     {
         if (limit <= 0) limit = 20;
 
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
-        var gamesWithOffers = allGames
-            .Where(g => g.PurchaseLinks != null && g.PurchaseLinks.Count > 0)
-            .ToList();
+        string cacheKey = $"price-radar:top-discounts:{country?.ToLowerInvariant() ?? "all"}:{limit}";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out IReadOnlyList<PriceDropAlertDto>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var gamesWithOffers = await _gameRepository.GetGamesWithPurchaseLinksAsync(ct: ct);
 
         if (gamesWithOffers.Count == 0)
         {
@@ -128,11 +135,14 @@ public class PriceRadarService : IPriceRadarService
             }
         }
 
-        return alerts
+        var result = alerts
             .OrderByDescending(a => a.IsAllTimeLow)
             .ThenByDescending(a => a.DiscountPercentage)
             .Take(limit)
             .ToList();
+
+        _cache?.Set(cacheKey, (IReadOnlyList<PriceDropAlertDto>)result, TimeSpan.FromMinutes(15));
+        return result;
     }
 
     public async Task<IReadOnlyList<PriceDropAlertDto>> GetUserWantToBuyAlertsAsync(string userId, CancellationToken ct = default)
@@ -260,11 +270,8 @@ public class PriceRadarService : IPriceRadarService
     {
         if (maxGames <= 0) maxGames = _options.MaxGamesPerScan;
 
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
-        var targetGames = allGames
-            .Where(g => g.PurchaseLinks != null && g.PurchaseLinks.Count > 0)
-            .Take(maxGames)
-            .ToList();
+        var targetGames = await _gameRepository.GetGamesWithPurchaseLinksAsync(maxGames, ct);
+        if (targetGames.Count == 0) return 0;
 
         int scanned = 0;
         var snapshotsToRecord = new List<GamePriceSnapshot>();
