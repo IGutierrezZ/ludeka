@@ -178,14 +178,14 @@ public class WebMarkupContractTests
           new[] { "rail-card", "rail-cover--square", "sorteo-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror" },
           EmojisDePortada },
 
-        // HomeReleaseCard: carril Novedades; estrena render de CoverImageUrl con fallback por dominio
+        // HomeReleaseCard (INC-87): carril Novedades; formato vertical catálogo con rail-cover--square
         { "HomeReleaseCard (Novedades)", "src/Ludeka.Web/Components/Home/HomeReleaseCard.razor",
-          new[] { "rail-card", "rail-cover--wide", "novedad-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror" },
+          new[] { "rail-card", "rail-cover--square", "novedad-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror" },
           EmojisDePortada },
 
-        // HomeEventCard: carril Eventos; añade dimensiones y fallback que hoy no tiene
+        // HomeEventCard (INC-87): carril Eventos; formato vertical catálogo con rail-cover--square
         { "HomeEventCard (Eventos)", "src/Ludeka.Web/Components/Home/HomeEventCard.razor",
-          new[] { "rail-card", "rail-cover--banner", "evento-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror", "width=", "height=" },
+          new[] { "rail-card", "rail-cover--square", "evento-default.svg", "DefaultImage", "loading=\"lazy\"", "onerror", "width=", "height=" },
           EmojisDePortada },
 
         // ===== INC-35 PR-3: migración global de emojis a Icon (Fase 2 — layout, catálogo y fichas) =====

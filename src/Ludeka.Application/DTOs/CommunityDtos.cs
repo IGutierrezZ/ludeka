@@ -67,7 +67,8 @@ public record WeeklyReleaseDto(
     bool IsReprint,
     string? Notes,
     string? InstagramPermalink = null,
-    bool IsPublishedOnInstagram = false);
+    bool IsPublishedOnInstagram = false,
+    string? SourceUrl = null);
 
 public record CreateWeeklyReleaseRequest(
     string Title,
@@ -77,7 +78,20 @@ public record CreateWeeklyReleaseRequest(
     string? CoverImageUrl = null,
     decimal? EstimatedPvp = null,
     bool IsReprint = false,
-    string? Notes = null);
+    string? Notes = null,
+    string? SourceUrl = null);
+
+public record UpdateWeeklyReleaseRequest(
+    Guid Id,
+    string Title,
+    string Publisher,
+    DateOnly ReleaseDate,
+    Guid? GameId = null,
+    string? CoverImageUrl = null,
+    decimal? EstimatedPvp = null,
+    bool IsReprint = false,
+    string? Notes = null,
+    string? SourceUrl = null);
 
 public record RuleAnswerDto(
     Guid Id,

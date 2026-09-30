@@ -213,6 +213,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
 
         release.HasIndex(r => r.ReleaseDate);
 
+        release.Property(r => r.SourceUrl)
+            .HasMaxLength(1000);
+
         release.HasOne(r => r.Game)
             .WithMany()
             .HasForeignKey(r => r.GameId)

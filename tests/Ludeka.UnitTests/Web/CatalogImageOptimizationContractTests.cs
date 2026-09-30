@@ -19,6 +19,7 @@ public class CatalogImageOptimizationContractTests
     private const string HomeGameCardPath = "src/Ludeka.Web/Components/Home/HomeGameCard.razor";
     private const string HomeGiveawayCardPath = "src/Ludeka.Web/Components/Home/HomeGiveawayCard.razor";
     private const string HomeReleaseCardPath = "src/Ludeka.Web/Components/Home/HomeReleaseCard.razor";
+    private const string HomeEventCardPath = "src/Ludeka.Web/Components/Home/HomeEventCard.razor";
     private const string ExpansionSisterListPath = "src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor";
     private const string ExpansionEcosystemSectionPath = "src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor";
     private const string GameDetailPath = "src/Ludeka.Web/Components/Pages/GameDetail.razor";
@@ -72,9 +73,21 @@ public class CatalogImageOptimizationContractTests
     {
         var source = ReadSource(HomeReleaseCardPath);
 
-        // El img de novedades debe contar con dimensiones intrínsecas explícitas y carga asíncrona
-        Assert.Contains("width=\"320\"", source, StringComparison.Ordinal);
-        Assert.Contains("height=\"180\"", source, StringComparison.Ordinal);
+        // El img de novedades debe contar con dimensiones intrínsecas explícitas y carga asíncrona (formato catálogo INC-87)
+        Assert.Contains("width=\"192\"", source, StringComparison.Ordinal);
+        Assert.Contains("height=\"192\"", source, StringComparison.Ordinal);
+        Assert.Contains("loading=\"lazy\"", source, StringComparison.Ordinal);
+        Assert.Contains("decoding=\"async\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HomeEventCard_ShouldIncludeIntrinsicDimensionsToPreventCls()
+    {
+        var source = ReadSource(HomeEventCardPath);
+
+        // El img de eventos debe contar con dimensiones intrínsecas explícitas y carga asíncrona (formato catálogo INC-87)
+        Assert.Contains("width=\"192\"", source, StringComparison.Ordinal);
+        Assert.Contains("height=\"192\"", source, StringComparison.Ordinal);
         Assert.Contains("loading=\"lazy\"", source, StringComparison.Ordinal);
         Assert.Contains("decoding=\"async\"", source, StringComparison.Ordinal);
     }

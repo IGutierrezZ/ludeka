@@ -612,7 +612,8 @@ public class SocialIngestionService : ISocialIngestionService
                     coverImageUrl: item.ThumbnailUrl,
                     estimatedPvp: item.EstimatedPvp,
                     isReprint: false,
-                    notes: item.ModeratorNotes ?? item.OriginalCaption);
+                    notes: item.ModeratorNotes ?? item.OriginalCaption,
+                    sourceUrl: item.SourceUrl);
 
                 await _weeklyReleaseRepository.AddAsync(release, ct);
                 createdEntityId = release.Id;

@@ -833,6 +833,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 87: Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial
+- **Identificador SDD:** `change-87-novedades-eventos-fichas-y-tarjetas`
+- **Objetivo Principal:** Equiparar la experiencia y maquetación de Novedades y Eventos con la de Sorteos (INC-79):
+  1. **Fichas de Detalle:** Páginas públicas `/novedades/{id}` y `/eventos/{id}` con presentación editorial rica, botón CTA externo a la fuente original de la novedad (`SourceUrl`) o web oficial del evento (`WebsiteUrl`), y panel modal de edición y subida de carátulas WebP a Cloudflare R2 para moderadores.
+  2. **Contratos y Dominio:** Ampliación de `WeeklyRelease` con `SourceUrl` y mutación, y enriquecimiento de `IWeeklyReleaseService` con `GetByIdAsync`, `UpdateReleaseAsync` y `DeleteReleaseAsync` con validación de moderación (`CanApproveMedia`).
+  3. **Tarjetas Compactas:** Rediseño de `News.razor` y `Events.razor` a rejilla unificada de 2 a 6 columnas con tarjetas cuadradas `rail-cover--square`, y ajuste de `HomeReleaseCard.razor` y `HomeEventCard.razor` al estándar compacto de catálogo (192x192).
+- **Estado:** ✅ **Archivado**
+- **Documento:** [`inc-87-novedades-eventos-fichas-y-tarjetas.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-87-novedades-eventos-fichas-y-tarjetas.md).
+- **Módulos del Sistema:** [`16-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-sorteos-novedades-y-eventos.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

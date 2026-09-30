@@ -83,100 +83,120 @@
     }
     else
     {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             @foreach (var release in FilteredReleases)
             {
-                <div class="rail-card justify-between shadow-sm">
-                    <div>
-                        <div class="rail-cover h-44 border-b border-[var(--border-subtle)]">
+                <div class="rail-card flex flex-col justify-between h-full shadow-sm">
+                    <div class="flex flex-col flex-1">
+                        <a href="/novedades/@release.Id"
+                           class="rail-cover rail-cover--square relative overflow-hidden block group cursor-pointer"
+                           aria-label="Ver ficha del lanzamiento @release.Title">
                             @if (string.IsNullOrWhiteSpace(release.CoverImageUrl))
                             {
                                 <DefaultImage Domain="DefaultImageDomain.Novedad"
                                               Alt="@($"Carátula de {release.Title}")"
-                                              CssClass="w-full h-full" />
+                                              CssClass="w-full h-full object-cover" />
                             }
                             else
                             {
                                 <img src="@release.CoverImageUrl"
                                      alt="Carátula de @release.Title"
-                                     width="400"
-                                     height="225"
+                                     width="240"
+                                     height="240"
                                      loading="lazy"
                                      decoding="async"
-                                     onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';" />
+                                     onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';"
+                                     class="w-full h-full object-cover" />
                             }
-                        </div>
 
-                        <div class="p-5">
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold border inline-flex items-center gap-1 @(release.IsReprint ? "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]" : "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--brand-primary)]")">
+                            @* Badges superiores: Novedad / Reimpresión *@
+                            <div class="absolute top-2 left-2 z-10">
+                                <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-black border shadow-md inline-flex items-center gap-1 @(release.IsReprint ? "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]" : "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--brand-primary)]")">
                                     @if (release.IsReprint)
                                     {
-                                        <Icon Name="refresh-cw" Size="12" />
+                                        <Icon Name="refresh-cw" Size="11" />
+                                        <span>Reimpresión</span>
                                     }
                                     else
                                     {
-                                        <Icon Name="sparkles" Size="12" />
+                                        <Icon Name="sparkles" Size="11" />
+                                        <span>Novedad</span>
                                     }
-                                    @(release.IsReprint ? "Reimpresión" : "Novedad")
-                                </span>
-
-                                <span class="text-xs text-[var(--text-muted)] font-medium">
-                                    <Icon Name="calendar-days" Size="12" /> @release.ReleaseDate.ToString("dd/MM/yyyy")
                                 </span>
                             </div>
 
-                            <h3 class="text-base font-black text-[var(--text-primary)]">
-                                @release.Title
-                            </h3>
+                            @* Badge flotante de fecha de lanzamiento *@
+                            <div class="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-md text-[0.65rem] font-bold shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)] flex items-center gap-1">
+                                <Icon Name="calendar-days" Size="11" />
+                                <span>@release.ReleaseDate.ToString("dd/MM")</span>
+                            </div>
+                        </a>
 
-                            <p class="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
-                                <span class="text-[var(--text-muted)]">Editorial:</span>
+                        @* Contenido: Editorial, Título y PVP *@
+                        <div class="p-2 sm:p-3 flex flex-col flex-1">
+                            <div class="flex items-center justify-between gap-1 text-[0.65rem] sm:text-xs font-semibold text-[var(--text-muted)] mb-1">
                                 <button type="button"
                                         @onclick="() => _selectedPublisher = release.Publisher"
-                                        class="font-semibold text-[var(--text-primary)] hover:underline">
+                                        class="truncate hover:underline text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                                     @release.Publisher
                                 </button>
-                            </p>
+                                @if (release.EstimatedPvp.HasValue)
+                                {
+                                    <span class="font-extrabold text-[var(--text-primary)] shrink-0">@release.EstimatedPvp.Value.ToString("0.00") €</span>
+                                }
+                            </div>
 
-                            @if (!string.IsNullOrWhiteSpace(release.Notes))
-                            {
-                                <p class="text-xs text-[var(--text-secondary)] mt-3 p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] leading-relaxed">
-                                    @release.Notes
-                                </p>
-                            }
+                            <a href="/novedades/@release.Id" class="block group mb-1">
+                                <h3 class="font-extrabold text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
+                                    @release.Title
+                                </h3>
+                            </a>
                         </div>
                     </div>
 
-                    <div class="p-5 pt-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between text-xs">
-                        @if (release.EstimatedPvp.HasValue)
-                        {
-                            <div>
-                                <span class="text-[var(--text-muted)] block text-[0.68rem]">PVP aproximado:</span>
-                                <span class="font-extrabold text-[var(--text-primary)] text-sm">@release.EstimatedPvp.Value.ToString("0.00") €</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <span class="text-[0.68rem] text-[var(--text-muted)]">PVP por confirmar</span>
-                        }
+                    @* Footer de acciones compactas *@
+                    <div class="p-2 sm:p-2.5 pt-2 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between gap-2 mt-auto">
+                        <div class="flex items-center min-w-0">
+                            @if (release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(release.InstagramPermalink))
+                            {
+                                <a href="@release.InstagramPermalink"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1 text-[0.6rem] font-bold text-[var(--state-highlight)] hover:opacity-80">
+                                    <Icon Name="camera" Size="11" />
+                                    <span>Instagram</span>
+                                </a>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(release.SourceUrl))
+                            {
+                                <a href="@release.SourceUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1 text-[0.6rem] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] truncate">
+                                    <Icon Name="newspaper" Size="11" />
+                                    <span class="truncate">Fuente</span>
+                                </a>
+                            }
+                        </div>
 
-                        @if (release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(release.InstagramPermalink))
-                        {
-                            <a href="@release.InstagramPermalink"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1 text-[0.7rem] font-bold text-[var(--state-highlight)] hover:opacity-80">
-                                <Icon Name="camera" Size="12" /> <span>En Instagram</span> <span>↗</span>
+                        <div class="flex items-center gap-1">
+                            <a href="/novedades/@release.Id"
+                               class="px-2 py-1 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-[0.68rem] transition-colors"
+                               title="Ver ficha con todos los detalles">
+                                Ficha
                             </a>
-                        }
-                        else if (IsModerator)
-                        {
-                            <a href="/admin/instagram?sourceType=WeeklyRelease&sourceId=@release.Id"
-                               class="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--state-info)] text-[var(--state-info)] font-bold text-[0.7rem] transition-colors inline-flex items-center gap-1">
-                                <Icon Name="camera" Size="12" /> <span>Instagram</span>
-                            </a>
-                        }
+                            @if (!string.IsNullOrWhiteSpace(release.SourceUrl))
+                            {
+                                <a href="@release.SourceUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="px-2 py-1 rounded-lg bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-bold text-[0.68rem] transition-colors inline-flex items-center gap-0.5 shadow-sm"
+                                   title="Ir a noticia oficial">
+                                    <span>Noticia</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -243,6 +263,14 @@
                 </div>
 
                 <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">URL de la Fuente / Noticia Original (Opcional)</label>
+                    <input type="url"
+                           @bind="_formSourceUrl"
+                           placeholder="https://..."
+                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                </div>
+
+                <div>
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">Notas Editoriales (Opcional)</label>
                     <textarea rows="2"
                               @bind="_formNotes"
@@ -291,6 +319,7 @@
     private decimal? _formPvp;
     private bool _formIsReprint;
     private string? _formCoverImageUrl;
+    private string? _formSourceUrl;
     private string? _formNotes;
     private string? _formError;
 
@@ -359,7 +388,8 @@
             CoverImageUrl: string.IsNullOrWhiteSpace(_formCoverImageUrl) ? null : _formCoverImageUrl.Trim(),
             EstimatedPvp: _formPvp,
             IsReprint: _formIsReprint,
-            Notes: string.IsNullOrWhiteSpace(_formNotes) ? null : _formNotes.Trim());
+            Notes: string.IsNullOrWhiteSpace(_formNotes) ? null : _formNotes.Trim(),
+            SourceUrl: string.IsNullOrWhiteSpace(_formSourceUrl) ? null : _formSourceUrl.Trim());
 
         try
         {
@@ -378,6 +408,7 @@
         _formPvp = null;
         _formIsReprint = false;
         _formCoverImageUrl = null;
+        _formSourceUrl = null;
         _formNotes = null;
 
         await LoadDataAsync();

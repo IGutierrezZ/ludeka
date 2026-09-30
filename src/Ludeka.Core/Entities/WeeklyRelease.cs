@@ -13,6 +13,7 @@ public class WeeklyRelease
     public decimal? EstimatedPvp { get; private set; }
     public bool IsReprint { get; private set; }
     public string? Notes { get; private set; }
+    public string? SourceUrl { get; private set; }
     public string? InstagramMediaId { get; private set; }
     public string? InstagramPermalink { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
@@ -32,7 +33,8 @@ public class WeeklyRelease
         string? coverImageUrl = null,
         decimal? estimatedPvp = null,
         bool isReprint = false,
-        string? notes = null)
+        string? notes = null,
+        string? sourceUrl = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("El título del lanzamiento no puede estar vacío.", nameof(title));
@@ -48,7 +50,37 @@ public class WeeklyRelease
         EstimatedPvp = estimatedPvp;
         IsReprint = isReprint;
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        SourceUrl = string.IsNullOrWhiteSpace(sourceUrl) ? null : sourceUrl.Trim();
         CreatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Update(
+        string title,
+        string publisher,
+        DateOnly releaseDate,
+        Guid? gameId = null,
+        string? coverImageUrl = null,
+        decimal? estimatedPvp = null,
+        bool isReprint = false,
+        string? notes = null,
+        string? sourceUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título del lanzamiento no puede estar vacío.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(publisher))
+            throw new ArgumentException("La editorial del lanzamiento no puede estar vacía.", nameof(publisher));
+
+        Title = title.Trim();
+        Publisher = publisher.Trim();
+        ReleaseDate = releaseDate;
+        GameId = gameId;
+        CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? null : coverImageUrl.Trim();
+        EstimatedPvp = estimatedPvp;
+        IsReprint = isReprint;
+        Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        SourceUrl = string.IsNullOrWhiteSpace(sourceUrl) ? null : sourceUrl.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void LinkGame(Guid gameId)

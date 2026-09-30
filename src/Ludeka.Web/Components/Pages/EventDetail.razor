@@ -1,0 +1,654 @@
+@page "/eventos/{Id:guid}"
+@page "/evento/{Id:guid}"
+@rendermode InteractiveServer
+@using System.IO
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Entities
+@using Ludeka.Core.Enums
+@using Ludeka.Core.ValueObjects
+@using Ludeka.Web.Components.Shared
+@inject IBoardGameEventService EventService
+@inject IImageStorageService ImageStorageService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject ILogger<EventDetail> Logger
+
+<PageTitle>@(_event != null ? $"{_event.Title} — Cita Lúdica | Ludeka" : "Evento no encontrado — Ludeka")</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="container-ludeka py-20 text-center text-[var(--text-muted)]">
+        <div class="inline-block animate-spin mb-3">
+            <Icon Name="tent" Size="36" />
+        </div>
+        <p class="text-base font-semibold">Cargando ficha del evento...</p>
+    </div>
+}
+else if (_event == null)
+{
+    <div class="container-ludeka py-20 text-center max-w-lg mx-auto">
+        <span class="inline-block mb-4 text-[var(--text-muted)]">
+            <Icon Name="tent" Size="40" />
+        </span>
+        <h1 class="text-2xl font-black text-[var(--text-primary)] mb-2">Evento no encontrado</h1>
+        <p class="text-sm text-[var(--text-muted)] mb-6">
+            La cita o feria lúdica que buscas no existe o ha sido retirada del calendario oficial.
+        </p>
+        <a href="/eventos" class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs transition-opacity shadow-sm inline-flex items-center gap-1.5">
+            <span>&larr;</span> Volver al calendario de eventos
+        </a>
+    </div>
+}
+else
+{
+    @* Barra superior de navegación y acciones de moderación *@
+    <div class="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="flex items-center gap-4">
+                <a href="/eventos" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
+                    <span>&larr;</span> Volver al calendario de eventos
+                </a>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                @if (CanModerate)
+                {
+                    <a href="/admin/eventos"
+                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                        <Icon Name="settings" Size="12" /> Panel de Gestión
+                    </a>
+
+                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
+                        <button type="button"
+                                @onclick="OpenEditModal"
+                                title="Editar datos y cartel del evento"
+                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="pen-line" Size="12" /> Editar Evento
+                        </button>
+                        <button type="button"
+                                @onclick="() => _isDeleteConfirmOpen = true"
+                                title="Eliminar este evento"
+                                class="px-3 py-1 rounded-lg bg-[var(--state-error-bg)] hover:bg-[var(--state-error-border)] text-[var(--state-error)] border border-[var(--state-error-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="trash-2" Size="12" /> Eliminar
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Contenedor Editorial Principal *@
+    <div class="container-ludeka py-6 sm:py-10">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            @* Columna Izquierda: Cartel del Evento y Botón Web Oficial *@
+            <div class="md:col-span-5 lg:col-span-5 space-y-4">
+                <div class="rail-card flex flex-col p-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl shadow-md overflow-hidden relative">
+                    <div class="relative w-full aspect-square bg-[var(--bg-surface-elevated)] rounded-xl overflow-hidden">
+                        @if (string.IsNullOrWhiteSpace(_event.ImageUrl))
+                        {
+                            <DefaultImage Domain="DefaultImageDomain.Evento"
+                                          Alt="@($"Cartel de {_event.Title}")"
+                                          CssClass="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <img src="@_event.ImageUrl"
+                                 alt="Cartel oficial de @_event.Title"
+                                 width="600"
+                                 height="600"
+                                 loading="lazy"
+                                 decoding="async"
+                                 onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';"
+                                 class="w-full h-full object-cover" />
+                        }
+
+                        @* Badges flotantes en el cartel *@
+                        <div class="absolute top-3 left-3 z-10">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-sm bg-black/60 text-white border-white/20 flex items-center gap-1">
+                                <span>@CountryCatalog.GetFlag(_event.Country)</span>
+                                <span>@(_event.IsInternational ? "Internacional" : _event.Country)</span>
+                            </span>
+                        </div>
+
+                        <div class="absolute top-3 right-3 z-10">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-sm @GetRemainingBadgeClass(_event.RemainingDaysText)">
+                                @_event.RemainingDaysText
+                            </span>
+                        </div>
+                    </div>
+
+                    @if (CanModerate)
+                    {
+                        <div class="pt-2 px-1 text-center">
+                            <button type="button"
+                                    @onclick="OpenEditModal"
+                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
+                                <Icon Name="pen-line" Size="12" /> Cambiar o subir cartel
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @* Botón de Acción Principal: Web Oficial *@
+                <div class="space-y-2">
+                    @if (!string.IsNullOrWhiteSpace(_event.WebsiteUrl))
+                    {
+                        <a href="@_event.WebsiteUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="w-full py-3.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-sm sm:text-base text-center flex items-center justify-center gap-2 shadow-md transition-all">
+                            <Icon Name="globe" Size="16" />
+                            <span>Visitar web oficial del evento</span>
+                            <span class="text-base">&rarr;</span>
+                        </a>
+                        <p class="text-center text-[0.72rem] text-[var(--text-muted)] flex items-center justify-center gap-1">
+                            <Icon Name="check-circle" Size="12" />
+                            <span>Enlace oficial proporcionado por la organización</span>
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2">
+                            <Icon Name="tent" Size="14" Class="text-[var(--brand-primary)]" />
+                            <span>Web oficial pendiente de publicación por la organización</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Columna Derecha: Metadatos, Ubicación y Descripción *@
+            <div class="md:col-span-7 lg:col-span-7 space-y-6">
+                @* Badges de Cabecera *@
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                        <span>@CountryCatalog.GetFlag(_event.Country)</span>
+                        <span>@(_event.IsInternational ? "Internacional" : _event.Country)</span>
+                    </span>
+
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                        <Icon Name="calendar" Size="13" />
+                        <span>@_event.FormattedDates</span>
+                    </span>
+
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)]">
+                        <Icon Name="award" Size="13" />
+                        <span>@(_event.IsOfficial ? "Cita Oficial del Sector" : "Encuentro Lúdico")</span>
+                    </span>
+                </div>
+
+                @* Título *@
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                        @_event.Title
+                    </h1>
+                </div>
+
+                @* Ubicación y Organización *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                        <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider block">
+                            Sede y Localización
+                        </span>
+                        <div class="flex items-center gap-2 text-sm font-extrabold text-[var(--text-primary)]">
+                            <Icon Name="map-pin" Size="16" Class="text-[var(--brand-primary)] shrink-0" />
+                            <span>@_event.Location</span>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] block">
+                            @(_event.IsInternational ? "Ámbito Internacional" : $"País: {_event.Country}")
+                        </span>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                        <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider block">
+                            Organización
+                        </span>
+                        <div class="flex items-center gap-2 text-sm font-extrabold text-[var(--text-primary)]">
+                            <Icon Name="user" Size="16" Class="text-[var(--brand-primary)] shrink-0" />
+                            <span class="truncate">@(string.IsNullOrWhiteSpace(_event.Organizer) ? "Entidad organizadora" : _event.Organizer)</span>
+                        </div>
+                        <span class="text-xs text-[var(--text-muted)] block">
+                            @(_event.IsOfficial ? "Festival o convención con programa oficial" : "Iniciativa comunitaria o club")
+                        </span>
+                    </div>
+                </div>
+
+                @* Descripción del Evento *@
+                @if (!string.IsNullOrWhiteSpace(_event.Description))
+                {
+                    <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                        <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                            Sobre esta Cita Lúdica
+                        </h2>
+                        <p class="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                            @_event.Description
+                        </p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal de Edición de Evento *@
+@if (CanModerate && _isEditModalOpen)
+{
+    <EditorialModal Open="@_isEditModalOpen"
+                    Title="Editar Evento o Feria"
+                    TitleIcon="pen-line"
+                    OnClose="@(() => _isEditModalOpen = false)">
+        <ChildContent>
+            <div class="space-y-4 text-xs">
+                @* Título *@
+                <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Nombre del Evento *</label>
+                    <input type="text"
+                           @bind="_editTitle"
+                           placeholder="Ej. Festival Internacional de Juegos de Córdoba"
+                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                </div>
+
+                @* Lugar y País *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Ciudad o Sede *</label>
+                        <input type="text"
+                               @bind="_editLocation"
+                               placeholder="Ej. Córdoba / Palacio de la Merced"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">País *</label>
+                        <select @bind="_editCountry"
+                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                            <option value="Internacional">Internacional</option>
+                            @foreach (var c in CountryCatalog.GetAllCountries())
+                            {
+                                <option value="@c.Name">@c.FlagEmoji @c.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @* Fechas *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha Inicio *</label>
+                        <input type="date"
+                               @bind="_editStartDate"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha Fin *</label>
+                        <input type="date"
+                               @bind="_editEndDate"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* Organizador y Web *@
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Organizador Oficial</label>
+                        <input type="text"
+                               @bind="_editOrganizer"
+                               placeholder="Ej. Jugamos Tod@s"
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Web Oficial (URL)</label>
+                        <input type="url"
+                               @bind="_editWebsiteUrl"
+                               placeholder="https://..."
+                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* Tipo Oficial *@
+                <div class="flex items-center">
+                    <label class="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-secondary)]">
+                        <input type="checkbox"
+                               @bind="_editIsOfficial"
+                               class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
+                        <span>Cita Oficial del Sector</span>
+                    </label>
+                </div>
+
+                @* Cartel y Subida R2 *@
+                <div class="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                    <label class="font-semibold text-[var(--text-secondary)] block">Cartel del Evento</label>
+                    <div class="flex items-center gap-3">
+                        @if (!string.IsNullOrWhiteSpace(_editImageUrl))
+                        {
+                            <img src="@_editImageUrl"
+                                 alt="Vista previa"
+                                 class="w-14 h-14 rounded-lg object-cover border border-[var(--border-subtle)] shrink-0"
+                                 onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';" />
+                        }
+                        else
+                        {
+                            <DefaultImage Domain="DefaultImageDomain.Evento" CssClass="w-14 h-14 rounded-lg object-cover border border-[var(--border-subtle)] shrink-0" />
+                        }
+
+                        <div class="flex-1 space-y-1.5">
+                            <InputFile OnChange="HandlePosterUpload"
+                                       accept="image/png,image/jpeg,image/webp"
+                                       class="text-xs text-[var(--text-muted)] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--brand-primary)] file:text-white hover:file:opacity-90 cursor-pointer" />
+                            <p class="text-[0.65rem] text-[var(--text-muted)]">
+                                Optimizado automático a WebP con compresión y almacenamiento en Cloudflare R2.
+                            </p>
+                            @if (_isUploadingPoster)
+                            {
+                                <span class="text-xs text-[var(--brand-primary)] flex items-center gap-1 font-semibold">
+                                    <span class="animate-spin"><Icon Name="refresh-cw" Size="11" /></span> Optimizando y subiendo cartel...
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[0.7rem] text-[var(--text-muted)] block mb-1">O introduce URL directa:</label>
+                        <input type="url"
+                               @bind="_editImageUrl"
+                               placeholder="https://... o /images/..."
+                               class="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                    </div>
+                </div>
+
+                @* Descripción *@
+                <div>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Descripción del Encuentro</label>
+                    <textarea rows="3"
+                              @bind="_editDescription"
+                              placeholder="Ej. Concurso de juegos de mesa, charlas con autores invitados..."
+                              class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"></textarea>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_editError))
+                {
+                    <div class="p-2.5 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+                        @_editError
+                    </div>
+                }
+            </div>
+        </ChildContent>
+
+        <Footer>
+            <button type="button"
+                    @onclick="() => _isEditModalOpen = false"
+                    disabled="@_isSaving"
+                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                Cancelar
+            </button>
+            <button type="button"
+                    @onclick="HandleSaveEvent"
+                    disabled="@_isSaving"
+                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                @if (_isSaving)
+                {
+                    <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
+                    <span>Guardando...</span>
+                }
+                else
+                {
+                    <span>Guardar Cambios</span>
+                }
+            </button>
+        </Footer>
+    </EditorialModal>
+}
+
+@* Modal de Confirmación de Eliminación *@
+@if (CanModerate)
+{
+    <EditorialModal Open="@_isDeleteConfirmOpen"
+                    Title="Eliminar Evento"
+                    TitleIcon="trash-2"
+                    OnClose="@(() => _isDeleteConfirmOpen = false)">
+        <ChildContent>
+            <div class="space-y-3 text-xs">
+                <p class="text-[var(--text-primary)] font-semibold">
+                    ¿Estás seguro de que deseas eliminar definitivamente este evento?
+                </p>
+                <div class="p-3 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+                    Esta acción retirará la cita del calendario oficial y de la portada de Ludeka. La operación no se puede deshacer.
+                </div>
+            </div>
+        </ChildContent>
+
+        <Footer>
+            <button type="button"
+                    @onclick="() => _isDeleteConfirmOpen = false"
+                    disabled="@_isDeleting"
+                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                Cancelar
+            </button>
+            <button type="button"
+                    @onclick="HandleDeleteEvent"
+                    disabled="@_isDeleting"
+                    class="px-4 py-2 rounded-xl bg-[var(--state-error)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                @if (_isDeleting)
+                {
+                    <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
+                    <span>Eliminando...</span>
+                }
+                else
+                {
+                    <span>Eliminar Definitivamente</span>
+                }
+            </button>
+        </Footer>
+    </EditorialModal>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private BoardGameEventDto? _event;
+    private bool _isLoading = true;
+    private bool _isEditModalOpen;
+    private bool _isDeleteConfirmOpen;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _isUploadingPoster;
+
+    // Campos de edición
+    private string _editTitle = string.Empty;
+    private string _editDescription = string.Empty;
+    private string _editLocation = string.Empty;
+    private string _editImageUrl = string.Empty;
+    private DateOnly _editStartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7));
+    private DateOnly _editEndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(9));
+    private string? _editWebsiteUrl;
+    private string _editOrganizer = string.Empty;
+    private string _editCountry = "España";
+    private bool _editIsOfficial = true;
+    private string? _editError;
+
+    private bool CanModerate => CurrentUserService.IsFoundingTeam ||
+                               CurrentUserService.IsInRole("Moderator") ||
+                               CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEventAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_event != null && _event.Id != Id)
+        {
+            await LoadEventAsync();
+        }
+    }
+
+    private async Task LoadEventAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _event = await EventService.GetByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar el evento {EventId}", Id);
+            _event = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenEditModal()
+    {
+        if (_event == null) return;
+
+        _editTitle = _event.Title;
+        _editDescription = _event.Description;
+        _editLocation = _event.Location;
+        _editImageUrl = _event.ImageUrl;
+        _editStartDate = _event.StartDate;
+        _editEndDate = _event.EndDate;
+        _editWebsiteUrl = _event.WebsiteUrl;
+        _editOrganizer = _event.Organizer;
+        _editCountry = _event.IsInternational ? "Internacional" : _event.Country;
+        _editIsOfficial = _event.IsOfficial;
+        _editError = null;
+        _isEditModalOpen = true;
+    }
+
+    private async Task HandlePosterUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            _editError = "La imagen no debe superar los 10 MB.";
+            return;
+        }
+
+        _isUploadingPoster = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var objectKey = $"events/{Id:N}/cover.webp";
+            var publicUrl = await ImageStorageService.UploadOptimizedImageAsync(
+                memoryStream,
+                objectKey,
+                maxWidth: 1200,
+                quality: 85);
+
+            _editImageUrl = publicUrl;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al optimizar y subir cartel para el evento {EventId}", Id);
+            _editError = "No se pudo subir la imagen. Verifica la conexión o formato del archivo.";
+        }
+        finally
+        {
+            _isUploadingPoster = false;
+        }
+    }
+
+    private async Task HandleSaveEvent()
+    {
+        _editError = null;
+
+        if (string.IsNullOrWhiteSpace(_editTitle))
+        {
+            _editError = "El nombre del evento es obligatorio.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editLocation))
+        {
+            _editError = "La ciudad o localización es obligatoria.";
+            return;
+        }
+
+        if (_editEndDate < _editStartDate)
+        {
+            _editError = "La fecha de fin no puede ser anterior a la de inicio.";
+            return;
+        }
+
+        var request = new UpdateBoardGameEventRequest(
+            Title: _editTitle,
+            Description: _editDescription,
+            ImageUrl: string.IsNullOrWhiteSpace(_editImageUrl) ? "/images/default-event.webp" : _editImageUrl.Trim(),
+            StartDate: _editStartDate,
+            EndDate: _editEndDate,
+            Location: _editLocation,
+            WebsiteUrl: string.IsNullOrWhiteSpace(_editWebsiteUrl) ? null : _editWebsiteUrl.Trim(),
+            Organizer: _editOrganizer,
+            IsOfficial: _editIsOfficial,
+            Country: _editCountry);
+
+        _isSaving = true;
+        try
+        {
+            _event = await EventService.UpdateEventAsync(Id, request);
+            _isEditModalOpen = false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al guardar el evento {EventId}", Id);
+            _editError = "Ocurrió un error inesperado al guardar los cambios.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleDeleteEvent()
+    {
+        _isDeleting = true;
+        try
+        {
+            await EventService.DeleteEventAsync(Id);
+            _isDeleteConfirmOpen = false;
+            Navigation.NavigateTo("/eventos");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar el evento {EventId}", Id);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private static string GetRemainingBadgeClass(string remainingText)
+    {
+        if (remainingText.Contains("Hoy", StringComparison.OrdinalIgnoreCase) ||
+            remainingText.Contains("En curso", StringComparison.OrdinalIgnoreCase))
+        {
+            return "bg-emerald-500 text-white border-emerald-400 animate-pulse";
+        }
+
+        if (remainingText.Contains("días", StringComparison.OrdinalIgnoreCase))
+        {
+            return "bg-amber-500/90 text-white border-amber-400";
+        }
+
+        return "bg-black/60 text-white border-white/20";
+    }
+}

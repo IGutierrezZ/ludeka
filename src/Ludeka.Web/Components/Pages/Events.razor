@@ -124,97 +124,99 @@
         }
         else
         {
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                 @foreach (var evt in currentList)
                 {
-                    @* Tarjeta de evento (INC-36, DD-04: lenguaje .rail-card de portada —
-                       lift/glow/focus-visible/reduced-motion) *@
-                    <div class="rail-card justify-between shadow-sm">
-                        <div>
-                            @* Cartel o Portada del Evento (D5: con URL vacía el SVG inline temable
-                               ocupa la zona; con URL externa caída el onerror cae en el default estático) *@
-                            <div class="rail-cover h-48 border-b border-[var(--border-subtle)]">
+                    <div class="rail-card flex flex-col justify-between h-full shadow-sm">
+                        <div class="flex flex-col flex-1">
+                            <a href="/eventos/@evt.Id"
+                               class="rail-cover rail-cover--square relative overflow-hidden block group cursor-pointer"
+                               aria-label="Ver ficha del evento @evt.Title">
                                 @if (string.IsNullOrWhiteSpace(evt.ImageUrl))
                                 {
                                     <DefaultImage Domain="DefaultImageDomain.Evento"
                                                   Alt="@($"Cartel de {evt.Title}")"
-                                                  CssClass="w-full h-full" />
+                                                  CssClass="w-full h-full object-cover" />
                                 }
                                 else
                                 {
-                                    @* El zoom al hover lo da .rail-card:hover .rail-cover img
-                                       (input.css); sin utilidades de escala sueltas en el cartel *@
                                     <img src="@evt.ImageUrl"
                                          alt="Cartel de @evt.Title"
-                                         width="400"
-                                         height="225"
+                                         width="240"
+                                         height="240"
                                          loading="lazy"
                                          decoding="async"
-                                         onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';" />
+                                         onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';"
+                                         class="w-full h-full object-cover" />
                                 }
 
-                                <div class="absolute top-3 left-3">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-sm bg-black/60 text-white border-white/20 flex items-center gap-1">
+                                @* Badges superiores: País y Urgencia / Estado *@
+                                <div class="absolute top-2 left-2 z-10">
+                                    <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-bold border shadow-md backdrop-blur-md bg-black/60 text-white border-white/20 flex items-center gap-1">
                                         <span>@CountryCatalog.GetFlag(evt.Country)</span>
-                                        <span>@(evt.IsInternational ? "Internacional" : evt.Country)</span>
+                                        <span class="hidden sm:inline">@(evt.IsInternational ? "Internacional" : evt.Country)</span>
                                     </span>
                                 </div>
 
-                                <div class="absolute top-3 right-3">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-sm @GetRemainingBadgeClass(evt.RemainingDaysText)">
+                                <div class="absolute top-2 right-2 z-10">
+                                    <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-black border shadow-md @GetRemainingBadgeClass(evt.RemainingDaysText)">
                                         @evt.RemainingDaysText
                                     </span>
                                 </div>
-                            </div>
 
-                            @* Metadatos y Contenido *@
-                            <div class="p-5">
-                                <div class="flex items-center gap-2 text-xs text-[var(--brand-primary)] font-bold mb-2">
-                                    <Icon Name="calendar-days" Size="12" />
+                                @* Badge flotante inferior con fechas *@
+                                <div class="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-md text-[0.65rem] font-bold shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)] flex items-center gap-1">
+                                    <Icon Name="calendar-days" Size="11" />
                                     <span>@evt.FormattedDates</span>
                                 </div>
+                            </a>
 
-                                <h3 class="text-lg font-black text-[var(--text-primary)] leading-tight">
-                                    @evt.Title
-                                </h3>
-
-                                <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] mt-2">
-                                    <Icon Name="map-pin" Size="12" />
-                                    <span>@evt.Location</span>
+                            @* Contenido: Ubicación, Título, Organizador *@
+                            <div class="p-2 sm:p-3 flex flex-col flex-1">
+                                <div class="flex items-center gap-1 text-[0.65rem] sm:text-xs font-semibold text-[var(--text-muted)] mb-1 truncate">
+                                    <Icon Name="map-pin" Size="11" />
+                                    <span class="truncate">@evt.Location</span>
                                 </div>
+
+                                <a href="/eventos/@evt.Id" class="block group mb-1">
+                                    <h3 class="font-extrabold text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
+                                        @evt.Title
+                                    </h3>
+                                </a>
 
                                 @if (!string.IsNullOrWhiteSpace(evt.Organizer))
                                 {
-                                    <p class="text-xs text-[var(--text-muted)] mt-1">
-                                        Organiza: <strong class="text-[var(--text-secondary)]">@evt.Organizer</strong>
-                                    </p>
-                                }
-
-                                @if (!string.IsNullOrWhiteSpace(evt.Description))
-                                {
-                                    <p class="text-xs text-[var(--text-secondary)] mt-3 line-clamp-3 leading-relaxed">
-                                        @evt.Description
+                                    <p class="text-[0.65rem] text-[var(--text-muted)] truncate mt-auto">
+                                        @evt.Organizer
                                     </p>
                                 }
                             </div>
                         </div>
 
-                        @* Pie de Tarjeta con Enlace Web *@
-                        <div class="p-5 pt-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between gap-3">
-                            <span class="text-[0.68rem] text-[var(--text-muted)] font-medium">
-                                @(evt.IsOfficial ? "Cita Oficial" : "Encuentro Lúdico")
+                        @* Footer de acciones compactas *@
+                        <div class="p-2 sm:p-2.5 pt-2 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between gap-2 mt-auto">
+                            <span class="text-[0.62rem] text-[var(--text-muted)] font-medium truncate">
+                                @(evt.IsOfficial ? "Oficial" : "Encuentro")
                             </span>
 
-                            @if (!string.IsNullOrWhiteSpace(evt.WebsiteUrl))
-                            {
-                                <a href="@evt.WebsiteUrl"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="px-3.5 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity inline-flex items-center gap-1.5 shadow-sm">
-                                    <Icon Name="globe" Size="12" /> Web Oficial
-                                    <span>&rarr;</span>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <a href="/eventos/@evt.Id"
+                                   class="px-2 py-1 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-[0.68rem] transition-colors"
+                                   title="Ver ficha con todos los detalles">
+                                    Ficha
                                 </a>
-                            }
+                                @if (!string.IsNullOrWhiteSpace(evt.WebsiteUrl))
+                                {
+                                    <a href="@evt.WebsiteUrl"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="px-2 py-1 rounded-lg bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-bold text-[0.68rem] transition-colors inline-flex items-center gap-0.5 shadow-sm"
+                                       title="Ir a web oficial">
+                                        <span>Web</span>
+                                        <span>&rarr;</span>
+                                    </a>
+                                }
+                            </div>
                         </div>
                     </div>
                 }
