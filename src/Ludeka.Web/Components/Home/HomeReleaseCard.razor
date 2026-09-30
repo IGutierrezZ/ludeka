@@ -1,66 +1,73 @@
-@* Tarjeta del carril Novedades de la portada (INC-35, Decisión 3): estrena el render de
-   WeeklyReleaseDto.CoverImageUrl con fallback por dominio (SVG inline temable si falta
-   el dato, asset estático de novedades vía onerror si la URL cae), badge de reimpresión
-   con Icon refresh-cw y texto visible, y anchura definida con clases válidas de
-   Tailwind (la clase inválida sm:w-68 desaparece con la reescritura del orquestador). *@
+@* Tarjeta del carril Novedades de la portada (INC-87): formato vertical compacto equivalente al catálogo (HomeGameCard/HomeGiveawayCard),
+   microinteracción .rail-card, portada con badges de novedad/reimpresión y fecha, y enlace directo a la ficha de la novedad. *@
 @using Ludeka.Web.Components.Shared
 @using Ludeka.Application.DTOs
 
-<div class="rail-card w-60 sm:w-72 shrink-0 snap-start p-4" role="listitem">
-    <div class="rail-cover rail-cover--wide rounded-xl mb-3">
+<a href="/novedades/@Release.Id"
+   class="rail-card w-[28vw] min-w-[105px] max-w-[125px] sm:w-44 md:w-48 shrink-0 snap-start flex flex-col h-full cursor-pointer"
+   role="listitem"
+   aria-label="Ver ficha del lanzamiento @Release.Title">
+    <div class="rail-cover rail-cover--square">
         @if (!string.IsNullOrWhiteSpace(Release.CoverImageUrl))
         {
             <img src="@Release.CoverImageUrl"
                  alt="Carátula de @Release.Title"
                  loading="lazy"
                  decoding="async"
-                 width="320"
-                 height="180"
+                 width="192"
+                 height="192"
                  onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';" />
         }
         else
         {
             <DefaultImage Domain="DefaultImageDomain.Novedad" CssClass="w-full h-full" />
         }
-    </div>
 
-    <div>
-        <div class="flex items-center justify-between gap-2 mb-2">
-            @if (Release.IsReprint)
-            {
-                <span class="px-2 py-0.5 rounded-md text-[0.68rem] font-bold border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] flex items-center gap-1">
-                    <Icon Name="refresh-cw" Size="12" /> Reimpresión
-                </span>
-            }
-            else
-            {
-                <span class="px-2 py-0.5 rounded-md text-[0.68rem] font-bold border bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)] flex items-center gap-1">
-                    <Icon Name="sparkles" Size="12" /> Novedad
-                </span>
-            }
-
-            <span class="text-[0.68rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
-                <Icon Name="calendar-days" Size="12" /> @Release.ReleaseDate.ToString("dd/MM/yyyy")
+        @* Badge superior izquierdo: Novedad / Reimpresión *@
+        <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10">
+            <span class="px-1.5 sm:px-2 py-0.5 rounded-md text-[0.6rem] sm:text-[0.65rem] font-black border shadow-md inline-flex items-center gap-0.5 sm:gap-1 @(Release.IsReprint ? "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]" : "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--text-primary)]")">
+                @if (Release.IsReprint)
+                {
+                    <Icon Name="refresh-cw" Size="11" />
+                    <span class="hidden sm:inline">Reimpresión</span>
+                }
+                else
+                {
+                    <Icon Name="sparkles" Size="11" />
+                    <span>Novedad</span>
+                }
             </span>
         </div>
 
-        <h3 class="text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug mb-1">
+        @* Badge superior derecho: Fecha de lanzamiento *@
+        <div class="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 px-1.5 sm:px-2 py-0.5 rounded-md text-[0.6rem] sm:text-[0.65rem] font-bold shadow-md border bg-black/80 backdrop-blur-sm border-white/20 text-white flex items-center gap-0.5 sm:gap-1">
+            <Icon Name="calendar-days" Size="11" />
+            <span>@Release.ReleaseDate.ToString("dd/MM")</span>
+        </div>
+    </div>
+
+    <div class="p-2 sm:p-3 flex flex-col flex-1">
+        <div class="flex items-center justify-between gap-1 text-[0.65rem] sm:text-[0.7rem] font-semibold text-[var(--text-muted)] mb-1">
+            <span class="truncate">@Release.Publisher</span>
+            @if (Release.EstimatedPvp.HasValue)
+            {
+                <span class="font-extrabold text-[var(--text-primary)] shrink-0">@Release.EstimatedPvp.Value.ToString("0.00") €</span>
+            }
+        </div>
+
+        <h3 class="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug min-h-[2.1rem] sm:min-h-[2.5rem]">
             @Release.Title
         </h3>
 
-        <p class="text-xs text-[var(--text-secondary)]">
-            Editorial: <strong class="text-[var(--text-primary)]">@Release.Publisher</strong>
-        </p>
+        @if (!string.IsNullOrWhiteSpace(Release.SourceUrl))
+        {
+            <div class="mt-auto pt-1.5 text-[0.62rem] sm:text-[0.68rem] text-[var(--text-muted)] truncate flex items-center gap-1">
+                <Icon Name="newspaper" Size="11" Class="shrink-0" />
+                <span class="truncate">Fuente oficial</span>
+            </div>
+        }
     </div>
-
-    @if (Release.EstimatedPvp.HasValue)
-    {
-        <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
-            <span class="text-[var(--text-muted)]">PVP aprox:</span>
-            <span class="font-extrabold text-[var(--text-primary)]">@Release.EstimatedPvp.Value.ToString("0.00") €</span>
-        </div>
-    }
-</div>
+</a>
 
 @code {
     /// <summary>Novedad semanal del carril (datos puros; la card no accede a servicios).</summary>

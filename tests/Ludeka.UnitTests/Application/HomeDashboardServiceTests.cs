@@ -54,7 +54,10 @@ public class HomeDashboardServiceTests
             return Task.FromResult<IReadOnlyList<WeeklyReleaseDto>>(ReleasesToReturn);
         }
 
+        public Task<WeeklyReleaseDto?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<WeeklyReleaseDto?>(null);
         public Task<WeeklyReleaseDto> CreateReleaseAsync(CreateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<WeeklyReleaseDto> UpdateReleaseAsync(Guid id, UpdateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task DeleteReleaseAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private class FakeBoardGameEventRepository : IBoardGameEventRepository

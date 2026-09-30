@@ -94,16 +94,17 @@
             }
         </section>
 
-        @* 5. Carril 4: Próximos Eventos & Ferias Lúdicas (sin enlace "Ver todos…": el Href queda nulo) *@
+        @* 5. Carril 4: Próximos Eventos & Ferias Lúdicas *@
         <section class="space-y-4" aria-label="Próximos Eventos y Ferias Lúdicas">
             <RailHeader IconName="tent"
                         Title="Grandes Citas & Ferias del Sector"
                         Count="_dashboard.UpcomingEvents.Count"
                         CountLabel="eventos"
+                        Href="/eventos"
                         LinkText="Ver todos los eventos"
                         AriaLabel="Próximos Eventos y Ferias Lúdicas" />
 
-            <div class="flex gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
+            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
                 @foreach (var evt in _dashboard.UpcomingEvents)
                 {
                     <HomeEventCard Event="evt" />
