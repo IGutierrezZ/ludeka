@@ -1,7 +1,7 @@
 # INC-87: Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial
 
-> **Estado:** ⏳ En progreso  
-> **Fecha de Inicio:** 2026-09-30 · **Fecha de Cierre:** Pendiente  
+> **Estado:** ✅ Archivado  
+> **Fecha de Inicio:** 2026-09-30 · **Fecha de Cierre:** 2026-09-30  
 > **Rama de Trabajo:** `inc/novedades-eventos-fichas-y-tarjetas`  
 > **Worktree:** `F:\repos\ludeka-wt\novedades-eventos-fichas-y-tarjetas`  
 > **Dependencias:** INC-22 (Segregación de Sorteos, Novedades y Eventos), INC-79 (Ficha Inteligente de Sorteos y Redimensionado), INC-40 (Almacenamiento Cloudflare R2)  

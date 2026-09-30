@@ -839,8 +839,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   1. **Fichas de Detalle:** Páginas públicas `/novedades/{id}` y `/eventos/{id}` con presentación editorial rica, botón CTA externo a la fuente original de la novedad (`SourceUrl`) o web oficial del evento (`WebsiteUrl`), y panel modal de edición y subida de carátulas WebP a Cloudflare R2 para moderadores.
   2. **Contratos y Dominio:** Ampliación de `WeeklyRelease` con `SourceUrl` y mutación, y enriquecimiento de `IWeeklyReleaseService` con `GetByIdAsync`, `UpdateReleaseAsync` y `DeleteReleaseAsync` con validación de moderación (`CanApproveMedia`).
   3. **Tarjetas Compactas:** Rediseño de `News.razor` y `Events.razor` a rejilla unificada de 2 a 6 columnas con tarjetas cuadradas `rail-cover--square`, y ajuste de `HomeReleaseCard.razor` y `HomeEventCard.razor` al estándar compacto de catálogo (192x192).
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-87-novedades-eventos-fichas-y-tarjetas.md`](file:///c:/repos/Ludeka/docs/increments/inc-87-novedades-eventos-fichas-y-tarjetas.md).
+- **Estado:** ✅ **Archivado**
+- **Documento:** [`inc-87-novedades-eventos-fichas-y-tarjetas.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-87-novedades-eventos-fichas-y-tarjetas.md).
 - **Módulos del Sistema:** [`16-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-sorteos-novedades-y-eventos.md).
 
 ---

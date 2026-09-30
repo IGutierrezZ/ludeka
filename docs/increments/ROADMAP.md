@@ -99,7 +99,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
 | **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
 | **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ Planificado | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
-| **INC-87** | Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial | ⏳ En progreso | [inc-87-novedades-eventos-fichas-y-tarjetas.md](inc-87-novedades-eventos-fichas-y-tarjetas.md) |
+| **INC-87** | Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial | ✅ Archivado | [inc-87-novedades-eventos-fichas-y-tarjetas.md](archive/inc-87-novedades-eventos-fichas-y-tarjetas.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -130,7 +130,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| **INC-87** | `inc/novedades-eventos-fichas-y-tarjetas` | `F:\repos\ludeka-wt\novedades-eventos-fichas-y-tarjetas` | ⏳ En progreso | Fichas dedicadas de novedades y eventos, rediseño compacto de catálogo y edición editorial |
+| *(Ninguno)* | — | — | — | — |
+
+*(INC-87 entregó su PR #157, verificada con 2.139 pruebas unitarias + 10 de integración [2.149 en total] en verde al 100%, y quedó archivado el 2026-09-30. Implementa las fichas inteligentes de detalle para Novedades [/novedades/{id}] con botón a la fuente original y juego vinculado, y Eventos [/eventos/{id}] con cartel, metadatos territoriales y web oficial, modales contextuales de edición con subida WebP a Cloudflare R2 y eliminación para moderadores, y el rediseño unificado a cuadrícula compacta de catálogo [rail-cover--square 240x240 en listados y 192x192 en carriles de portada], respaldado por WeeklyReleaseServiceTests, ReleaseDetailPageContractTests y EventDetailPageContractTests).*
 
 *(INC-85 entregó su PR #152, verificada con 2.130 pruebas automáticas [2.120 unitarias + 10 de integración] en verde al 100%, y quedó archivado el 2026-09-29. Implementa el rediseño editorial completo de la ficha de juego `/juegos/{slug}` con maquetación asimétrica a dos columnas [8 cols para contenido inmersivo y 4 cols fijas para acción y compra], carrusel fotográfico interactivo `GameImageCarousel.razor` con soporte de portada, trasera y mesa, contador `1 / 3`, navegación táctil/flechas, tira de miniaturas y visor Lightbox modal a pantalla completa con optimizaciones anti-CLS [width/height 320px, fetchpriority="high"], módulo permanente de «Dónde Comprar» en la columna lateral fija con fallback automático a tiendas de referencia españolas [Zacatrus, Cuarto de Juegos, Dracotienda, Jugamos Otra] para garantizar cero estados vacíos y enlazar con el radar de precios, y barra compacta de pestañas secundarias [Guía de Fundas, Hub Multimedia y Consultorio de Reglas Q&A] respaldado por la suite `GameDetailEditorialContractTests`).*
 
