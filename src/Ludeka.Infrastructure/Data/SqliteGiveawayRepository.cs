@@ -23,17 +23,32 @@ public class SqliteGiveawayRepository : DbContextRepositoryBase, IGiveawayReposi
     public async Task<IReadOnlyList<Giveaway>> GetGiveawaysAsync(bool includeExpired = false, CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
-        // En SQLite cargamos en memoria para realizar el filtrado y ordenación por DateTimeOffset
-        var list = await scope.Context.Giveaways
-            .AsNoTracking()
-            .ToListAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+
+        if (scope.Context.Database.IsSqlite())
+        {
+            var list = await scope.Context.Giveaways
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            if (!includeExpired)
+            {
+                list = list.Where(g => g.DeadlineAt >= now).ToList();
+            }
+
+            return list.OrderBy(g => g.DeadlineAt).ToList();
+        }
+
+        var query = scope.Context.Giveaways.AsNoTracking().AsQueryable();
 
         if (!includeExpired)
         {
-            list = list.Where(g => !g.IsExpired).ToList();
+            query = query.Where(g => g.DeadlineAt >= now);
         }
 
-        return list.OrderBy(g => g.DeadlineAt).ToList();
+        return await query
+            .OrderBy(g => g.DeadlineAt)
+            .ToListAsync(ct);
     }
 
     public async Task<Giveaway?> GetByIdAsync(Guid id, CancellationToken ct = default)

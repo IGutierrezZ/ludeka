@@ -86,6 +86,12 @@ public class PriceRadarServiceTests
         public Task UpdateAsync(Game game, CancellationToken ct = default) => Task.CompletedTask;
         public Task<bool> HasAnyAsync(CancellationToken ct = default) => Task.FromResult(Games.Count > 0);
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Game>>(Games);
+        public Task<IReadOnlyList<Game>> GetGamesWithPurchaseLinksAsync(int? limit = null, CancellationToken ct = default)
+        {
+            var res = Games.Where(g => g.PurchaseLinks != null && g.PurchaseLinks.Count > 0);
+            if (limit.HasValue && limit.Value > 0) res = res.Take(limit.Value);
+            return Task.FromResult<IReadOnlyList<Game>>(res.ToList());
+        }
     }
 
     private class FakeUserCollectionRepository : IUserCollectionRepository

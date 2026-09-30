@@ -158,12 +158,22 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             return (pagedItems, total);
         }
 
-        // Para filtros que evalúan elementos de colecciones JSON complejas en SQLite (Scalability, Complexities)
-        var list = await query.ToListAsync(ct);
+        // Paginación en dos fases (INC-87): Proyectar índice ligero para evitar egress masivo
+        var indexList = await query
+            .Select(g => new GameFilterIndexItem(
+                g.Id,
+                g.Scalability,
+                g.Duration,
+                g.Age,
+                g.Style,
+                g.BggRank,
+                g.BggRating
+            ))
+            .ToListAsync(ct);
 
         if (criteria.EspecialParejas)
         {
-            list = list.Where(g => g.Scalability.Any(s => s.PlayerCount == 2 && s.Status == ScalabilityStatus.MustPlay)).ToList();
+            indexList = indexList.Where(g => g.Scalability.Any(s => s.PlayerCount == 2 && s.Status == ScalabilityStatus.MustPlay)).ToList();
         }
 
         // Filtro por número de comensales (multiselección o individual)
@@ -171,13 +181,13 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         {
             if (criteria.PlayerCountsMatchAll)
             {
-                list = list.Where(g => criteria.PlayerCounts.All(p => g.Scalability.Any(s =>
+                indexList = indexList.Where(g => criteria.PlayerCounts.All(p => g.Scalability.Any(s =>
                     (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
                     s.Status != ScalabilityStatus.NotRecommended))).ToList();
             }
             else
             {
-                list = list.Where(g => criteria.PlayerCounts.Any(p => g.Scalability.Any(s =>
+                indexList = indexList.Where(g => criteria.PlayerCounts.Any(p => g.Scalability.Any(s =>
                     (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
                     s.Status != ScalabilityStatus.NotRecommended))).ToList();
             }
@@ -185,7 +195,7 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         else if (criteria.PlayerCount.HasValue)
         {
             int p = criteria.PlayerCount.Value;
-            list = list.Where(g => g.Scalability.Any(s =>
+            indexList = indexList.Where(g => g.Scalability.Any(s =>
                 (p >= 7 ? s.PlayerCount >= 7 : s.PlayerCount == p) &&
                 s.Status != ScalabilityStatus.NotRecommended)).ToList();
         }
@@ -193,21 +203,40 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         // Filtro por dureza / complejidad cognitiva
         if (criteria.Complexities != null && criteria.Complexities.Count > 0)
         {
-            list = list.Where(g => criteria.Complexities.Contains(CalculateComplexity(g))).ToList();
+            indexList = indexList.Where(g => criteria.Complexities.Contains(CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))).ToList();
         }
 
-        int totalCount = list.Count;
+        int totalCount = indexList.Count;
 
-        // Ordenar por ranking BGG (con los rankeados primero) y luego rating
-        var paged = list
+        // Ordenar por ranking BGG (con los rankeados primero) y luego rating, y aislar los IDs de la página solicitada
+        var pagedIds = indexList
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank ?? int.MaxValue)
             .ThenByDescending(g => g.BggRating)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(g => g.Id)
             .ToList();
 
-        return (paged, totalCount);
+        if (pagedIds.Count == 0)
+        {
+            return ([], totalCount);
+        }
+
+        // Fase 2: Hidratación exclusiva de los elementos de la página seleccionada
+        var finalItems = await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => pagedIds.Contains(g.Id))
+            .ToListAsync(ct);
+
+        // Preservar el orden exacto de los IDs paginados
+        var itemsById = finalItems.ToDictionary(g => g.Id);
+        var orderedItems = pagedIds
+            .Where(id => itemsById.ContainsKey(id))
+            .Select(id => itemsById[id])
+            .ToList();
+
+        return (orderedItems, totalCount);
     }
 
     public async Task AddRangeAsync(IEnumerable<Game> games, CancellationToken ct = default)
@@ -407,11 +436,145 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyDictionary<string, int>> GetOfferCountsByStoreAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var gamesWithLinks = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => g.PurchaseLinks)
+            .ToListAsync(ct);
+
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var links in gamesWithLinks)
+        {
+            if (links == null || links.Count == 0) continue;
+            var distinctStoresInGame = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var link in links)
+            {
+                if (!string.IsNullOrWhiteSpace(link.StoreName))
+                {
+                    distinctStoresInGame.Add(link.StoreName.Trim());
+                }
+            }
+
+            foreach (var storeName in distinctStoresInGame)
+            {
+                counts[storeName] = counts.GetValueOrDefault(storeName, 0) + 1;
+            }
+        }
+
+        return counts;
+    }
+
+    public async Task<IReadOnlyDictionary<string, int>> GetGameCountsByPublisherAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var publishersList = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => new
+            {
+                g.Publisher,
+                g.SpanishPublisher,
+                g.RegionalPublishers
+            })
+            .ToListAsync(ct);
+
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in publishersList)
+        {
+            var distinctInGame = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(p.Publisher))
+                distinctInGame.Add(p.Publisher.Trim());
+
+            if (!string.IsNullOrWhiteSpace(p.SpanishPublisher))
+                distinctInGame.Add(p.SpanishPublisher.Trim());
+
+            if (p.RegionalPublishers != null)
+            {
+                foreach (var reg in p.RegionalPublishers)
+                {
+                    if (!string.IsNullOrWhiteSpace(reg.PublisherName))
+                        distinctInGame.Add(reg.PublisherName.Trim());
+                }
+            }
+
+            foreach (var pub in distinctInGame)
+            {
+                counts[pub] = counts.GetValueOrDefault(pub, 0) + 1;
+            }
+        }
+
+        return counts;
+    }
+
+    public async Task<IReadOnlyList<Game>> GetGamesWithStoreOffersAsync(string storeName, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(storeName)) return [];
+
+        var clean = storeName.Trim();
+        await using var scope = await CreateScopeAsync(ct);
+
+        var candidates = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => new { g.Id, Links = g.PurchaseLinks })
+            .ToListAsync(ct);
+
+        var matchingIds = candidates
+            .Where(c => c.Links != null && c.Links.Any(l =>
+                !string.IsNullOrWhiteSpace(l.StoreName) && (
+                    l.StoreName.Equals(clean, StringComparison.OrdinalIgnoreCase) ||
+                    l.StoreName.Contains(clean, StringComparison.OrdinalIgnoreCase) ||
+                    clean.Contains(l.StoreName, StringComparison.OrdinalIgnoreCase))))
+            .Select(c => c.Id)
+            .ToList();
+
+        if (matchingIds.Count == 0) return [];
+
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => matchingIds.Contains(g.Id))
+            .OrderBy(g => g.SpanishTitle)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Game>> GetGamesWithPurchaseLinksAsync(int? limit = null, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+
+        var candidates = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => new { g.Id, HasLinks = g.PurchaseLinks.Any() })
+            .ToListAsync(ct);
+
+        var matchingIds = candidates
+            .Where(c => c.HasLinks)
+            .Select(c => c.Id);
+
+        if (limit.HasValue && limit.Value > 0)
+        {
+            matchingIds = matchingIds.Take(limit.Value);
+        }
+
+        var idList = matchingIds.ToList();
+        if (idList.Count == 0) return [];
+
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => idList.Contains(g.Id))
+            .OrderBy(g => g.SpanishTitle)
+            .ToListAsync(ct);
+    }
+
     public static GameComplexity CalculateComplexity(Game g)
     {
-        if (g.Style == GameStyle.PartyGame || g.Style == GameStyle.FillerAbstract || (g.Duration.MaxMinutes <= 30 && g.Age.CommunityAge <= 10))
+        return CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge);
+    }
+
+    public static GameComplexity CalculateComplexity(GameStyle style, int maxMinutes, int communityAge)
+    {
+        if (style == GameStyle.PartyGame || style == GameStyle.FillerAbstract || (maxMinutes <= 30 && communityAge <= 10))
             return GameComplexity.Light;
-        if (g.Duration.MaxMinutes >= 120 || g.Age.CommunityAge >= 14 || (g.Duration.MaxMinutes >= 90 && g.Style == GameStyle.Eurogame))
+        if (maxMinutes >= 120 || communityAge >= 14 || (maxMinutes >= 90 && style == GameStyle.Eurogame))
             return GameComplexity.Heavy;
         return GameComplexity.Medium;
     }

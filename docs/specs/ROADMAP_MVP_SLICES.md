@@ -845,6 +845,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 88: Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos
+- **Identificador SDD:** `change-88-opt-consultas-egress-cache`
+- **Objetivo Principal:** Erradicar el consumo excesivo de ancho de banda saliente (egress > 5.5 GB) en Supabase PostgreSQL provocado por materializaciones masivas en memoria (`GetAllGamesAsync` y `ToListAsync` completos) y blindar la aplicación con caché en memoria:
+  1. **Erradicación de `GetAllGamesAsync` en Servicios de Negocio:** Consultas agregadas y proyecciones ligeras para conteos de ofertas en tiendas (`StoreService`), juegos por editorial (`PublisherService`) y filtrado en base de datos para el radar de precios (`PriceRadarService`).
+  2. **Paginación Quirúrgica en Dos Fases en Catálogo (`SearchAsync`):** Al activar filtros de escalabilidad o complejidad, proyectar únicamente identificadores y campos mínimos para filtrar y resolver los 24 IDs paginados, materializando únicamente las 24 entidades finales.
+  3. **Filtro de Sorteos en SQL:** Delegar el filtrado de vigencia temporal en `Giveaways` al motor relacional en lugar de evaluar en memoria.
+  4. **Capa de Caché en Memoria (`IMemoryCache`):** Políticas de caché en memoria con TTL e invalidación para directorios de tiendas (30 min), editoriales (30 min), alertas de radar (15 min) y sorteos de portada (5 min).
+- **Estado:** ✅ **Completado y Archivado** (2.161 tests en verde al 100%: 2.151 unitarios + 10 de integración).
+- **Documento:** [`archive/inc-88-opt-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-88-opt-consultas-egress-cache.md).
+- **Módulos del Sistema:** [`46-optimizacion-consultas-egress-cache.md`](file:///c:/repos/Ludeka/docs/specs/sistema/46-optimizacion-consultas-egress-cache.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

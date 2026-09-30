@@ -100,6 +100,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
 | **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ Planificado | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
 | **INC-87** | Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial | ✅ Archivado | [inc-87-novedades-eventos-fichas-y-tarjetas.md](archive/inc-87-novedades-eventos-fichas-y-tarjetas.md) |
+| **INC-88** | Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos | ✅ Archivado | [inc-88-opt-consultas-egress-cache.md](archive/inc-88-opt-consultas-egress-cache.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -131,6 +132,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
 | *(Ninguno)* | — | — | — | — |
+
+*(INC-88 entregó su verificación con 2.151 pruebas unitarias [2.161 totales con integración] en verde al 100%, y quedó archivado el 2026-09-30. Erradica las consultas masivas no paginadas en memoria (`GetAllGamesAsync`) en directorios de tiendas, editoriales y radar de precios mediante métodos de agregación y conteo proyectado (`GetOfferCountsByStoreAsync`, `GetGameCountsByPublisherAsync`, `GetGamesWithStoreOffersAsync`, `GetGamesWithPurchaseLinksAsync`), implementa paginación SQL en dos fases en `SqliteGameRepository.SearchAsync` cuando aplican filtros en memoria de comensales/dureza para hidratar solo los 24 juegos finales por ID, empuja el filtro de sorteos vigentes a SQL en PostgreSQL, e introduce decoradores de caché L1 en memoria (`CachedStoreService`, `CachedPublisherService`, `PriceRadarService`, `GiveawayService`) con invalidación reactiva por mutación).*
 
 *(INC-87 entregó su PR #157, verificada con 2.139 pruebas unitarias + 10 de integración [2.149 en total] en verde al 100%, y quedó archivado el 2026-09-30. Implementa las fichas inteligentes de detalle para Novedades [/novedades/{id}] con botón a la fuente original y juego vinculado, y Eventos [/eventos/{id}] con cartel, metadatos territoriales y web oficial, modales contextuales de edición con subida WebP a Cloudflare R2 y eliminación para moderadores, y el rediseño unificado a cuadrícula compacta de catálogo [rail-cover--square 240x240 en listados y 192x192 en carriles de portada], respaldado por WeeklyReleaseServiceTests, ReleaseDetailPageContractTests y EventDetailPageContractTests).*
 

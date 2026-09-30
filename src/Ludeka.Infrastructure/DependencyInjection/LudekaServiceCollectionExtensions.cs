@@ -235,13 +235,21 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
         services.AddScoped<IUserLocationService, UserLocationService>();
 
-        // Incremento 19: Directorio de Editoriales, Creadores y Tiendas con Foco Audiovisual
+        // Incremento 19 e INC-87: Directorio de Editoriales, Creadores y Tiendas con Foco Audiovisual y Caché L1
         services.AddScoped<IPublisherRepository, SqlitePublisherRepository>();
         services.AddScoped<ICreatorRepository, SqliteCreatorRepository>();
         services.AddScoped<IStoreRepository, SqliteStoreRepository>();
-        services.AddScoped<IPublisherService, PublisherService>();
+        services.AddScoped<PublisherService>();
+        services.AddScoped<IPublisherService>(sp =>
+            new CachedPublisherService(
+                sp.GetRequiredService<PublisherService>(),
+                sp.GetRequiredService<IMemoryCache>()));
         services.AddScoped<ICreatorService, CreatorService>();
-        services.AddScoped<IStoreService, StoreService>();
+        services.AddScoped<StoreService>();
+        services.AddScoped<IStoreService>(sp =>
+            new CachedStoreService(
+                sp.GetRequiredService<StoreService>(),
+                sp.GetRequiredService<IMemoryCache>()));
         services.AddScoped<IChannelDirectoryProvider, ChannelDirectoryProvider>();
         services.AddScoped<IDirectorySeederService, DirectorySeederService>();
 

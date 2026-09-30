@@ -163,6 +163,59 @@ public class DirectoryServicesTests
 
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Game>>(Games.ToList());
+
+        public Task<IReadOnlyDictionary<string, int>> GetOfferCountsByStoreAsync(CancellationToken ct = default)
+        {
+            var dict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var g in Games)
+            {
+                var stores = g.PurchaseLinks.Select(l => l.StoreName).Distinct(StringComparer.OrdinalIgnoreCase);
+                foreach (var s in stores)
+                {
+                    dict[s] = dict.GetValueOrDefault(s, 0) + 1;
+                }
+            }
+            return Task.FromResult<IReadOnlyDictionary<string, int>>(dict);
+        }
+
+        public Task<IReadOnlyDictionary<string, int>> GetGameCountsByPublisherAsync(CancellationToken ct = default)
+        {
+            var dict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var g in Games)
+            {
+                var pubs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrWhiteSpace(g.Publisher)) pubs.Add(g.Publisher);
+                if (!string.IsNullOrWhiteSpace(g.SpanishPublisher)) pubs.Add(g.SpanishPublisher);
+                if (g.RegionalPublishers != null)
+                {
+                    foreach (var r in g.RegionalPublishers)
+                    {
+                        if (!string.IsNullOrWhiteSpace(r.PublisherName)) pubs.Add(r.PublisherName);
+                    }
+                }
+                foreach (var p in pubs)
+                {
+                    dict[p] = dict.GetValueOrDefault(p, 0) + 1;
+                }
+            }
+            return Task.FromResult<IReadOnlyDictionary<string, int>>(dict);
+        }
+
+        public Task<IReadOnlyList<Game>> GetGamesWithStoreOffersAsync(string storeName, CancellationToken ct = default)
+        {
+            var clean = storeName.Trim();
+            var filtered = Games.Where(g => g.PurchaseLinks.Any(l =>
+                l.StoreName.Contains(clean, StringComparison.OrdinalIgnoreCase) ||
+                clean.Contains(l.StoreName, StringComparison.OrdinalIgnoreCase))).ToList();
+            return Task.FromResult<IReadOnlyList<Game>>(filtered);
+        }
+
+        public Task<IReadOnlyList<Game>> GetGamesWithPurchaseLinksAsync(int? limit = null, CancellationToken ct = default)
+        {
+            var res = Games.Where(g => g.PurchaseLinks != null && g.PurchaseLinks.Count > 0);
+            if (limit.HasValue && limit.Value > 0) res = res.Take(limit.Value);
+            return Task.FromResult<IReadOnlyList<Game>>(res.ToList());
+        }
     }
 
     private static Game CreateTestGame(string title, string publisher, string designer, List<GamePurchaseLink>? purchaseLinks = null)

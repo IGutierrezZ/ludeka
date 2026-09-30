@@ -36,7 +36,7 @@ public class PublisherService : IPublisherService
     public async Task<IReadOnlyList<PublisherDto>> GetAllAsync(string? search = null, CancellationToken ct = default)
     {
         var publishers = await _publisherRepository.GetAllAsync(ct);
-        var allGames = await _gameRepository.GetAllGamesAsync(ct);
+        var publisherCounts = await _gameRepository.GetGameCountsByPublisherAsync(ct);
         var likesCounts = _userLikeRepository != null
             ? await _userLikeRepository.GetLikesCountsAsync(LikeTargetType.Publisher, publishers.Select(p => p.Id), ct)
             : new Dictionary<Guid, int>();
@@ -55,7 +55,9 @@ public class PublisherService : IPublisherService
         return query
             .Select(p =>
             {
-                var gamesCount = allGames.Count(g => IsMatchGame(g, p.Name));
+                var gamesCount = publisherCounts
+                    .Where(kvp => IsMatchPublisher(kvp.Key, p.Name))
+                    .Sum(kvp => kvp.Value);
                 var likesCount = likesCounts.GetValueOrDefault(p.Id, 0);
                 return MapToDto(p, gamesCount, likesCount);
             })
