@@ -1741,7 +1741,7 @@ START TRANSACTION;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001115806_AddBggRawSnapshots') THEN
     CREATE TABLE "BggRawSnapshots" (
         "BggId" integer NOT NULL,
         "RawJson" jsonb NOT NULL,
@@ -1755,16 +1755,16 @@ END $EF$;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001115806_AddBggRawSnapshots') THEN
     CREATE INDEX "IX_BggRawSnapshots_FetchedAtUtc" ON "BggRawSnapshots" ("FetchedAtUtc");
     END IF;
 END $EF$;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001115806_AddBggRawSnapshots') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20261001120000_AddBggRawSnapshots', '10.0.12');
+    VALUES ('20261001115806_AddBggRawSnapshots', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
