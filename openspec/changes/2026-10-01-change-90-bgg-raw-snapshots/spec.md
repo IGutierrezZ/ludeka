@@ -48,6 +48,10 @@ Este incremento formaliza la arquitectura de persistencia desacoplada para snaps
     2. Expansiones (si aplica) y Pestañas Secundarias (Hub Multimedia, Fundas, Reglas).
     3. Síntesis generada por IA / Veredicto fundador al final de la columna principal.
 
+#### REQ-A7: Retirada de Edición Territorial Duplicada en Ficha
+* **Problema:** En `GameDetail.razor`, la editorial local figura dos veces: en la línea superior (`Diseñado por X • Editorial en España: Y (Orig: Z)`) y de nuevo en un bloque inferior redundante (`Ediciones territoriales: [ES] Y`).
+* **Solución:** Retirar el bloque inferior de ediciones territoriales, conservando la línea superior limpia y compacta.
+
 ---
 
 ### Slice B: Refinamiento del Catálogo y Tarjetas Lúdicas
@@ -71,6 +75,14 @@ Este incremento formaliza la arquitectura de persistencia desacoplada para snaps
   * Reducir los badges inferiores a **solo iconos** con texto accesible en tooltip/`title` al pasar el cursor.
   * Retirar la pastilla «Solo» de la tarjeta individual (el usuario interesado en solitario oficial utiliza el filtro avanzado).
   * Añadir una leyenda accesible de iconografía en la vista de catálogo (desplegable o pie de página) para que los visitantes reconozcan cada símbolo.
+
+#### REQ-B4: Elevación del Catálogo y Retirada de Cabecera Redundante
+* **Problema:** En [`Home.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor), el bloque `<PageHeaderEditorial>` («Descubre tu próxima partida...») ocupa espacio vertical innecesario cuando el usuario ya ha navegado deliberadamente a la sección de catálogo.
+* **Solución:** Suprimir el encabezado editorial para situar la barra de búsqueda y las tarjetas en la zona superior de impacto visual sin scroll forzado.
+
+#### REQ-B5: Corrección de Búsqueda Insensible a Mayúsculas en PostgreSQL (`EF.Functions.ILike`)
+* **Problema:** En PostgreSQL (producción), `EF.Functions.Like` genera el operador SQL `LIKE`, que es estrictamente sensible a mayúsculas y minúsculas (*case-sensitive*). Al buscar términos en minúsculas (ej. "ark") o variaciones de capitalización, el motor omite los juegos existentes ("Ark Nova").
+* **Solución:** En [`SqliteGameRepository.cs`](file:///f:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteGameRepository.cs), cuando la base de datos sea PostgreSQL (`IsNpgsql()`), emplear `EF.Functions.ILike` para todas las comparaciones de texto en `SearchAsync` y `QuickSearchAsync`, garantizando una búsqueda insensible a mayúsculas/minúsculas.
 
 ---
 

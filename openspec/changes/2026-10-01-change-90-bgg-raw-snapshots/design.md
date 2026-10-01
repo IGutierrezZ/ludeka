@@ -79,6 +79,24 @@
   2. El orden de los botones de pestañas se reubica para mostrar: (1) Hub Multimedia, (2) Guía de Fundas, (3) Consultorio de Reglas.
   3. En la maquetación de la columna de 8 anchos, el bloque del `ScalabilityTrafficLight` se posiciona inmediatamente tras el carrusel fotográfico, seguido de las pestañas secundarias (con los vídeos por delante) y desplazando la tarjeta `AiSummaryCard` / `FoundingVerdictCard` al fondo de la columna como cierre reflexivo.
 
+### Decisión D6: Búsqueda Insensible a Mayúsculas/Minúsculas en PostgreSQL con `EF.Functions.ILike`
+* **Contexto:** En PostgreSQL, `LIKE` es estrictamente case-sensitive, provocando que búsquedas como "ark no" fallen si el título tiene mayúsculas ("Ark Nova").
+* **Diseño:**
+  1. En `SqliteGameRepository.cs`, detectar `scope.Context.Database.IsNpgsql()`.
+  2. En PostgreSQL, aplicar `EF.Functions.ILike(columna, pattern)` sobre todos los campos de texto (`SpanishTitle`, `OriginalTitle`, `Publisher`, `Designer`).
+  3. En SQLite, mantener `EF.Functions.Like(columna, pattern)` (que ya es case-insensitive por defecto para caracteres ASCII).
+
+### Decisión D7: Elevación de la Interfaz del Catálogo
+* **Contexto:** El bloque `<PageHeaderEditorial>` en `/catalogo` consume espacio vertical valioso y resulta redundante.
+* **Diseño:**
+  1. Suprimir `<PageHeaderEditorial>` en `Home.razor`.
+  2. Posicionar la barra de búsqueda y los controles de filtrado en la cabecera directa de la página.
+
+### Decisión D8: Unificación Editorial Territorial en Ficha
+* **Contexto:** `GameDetail.razor` mostraba la editorial en España bajo el diseñador y volvía a repetirla en un bloque inferior "Ediciones territoriales".
+* **Diseño:**
+  1. Retirar el bloque inferior "Ediciones territoriales:" cuando coincide o es redundante con la editorial local ya informada en la línea de autoría.
+
 ---
 
 ## 2. Diagrama de Flujo: Poblado de Snapshots BGG con *Rate Limiting*

@@ -15,6 +15,7 @@
 - [ ] 1.4 Extender [`GameEditorModal.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameEditorModal.razor) para gestionar y subir a R2 la portada frontal, trasera de caja y despliegue en mesa para alimentar el carrusel de INC-85.
 - [ ] 1.5 Corregir el endpoint `/login/external` en [`Program.cs`](file:///f:/repos/Ludeka/src/Ludeka.Web/Program.cs) para respetar el parámetro `returnUrl` sanitizado con `LoginRedirect.IsLocalUrl(...)`.
 - [ ] 1.6 Reordenar las pestañas secundarias en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) para situar el Hub Multimedia en primer lugar (y activo por defecto), y reestructurar la jerarquía visual de la columna principal colocando el semáforo de escalabilidad tras el carrusel, seguido del multimedia/fundas, y desplazando la síntesis editorial al fondo.
+- [ ] 1.7 Retirar el bloque redundante de «Ediciones territoriales» en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) unificando la información editorial en la línea de autoría.
 
 ### Fase 2: Slice B — Refinamiento del Catálogo y Tarjetas Lúdicas
 - [ ] 2.1 Definir el enum `GameSortOrder` en `Ludeka.Core.Enums` y extender `GameFilterCriteria` con la propiedad `SortBy`.
@@ -22,6 +23,8 @@
 - [ ] 2.3 Retirar la fila de filtros rápidos superiores en [`Home.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor) y agregar el selector «Ordenar por» en el panel de filtros avanzados con persistencia en URL (`orden`).
 - [ ] 2.4 Refactorizar [`GameCard.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameCard.razor): formatear jugadores en modo compacto `3-4J`, reducir los badges inferiores a solo iconos con tooltip y retirar la píldora «Solo».
 - [ ] 2.5 Añadir leyenda accesible de iconografía en el catálogo.
+- [ ] 2.6 Suprimir el encabezado `<PageHeaderEditorial>` en [`Home.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor) para elevar la barra de búsqueda y las tarjetas al primer plano visual sin scroll.
+- [ ] 2.7 Implementar búsqueda insensible a mayúsculas/minúsculas en PostgreSQL (`IsNpgsql()`) mediante `EF.Functions.ILike` en [`SqliteGameRepository.cs`](file:///f:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteGameRepository.cs), corrigiendo los fallos de búsqueda como "ark no" vs "Ark Nova".
 
 ### Fase 3: Slice C — Tabla Satélite de Snapshots Crudos BGG y Poblado Defensivo
 - [ ] 3.1 Crear la entidad `BggRawSnapshot` y configurar su mapeo en `LudekaDbContext` (soporte dual `jsonb` en PostgreSQL y `TEXT` en SQLite).
