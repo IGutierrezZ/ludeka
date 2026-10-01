@@ -1,0 +1,254 @@
+@page "/tendencias"
+@rendermode InteractiveServer
+@inject ITrendingService TrendingService
+@inject NavigationManager Navigation
+@using System.Globalization
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+
+<PageTitle>Tendencias Mundiales de Juegos de Mesa (BGG Hotness) — Ludeka</PageTitle>
+
+<div class="container-ludeka pt-4 pb-12">
+    @* Cabecera editorial con botón a catálogo *@
+    <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 pb-5 border-b border-[var(--border-subtle)]">
+        <div class="space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                <Icon Name="flame" Size="14" />
+                <span>BGG Hotness &bull; Top 50 Mundial</span>
+            </div>
+
+            <h1 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight">
+                Juegos en Tendencia
+            </h1>
+
+            <p class="text-xs sm:text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+                Los 50 títulos más activos y comentados hoy en la comunidad lúdica internacional de BoardGameGeek, con seguimiento diario de ascensos, caídas y nuevas entradas en la mesa.
+            </p>
+
+            @if (_comparison != null && _comparison.Items.Count > 0)
+            {
+                <div class="flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1">
+                    <Icon Name="calendar" Size="13" />
+                    <span>Instantánea del <strong>@FormatDate(_comparison.DateUtc)</strong></span>
+                    @if (_comparison.PreviousDateUtc.HasValue)
+                    {
+                        <span class="hidden sm:inline text-[var(--text-muted)]">&bull; Comparado con el @FormatDate(_comparison.PreviousDateUtc.Value)</span>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0 self-start md:self-auto">
+            <a href="/catalogo"
+               class="px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] font-bold text-xs sm:text-sm transition-all shadow-sm inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+               aria-label="Ir al catálogo completo de juegos de mesa">
+                <Icon Name="layout-grid" Size="15" />
+                <span>Ir al catálogo</span>
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+    </header>
+
+    @* Estado de carga *@
+    @if (_isLoading)
+    {
+        <div class="py-20 text-center text-[var(--text-secondary)]">
+            <div class="inline-block animate-spin mb-3 text-[var(--brand-primary)]">
+                <Icon Name="dices" Size="36" />
+            </div>
+            <p class="text-sm font-semibold">Cargando las tendencias del día...</p>
+        </div>
+    }
+    @* Estado vacío *@
+    else if (_comparison == null || _comparison.Items.Count == 0)
+    {
+        <div class="py-16 text-center max-w-md mx-auto p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center mb-3">
+                <Icon Name="flame" Size="24" />
+            </div>
+            <h2 class="text-base font-bold text-[var(--text-primary)] mb-1">Sin tendencias disponibles</h2>
+            <p class="text-xs text-[var(--text-muted)] mb-5">
+                La fotografía diaria de tendencias se generará durante el próximo ciclo de sincronización nocturna.
+            </p>
+            <a href="/catalogo" class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white font-bold text-xs inline-flex items-center gap-1.5">
+                <span>Explorar el catálogo</span>
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+    }
+    @* Listado editorial de tendencias *@
+    else
+    {
+        <div class="space-y-2.5" role="list" aria-label="Ranking de los 50 juegos de mesa en tendencia">
+            @foreach (var item in _comparison.Items)
+            {
+                <article class="flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] hover:shadow-md transition-all text-xs"
+                         role="listitem"
+                         aria-label="Puesto @item.Rank: @(item.SpanishTitle ?? item.Title)">
+                    
+                    @* 1. Columna Puesto y Delta de Movimiento *@
+                    <div class="flex flex-col items-center justify-center w-12 sm:w-14 shrink-0 text-center">
+                        <span class="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight">
+                            #@item.Rank
+                        </span>
+
+                        <div class="mt-1">
+                            @switch (item.Movement)
+                            {
+                                case RankMovement.Up:
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-black text-[0.65rem] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                          title="Sube @item.PositionsChanged puesto(s) respecto al día anterior (anterior: #@item.PreviousRank)"
+                                          aria-label="Sube @item.PositionsChanged puesto(s)">
+                                        <Icon Name="arrow-up" Size="10" />
+                                        <span>+@item.PositionsChanged</span>
+                                    </span>
+                                    break;
+
+                                case RankMovement.Down:
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-black text-[0.65rem] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                          title="Baja @item.PositionsChanged puesto(s) respecto al día anterior (anterior: #@item.PreviousRank)"
+                                          aria-label="Baja @item.PositionsChanged puesto(s)">
+                                        <Icon Name="arrow-down" Size="10" />
+                                        <span>-@item.PositionsChanged</span>
+                                    </span>
+                                    break;
+
+                                case RankMovement.Same:
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-bold text-[0.65rem] bg-[var(--bg-surface-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]"
+                                          title="Mantiene la misma posición que el día anterior"
+                                          aria-label="Mantiene posición">
+                                        <Icon Name="minus" Size="10" />
+                                        <span>=</span>
+                                    </span>
+                                    break;
+
+                                case RankMovement.New:
+                                default:
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-black text-[0.62rem] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                          title="Nueva entrada en el Top 50 de tendencias"
+                                          aria-label="Nueva entrada">
+                                        <Icon Name="sparkles" Size="9" />
+                                        <span>Entra</span>
+                                    </span>
+                                    break;
+                            }
+                        </div>
+                    </div>
+
+                    @* 2. Miniatura / Carátula *@
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] relative">
+                        @{
+                            var effectiveThumbnail = !string.IsNullOrWhiteSpace(item.ThumbnailUrl)
+                                ? item.ThumbnailUrl
+                                : "/images/game-placeholder.svg";
+                            var displayTitle = !string.IsNullOrWhiteSpace(item.SpanishTitle) ? item.SpanishTitle : item.Title;
+                        }
+                        <img src="@effectiveThumbnail"
+                             alt="Carátula de @displayTitle"
+                             loading="lazy"
+                             decoding="async"
+                             width="64"
+                             height="64"
+                             onerror="this.onerror=null; this.src='/images/game-placeholder.svg';"
+                             class="w-full h-full object-cover" />
+                    </div>
+
+                    @* 3. Información del juego (Título, año, original) *@
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <h2 class="font-extrabold text-sm sm:text-base text-[var(--text-primary)] line-clamp-1">
+                                @if (!string.IsNullOrWhiteSpace(item.Slug))
+                                {
+                                    <a href="/juegos/@item.Slug" class="hover:text-[var(--brand-primary)] hover:underline transition-colors">
+                                        @displayTitle
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>@displayTitle</span>
+                                }
+                            </h2>
+
+                            @if (!string.IsNullOrWhiteSpace(item.SpanishTitle) && !string.Equals(item.SpanishTitle, item.Title, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <span class="text-xs text-[var(--text-muted)] italic line-clamp-1">
+                                    (@item.Title)
+                                </span>
+                            }
+                        </div>
+
+                        <div class="flex items-center gap-2 text-[0.72rem] text-[var(--text-secondary)]">
+                            @if (item.YearPublished.HasValue)
+                            {
+                                <span class="font-semibold text-[var(--brand-primary)]">@item.YearPublished.Value</span>
+                            }
+
+                            @if (item.BggRank.HasValue && item.BggRank.Value > 0)
+                            {
+                                <span class="text-[var(--text-muted)]">&bull; Rank BGG #@item.BggRank.Value</span>
+                            }
+                        </div>
+                    </div>
+
+                    @* 4. Acciones y valoración *@
+                    <div class="flex items-center gap-3 shrink-0">
+                        @if (item.BggRating.HasValue && item.BggRating.Value > 0)
+                        {
+                            <div class="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs"
+                                 title="Valoración media en BoardGameGeek">
+                                <Icon Name="star" Size="13" class="text-amber-500 fill-amber-500" />
+                                <span>@item.BggRating.Value.ToString("F1", CultureInfo.InvariantCulture)</span>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(item.Slug))
+                        {
+                            <a href="/juegos/@item.Slug"
+                               class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-[var(--brand-primary)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white font-bold text-xs transition-colors inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+                               aria-label="Ver ficha completa de @displayTitle">
+                                <span>Ficha</span>
+                                <span aria-hidden="true">&rarr;</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="hidden sm:inline-block px-2.5 py-1 rounded-xl text-[0.65rem] font-bold text-[var(--text-muted)] bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]"
+                                  title="Este título se catalogará en breve en Ludeka">
+                                En ingesta
+                            </span>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private TrendingComparisonDto? _comparison;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _comparison = await TrendingService.GetTrendingComparisonAsync();
+        }
+        catch
+        {
+            _comparison = new TrendingComparisonDto(DateOnly.FromDateTime(DateTime.UtcNow), null, Array.Empty<TrendingGameItemDto>());
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static string FormatDate(DateOnly date)
+    {
+        var dt = date.ToDateTime(TimeOnly.MinValue);
+        return dt.ToString("d 'de' MMMM 'de' yyyy", new CultureInfo("es-ES"));
+    }
+}
