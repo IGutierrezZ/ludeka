@@ -147,7 +147,7 @@ public class BggImportService : IBggImportService
                             await _pendingRepo.UpdateAsync(pendingQueueEntry, ct);
                         }
                     }
-                    else if (existingPendingItem.Status != targetStatus.Value)
+                    else if (targetStatus.HasValue && existingPendingItem.Status != targetStatus.Value)
                     {
                         existingPendingItem.ChangeStatus(targetStatus.Value);
                         await _collectionRepo.UpdateAsync(existingPendingItem, ct);
