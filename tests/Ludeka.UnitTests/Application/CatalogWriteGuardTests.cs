@@ -248,6 +248,27 @@ public class BggDiscoveryWriteGuardTests : AdministrativeWriteGuardTestBase
         Assert.Equal(1, result.EnqueuedCount);
         Assert.Equal(1, await Context.PendingBggImports.AsNoTracking().CountAsync());
     }
+
+    [Fact]
+    public async Task SyncDailyTrendingAsync_WithoutSession_DeniesWithoutCallingBgg()
+    {
+        SetTopGames();
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.SyncDailyTrendingAsync(10));
+    }
+
+    [Fact]
+    public async Task SyncDailyTrendingAsync_WithThePermission_ExecutesSync()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanEditGames));
+        SetTopGames();
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var result = await service.SyncDailyTrendingAsync(10);
+
+        Assert.NotNull(result);
+    }
 }
 
 /// <summary>Ciclo de drenaje del staging masivo: botón del panel y fase del ciclo nocturno.</summary>

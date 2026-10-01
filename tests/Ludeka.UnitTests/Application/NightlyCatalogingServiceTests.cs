@@ -461,6 +461,18 @@ public class NightlyCatalogingServiceTests
             WasCalled = true;
             return Task.FromResult(new BggDiscoveryResultDto(maxItems, DiscoveredToReturn, DiscoveredToReturn, 0, 0, []));
         }
+
+        public Task<BggTrendingSyncResultDto> SyncDailyTrendingAsync(int maxItems = 50, CancellationToken ct = default)
+        {
+            WasCalled = true;
+            return Task.FromResult(new BggTrendingSyncResultDto(DateOnly.FromDateTime(DateTime.UtcNow), maxItems, 0, DiscoveredToReturn, 0, []));
+        }
+
+        public Task<BggTrendingSyncResultDto> RunDailyTrendingSyncAsync(int maxItems = 50, CancellationToken ct = default)
+        {
+            WasCalled = true;
+            return Task.FromResult(new BggTrendingSyncResultDto(DateOnly.FromDateTime(DateTime.UtcNow), maxItems, 0, DiscoveredToReturn, 0, []));
+        }
     }
 
     private class FakeMassIngestionService : IBggMassIngestionService

@@ -85,6 +85,8 @@ public class BggRawBackfillJobRunnerTests
             AutoLinkCalled = true;
             return Task.FromResult(4);
         }
+
+        public Task<bool> EnsureSnapshotAsync(int bggId, CancellationToken ct = default) => Task.FromResult(true);
     }
 
     [Fact]
