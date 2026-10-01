@@ -29,6 +29,8 @@ public record UpdateGameDetailsCommand(
     LanguageDependence Language,
     TableFootprint Footprint,
     string? CoverImageUrl,
+    string? BackCoverImageUrl = null,
+    string? TableImageUrl = null,
     Guid? AssociatedReportId = null,
     string? ResolutionNotes = null,
     IReadOnlyList<SleeveItem>? Sleeves = null

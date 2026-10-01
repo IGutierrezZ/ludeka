@@ -45,8 +45,19 @@ public class PhysicalFileImageStorageService : IImageStorageService
         }
     }
 
-    public async Task<GameImageUploadResult> SaveGameCoverAsync(
+    public Task<GameImageUploadResult> SaveGameCoverAsync(
         string slug,
+        Stream contentStream,
+        string originalFileName,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        return SaveGameImageAsync(slug, "cover", contentStream, originalFileName, contentType, ct);
+    }
+
+    public async Task<GameImageUploadResult> SaveGameImageAsync(
+        string slug,
+        string slot,
         Stream contentStream,
         string originalFileName,
         string contentType,
@@ -73,8 +84,9 @@ public class PhysicalFileImageStorageService : IImageStorageService
             }
 
             var cleanSlug = Core.Entities.Game.GenerateSlug(slug);
+            var normalizedSlot = string.IsNullOrWhiteSpace(slot) ? "cover" : slot.Trim().ToLowerInvariant();
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var fileName = $"{cleanSlug}-cover-{timestamp}{ext}";
+            var fileName = $"{cleanSlug}-{normalizedSlot}-{timestamp}{ext}";
             var fullPath = Path.Combine(_gamesDirectory, fileName);
 
             if (contentStream.CanSeek)

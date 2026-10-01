@@ -165,8 +165,19 @@ public class CloudflareR2StorageService : IImageStorageService
 
     // --- Métodos de compatibilidad con interfaz existente ---
 
-    public async Task<GameImageUploadResult> SaveGameCoverAsync(
+    public Task<GameImageUploadResult> SaveGameCoverAsync(
         string slug,
+        Stream contentStream,
+        string originalFileName,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        return SaveGameImageAsync(slug, "cover", contentStream, originalFileName, contentType, ct);
+    }
+
+    public async Task<GameImageUploadResult> SaveGameImageAsync(
+        string slug,
+        string slot,
         Stream contentStream,
         string originalFileName,
         string contentType,
@@ -174,14 +185,16 @@ public class CloudflareR2StorageService : IImageStorageService
     {
         try
         {
+            var normalizedSlot = string.IsNullOrWhiteSpace(slot) ? "cover" : slot.Trim().ToLowerInvariant();
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var objectKey = $"games/{slug}/cover-{timestamp}.webp";
-            var publicUrl = await UploadOptimizedImageAsync(contentStream, objectKey, maxWidth: 1000, quality: 82, ct);
+            var objectKey = $"games/{slug}/{normalizedSlot}-{timestamp}.webp";
+            int maxWidth = normalizedSlot is "table" ? 1200 : 1000;
+            var publicUrl = await UploadOptimizedImageAsync(contentStream, objectKey, maxWidth: maxWidth, quality: 82, ct);
             return new GameImageUploadResult(true, publicUrl, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al guardar carátula en R2 para {Slug}", slug);
+            _logger.LogError(ex, "Error al guardar imagen '{Slot}' en R2 para {Slug}", slot, slug);
             return new GameImageUploadResult(false, null, ex.Message);
         }
     }

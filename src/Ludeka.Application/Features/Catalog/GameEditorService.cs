@@ -66,8 +66,11 @@ public class GameEditorService : IGameEditorService
         // 3. Validar permiso específico para carga/reemplazo de imágenes
         bool isChangingCover = !string.IsNullOrWhiteSpace(command.CoverImageUrl) &&
                                !string.Equals(game.CoverImageUrl, command.CoverImageUrl, StringComparison.Ordinal);
+        bool isChangingBackCover = !string.Equals(game.BackCoverImageUrl, command.BackCoverImageUrl, StringComparison.Ordinal);
+        bool isChangingTable = !string.Equals(game.TableImageUrl, command.TableImageUrl, StringComparison.Ordinal);
+        bool isChangingImages = isChangingCover || isChangingBackCover || isChangingTable;
 
-        if (isChangingCover && !_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanUploadImages))
+        if (isChangingImages && !_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanUploadImages))
         {
             throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanUploadImages' para actualizar la carátula o imágenes del juego.");
         }
@@ -108,8 +111,20 @@ public class GameEditorService : IGameEditorService
 
         if (isChangingCover)
         {
-            changes.Add("Carátula actualizada");
+            changes.Add("Carátula frontal actualizada");
             fieldChanges.Add(new FieldChangeDto("CoverImageUrl", game.CoverImageUrl, command.CoverImageUrl));
+        }
+
+        if (isChangingBackCover)
+        {
+            changes.Add("Trasera de caja actualizada");
+            fieldChanges.Add(new FieldChangeDto("BackCoverImageUrl", game.BackCoverImageUrl, command.BackCoverImageUrl));
+        }
+
+        if (isChangingTable)
+        {
+            changes.Add("Despliegue en mesa actualizado");
+            fieldChanges.Add(new FieldChangeDto("TableImageUrl", game.TableImageUrl, command.TableImageUrl));
         }
 
         if (command.Sleeves != null)
@@ -142,10 +157,12 @@ public class GameEditorService : IGameEditorService
             command.MaxPlayers
         );
 
-        if (!string.IsNullOrWhiteSpace(command.CoverImageUrl))
-        {
-            game.UpdateImages(command.CoverImageUrl, game.ThumbnailUrl ?? command.CoverImageUrl);
-        }
+        game.UpdateMediaUrls(
+            !string.IsNullOrWhiteSpace(command.CoverImageUrl) ? command.CoverImageUrl : game.CoverImageUrl,
+            game.ThumbnailUrl ?? command.CoverImageUrl,
+            command.BackCoverImageUrl,
+            command.TableImageUrl
+        );
 
         if (command.Sleeves != null)
         {

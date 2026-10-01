@@ -48,26 +48,11 @@ else
                 </a>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                @if (Game.BggId > 0)
-                {
-                    <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       title="Ver en BoardGameGeek"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="globe" Size="12" /> Ver en BoardGameGeek
-                    </a>
-                }
                 <button type="button"
                         @onclick="() => _isReportModalOpen = true"
                         title="Reportar una errata, imagen incorrecta o problema en esta ficha"
                         class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--state-error-bg)] hover:text-[var(--state-error)] hover:border-[var(--state-error-border)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
                     <Icon Name="flag" Size="12" /> Reportar problema
-                </button>
-                <button type="button"
-                        @onclick="OpenSocialCardModal"
-                        class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="palette" Size="12" /> Cartel para Redes
                 </button>
                 @if (Game.PurchaseLinks != null && Game.PurchaseLinks.Count > 0)
                 {
@@ -78,6 +63,11 @@ else
                 }
                 @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
                 {
+                    <button type="button"
+                            @onclick="OpenSocialCardModal"
+                            class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                        <Icon Name="palette" Size="12" /> Cartel para Redes
+                    </button>
                     <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
                         <button type="button"
                                 @onclick="() => _isEditorModalOpen = true"
@@ -209,29 +199,6 @@ else
                                 </span>
                             }
                         </p>
-
-                        @if (Game.RegionalPublishers != null && Game.RegionalPublishers.Count > 0)
-                        {
-                            <div class="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                                <span class="text-[var(--text-muted)] font-semibold text-[0.7rem] uppercase tracking-wider">Ediciones territoriales:</span>
-                                @foreach (var reg in Game.RegionalPublishers)
-                                {
-                                    var country = CountryCatalog.FindByNameOrCode(reg.CountryCode);
-                                    var regSlug = !string.IsNullOrWhiteSpace(reg.PublisherSlug) ? reg.PublisherSlug : Ludeka.Core.Entities.Game.GenerateSlug(reg.PublisherName);
-                                    <a href="@($"/editoriales/{regSlug}")" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[0.72rem] hover:border-[var(--brand-primary)] transition-colors" title="Editorial en @(country?.Name ?? reg.CountryName)">
-                                        @if (!string.IsNullOrWhiteSpace(country?.FlagEmoji))
-                                        {
-                                            <span>@country.FlagEmoji</span>
-                                        }
-                                        else
-                                        {
-                                            <Icon Name="globe" Size="12" />
-                                        }
-                                        <span class="font-medium text-[var(--text-primary)]">@reg.PublisherName</span>
-                                    </a>
-                                }
-                            </div>
-                        }
                     </div>
                 </div>
 
@@ -253,41 +220,6 @@ else
                             <span>@_aiSummaryMessage</span>
                         </div>
                         <button type="button" @onclick="() => _aiSummaryMessage = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
-                    </div>
-                }
-
-                @* Bloque Editorial: Veredicto Fundador o Resumen IA *@
-                @if (_foundingVerdict != null)
-                {
-                    <FoundingVerdictCard Verdict="@_foundingVerdict" />
-                }
-                else if (_aiSummary != null)
-                {
-                    <AiSummaryCard Summary="@_aiSummary" />
-                }
-                else if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
-                {
-                    <div class="rounded-xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] p-5 text-center space-y-3">
-                        <div><Icon Name="bot" Size="24" /></div>
-                        <h3 class="text-sm font-bold text-[var(--text-primary)]">Ficha pendiente de síntesis editorial</h3>
-                        <p class="text-xs text-[var(--text-muted)] max-w-md mx-auto">
-                            Este título aún no cuenta con síntesis de IA ni veredicto de la mesa fundadora. Puedes generar su síntesis ahora bajo demanda.
-                        </p>
-                        <button type="button"
-                                @onclick="HandleRequestAiSummary"
-                                disabled="@_isGeneratingAiSummary"
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50">
-                            @if (_isGeneratingAiSummary)
-                            {
-                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
-                                <span>Generando síntesis con IA...</span>
-                            }
-                            else
-                            {
-                                <Icon Name="zap" Size="12" />
-                                <span>Generar Síntesis con IA Ahora</span>
-                            }
-                        </button>
                     </div>
                 }
 
@@ -326,22 +258,10 @@ else
                     <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
                 }
 
-                @* Módulo de Pestañas Secundarias (Fundas, Vídeos, Reglas) *@
+                @* Módulo de Pestañas Secundarias (Vídeos, Fundas, Reglas) *@
                 <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
                     @* Barra de Pestañas *@
                     <div class="flex items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-1.5 gap-1 overflow-x-auto">
-                        <button type="button"
-                                @onclick='() => _activeSecondaryTab = "sleeves"'
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "sleeves" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                            <Icon Name="shield" Size="14" />
-                            <span>Guía de Fundas</span>
-                            @if (Game.Sleeves != null && Game.Sleeves.Count > 0)
-                            {
-                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
-                                    @Game.Sleeves.Count
-                                </span>
-                            }
-                        </button>
                         <button type="button"
                                 @onclick='() => _activeSecondaryTab = "media"'
                                 class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "media" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
@@ -355,6 +275,18 @@ else
                             }
                         </button>
                         <button type="button"
+                                @onclick='() => _activeSecondaryTab = "sleeves"'
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "sleeves" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            <Icon Name="shield" Size="14" />
+                            <span>Guía de Fundas</span>
+                            @if (Game.Sleeves != null && Game.Sleeves.Count > 0)
+                            {
+                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                                    @Game.Sleeves.Count
+                                </span>
+                            }
+                        </button>
+                        <button type="button"
                                 @onclick='() => _activeSecondaryTab = "rules"'
                                 class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "rules" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
                             <Icon Name="help-circle" Size="14" />
@@ -364,13 +296,13 @@ else
 
                     @* Contenido de la Pestaña Activa *@
                     <div class="p-2 sm:p-4">
-                        @if (_activeSecondaryTab == "sleeves")
-                        {
-                            <SleeveGuideCard Sleeves="@Game.Sleeves" />
-                        }
-                        else if (_activeSecondaryTab == "media")
+                        @if (_activeSecondaryTab == "media")
                         {
                             <MultimediaHub MediaHub="@_mediaHub" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
+                        }
+                        else if (_activeSecondaryTab == "sleeves")
+                        {
+                            <SleeveGuideCard Sleeves="@Game.Sleeves" />
                         }
                         else if (_activeSecondaryTab == "rules")
                         {
@@ -378,6 +310,41 @@ else
                         }
                     </div>
                 </div>
+
+                @* Bloque Editorial: Veredicto Fundador o Resumen IA *@
+                @if (_foundingVerdict != null)
+                {
+                    <FoundingVerdictCard Verdict="@_foundingVerdict" />
+                }
+                else if (_aiSummary != null)
+                {
+                    <AiSummaryCard Summary="@_aiSummary" />
+                }
+                else if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
+                {
+                    <div class="rounded-xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] p-5 text-center space-y-3">
+                        <div><Icon Name="bot" Size="24" /></div>
+                        <h3 class="text-sm font-bold text-[var(--text-primary)]">Ficha pendiente de síntesis editorial</h3>
+                        <p class="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                            Este título aún no cuenta con síntesis de IA ni veredicto de la mesa fundadora. Puedes generar su síntesis ahora bajo demanda.
+                        </p>
+                        <button type="button"
+                                @onclick="HandleRequestAiSummary"
+                                disabled="@_isGeneratingAiSummary"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50">
+                            @if (_isGeneratingAiSummary)
+                            {
+                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
+                                <span>Generando síntesis con IA...</span>
+                            }
+                            else
+                            {
+                                <Icon Name="zap" Size="12" />
+                                <span>Generar Síntesis con IA Ahora</span>
+                            }
+                        </button>
+                    </div>
+                }
 
             </div>
 
@@ -595,7 +562,7 @@ else
     private string _selectedHeroImageKey = "cover";
     private string? _userCountryCode;
     private string _userCountryName = "España";
-    private string _activeSecondaryTab = "sleeves";
+    private string _activeSecondaryTab = "media";
 
     private string CurrentHeroImageUrl => _selectedHeroImageKey switch
     {
