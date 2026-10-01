@@ -102,6 +102,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-87** | Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial | ✅ Archivado | [inc-87-novedades-eventos-fichas-y-tarjetas.md](archive/inc-87-novedades-eventos-fichas-y-tarjetas.md) |
 | **INC-88** | Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos | ✅ Archivado | [inc-88-opt-consultas-egress-cache.md](archive/inc-88-opt-consultas-egress-cache.md) |
 | **INC-89** | Saneamiento Integral de Consultas SQL Restantes, Eliminación de Egress O(N) y Blindaje de Caché de Fichas Públicas | ✅ Archivado | [inc-89-opt-consultas-egress-fase2.md](archive/inc-89-opt-consultas-egress-fase2.md) |
+| **INC-90** | Tabla Satélite de Snapshots Crudos BGG, Ingesta Automática y Poblado Retroactivo con Respeto de Límites | ⏳ En progreso | [inc-90-bgg-raw-snapshots.md](inc-90-bgg-raw-snapshots.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -132,7 +133,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno activo)* | — | — | — | Todos los incrementos actuales están archivados |
+| **INC-90** | `inc/bgg-raw-snapshots` | `F:\repos\ludeka-wt\bgg-raw-snapshots` | ⏳ En progreso | Tabla satélite de snapshots crudos BGG, auto-captura y poblado retroactivo con limitación de tasa |
 
 *(INC-89 entregó su PR #160, verificada con 2.155 pruebas unitarias [2.165 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Erradica las descargas O(N) restantes en `SqliteGameRepository.GetByPublisherAsync` mediante filtrado SQL nativo con `EF.Functions.Like`, acota las comprobaciones de calidad en `GetGamesPendingQualityBackfillAsync` mediante proyecciones directas de `{Id, Scalability}` con `Take(limit)`, delega la ordenación en PostgreSQL para veredictos fundadores y extiende la caché L1 en fichas individuales de editoriales en `CachedPublisherService`).*
 
