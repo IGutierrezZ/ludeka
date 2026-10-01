@@ -346,6 +346,38 @@ public class BggMassIngestionWriteGuardTests : AdministrativeWriteGuardTestBase
         Assert.NotNull(result);
         Assert.Equal(1, _bggClient.FetchCalls);
     }
+
+    [Fact]
+    public async Task RunContinuousAiDrainAsync_WithoutSession_Denies()
+    {
+        await SeedStagingItemAsync();
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.RunContinuousAiDrainAsync(maxItems: 10));
+    }
+
+    [Fact]
+    public async Task RunScheduledContinuousAiDrainAsync_WithoutSession_RunsAsTheSystemPath()
+    {
+        await SeedStagingItemAsync();
+        var service = CreateService();
+
+        var result = await service.RunScheduledContinuousAiDrainAsync(maxItems: 10);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task RunContinuousAiDrainAsync_WithPermission_RunsSuccessfully()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanEditGames));
+        await SeedStagingItemAsync();
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var result = await service.RunContinuousAiDrainAsync(maxItems: 10);
+
+        Assert.NotNull(result);
+    }
 }
 
 /// <summary>Ciclo nocturno de catalogación: botón del panel y servicio hospedado programado.</summary>

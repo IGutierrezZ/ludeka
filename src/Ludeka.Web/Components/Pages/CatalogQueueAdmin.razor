@@ -281,7 +281,7 @@
                     {
                         <button type="button"
                                 @onclick="StartContinuousDrain"
-                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isBackfillingQuality || _isContinuousBackfillActive)"
+                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isBackfillingQuality || _isContinuousBackfillActive || _isContinuousAiDrainActive)"
                                 class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                             <Icon Name="play" Size="14" />
                             <span>Drenaje Continuo (Segundo Plano)</span>
@@ -294,6 +294,27 @@
                                 class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
                             <span>Detener Drenaje Continuo</span>
+                        </button>
+                    }
+
+                    @if (!_isContinuousAiDrainActive)
+                    {
+                        <button type="button"
+                                @onclick="StartContinuousAiDrain"
+                                disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isBackfillingQuality || _isContinuousBackfillActive || _isContinuousDrainActive || (_stagingMetrics?.PendingAiCount ?? 0) == 0)"
+                                class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                title="Lanza en segundo plano el procesamiento de todos los títulos pendientes de síntesis con Gemini Flash en lotes y promoción a catálogo">
+                            <Icon Name="sparkles" Size="14" />
+                            <span>Lanzar Pendientes IA en Lotes@((_stagingMetrics?.PendingAiCount ?? 0) > 0 ? $" ({_stagingMetrics!.PendingAiCount})" : "")</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="StopContinuousAiDrain"
+                                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Detener Lotes IA</span>
                         </button>
                     }
 
@@ -441,6 +462,23 @@
                                 Reanudar
                             </button>
                         }
+                        else if (_stagingMetrics.PendingAiCount > 0)
+                        {
+                            @if (!_isContinuousAiDrainActive)
+                            {
+                                <button type="button"
+                                        @onclick="StartContinuousAiDrain"
+                                        disabled="@(_isDrainingStaging || _isSeedingStaging || _isClearingStaging || _isContinuousDrainActive)"
+                                        class="mt-1 px-2 py-0.5 text-[0.65rem] font-bold rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 transition-all inline-flex items-center gap-1">
+                                    <Icon Name="sparkles" Size="10" />
+                                    <span>Lanzar Lotes</span>
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="text-[0.65rem] text-purple-400 font-bold block animate-pulse mt-1">En curso...</span>
+                            }
+                        }
                     </div>
                     <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
                         <span class="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-bold">Listos Promo</span>
@@ -470,6 +508,34 @@
                             class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
                         Detener Drenaje
                     </button>
+                </div>
+            }
+
+            @if (_isContinuousAiDrainActive)
+            {
+                <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+                    <div class="flex items-center gap-2.5">
+                        <span class="animate-spin inline-block text-purple-400"><Icon Name="loader" Size="18" /></span>
+                        <div>
+                            <span class="font-bold text-purple-400 text-sm">Procesamiento de IA en Lotes en Segundo Plano Activo</span>
+                            <p class="text-[var(--text-secondary)] text-[0.75rem] mt-0.5">
+                                @(_continuousAiDrainMessage ?? "Sintetizando títulos con Gemini Flash en lotes y promoviendo al catálogo...")
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="StopContinuousAiDrain"
+                            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-auto">
+                        Detener Lotes IA
+                    </button>
+                </div>
+            }
+
+            @if (!_isContinuousAiDrainActive && !string.IsNullOrEmpty(_continuousAiDrainMessage))
+            {
+                <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/25 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                    <span><Icon Name="circle-check" Size="14" class="inline text-purple-400 mr-1.5" /> @_continuousAiDrainMessage</span>
+                    <button type="button" @onclick="() => _continuousAiDrainMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
 
@@ -1065,6 +1131,10 @@
     private static bool _isContinuousDrainActive => _continuousDrainCts != null && !_continuousDrainCts.IsCancellationRequested;
     private static string? _continuousDrainMessage;
 
+    private static CancellationTokenSource? _continuousAiDrainCts;
+    private static bool _isContinuousAiDrainActive => _continuousAiDrainCts != null && !_continuousAiDrainCts.IsCancellationRequested;
+    private static string? _continuousAiDrainMessage;
+
     private static CancellationTokenSource? _continuousBackfillCts;
     private static bool _isContinuousBackfillActive => _continuousBackfillCts != null && !_continuousBackfillCts.IsCancellationRequested;
     private static string? _continuousBackfillMessage;
@@ -1132,7 +1202,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
-        if (_isContinuousDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive)
+        if (_isContinuousDrainActive || _isContinuousAiDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive)
         {
             StartPollingTimer();
         }
@@ -1369,6 +1439,52 @@
         {
             _continuousDrainMessage = "Deteniendo drenaje continuo...";
             _continuousDrainCts.Cancel();
+        }
+    }
+
+    private void StartContinuousAiDrain()
+    {
+        if (_isContinuousAiDrainActive || !CanManageQueue) return;
+
+        _continuousAiDrainCts = new CancellationTokenSource();
+        _continuousAiDrainMessage = "Procesamiento masivo de IA en lotes iniciado en segundo plano. Sintetizando con Gemini Flash...";
+
+        var token = _continuousAiDrainCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var massService = scope.ServiceProvider.GetRequiredService<IBggMassIngestionService>();
+
+                var result = await massService.RunScheduledContinuousAiDrainAsync(maxItems: 4000, ct: token);
+                _continuousAiDrainMessage = result.Message;
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousAiDrainMessage = "Procesamiento de IA en lotes detenido por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousAiDrainMessage = $"Error durante el procesamiento de IA: {ex.Message}";
+            }
+            finally
+            {
+                _continuousAiDrainCts?.Dispose();
+                _continuousAiDrainCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
+    private void StopContinuousAiDrain()
+    {
+        if (_continuousAiDrainCts != null && !_continuousAiDrainCts.IsCancellationRequested)
+        {
+            _continuousAiDrainMessage = "Deteniendo procesamiento de IA en lotes...";
+            _continuousAiDrainCts.Cancel();
         }
     }
 

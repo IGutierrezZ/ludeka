@@ -665,6 +665,19 @@ public class BggMassIngestionService : IBggMassIngestionService
         return ExecuteContinuousDrainAsync(maxItems, ct);
     }
 
+    /// <inheritdoc />
+    public async Task<BggMassIngestionContinuousDrainResultDto> RunContinuousAiDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await ExecuteContinuousAiDrainAsync(maxItems, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousAiDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+    {
+        return ExecuteContinuousAiDrainAsync(maxItems, ct);
+    }
+
     private async Task<BggMassIngestionContinuousDrainResultDto> ExecuteContinuousDrainAsync(int maxItems, CancellationToken ct)
     {
         if (maxItems <= 0) maxItems = 4000;
@@ -716,6 +729,70 @@ public class BggMassIngestionService : IBggMassIngestionService
             CyclesExecuted: cyclesExecuted,
             TotalDetailsFetched: totalDetails,
             TotalImagesProcessed: totalImages,
+            TotalAiSummariesGenerated: totalAi,
+            TotalPromotedToCatalog: totalPromoted,
+            StoppedDueToAiQuota: stoppedDueToAiQuota,
+            CompletedAllStaging: completedAll,
+            Message: summary
+        );
+    }
+
+    private async Task<BggMassIngestionContinuousDrainResultDto> ExecuteContinuousAiDrainAsync(int maxItems, CancellationToken ct)
+    {
+        if (maxItems <= 0) maxItems = 4000;
+
+        _logger.LogInformation("Iniciando procesamiento masivo continuo de síntesis IA en staging (límite máximo: {MaxItems} juegos)...", maxItems);
+
+        int cyclesExecuted = 0;
+        int totalAi = 0;
+        int totalPromoted = 0;
+        bool stoppedDueToAiQuota = false;
+        bool completedAll = false;
+
+        while (!ct.IsCancellationRequested && totalAi < maxItems)
+        {
+            var aiResult = await ProcessPendingAiBatchAsync(_options.AiBatchSize, maxBatches: 2, ct);
+            cyclesExecuted++;
+            totalAi += aiResult.SuccessCount;
+
+            int promoted = await PromoteReadyToCatalogBatchAsync(_options.PromotionBatchSize, ct);
+            totalPromoted += promoted;
+
+            if (aiResult.FailedCount > 0 && aiResult.ProcessedCount == 0)
+            {
+                var metrics = await _stagingRepo.GetMetricsAsync(ct);
+                if (metrics.AiQuotaExceededCount > 0)
+                {
+                    _logger.LogWarning("Procesamiento continuo de IA pausado: cuota de Gemini agotada tras {Cycles} ciclos.", cyclesExecuted);
+                    stoppedDueToAiQuota = true;
+                    break;
+                }
+            }
+
+            if (aiResult.ProcessedCount == 0)
+            {
+                var metrics = await _stagingRepo.GetMetricsAsync(ct);
+                if (metrics.PendingAiCount == 0)
+                {
+                    _logger.LogInformation("Procesamiento continuo de IA completado: no quedan títulos pendientes de IA en staging.");
+                    completedAll = true;
+                }
+                break;
+            }
+
+            if (_options.DelayBetweenGeminiBatchesMs > 0 && !ct.IsCancellationRequested)
+            {
+                await Task.Delay(_options.DelayBetweenGeminiBatchesMs, ct);
+            }
+        }
+
+        string summary = $"Procesamiento de IA en segundo plano finalizado: {cyclesExecuted} ciclos ejecutados, {totalAi} síntesis IA generadas, {totalPromoted} promovidos al catálogo.";
+        _logger.LogInformation(summary);
+
+        return new BggMassIngestionContinuousDrainResultDto(
+            CyclesExecuted: cyclesExecuted,
+            TotalDetailsFetched: 0,
+            TotalImagesProcessed: 0,
             TotalAiSummariesGenerated: totalAi,
             TotalPromotedToCatalog: totalPromoted,
             StoppedDueToAiQuota: stoppedDueToAiQuota,
