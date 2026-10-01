@@ -108,6 +108,7 @@ public class CachedCatalogService : ICatalogService
         sb.Append('|');
         if (c.Complexities != null && c.Complexities.Count > 0)
             sb.Append(string.Join(',', c.Complexities.OrderBy(x => (int)x)));
+        sb.Append('|').Append(c.SortBy);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())))[..16];
     }

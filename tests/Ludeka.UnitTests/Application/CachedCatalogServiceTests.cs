@@ -99,6 +99,26 @@ public class CachedCatalogServiceTests
     }
 
     [Fact]
+    public async Task GetCatalogAsync_WhenSortOrderChanges_ShouldCallInnerServiceAgain()
+    {
+        // Arrange
+        var inner = new TestCatalogService();
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new CachedCatalogService(inner, cache);
+        var criteriaRank = new GameFilterCriteria(SortBy: GameSortOrder.Rank);
+        var criteriaRating = new GameFilterCriteria(SortBy: GameSortOrder.RatingDesc);
+
+        // Act
+        var result1 = await service.GetCatalogAsync(criteriaRank, 1, 20);
+        var result2 = await service.GetCatalogAsync(criteriaRating, 1, 20);
+
+        // Assert: SortBy distinto debe generar claves de caché distintas y llamar a inner dos veces
+        Assert.NotNull(result1);
+        Assert.NotNull(result2);
+        Assert.Equal(2, inner.GetCatalogCallCount);
+    }
+
+    [Fact]
     public async Task GetGameBySlugAsync_ShouldCallInnerServiceOnce_AndUseCacheOnSecondCall()
     {
         // Arrange
