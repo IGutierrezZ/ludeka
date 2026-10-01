@@ -6,78 +6,86 @@
 @inject ICurrentUserService CurrentUserService
 
 <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-xl space-y-6">
-    @* Cabecera del Hub Multimedia *@
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-            <div class="flex items-center gap-2 mb-1">
-                <Icon Name="tv" Size="20" />
-                <h2 class="text-lg font-black text-[var(--text-primary)] tracking-tight">
-                    Hub Multimedia en Español
-                </h2>
+    @* Cabecera y Selector de Formatos Multimedia *@
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
+        <div class="flex items-center gap-2 overflow-x-auto max-w-full">
+            <span class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shrink-0 hidden sm:flex" title="Hub Multimedia">
+                <Icon Name="tv" Size="18" />
+            </span>
+
+            @* Pestañas Selectoras de Formatos *@
+            <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-x-auto max-w-full" role="tablist" aria-label="Formatos multimedia">
+                <button type="button"
+                        id="tab-quick"
+                        role="tab"
+                        aria-selected="@(_activeTab == "quick" ? "true" : "false")"
+                        aria-controls="panel-quick"
+                        @onclick='() => _activeTab = "quick"'
+                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "quick" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="zap" Size="14" />
+                    <span>Cómo Funciona</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "quick" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                        @(MediaHub?.QuickOverviews.Count ?? 0)
+                    </span>
+                </button>
+
+                <button type="button"
+                        id="tab-tutorials"
+                        role="tab"
+                        aria-selected="@(_activeTab == "tutorials" ? "true" : "false")"
+                        aria-controls="panel-tutorials"
+                        @onclick='() => _activeTab = "tutorials"'
+                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="clapperboard" Size="14" />
+                    <span>Tutoriales</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "tutorials" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                        @(MediaHub?.Tutorials.Count ?? 0)
+                    </span>
+                </button>
+
+                <button type="button"
+                        id="tab-playthroughs"
+                        role="tab"
+                        aria-selected="@(_activeTab == "playthroughs" ? "true" : "false")"
+                        aria-controls="panel-playthroughs"
+                        @onclick='() => _activeTab = "playthroughs"'
+                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "playthroughs" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="dices" Size="14" />
+                    <span>Partidas Completas</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "playthroughs" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                        @(MediaHub?.Playthroughs.Count ?? 0)
+                    </span>
+                </button>
+
+                <button type="button"
+                        id="tab-social"
+                        role="tab"
+                        aria-selected="@(_activeTab == "social" ? "true" : "false")"
+                        aria-controls="panel-social"
+                        @onclick='() => _activeTab = "social"'
+                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "social" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                    <Icon Name="message-circle" Size="14" />
+                    <span>Opiniones y Redes</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "social" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                        @((MediaHub?.InstagramPosts.Count ?? 0) + (MediaHub?.ShortReels.Count ?? 0) + (MediaHub?.ReviewsAndOpinions.Count ?? 0))
+                    </span>
+                </button>
             </div>
-            <p class="text-xs text-[var(--text-secondary)]">
-                Tutoriales, partidas completas y reseñas en redes segregados sin mezclar formatos.
-            </p>
         </div>
 
-        @* Pestañas Selectoras *@
-        <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] self-start sm:self-auto overflow-x-auto max-w-full" role="tablist" aria-label="Formatos multimedia en español">
-            <button type="button"
-                    id="tab-quick"
-                    role="tab"
-                    aria-selected="@(_activeTab == "quick" ? "true" : "false")"
-                    aria-controls="panel-quick"
-                    @onclick='() => _activeTab = "quick"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "quick" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="zap" Size="14" />
-                <span>Cómo Funciona</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "quick" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                    @(MediaHub?.QuickOverviews.Count ?? 0)
-                </span>
-            </button>
-
-            <button type="button"
-                    id="tab-tutorials"
-                    role="tab"
-                    aria-selected="@(_activeTab == "tutorials" ? "true" : "false")"
-                    aria-controls="panel-tutorials"
-                    @onclick='() => _activeTab = "tutorials"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="clapperboard" Size="14" />
-                <span>Tutoriales</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "tutorials" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                    @(MediaHub?.Tutorials.Count ?? 0)
-                </span>
-            </button>
-
-            <button type="button"
-                    id="tab-playthroughs"
-                    role="tab"
-                    aria-selected="@(_activeTab == "playthroughs" ? "true" : "false")"
-                    aria-controls="panel-playthroughs"
-                    @onclick='() => _activeTab = "playthroughs"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "playthroughs" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="dices" Size="14" />
-                <span>Partidas Completas</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "playthroughs" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                    @(MediaHub?.Playthroughs.Count ?? 0)
-                </span>
-            </button>
-
-            <button type="button"
-                    id="tab-social"
-                    role="tab"
-                    aria-selected="@(_activeTab == "social" ? "true" : "false")"
-                    aria-controls="panel-social"
-                    @onclick='() => _activeTab = "social"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "social" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="message-circle" Size="14" />
-                <span>Opiniones y Redes</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "social" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                    @((MediaHub?.InstagramPosts.Count ?? 0) + (MediaHub?.ShortReels.Count ?? 0) + (MediaHub?.ReviewsAndOpinions.Count ?? 0))
-                </span>
-            </button>
-        </div>
+        @* Botón de Ingesta Flash para Administradores / Moderadores *@
+        @if (IsModeratorUser)
+        {
+            <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <button type="button"
+                        @onclick="OpenFlashIngestModal"
+                        title="Añadir vídeo por URL al instante"
+                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+                    <Icon Name="zap" Size="14" />
+                    <span>Ingesta Flash</span>
+                </button>
+            </div>
+        }
     </div>
 
     @* Notificación de Acción de Moderación *@
@@ -114,17 +122,6 @@
                                 
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                @if (IsModeratorUser)
-                                {
-                                    <button type="button"
-                                            @onclick:stopPropagation="true"
-                                            @onclick="() => OpenModerateModal(video)"
-                                            title="Moderar vídeo"
-                                            class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                        <Icon Name="settings" Size="12" /> Moderar
-                                    </button>
-                                }
-
                                 <div class="absolute inset-0 flex items-center justify-center">
                                     <div class="w-12 h-12 rounded-full bg-amber-500/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-amber-500 transition-all">
                                         <Icon Name="zap" Size="22" />
@@ -155,10 +152,30 @@
                                         @video.Title
                                     </h3>
                                 </div>
-                                <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[0.68rem] text-[var(--text-muted)]">
-                                    <span class="text-amber-500 font-semibold">Mecánicas & Vistazo Rápido</span>
-                                    <span class="text-[var(--brand-primary)] font-semibold group-hover:underline">Ver cómo funciona &rarr;</span>
-                                </div>
+
+                                @if (IsModeratorUser)
+                                {
+                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                         @onclick:stopPropagation="true">
+                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                            <Icon Name="settings" Size="11" /> Moderación
+                                        </span>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button"
+                                                    @onclick="() => OpenModerateModal(video)"
+                                                    title="Cambiar categoría o reasignar"
+                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                            </button>
+                                            <button type="button"
+                                                    @onclick="() => PromptDeleteDirect(video)"
+                                                    title="Eliminar vídeo de la ficha"
+                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                                <Icon Name="x" Size="11" /> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     }
@@ -200,17 +217,6 @@
                                 
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                @if (IsModeratorUser)
-                                {
-                                    <button type="button"
-                                            @onclick:stopPropagation="true"
-                                            @onclick="() => OpenModerateModal(tutorial)"
-                                            title="Moderar vídeo"
-                                            class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                        <Icon Name="settings" Size="12" /> Moderar
-                                    </button>
-                                }
-
                                 <div class="absolute inset-0 flex items-center justify-center">
                                     <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
                                         <Icon Name="play" Size="22" />
@@ -237,10 +243,30 @@
                                         @tutorial.Title
                                     </h3>
                                 </div>
-                                <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[0.68rem] text-[var(--text-muted)]">
-                                    <span>YouTube Tutorial</span>
-                                    <span class="text-[var(--brand-primary)] font-semibold group-hover:underline">Reproducir &rarr;</span>
-                                </div>
+
+                                @if (IsModeratorUser)
+                                {
+                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                         @onclick:stopPropagation="true">
+                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                            <Icon Name="settings" Size="11" /> Moderación
+                                        </span>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button"
+                                                    @onclick="() => OpenModerateModal(tutorial)"
+                                                    title="Cambiar categoría o reasignar"
+                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                            </button>
+                                            <button type="button"
+                                                    @onclick="() => PromptDeleteDirect(tutorial)"
+                                                    title="Eliminar vídeo de la ficha"
+                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                                <Icon Name="x" Size="11" /> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     }
@@ -285,17 +311,6 @@
                                 
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                @if (IsModeratorUser)
-                                {
-                                    <button type="button"
-                                            @onclick:stopPropagation="true"
-                                            @onclick="() => OpenModerateModal(play)"
-                                            title="Moderar vídeo"
-                                            class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                        <Icon Name="settings" Size="12" /> Moderar
-                                    </button>
-                                }
-
                                 <div class="absolute top-2.5 left-2.5">
                     <span class="px-2.5 py-1 rounded-lg bg-[var(--bg-nav)] text-[var(--text-primary)] border border-[var(--border-highlight)] font-bold text-xs shadow-lg flex items-center gap-1.5 backdrop-blur-sm">
                         <Icon Name="users" Size="12" aria-hidden="true" />
@@ -329,10 +344,30 @@
                                         @play.Title
                                     </h3>
                                 </div>
-                                <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[0.68rem] text-[var(--text-muted)]">
-                                    <span class="text-emerald-500 font-semibold">Partida completa</span>
-                                    <span class="text-[var(--brand-primary)] font-semibold group-hover:underline">Ver partida &rarr;</span>
-                                </div>
+
+                                @if (IsModeratorUser)
+                                {
+                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                         @onclick:stopPropagation="true">
+                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                            <Icon Name="settings" Size="11" /> Moderación
+                                        </span>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button"
+                                                    @onclick="() => OpenModerateModal(play)"
+                                                    title="Cambiar categoría o reasignar"
+                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                            </button>
+                                            <button type="button"
+                                                    @onclick="() => PromptDeleteDirect(play)"
+                                                    title="Eliminar vídeo de la ficha"
+                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                                <Icon Name="x" Size="11" /> Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     }
@@ -386,17 +421,6 @@
 
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                    @if (IsModeratorUser)
-                                    {
-                                        <button type="button"
-                                                @onclick:stopPropagation="true"
-                                                @onclick="() => OpenModerateModal(review)"
-                                                title="Moderar vídeo"
-                                                class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                            <Icon Name="settings" Size="12" /> Moderar
-                                        </button>
-                                    }
-
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
                                             <Icon Name="play" Size="22" />
@@ -427,10 +451,30 @@
                                             @review.Title
                                         </h3>
                                     </div>
-                                    <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[0.68rem] text-[var(--text-muted)]">
-                                        <span class="text-purple-400 font-semibold">Crítica y Opinión</span>
-                                        <span class="text-[var(--brand-primary)] font-semibold group-hover:underline">Ver análisis &rarr;</span>
-                                    </div>
+
+                                    @if (IsModeratorUser)
+                                    {
+                                        <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                             @onclick:stopPropagation="true">
+                                            <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                                <Icon Name="settings" Size="11" /> Moderación
+                                            </span>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button"
+                                                        @onclick="() => OpenModerateModal(review)"
+                                                        title="Cambiar categoría o reasignar"
+                                                        class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                                    <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                                </button>
+                                                <button type="button"
+                                                        @onclick="() => PromptDeleteDirect(review)"
+                                                        title="Eliminar vídeo de la ficha"
+                                                        class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                                    <Icon Name="x" Size="11" /> Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -465,17 +509,6 @@
                                          decoding="async"
                                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                     
-                                    @if (IsModeratorUser)
-                                    {
-                                        <button type="button"
-                                                @onclick:stopPropagation="true"
-                                                @onclick="() => OpenModerateModal(post)"
-                                                title="Moderar post"
-                                                class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                            <Icon Name="settings" Size="12" /> Moderar
-                                        </button>
-                                    }
-
                                     @if (post.LikesCount.HasValue)
                                     {
                                         <div class="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white border border-white/20 text-xs font-bold flex items-center gap-1 backdrop-blur-sm">
@@ -503,10 +536,30 @@
                                             </p>
                                         }
                                     </div>
-                                    <div class="mt-2 pt-2 border-t border-[var(--border-subtle)] text-[0.68rem] text-[var(--text-muted)] font-medium flex items-center justify-between">
-                                        <span>Instagram</span>
-                                        <span class="text-[var(--brand-primary)] font-semibold group-hover:underline">Ver reseña &rarr;</span>
-                                    </div>
+
+                                    @if (IsModeratorUser)
+                                    {
+                                        <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                             @onclick:stopPropagation="true">
+                                            <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                                <Icon Name="settings" Size="11" /> Moderación
+                                            </span>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button"
+                                                        @onclick="() => OpenModerateModal(post)"
+                                                        title="Cambiar categoría o reasignar"
+                                                        class="px-2 py-0.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                                    <Icon Name="tag" Size="10" /> Categoría
+                                                </button>
+                                                <button type="button"
+                                                        @onclick="() => PromptDeleteDirect(post)"
+                                                        title="Eliminar publicación"
+                                                        class="px-2 py-0.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                                    <Icon Name="x" Size="10" /> Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -543,17 +596,6 @@
                                     
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                    @if (IsModeratorUser)
-                                    {
-                                        <button type="button"
-                                                @onclick:stopPropagation="true"
-                                                @onclick="() => OpenModerateModal(reel)"
-                                                title="Moderar vídeo"
-                                                class="absolute top-2 right-2 z-20 px-2 py-1 rounded-lg bg-black/80 hover:bg-amber-600 text-white text-[0.65rem] font-bold transition-colors flex items-center gap-1 shadow backdrop-blur-sm border border-white/20">
-                                            <Icon Name="settings" Size="12" /> Moderar
-                                        </button>
-                                    }
-
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <div class="w-10 h-10 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
                                             <Icon Name="play" Size="18" />
@@ -571,10 +613,28 @@
                                     </div>
                                 </div>
 
-                                <div class="p-2 bg-[var(--bg-card)] border-t border-[var(--border-subtle)]">
+                                <div class="p-2 bg-[var(--bg-card)] border-t border-[var(--border-subtle)] flex flex-col justify-between">
                                     <h4 class="text-[0.72rem] font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--brand-primary)]">
                                         @reel.Title
                                     </h4>
+                                    @if (IsModeratorUser)
+                                    {
+                                        <div class="mt-2 pt-1.5 border-t border-[var(--border-subtle)] flex items-center justify-between gap-1"
+                                             @onclick:stopPropagation="true">
+                                            <button type="button"
+                                                    @onclick="() => OpenModerateModal(reel)"
+                                                    title="Moderar vídeo"
+                                                    class="px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.6rem] font-bold transition-colors flex items-center gap-0.5 border border-[var(--border-subtle)]">
+                                                <Icon Name="tag" Size="9" /> Categoría
+                                            </button>
+                                            <button type="button"
+                                                    @onclick="() => PromptDeleteDirect(reel)"
+                                                    title="Eliminar vídeo"
+                                                    class="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.6rem] font-bold transition-colors flex items-center gap-0.5 border border-rose-500/20">
+                                                <Icon Name="x" Size="9" />
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -766,7 +826,125 @@
     </div>
 }
 
+@* Modal de Ingesta Flash de Vídeo *@
+@if (_isFlashIngestOpen)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+         @onclick="CloseFlashIngestModal">
+        <div class="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl"
+             @onclick:stopPropagation="true">
+            @* Cabecera *@
+            <div class="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                        <Icon Name="zap" Size="18" />
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-[var(--text-primary)]">
+                            Ingesta Flash de Vídeo
+                        </h3>
+                        <p class="text-[0.68rem] text-[var(--text-secondary)]">Publica al instante pegando la URL de YouTube</p>
+                    </div>
+                </div>
+                <button type="button" @onclick="CloseFlashIngestModal" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                    <Icon Name="x" Size="16" />
+                </button>
+            </div>
+
+            @* Feedback de error si lo hay *@
+            @if (!string.IsNullOrWhiteSpace(_flashErrorMessage))
+            {
+                <div class="p-3 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-2">
+                    <Icon Name="x" Size="14" />
+                    <span>@_flashErrorMessage</span>
+                </div>
+            }
+
+            <div class="space-y-4">
+                @* URL del vídeo *@
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-video-url">
+                        URL de YouTube
+                    </label>
+                    <input id="flash-video-url"
+                           type="url"
+                           placeholder="https://www.youtube.com/watch?v=..."
+                           @bind="_flashUrl"
+                           disabled="@_isFlashIngesting"
+                           class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
+                    <p class="text-[0.65rem] text-[var(--text-muted)] mt-1">
+                        Compatible con enlaces estándar de YouTube, youtu.be y shorts.
+                    </p>
+                </div>
+
+                @* Categoría destino *@
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-video-category">
+                        Categoría en la ficha
+                    </label>
+                    <select id="flash-video-category"
+                            @bind="_flashCategory"
+                            disabled="@_isFlashIngesting"
+                            class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50">
+                        <option value="@MediaCategory.QuickOverview">Cómo Funciona (En 2 min)</option>
+                        <option value="@MediaCategory.Tutorial">Tutorial (Reglas y Cómo se juega)</option>
+                        <option value="@MediaCategory.Gameplay">Partida Completa</option>
+                        <option value="@MediaCategory.ReviewOpinion">Reseña / Análisis Crítico</option>
+                    </select>
+                </div>
+
+                @* Badge opcional de jugadores (solo si es Gameplay) *@
+                @if (_flashCategory == MediaCategory.Gameplay)
+                {
+                    <div class="animate-fade-in">
+                        <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-player-badge">
+                            Número de jugadores (opcional)
+                        </label>
+                        <input id="flash-player-badge"
+                               type="text"
+                               placeholder="Ej. A 2 Jugadores, Solitario, A 4..."
+                               @bind="_flashPlayerBadge"
+                               disabled="@_isFlashIngesting"
+                               class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
+                        <p class="text-[0.65rem] text-[var(--text-muted)] mt-1">
+                            Si lo dejas vacío, se intentará detectar automáticamente del título.
+                        </p>
+                    </div>
+                }
+            </div>
+
+            @* Botones de acción *@
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-subtle)]">
+                <button type="button"
+                        @onclick="CloseFlashIngestModal"
+                        disabled="@_isFlashIngesting"
+                        class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] font-bold text-xs border border-[var(--border-subtle)] transition-colors disabled:opacity-50">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="ExecuteFlashIngestAsync"
+                        disabled="@(_isFlashIngesting || string.IsNullOrWhiteSpace(_flashUrl))"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50">
+                    @if (_isFlashIngesting)
+                    {
+                        <span class="inline-block animate-spin mr-1">◌</span>
+                        <span>Ingiriendo...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="zap" Size="14" />
+                        <span>Publicar Ahora</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    [Parameter]
+    public Guid GameId { get; set; }
+
     [Parameter]
     public GameMediaHubDto? MediaHub { get; set; }
 
@@ -781,6 +959,14 @@
     private MediaItemDto? _selectedMediaItem;
 
     private bool IsModeratorUser => CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia));
+
+    // Estados para Ingesta Flash
+    private bool _isFlashIngestOpen;
+    private string _flashUrl = string.Empty;
+    private MediaCategory _flashCategory = MediaCategory.Tutorial;
+    private string? _flashPlayerBadge;
+    private string? _flashErrorMessage;
+    private bool _isFlashIngesting;
 
     // Estados para el Modal de Moderación Directa
     private bool _isModModalOpen;
@@ -956,6 +1142,89 @@
         finally
         {
             _isModProcessing = false;
+        }
+    }
+
+    private void PromptDeleteDirect(MediaItemDto item)
+    {
+        _itemToModerate = item;
+        _targetCategory = item.Category;
+        _modMessage = null;
+        _confirmingDelete = true;
+        _gameSearchQuery = string.Empty;
+        _matchingGames.Clear();
+        _selectedTargetGame = null;
+        _isModModalOpen = true;
+    }
+
+    private void OpenFlashIngestModal()
+    {
+        _flashUrl = string.Empty;
+        _flashErrorMessage = null;
+        _flashPlayerBadge = null;
+        _flashCategory = _activeTab switch
+        {
+            "quick" => MediaCategory.QuickOverview,
+            "playthroughs" => MediaCategory.Gameplay,
+            "social" => MediaCategory.ReviewOpinion,
+            _ => MediaCategory.Tutorial
+        };
+        _isFlashIngestOpen = true;
+    }
+
+    private void CloseFlashIngestModal()
+    {
+        if (_isFlashIngesting) return;
+        _isFlashIngestOpen = false;
+        _flashErrorMessage = null;
+    }
+
+    private async Task ExecuteFlashIngestAsync()
+    {
+        if (GameId == Guid.Empty)
+        {
+            _flashErrorMessage = "No se ha especificado el juego para la ingesta.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_flashUrl))
+        {
+            _flashErrorMessage = "Introduce una URL válida de YouTube.";
+            return;
+        }
+
+        _isFlashIngesting = true;
+        _flashErrorMessage = null;
+
+        try
+        {
+            var created = await MediaService.FlashIngestAsync(
+                GameId,
+                _flashUrl.Trim(),
+                _flashCategory,
+                string.IsNullOrWhiteSpace(_flashPlayerBadge) ? null : _flashPlayerBadge.Trim());
+
+            _isFlashIngestOpen = false;
+            _bannerSuccess = true;
+            _bannerMessage = $"¡Vídeo ingestado con éxito! '{created.Title}' añadido como {created.CategoryDisplayName}.";
+
+            _activeTab = created.Category switch
+            {
+                MediaCategory.QuickOverview => "quick",
+                MediaCategory.Gameplay => "playthroughs",
+                MediaCategory.ReviewOpinion => "social",
+                _ => "tutorials"
+            };
+
+            await OnMediaChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _flashErrorMessage = ex.Message;
+        }
+        finally
+        {
+            _isFlashIngesting = false;
         }
     }
 }

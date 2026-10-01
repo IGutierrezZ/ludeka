@@ -298,7 +298,7 @@ else
                     <div class="p-2 sm:p-4">
                         @if (_activeSecondaryTab == "media")
                         {
-                            <MultimediaHub MediaHub="@_mediaHub" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
+                            <MultimediaHub MediaHub="@_mediaHub" GameId="@Game.Id" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
                         }
                         else if (_activeSecondaryTab == "sleeves")
                         {
