@@ -313,6 +313,12 @@
     [Parameter]
     public EventCallback OnVideoIngested { get; set; }
 
+    [Parameter]
+    public Guid? InitialGameId { get; set; }
+
+    [Parameter]
+    public string? InitialGameTitle { get; set; }
+
     private string _searchQuery = string.Empty;
     private bool _isSearching;
     private bool _hasSearched;
@@ -321,6 +327,7 @@
     private string? _notificationMessage;
     private bool _isNotificationError;
     private bool _isUserCancelled;
+    private bool _previousIsOpen;
 
     private GameSummaryDto? _selectedGame;
     private IReadOnlyList<GameSummaryDto> _matchingGames = [];
@@ -335,7 +342,48 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (IsOpen && !string.IsNullOrWhiteSpace(_searchQuery) && _selectedGame == null)
+        if (IsOpen && !_previousIsOpen)
+        {
+            _previousIsOpen = true;
+            if (!string.IsNullOrWhiteSpace(InitialGameTitle))
+            {
+                _searchQuery = InitialGameTitle;
+                _matchingGames = [];
+                _hasSearched = false;
+                _quickOverviews = [];
+                _tutorials = [];
+                _playthroughs = [];
+                _notificationMessage = null;
+
+                if (InitialGameId.HasValue && InitialGameId.Value != Guid.Empty)
+                {
+                    try
+                    {
+                        var matches = await CatalogService.GetQuickSearchAsync(InitialGameTitle, 5);
+                        _selectedGame = matches.FirstOrDefault(g => g.Id == InitialGameId.Value)
+                                        ?? matches.FirstOrDefault()
+                                        ?? new GameSummaryDto(
+                                            InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
+                                            "", "", 0, null, null, 0, null, 0, "",
+                                            ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
+                                            0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
+                    }
+                    catch
+                    {
+                        _selectedGame = new GameSummaryDto(
+                            InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
+                            "", "", 0, null, null, 0, null, 0, "",
+                            ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
+                            0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
+                    }
+                }
+            }
+        }
+        else if (!IsOpen)
+        {
+            _previousIsOpen = false;
+        }
+        else if (IsOpen && !string.IsNullOrWhiteSpace(_searchQuery) && _selectedGame == null)
         {
             await FilterCatalogGamesAsync();
         }
@@ -607,6 +655,7 @@
         _matchingGames = [];
         _notificationMessage = null;
         _isSearching = false;
+        _previousIsOpen = false;
         await OnClose.InvokeAsync();
     }
 
