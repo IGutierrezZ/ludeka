@@ -1,6 +1,6 @@
 # INC-96: Optimización Visual Móvil de Portada y Catálogo, Acciones Rápidas de Colección y Procesamiento Continuo de IA en Lotes
 
-> **Estado:** ⏳ En verificación / Cierre de PR  
+> **Estado:** ✅ Archivado  
 > **Rama:** `inc/opt-movil-portada-catalogo`  
 > **Worktree:** `F:\repos\ludeka-wt\opt-movil-portada-catalogo`  
 > **Fecha:** 2026-10-02  
