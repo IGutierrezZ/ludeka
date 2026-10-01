@@ -1,9 +1,10 @@
 # INC-95: Pantalla Dedicada de Tendencias BGG Top 50 con Movimiento Diario y Desacople de Catálogo
 
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Rama:** `inc/pantalla-tendencias`  
 > **Worktree:** `F:\repos\ludeka-wt\pantalla-tendencias`  
 > **Fecha:** 2026-10-01  
+> **Pruebas Verificadas:** 2.249 unitarias en verde (2.259 totales con integración)  
 
 ---
 
