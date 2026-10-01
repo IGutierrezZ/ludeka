@@ -21,5 +21,6 @@ public record GameFilterCriteria(
     IReadOnlyList<GameType>? Types = null,
     TableFootprint? Footprint = null,
     IReadOnlyList<TableFootprint>? Footprints = null,
-    IReadOnlyList<GameComplexity>? Complexities = null
+    IReadOnlyList<GameComplexity>? Complexities = null,
+    GameSortOrder SortBy = GameSortOrder.Rank
 );

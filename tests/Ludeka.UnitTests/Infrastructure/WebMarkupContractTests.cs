@@ -208,9 +208,9 @@ public class WebMarkupContractTests
           new[] { "<details", "aria-label=\"Menú de navegación\"", "href=\"/catalogo\"", "href=\"/editoriales\"", "href=\"/creadores\"", "href=\"/tiendas\"", "href=\"/sorteos\"", "href=\"/novedades\"", "href=\"/eventos\"" },
           new string[] { } },
 
-        // GameCard: badges de estilo y público con iconos Lucide
+        // GameCard: badges de estilo y público con iconos Lucide (sin emoji, modo solitario en filtro avanzado en INC-90)
         { "GameCard (badges sin emojis)", "src/Ludeka.Web/Components/Shared/GameCard.razor",
-          new[] { "<Icon Name=\"puzzle\"", "<Icon Name=\"settings\"", "<Icon Name=\"party-popper\"", "<Icon Name=\"book-open\"", "<Icon Name=\"user\"", "<Icon Name=\"baby\"" },
+          new[] { "<Icon Name=\"puzzle\"", "<Icon Name=\"settings\"", "<Icon Name=\"party-popper\"", "<Icon Name=\"book-open\"", "<Icon Name=\"baby\"" },
           new[] { "🧩", "⚙", "🎉", "📖", "👤", "👶" } },
 
         // GameDetail: ficha editorial tokenizada (INC-36 PR-3, DD-03/DD-04/DD-08): back-bar
@@ -233,12 +233,9 @@ public class WebMarkupContractTests
           new[] { "<Icon Name=\"dices\"", "<Icon Name=\"search\"", "<Icon Name=\"pen-line\"", "<Icon Name=\"clapperboard\"", "<Icon Name=\"globe\"" },
           new[] { "🎲", "🔍", "✏", "🎬", "🌍", "🌐" } },
 
-        // Home (/catalogo): cabecera editorial compartida (INC-36 DD-06), buscador en bloque
-        // propio debajo, tira de filtros con la clase real scrollbar-none (INC-36 D12: se
-        // abandona la variante centrada y el h1 viaja a PageHeaderEditorial) e iconos Lucide
+        // Home (/catalogo): elevación visual sin cabecera redundante (INC-90), buscador en bloque propio e iconos Lucide en filtros avanzados
         { "Home catalogo (sin emojis)", "src/Ludeka.Web/Components/Pages/Home.razor",
-          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"puzzle\"", "<Icon Name=\"swords\"", "<Icon Name=\"users\"", "<Icon Name=\"user\"", "<Icon Name=\"timer\"",
-                  "<PageHeaderEditorial", "scrollbar-none" },
+          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"puzzle\"", "<Icon Name=\"swords\"", "<Icon Name=\"users\"", "<Icon Name=\"timer\"" },
           new[] { "🎲", "🧩", "⚔", "👨", "👤", "⏱", "<h1", "no-scrollbar" } },
 
         // StoreOffersCard: cabecera, envíos, recomprobación y nota de afiliación por iconos Lucide
@@ -552,10 +549,10 @@ public class WebMarkupContractTests
                   "<Icon Name=\"timer\"", "<Icon Name=\"armchair\"", "<Icon Name=\"castle\"", "<Icon Name=\"utensils\"" },
           new[] { "🤝", "🗡", "👥", "⚔", "⚙", "🎲", "🎉", "🧩", "📖", "👤", "👶", "🎂", "🌐", "⏱", "🪑", "🏰", "🍽" } },
 
-        // AiSummaryCard: píldoras de la síntesis IA por iconos Lucide
+        // AiSummaryCard: píldoras de la síntesis IA por iconos Lucide (sin badge de modelo técnico en INC-90)
         { "AiSummaryCard (sin emojis)", "src/Ludeka.Web/Components/Shared/AiSummaryCard.razor",
-          new[] { "<Icon Name=\"bot\"", "<Icon Name=\"zap\"", "<Icon Name=\"shield\"", "<Icon Name=\"users\"",
-                  "<Icon Name=\"baby\"", "<Icon Name=\"shapes\"", "<Icon Name=\"hourglass\"" },
+          new[] { "<Icon Name=\"bot\"", "<Icon Name=\"shield\"", "<Icon Name=\"users\"",
+                  "<Icon Name=\"baby\"", "<Icon Name=\"shapes\"" },
           new[] { "🤖", "⚡", "🛡", "👥", "🧒", "📐", "⏳" } },
 
         // FoundingVerdictCard: veredicto editorial, pestañas y galería por iconos Lucide
