@@ -17,6 +17,7 @@ public class MobileNavigationContractTests
     private const string InputCssPath = "src/Ludeka.Web/Styles/input.css";
     private const string MobileBottomNavPath = "src/Ludeka.Web/Components/Shared/MobileBottomNav.razor";
     private const string CollectionActionBarPath = "src/Ludeka.Web/Components/Shared/CollectionActionBar.razor";
+    private const string MobileNavJsPath = "src/Ludeka.Web/wwwroot/js/mobile-nav.js";
 
     [Fact]
     public void App_ViewportContract_ShouldIncludeViewportFitCoverForSafeArea()
@@ -143,6 +144,43 @@ public class MobileNavigationContractTests
         Assert.Contains("<span class=\"hidden sm:inline\">En mi ludoteca</span>", source, StringComparison.Ordinal);
         Assert.Contains("<span>Jugado</span>", source, StringComparison.Ordinal);
         Assert.Contains("<span>Comprar</span>", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void App_ScriptContract_ShouldIncludeMobileNavScriptWithDefer()
+    {
+        var source = ReadSource(AppPath);
+
+        Assert.Contains("<script src=\"/js/mobile-nav.js\" defer></script>", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MainLayout_TopMobileNav_ShouldHaveAccessibleDetailsContract()
+    {
+        var source = ReadSource(MainLayoutPath);
+
+        // Menú móvil con identificador para descarte exterior accesible y semántica estándar
+        Assert.Contains("<details id=\"mobile-nav-details\" data-mobile-nav class=\"lg:hidden relative\">", source, StringComparison.Ordinal);
+        Assert.Contains("<summary aria-label=\"Menú de navegación\"", source, StringComparison.Ordinal);
+        Assert.Contains("onclick=\"this.closest('details')?.removeAttribute('open')\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MobileNavJs_ShouldImplementClickOutsideEscapeAndResizeDismissal()
+    {
+        var source = ReadSource(MobileNavJsPath);
+
+        // Soporte de pointerdown y click para compatibilidad móvil/escritorio sin bloquear otras acciones
+        Assert.Contains("document.addEventListener('pointerdown'", source, StringComparison.Ordinal);
+        Assert.Contains("document.addEventListener('click'", source, StringComparison.Ordinal);
+
+        // Soporte WCAG 2.2 AA de tecla Escape y retorno de foco
+        Assert.Contains("e.key === 'Escape'", source, StringComparison.Ordinal);
+        Assert.Contains("summary.focus()", source, StringComparison.Ordinal);
+
+        // Cierre al redimensionar a resolución de escritorio y en popstate
+        Assert.Contains("window.addEventListener('resize'", source, StringComparison.Ordinal);
+        Assert.Contains("window.addEventListener('popstate'", source, StringComparison.Ordinal);
     }
 
     private static string ReadSource(string relativePath)
