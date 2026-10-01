@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Gestion de worktrees por incremento para Ludeka (Rama -> PR -> cleanup).
@@ -51,7 +51,7 @@ if ($Slug -notmatch '^[a-z0-9]+(-[a-z0-9]+)*$') {
     Fail "Slug invalido '$Slug'. Usa kebab-case en minusculas (ej. portada-creadores)."
 }
 
-git -C $repoRoot rev-parse --is-inside-work-tree 2>$null
+git -C $repoRoot rev-parse --is-inside-work-tree >$null 2>&1
 if ($LASTEXITCODE -ne 0) { Fail "No es un repositorio git: $repoRoot" }
 
 switch ($Verb) {
@@ -117,6 +117,11 @@ switch ($Verb) {
                     & gh pr create --base main --fill
                     if ($LASTEXITCODE -eq 0) {
                         Ok "PR creado correctamente."
+                        Write-Host ""
+                        Info "==> PASO OBLIGATORIO DE CI (PR): Espera a que el pipeline concluya en verde:"
+                        Info "    gh pr checks $branch --watch"
+                        Info "    Tras mergear en main, vigila el despliegue en produccion:"
+                        Info "    gh run list -b main -L 1"
                         return
                     }
                 }
@@ -135,6 +140,31 @@ switch ($Verb) {
     }
 
     'done' {
+        # Validacion proactiva de CI/CD en main si gh CLI esta disponible
+        $gh = Get-Command gh -ErrorAction SilentlyContinue
+        if ($gh) {
+            try {
+                $rawJson = gh run list -b main -L 1 --json status,conclusion,name,databaseId 2>$null
+                if ($rawJson) {
+                    $latestRuns = $rawJson | ConvertFrom-Json
+                    if ($latestRuns -and $latestRuns.Count -gt 0) {
+                        $run = $latestRuns[0]
+                        if ($run.status -ne 'completed') {
+                            Info "AVISO: El pipeline de CI/CD en 'main' ($($run.name)) aun esta en curso (estado: $($run.status))."
+                            Info "Espera a que finalice con: gh run watch $($run.databaseId)"
+                        } elseif ($run.conclusion -ne 'success') {
+                            Info "AVISO CRITICO: La ultima ejecucion de CI/CD en 'main' no concluyo con exito (resultado: $($run.conclusion))."
+                            Info "Revisa los registros con: gh run view $($run.databaseId)"
+                        } else {
+                            Ok "CI/CD en 'main' verificado en verde ($($run.conclusion))."
+                        }
+                    }
+                }
+            } catch {
+                # Ignorar fallos de red
+            }
+        }
+
         $currentBranch = git -C $repoRoot rev-parse --abbrev-ref HEAD
         if ($currentBranch -eq $branch) {
             Fail "La rama $branch esta chequeada en el checkout principal. Cambia a main primero."
