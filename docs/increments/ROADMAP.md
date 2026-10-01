@@ -106,7 +106,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-91** | Runner Desatendido de Volcado Masivo de Snapshots Crudos BGG y Sincronización Continua Web | ✅ Archivado | [inc-91-runner-volcado-snapshots-crudos.md](archive/inc-91-runner-volcado-snapshots-crudos.md) |
 | **INC-92** | Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos | ✅ Archivado | [inc-92-hub-multimedia-gestion-flash.md](archive/inc-92-hub-multimedia-gestion-flash.md) |
 | **INC-93** | Listado Diario de Juegos en Tendencia (BGG Hotness), Ingesta Inmediata Satélite y Conmutador de Portada y Catálogo | ✅ Archivado | [inc-93-juegos-en-tendencia.md](archive/inc-93-juegos-en-tendencia.md) |
-| **INC-94** | Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento | ⏳ En progreso | [inc-94-retencion-caducados-novedades.md](inc-94-retencion-caducados-novedades.md) |
+| **INC-94** | Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento | ✅ Archivado | [inc-94-retencion-caducados-novedades.md](archive/inc-94-retencion-caducados-novedades.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -137,7 +137,10 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| **INC-94** | `inc/retencion-caducados-novedades` | `F:\repos\ludeka-wt\retencion-caducados-novedades` | ⏳ Verificado / Abriendo PR | Purga desatendida de sorteos y eventos vencidos (gracia 7d), novedades con >= 60d en Ludeka y fecha cumplida/sin fecha, ordenación por llegada, fecha opcional y liberación de imágenes asociadas en disco/R2 |
+| *(Ninguno en curso)* | — | — | — | — |
+
+
+*(INC-94 entregó su PR #166, verificada con 2.238 pruebas unitarias [2.248 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Implementa la fecha de lanzamiento opcional [DateOnly?] en WeeklyRelease con insignia "Próximamente", la ordenación por orden de llegada [CreatedAt desc] en novedades, la restricción de visibilidad de eventos hasta su fecha de fin [EndDate >= today], la política de retención y purga [IDataRetentionService y DataRetentionService] con 7 días de gracia para sorteos y eventos y 60 días para novedades con fecha vencida o nula, la liberación segura de almacenamiento en disco y Cloudflare R2 vía ManagedImageKeyExtractor y DeleteImageAsync, y el runner desatendido data-retention [DataRetentionJobRunner] en Ludeka.Jobs con idempotencia de ventana diaria).*
 
 
 *(INC-93 entregó su verificación con 2.215 pruebas unitarias [2.225 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Introduce la persistencia histórica diaria de las 50 tendencias mundiales de BGG [DailyTrendingGames], la ingesta prioritaria inmediata en lote nocturno con volcado satélite en BggRawSnapshots y síntesis IA Gemini, el conmutador editorial en Carril 1 de portada [«En tendencia» por defecto vs «Mejor valorados»] con fallback defensivo, distintivo visual de ranking con llama [TrendingRank], y la ordenación por tendencia [GameSortOrder.Trending = 8] en catálogo [/catalogo]).*

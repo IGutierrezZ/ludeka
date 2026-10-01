@@ -921,9 +921,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
      - Novedades con $\ge 60$ días publicadas en Ludeka (`CreatedAt <= now - 60d`) cuya fecha haya pasado o no tengan fecha (`ReleaseDate == null || ReleaseDate < today`).
   5. **Liberación de Almacenamiento:** Detección de claves relativas de imágenes gestionadas localmente o en Cloudflare R2 (`ManagedImageKeyExtractor`) y borrado seguro mediante `IImageStorageService.DeleteImageAsync` antes de purgar las entidades en base de datos.
   6. **Ejecutor Desatendido e Idempotencia:** Runner `data-retention` en `Ludeka.Jobs` (`DataRetentionJobRunner`) con concesión de ventana diaria (`JobWindowKeyCalculator.DailyUtc`), y servicio hosted en background (`DataRetentionHostedService`).
-- **Estado:** ⏳ **Implementado y Verificado** (2.238 pruebas unitarias pasando al 100%).
-- **Documento:** [`inc-94-retencion-caducados-novedades.md`](../increments/inc-94-retencion-caducados-novedades.md).
-- **Módulos del Sistema:** [`22-sorteos-novedades-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/22-sorteos-novedades-eventos.md).
+- **Estado:** ✅ **Completado y Archivado** (2.238 pruebas unitarias pasando al 100% [2.248 totales con integración]).
+- **Documento:** [`archive/inc-94-retencion-caducados-novedades.md`](../increments/archive/inc-94-retencion-caducados-novedades.md).
+- **Módulos del Sistema:** [`16-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-sorteos-novedades-y-eventos.md) · [`49-retencion-caducados-novedades-imagenes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/49-retencion-caducados-novedades-imagenes.md).
 
 ---
 

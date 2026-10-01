@@ -1,6 +1,6 @@
 # 📦 Incremento 94: Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento
 
-> **Estado:** ⏳ Verificado / Abriendo PR  
+> **Estado:** ✅ Archivado (PR #166)  
 > **Rama:** `inc/retencion-caducados-novedades`  
 > **Worktree:** `F:\repos\ludeka-wt\retencion-caducados-novedades`  
 > **Pruebas Unitarias:** 2.238 pasando al 100% (2.238 superadas, 0 errores, 0 omitidos).
