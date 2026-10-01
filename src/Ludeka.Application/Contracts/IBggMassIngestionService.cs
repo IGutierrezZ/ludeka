@@ -86,6 +86,19 @@ public interface IBggMassIngestionService
     Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default);
 
     /// <summary>
+    /// Ejecuta el procesamiento masivo continuo de síntesis IA en lotes para todos los títulos pendientes en staging en segundo plano.
+    /// Exige sesión y permiso de edición de fichas (INC-46, W1).
+    /// </summary>
+    Task<BggMassIngestionContinuousDrainResultDto> RunContinuousAiDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+        => Task.FromResult(new BggMassIngestionContinuousDrainResultDto(0, 0, 0, 0, 0, false, false, "Noop"));
+
+    /// <summary>
+    /// Versión de sistema para el procesamiento continuo de síntesis IA por lotes en segundo plano (Ludeka.Jobs).
+    /// </summary>
+    Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousAiDrainAsync(int maxItems = 4000, CancellationToken ct = default)
+        => Task.FromResult(new BggMassIngestionContinuousDrainResultDto(0, 0, 0, 0, 0, false, false, "Noop"));
+
+    /// <summary>
     /// Ejecuta el enriquecimiento retroactivo de calidad (escalabilidad, fundas, duraciones, huella y localización) para juegos existentes.
     /// Exige sesión y permiso de edición de fichas.
     /// </summary>

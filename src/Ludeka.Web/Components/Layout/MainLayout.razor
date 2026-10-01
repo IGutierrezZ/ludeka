@@ -224,13 +224,13 @@
         @Body
     </main>
 
-    <footer class="mt-auto border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] py-8 mobile-nav-spacer text-xs text-[var(--text-secondary)]">
+    <footer class="mt-auto border-t border-stone-800 bg-[#12161A] py-8 mobile-nav-spacer text-xs text-stone-300 shadow-inner">
         <div class="container-ludeka space-y-6">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-[var(--border-subtle)]">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-stone-800/80">
                 <div class="space-y-1">
-                    <p class="font-extrabold text-sm text-[var(--text-primary)] tracking-tight">Ludeka &copy; 2026</p>
-                    <p class="text-xs text-[var(--text-secondary)]">Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.</p>
-                    <p class="text-[0.68rem] text-[var(--text-muted)]">
+                    <p class="font-extrabold text-sm text-white tracking-tight">Ludeka &copy; 2026</p>
+                    <p class="text-xs text-stone-300">Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.</p>
+                    <p class="text-[0.68rem] text-stone-400">
                         Participamos en programas de afiliación de tiendas especializadas sin coste adicional para ti.
                     </p>
                 </div>
@@ -243,7 +243,7 @@
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Apoyar el proyecto en Ko-fi"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-amber-500/10 border border-[var(--border-subtle)] hover:border-amber-500/40 text-amber-500 font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-amber-500/20 border border-stone-700/60 hover:border-amber-500/50 text-amber-400 font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                             <Icon Name="coffee" Size="14" />
                             <span>Apoyar en Ko-fi</span>
                         </a>
@@ -254,7 +254,7 @@
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Unirse al servidor oficial de Discord de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#5865F2]/10 border border-[var(--border-subtle)] hover:border-[#5865F2]/40 text-[#5865F2] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-[#5865F2]/20 border border-stone-700/60 hover:border-[#5865F2]/50 text-[#828BF8] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
                             <Icon Name="message-circle" Size="14" />
                             <span>Comunidad Discord</span>
                         </a>
@@ -265,7 +265,7 @@
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Unirse al canal oficial de Telegram de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[#229ED9]/10 border border-[var(--border-subtle)] hover:border-[#229ED9]/40 text-[#229ED9] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-[#229ED9]/20 border border-stone-700/60 hover:border-[#229ED9]/50 text-[#38BDF8] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
                             <Icon Name="send" Size="14" />
                             <span>Canal Telegram</span>
                         </a>
@@ -280,22 +280,22 @@
                        target="_blank"
                        rel="noopener noreferrer"
                        title="Visitar BoardGameGeek"
-                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[0.7rem] font-bold tracking-tight">
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1A2026] border border-stone-700/60 hover:border-stone-500 text-stone-300 hover:text-white transition-colors text-[0.7rem] font-bold tracking-tight">
                         <Icon Name="dices" Size="14" />
                         <span>Powered by BoardGameGeek</span>
                         <span class="text-[0.65rem] opacity-70">&nearr;</span>
                     </a>
-                    <span class="text-[0.68rem] text-[var(--text-muted)] hidden lg:inline">
+                    <span class="text-[0.68rem] text-stone-400 hidden lg:inline">
                         Datos técnicos sincronizados con la XMLAPI2 de BGG.
                     </span>
                 </div>
 
                 @* Enlaces de Navegación y Transparencia *@
                 <div class="flex items-center gap-4 text-xs">
-                    <a href="/clasificaciones" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
+                    <a href="/clasificaciones" class="text-stone-300 hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
                         <Icon Name="trophy" Size="12" /> Clasificaciones
                     </a>
-                    <a href="/transparencia" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
+                    <a href="/transparencia" class="text-stone-300 hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
                         <Icon Name="shield" Size="12" /> Transparencia & Afiliados
                     </a>
                 </div>

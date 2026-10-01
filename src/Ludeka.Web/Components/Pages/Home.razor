@@ -9,53 +9,68 @@
 <PageTitle>Catálogo de Juegos de Mesa — Ludeka</PageTitle>
 
 <div class="container-ludeka pt-3 pb-8">
-    @* Buscador principal elevado (elevación visual sin redundancias) *@
-    <div class="max-w-2xl mb-5">
-        <CatalogSearchBar Value="@_searchTerm" ValueChanged="@OnSearchChanged" />
+    @* Fila única unificada: Buscador (flex-1) + Botón de Filtros + Botón de Leyenda *@
+    <div class="flex items-center gap-2 mb-4">
+        <div class="flex-1 min-w-0">
+            <CatalogSearchBar Value="@_searchTerm" ValueChanged="@OnSearchChanged" />
+        </div>
+
+        <button type="button"
+                @onclick="ToggleAdvancedFilters"
+                title="Filtros avanzados"
+                aria-label="Filtros avanzados"
+                aria-expanded="@_showAdvancedFilters"
+                aria-controls="panel-filtros-avanzados"
+                class="h-11 px-3 rounded-full border text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 @(_showAdvancedFilters || ActiveAdvancedFiltersCount > 0 ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+            <Icon Name="sliders-horizontal" Size="15" />
+            <span class="hidden sm:inline">Filtros</span>
+            @if (ActiveAdvancedFiltersCount > 0)
+            {
+                <span class="px-1.5 py-0.2 rounded-full @(_showAdvancedFilters ? "bg-white text-[var(--brand-primary)]" : "bg-[var(--brand-primary)] text-white") text-[0.65rem] font-black">
+                    @ActiveAdvancedFiltersCount
+                </span>
+            }
+        </button>
+
+        <button type="button"
+                @onclick="ToggleLegend"
+                title="Leyenda de iconografía"
+                aria-label="Leyenda de iconografía"
+                aria-expanded="@_showLegend"
+                class="h-11 px-3 rounded-full border text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 @(_showLegend ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+            <Icon Name="info" Size="15" />
+            <span class="hidden sm:inline">Leyenda</span>
+        </button>
     </div>
 
     @* Zona de Filtros Avanzados (Colapsable / Acordeón con multiselección) *@
-    <div class="mb-6">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-2.5">
-            <button type="button"
-                    @onclick="ToggleAdvancedFilters"
-                    class="px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 @(_showAdvancedFilters || ActiveAdvancedFiltersCount > 0 ? "bg-[var(--bg-surface-elevated)] border-[var(--brand-primary)] text-[var(--brand-primary)] shadow-sm" : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")"
-                    aria-expanded="@_showAdvancedFilters"
-                    aria-controls="panel-filtros-avanzados">
-                <Icon Name="sliders-horizontal" Size="14" />
-                <span>Filtros avanzados</span>
-                @if (ActiveAdvancedFiltersCount > 0)
-                {
-                    <span class="px-1.5 py-0.2 rounded-full bg-[var(--brand-primary)] text-white text-[0.65rem] font-black">
-                        @ActiveAdvancedFiltersCount
-                    </span>
-                }
-                <Icon Name="@(_showAdvancedFilters ? "chevron-up" : "chevron-down")" Size="13" />
-            </button>
-
-            @if (HasActiveRefinements)
-            {
-                <button type="button"
-                        @onclick="ResetFilters"
-                        class="text-xs font-semibold text-[var(--brand-primary)] hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] rounded px-2 py-1"
-                        aria-label="Restablecer todos los filtros">
-                    <Icon Name="x" Size="13" />
-                    <span>Limpiar filtros</span>
-                </button>
-            }
-        </div>
-
-        @if (_showAdvancedFilters)
-        {
+    @if (_showAdvancedFilters)
+    {
+        <div class="mb-5">
             <div id="panel-filtros-avanzados" class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 text-xs shadow-md animate-fade-in">
                 <div class="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
                     <span class="font-extrabold text-sm text-[var(--text-primary)] flex items-center gap-2">
                         <Icon Name="sparkles" Size="14" />
                         <span>Refinar por mesa y partida</span>
                     </span>
-                    <span class="text-[0.68rem] text-[var(--text-muted)] italic hidden sm:inline">
-                        Multiselección disponible en todos los filtros
-                    </span>
+                    <div class="flex items-center gap-2">
+                        @if (HasActiveRefinements)
+                        {
+                            <button type="button"
+                                    @onclick="ResetFilters"
+                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] rounded px-2 py-1"
+                                    aria-label="Restablecer todos los filtros">
+                                <Icon Name="x" Size="13" />
+                                <span>Limpiar filtros</span>
+                            </button>
+                        }
+                        <button type="button"
+                                @onclick="ToggleAdvancedFilters"
+                                class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                                aria-label="Cerrar panel de filtros">
+                            <Icon Name="x" Size="14" />
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -402,58 +417,66 @@
                     </div>
                 </div>
             </div>
-        }
-    </div>
+        </div>
+    }
 
-    @* Leyenda de iconografía lúdica *@
-    <details class="text-[0.68rem] text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-3 mb-6 transition-all">
-        <summary class="font-bold text-[var(--text-secondary)] cursor-pointer flex items-center gap-1.5 select-none hover:text-[var(--brand-primary)] focus-visible:outline-none">
-            <Icon Name="info" Size="13" />
-            <span>Leyenda de iconografía en tarjetas</span>
-        </summary>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-2.5 mt-2 border-t border-[var(--border-subtle)]">
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="settings" Size="11" /></span>
-                <span>Eurogame</span>
+    @* Leyenda de iconografía lúdica (controlada por el botón de la barra superior) *@
+    @if (_showLegend)
+    {
+        <div class="text-[0.68rem] text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-3 mb-6 animate-fade-in shadow-sm">
+            <div class="flex items-center justify-between font-bold text-[var(--text-secondary)] mb-2">
+                <span class="flex items-center gap-1.5">
+                    <Icon Name="info" Size="13" />
+                    <span>Leyenda de iconografía en tarjetas</span>
+                </span>
+                <button type="button" @onclick="ToggleLegend" class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label="Cerrar leyenda">
+                    <Icon Name="x" Size="13" />
+                </button>
             </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="dices" Size="11" /></span>
-                <span>Temático</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="party-popper" Size="11" /></span>
-                <span>Party Game</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="puzzle" Size="11" /></span>
-                <span>Filler / Abstracto</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="book-open" Size="11" /></span>
-                <span>Narrativo</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="armchair" Size="11" /></span>
-                <span>Mesa pequeña</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="utensils" Size="11" /></span>
-                <span>Mesa estándar</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="castle" Size="11" /></span>
-                <span>Mesa grande</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="baby" Size="11" /></span>
-                <span>Edad recomendada</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--color-mustplay)]"><Icon Name="users" Size="11" /></span>
-                <span>Comensales</span>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-2 border-t border-[var(--border-subtle)]">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="settings" Size="11" /></span>
+                    <span>Eurogame</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="dices" Size="11" /></span>
+                    <span>Temático</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="party-popper" Size="11" /></span>
+                    <span>Party Game</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="puzzle" Size="11" /></span>
+                    <span>Filler / Abstracto</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="book-open" Size="11" /></span>
+                    <span>Narrativo</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="armchair" Size="11" /></span>
+                    <span>Mesa pequeña</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="utensils" Size="11" /></span>
+                    <span>Mesa estándar</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="castle" Size="11" /></span>
+                    <span>Mesa grande</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="baby" Size="11" /></span>
+                    <span>Edad recomendada</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--color-mustplay)]"><Icon Name="users" Size="11" /></span>
+                    <span>Comensales</span>
+                </div>
             </div>
         </div>
-    </details>
+    }
 
     @* Barra de estado de resultados y selector conmutable de modo de vista *@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-[var(--border-subtle)] text-xs">
@@ -524,7 +547,7 @@
     }
     else if (_viewMode == "list")
     {
-        <div class="space-y-3">
+        <div class="space-y-1.5">
             @foreach (var game in _games)
             {
                 <GameListItem Game="@game" />
@@ -536,7 +559,7 @@
         <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
             @foreach (var game in _games)
             {
-                <GameCard Game="@game" />
+                <GameCard Game="@game" OnQuickAction="OpenQuickCollection" />
             }
         </div>
     }
@@ -568,6 +591,11 @@
             </button>
         </div>
     }
+
+    @* Modal de acciones rápidas de colección para cuadrícula móvil *@
+    <QuickCollectionModal Game="@_selectedQuickGame"
+                          IsOpen="@(_selectedQuickGame != null)"
+                          OnClose="() => _selectedQuickGame = null" />
 </div>
 
 @code {
@@ -584,6 +612,11 @@
     private GameSortOrder _sortBy = GameSortOrder.Rank;
 
     private bool _showAdvancedFilters = false;
+    private bool _showLegend = false;
+    private GameSummaryDto? _selectedQuickGame;
+
+    private void ToggleLegend() => _showLegend = !_showLegend;
+    private void OpenQuickCollection(GameSummaryDto game) => _selectedQuickGame = game;
 
     // Propiedades de compatibilidad para contratos y pruebas existentes (INC-59 / INC-72)
     private TableFootprint? _selectedFootprint => _selectedFootprints.Count == 1 ? _selectedFootprints.First() : null;

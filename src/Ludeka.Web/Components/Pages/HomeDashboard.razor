@@ -7,9 +7,11 @@
 
 <PageTitle>Ludeka — Juegos, sorteos, eventos y opiniones de verdad</PageTitle>
 
-<div class="container-ludeka py-6 space-y-10">
-    @* 1. Hero editorial narrativo: la variante activa del fondo se fija aquí, en una línea *@
-    <HeroEditorial Background="HeroBackgroundVariant.Ilustracion" />
+<div class="container-ludeka py-3 sm:py-6 space-y-6 sm:space-y-10">
+    @* 1. Hero editorial narrativo: oculto en móvil para dar paso directo al contenido *@
+    <div class="hidden md:block">
+        <HeroEditorial Background="HeroBackgroundVariant.Ilustracion" />
+    </div>
 
     @if (_isLoading)
     {
@@ -22,41 +24,50 @@
     }
     else
     {
-        @* 2. Carril 1: Conmutador Editorial: En tendencia (defecto) vs Mejor valorados *@
+        @* 2. Carril 1: Conmutador Editorial: En tendencia (defecto) vs Mejor valorados en fila única *@
         <section class="space-y-4" aria-label="@(_showTrending ? "Juegos en tendencia hoy" : "Top 20 Juegos de Mesa")">
-            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center flex-wrap gap-2.5 sm:gap-3">
-                    <span class="text-[var(--brand-primary)]">
-                        <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="22" />
+            <header class="flex items-center justify-between gap-1.5 sm:gap-3">
+                <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                    <span class="text-[var(--brand-primary)] shrink-0">
+                        <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="20" />
                     </span>
-                    <h2 class="rail-title text-xl sm:text-2xl">
-                        @(_showTrending ? "En tendencia hoy" : "Top 20 Juegos de Mesa")
+                    <h2 class="rail-title text-base sm:text-2xl font-black truncate">
+                        <span class="sm:hidden">Catálogo</span>
+                        <span class="hidden sm:inline">Catálogo de Juegos</span>
                     </h2>
+                </div>
 
-                    @* Conmutador editorial *@
-                    <div class="inline-flex items-center bg-[var(--bg-surface)] p-0.5 sm:p-1 rounded-xl border border-[var(--border-subtle)] shadow-sm text-xs font-bold" role="tablist" aria-label="Seleccionar vista de juegos destacados">
+                <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                    @* Conmutador editorial compacto *@
+                    <div class="inline-flex items-center bg-[var(--bg-surface)] p-0.5 rounded-xl border border-[var(--border-subtle)] shadow-sm text-xs font-bold" role="tablist" aria-label="Seleccionar vista de juegos destacados">
                         <button type="button"
                                 role="tab"
                                 aria-selected="@(_showTrending ? "true" : "false")"
-                                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
+                                class="px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-[0.7rem] sm:text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
                                 @onclick="() => _showTrending = true">
-                            <Icon Name="flame" Size="13" />
-                            <span>En tendencia</span>
+                            <Icon Name="flame" Size="12" />
+                            <span class="hidden sm:inline">En tendencia</span>
+                            <span class="sm:hidden">Tendencia</span>
                         </button>
                         <button type="button"
                                 role="tab"
                                 aria-selected="@(!_showTrending ? "true" : "false")"
-                                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(!_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
+                                class="px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-[0.7rem] sm:text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(!_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
                                 @onclick="() => _showTrending = false">
-                            <Icon Name="trophy" Size="13" />
-                            <span>Mejor valorados</span>
+                            <Icon Name="trophy" Size="12" />
+                            <span class="hidden sm:inline">Mejor valorados</span>
+                            <span class="sm:hidden">Top</span>
                         </button>
                     </div>
-                </div>
 
-                <a href="@(_showTrending ? "/tendencias" : "/catalogo")" class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                    @(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo") <span aria-hidden="true">&rarr;</span>
-                </a>
+                    <a href="@(_showTrending ? "/tendencias" : "/catalogo")"
+                       title="@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")"
+                       class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1 p-1 rounded-lg hover:bg-[var(--bg-surface-elevated)] transition-colors whitespace-nowrap"
+                       aria-label="@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")">
+                        <span class="hidden md:inline">@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")</span>
+                        <span aria-hidden="true" class="text-sm font-extrabold">&rarr;</span>
+                    </a>
+                </div>
             </header>
 
             @{
@@ -77,6 +88,7 @@
         <section class="space-y-4" aria-label="Sorteos Activos y Destacados">
             <RailHeader IconName="gift"
                         Title="Sorteos en Marcha"
+                        MobileTitle="Sorteos"
                         Count="_dashboard.Giveaways.Count"
                         CountLabel="activos"
                         Href="/sorteos"
@@ -104,6 +116,7 @@
         <section class="space-y-4" aria-label="Novedades del Sector y Lanzamientos">
             <RailHeader IconName="rocket"
                         Title="Novedades en Tiendas"
+                        MobileTitle="Novedades"
                         Count="_dashboard.RecentReleases.Count"
                         CountLabel="títulos"
                         Href="/novedades"
@@ -131,6 +144,7 @@
         <section class="space-y-4" aria-label="Próximos Eventos y Ferias Lúdicas">
             <RailHeader IconName="tent"
                         Title="Grandes Citas & Ferias del Sector"
+                        MobileTitle="Eventos"
                         Count="_dashboard.UpcomingEvents.Count"
                         CountLabel="eventos"
                         Href="/eventos"

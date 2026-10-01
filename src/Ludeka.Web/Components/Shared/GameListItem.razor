@@ -1,15 +1,24 @@
+@using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
+@inject IUserLibraryService LibraryService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
 
 @if (Game != null)
 {
-    <a href="/juegos/@Game.Slug"
-       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] hover:shadow-md transition-all group select-none text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
-       aria-label="Ver ficha de @Game.SpanishTitle">
+    <div class="rounded-xl bg-[var(--bg-card)] border @(_isExpanded ? "border-[var(--brand-primary)] shadow-md" : "border-[var(--border-subtle)] hover:border-[var(--border-highlight)]") transition-all select-none text-xs overflow-hidden">
         
-        @* Bloque izquierdo: Miniatura y detalles principales *@
-        <div class="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-            <div class="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] relative border border-[var(--border-subtle)]">
+        @* Fila compacta de alta densidad (~44px) *@
+        <div class="p-2 sm:p-2.5 flex items-center justify-between gap-2.5 cursor-pointer hover:bg-[var(--bg-surface-elevated)] transition-colors"
+             @onclick="ToggleExpand"
+             role="button"
+             aria-expanded="@_isExpanded"
+             tabindex="0"
+             @onkeydown="HandleKeyDown">
+            
+            @* Miniatura cuadrada compacta *@
+            <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg overflow-hidden bg-[var(--bg-surface-elevated)] relative border border-[var(--border-subtle)]">
                 @{
                     var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
                     var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
@@ -19,18 +28,18 @@
                 @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
                 {
                     <img src="@effectiveImageUrl"
-                         alt="Carátula oficial de @Game.SpanishTitle"
+                         alt="Carátula de @Game.SpanishTitle"
                          loading="lazy"
                          decoding="async"
                          width="64"
                          height="64"
                          onerror="this.onerror=null; this.src='@placeholderUrl';"
-                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                         class="w-full h-full object-cover" />
                 }
                 else
                 {
                     <img src="@placeholderUrl"
-                         alt="Carátula de @Game.SpanishTitle no disponible"
+                         alt="Carátula no disponible"
                          loading="lazy"
                          decoding="async"
                          width="64"
@@ -40,31 +49,58 @@
 
                 @if (Game.IsExpansion)
                 {
-                    <div class="absolute top-1 left-1 px-1 py-0.2 rounded bg-purple-950/90 text-[0.55rem] font-black text-purple-200 shadow" title="Expansión">
-                        <Icon Name="puzzle" Size="9" />
+                    <div class="absolute top-0.5 left-0.5 px-0.5 rounded bg-purple-950/90 text-[0.5rem] font-black text-purple-200" title="Expansión">
+                        <Icon Name="puzzle" Size="8" />
                     </div>
                 }
             </div>
 
-            <div class="min-w-0 flex-1 space-y-1">
-                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <h3 class="font-extrabold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">
-                        @Game.SpanishTitle
-                    </h3>
-                    @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+            @* Título y Año *@
+            <div class="min-w-0 flex-1 flex items-baseline gap-1.5">
+                <h3 class="font-extrabold text-xs sm:text-sm text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors truncate">
+                    @Game.SpanishTitle
+                </h3>
+                <span class="text-[0.68rem] text-[var(--brand-primary)] font-semibold shrink-0">
+                    @Game.YearPublished
+                </span>
+            </div>
+
+            @* Puntuación, ranking y flecha acordeón *@
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="text-right flex items-center gap-1 font-extrabold text-xs text-[var(--text-primary)]">
+                    <span class="text-amber-400">★</span>
+                    <span>@Game.BggRating.ToString("0.0")</span>
+                    @if (Game.BggRank.HasValue && Game.BggRank.Value > 0)
                     {
-                        <span class="text-xs text-[var(--text-muted)] italic line-clamp-1">
-                            (@Game.OriginalTitle)
-                        </span>
+                        <span class="text-[0.62rem] text-[var(--text-muted)] font-medium hidden xs:inline">#@Game.BggRank.Value</span>
                     }
                 </div>
 
-                <div class="text-[0.72rem] text-[var(--text-secondary)] line-clamp-1">
-                    @Game.Designer &bull; @Game.Publisher &bull; <span class="font-semibold text-[var(--brand-primary)]">@Game.YearPublished</span>
+                <span class="text-[var(--text-muted)] p-0.5 transition-transform duration-200 @(_isExpanded ? "rotate-180" : "")">
+                    <Icon Name="chevron-down" Size="14" />
+                </span>
+            </div>
+        </div>
+
+        @* Detalle desplegable (Acordeón) con información y acciones *@
+        @if (_isExpanded)
+        {
+            <div class="p-3 sm:p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3 animate-fade-in text-xs">
+                @* Autor y Editorial *@
+                <div class="flex flex-wrap items-center justify-between gap-1 text-[0.72rem] text-[var(--text-secondary)]">
+                    <div>
+                        <span class="font-medium text-[var(--text-primary)]">@Game.Designer</span> &bull; <span>@Game.Publisher</span>
+                    </div>
+                    @if (!string.Equals(Game.SpanishTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="text-[var(--text-muted)] italic">
+                            (@Game.OriginalTitle)
+                        </div>
+                    }
                 </div>
 
-                @* Badges comparativos compactos en móvil / fila en desktop *@
-                <div class="flex items-center gap-1.5 flex-wrap pt-0.5 text-[0.68rem] text-[var(--text-muted)]">
+                @* Badges informativos *@
+                <div class="flex items-center gap-1.5 flex-wrap text-[0.68rem] text-[var(--text-muted)]">
                     @if (!string.IsNullOrWhiteSpace(Game.IdealPlayerCountText))
                     {
                         <span class="px-2 py-0.5 rounded-full font-bold bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)] flex items-center gap-1">
@@ -82,17 +118,17 @@
                     @switch (Game.Footprint)
                     {
                         case TableFootprint.SmallTable:
-                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Mesa Pequeña / Cafetería">
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
                                 <Icon Name="coffee" Size="11" /> Mesa pequeña
                             </span>
                             break;
                         case TableFootprint.TableMonster:
-                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Monstruo de Mesa">
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
                                 <Icon Name="castle" Size="11" /> Mesa grande
                             </span>
                             break;
                         default:
-                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1" title="Mesa Estándar">
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
                                 <Icon Name="utensils" Size="11" /> Mesa estándar
                             </span>
                             break;
@@ -101,46 +137,151 @@
                     @switch (Game.Style)
                     {
                         case GameStyle.Eurogame:
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="settings" Size="11" /> Euro</span>
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1"><Icon Name="settings" Size="11" /> Euro</span>
                             break;
                         case GameStyle.Ameritrash:
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="dices" Size="11" /> Temático</span>
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1"><Icon Name="dices" Size="11" /> Temático</span>
                             break;
                         case GameStyle.PartyGame:
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="party-popper" Size="11" /> Party</span>
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1"><Icon Name="party-popper" Size="11" /> Party</span>
                             break;
                         case GameStyle.FillerAbstract:
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="puzzle" Size="11" /> Filler</span>
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1"><Icon Name="puzzle" Size="11" /> Filler</span>
                             break;
                         default:
-                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="book-open" Size="11" /> Narrativo</span>
+                            <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1"><Icon Name="book-open" Size="11" /> Narrativo</span>
                             break;
                     }
                 </div>
-            </div>
-        </div>
 
-        @* Bloque derecho: Puntuación y acción *@
-        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-subtle)]">
-            <div class="text-left sm:text-right">
-                <div class="flex items-center sm:justify-end gap-1 font-extrabold text-sm text-[var(--text-primary)]">
-                    <span class="text-amber-400">★</span>
-                    <span>@Game.BggRating.ToString("0.0")</span>
-                </div>
-                @if (Game.BggRank.HasValue && Game.BggRank.Value > 0)
+                @if (!string.IsNullOrWhiteSpace(_feedbackMessage))
                 {
-                    <div class="text-[0.65rem] text-[var(--text-muted)] font-medium">BGG #@Game.BggRank.Value</div>
+                    <div class="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[0.7rem] font-semibold text-center animate-fade-in flex items-center justify-center gap-1">
+                        <Icon Name="check" Size="12" />
+                        <span>@_feedbackMessage</span>
+                    </div>
                 }
-            </div>
 
-            <span class="text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] group-hover:translate-x-0.5 transition-all p-1">
-                <Icon Name="chevron-right" Size="16" />
-            </span>
-        </div>
-    </a>
+                @* Barra de acciones: 3 botones de colección + Ir a ficha *@
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                    <div class="grid grid-cols-3 gap-1.5 flex-1">
+                        <button type="button"
+                                @onclick="() => ToggleStatus(CollectionStatus.InCollection)"
+                                class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center justify-center gap-1 @(_collectionItem?.Status == CollectionStatus.InCollection ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm font-bold" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                title="En mi ludoteca / Tengo">
+                            <Icon Name="library" Size="12" />
+                            <span>Tengo</span>
+                        </button>
+
+                        <button type="button"
+                                @onclick="TogglePlayed"
+                                class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center justify-center gap-1 @(_collectionItem?.IsPlayed == true ? "bg-emerald-600 text-white border-transparent shadow-sm font-bold" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                title="Marcar como jugado">
+                            <Icon Name="dices" Size="12" />
+                            <span>Jugado</span>
+                        </button>
+
+                        <button type="button"
+                                @onclick="() => ToggleStatus(CollectionStatus.Wishlist)"
+                                class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center justify-center gap-1 @(_collectionItem?.Status == CollectionStatus.Wishlist ? "bg-amber-600 text-white border-transparent shadow-sm font-bold" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                title="Quiero comprar / Deseado">
+                            <Icon Name="bookmark" Size="12" />
+                            <span>Deseado</span>
+                        </button>
+                    </div>
+
+                    <a href="/juegos/@Game.Slug"
+                       aria-label="Ver ficha de @Game.SpanishTitle"
+                       class="px-3.5 py-1.5 rounded-lg bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]">
+                        <span>Ver ficha</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
 }
 
 @code {
     [Parameter, EditorRequired]
     public GameSummaryDto Game { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<GameSummaryDto> OnGameUpdated { get; set; }
+
+    private bool _isExpanded = false;
+    private UserCollectionItemDto? _collectionItem;
+    private string? _feedbackMessage;
+
+    private async Task ToggleExpand()
+    {
+        _isExpanded = !_isExpanded;
+        if (_isExpanded && !string.IsNullOrWhiteSpace(CurrentUserService.UserId) && _collectionItem == null)
+        {
+            try
+            {
+                _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
+            }
+            catch
+            {
+                _collectionItem = null;
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            await ToggleExpand();
+        }
+    }
+
+    private async Task ToggleStatus(CollectionStatus targetStatus)
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+            return;
+        }
+
+        try
+        {
+            var newStatus = _collectionItem?.Status == targetStatus ? (CollectionStatus?)null : targetStatus;
+            _collectionItem = await LibraryService.SetCollectionStateAsync(Game.Id, newStatus);
+            _feedbackMessage = newStatus switch
+            {
+                CollectionStatus.InCollection => "Añadido a tu ludoteca",
+                CollectionStatus.Wishlist => "Añadido a deseados",
+                _ => "Eliminado de colección"
+            };
+            await OnGameUpdated.InvokeAsync(Game);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+        }
+    }
+
+    private async Task TogglePlayed()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+            return;
+        }
+
+        try
+        {
+            _collectionItem = await LibraryService.TogglePlayedStateAsync(Game.Id);
+            _feedbackMessage = _collectionItem?.IsPlayed == true
+                ? "Marcado como jugado"
+                : "Desmarcado de jugado";
+            await OnGameUpdated.InvokeAsync(Game);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+        }
+    }
 }

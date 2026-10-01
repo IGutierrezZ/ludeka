@@ -47,6 +47,17 @@
                 <span>★</span>
                 <span>@Game.BggRating.ToString("0.0")</span>
             </div>
+
+            @* Botón de acción rápida: Colección / Jugado *@
+            <button type="button"
+                    @onclick="HandleQuickActionClick"
+                    @onclick:stopPropagation="true"
+                    @onclick:preventDefault="true"
+                    title="Añadir a mi ludoteca / jugado"
+                    aria-label="Añadir @Game.SpanishTitle a tu colección o jugado"
+                    class="absolute bottom-2 right-2 z-10 w-7 h-7 rounded-full bg-black/70 hover:bg-[var(--brand-primary)] text-white backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <Icon Name="plus" Size="14" />
+            </button>
         </div>
 
         <div class="p-2 sm:p-3.5 flex flex-col flex-1 justify-between bg-[var(--bg-card)]">
@@ -155,6 +166,14 @@
 
     [Parameter]
     public string? CountryCode { get; set; }
+
+    [Parameter]
+    public EventCallback<GameSummaryDto> OnQuickAction { get; set; }
+
+    private async Task HandleQuickActionClick()
+    {
+        await OnQuickAction.InvokeAsync(Game);
+    }
 
     private static string FormatCompactPlayers(string? idealText)
     {

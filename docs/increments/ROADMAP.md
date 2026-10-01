@@ -108,6 +108,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-93** | Listado Diario de Juegos en Tendencia (BGG Hotness), Ingesta Inmediata Satélite y Conmutador de Portada y Catálogo | ✅ Archivado | [inc-93-juegos-en-tendencia.md](archive/inc-93-juegos-en-tendencia.md) |
 | **INC-94** | Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento | ✅ Archivado | [inc-94-retencion-caducados-novedades.md](archive/inc-94-retencion-caducados-novedades.md) |
 | **INC-95** | Pantalla Dedicada de Tendencias BGG Top 50 con Movimiento Diario y Desacople de Catálogo | ✅ Archivado | [inc-95-pantalla-tendencias.md](archive/inc-95-pantalla-tendencias.md) |
+| **INC-96** | Optimización Visual Móvil de Portada y Catálogo, Acciones Rápidas de Colección y Procesamiento Continuo de IA en Lotes | ⏳ En verificación / PR | [inc-96-opt-movil-portada-catalogo.md](inc-96-opt-movil-portada-catalogo.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -138,7 +139,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno activo)* | — | — | — | — |
+| **INC-96** | `inc/opt-movil-portada-catalogo` | `F:\repos\ludeka-wt\opt-movil-portada-catalogo` | ⏳ Verificación / PR | Optimización móvil de portada/catálogo, acciones de colección y lotes continuos de IA en staging |
 
 
 *(INC-95 entregó su verificación con 2.249 pruebas unitarias [2.259 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Implementa la pantalla dedicada de tendencias BGG Top 50 [/tendencias] con formato lista editorial e indicadores de movimiento diario [RankMovement: Up, Same, Down, New] mediante ITrendingService y GetPreviousDateAsync, botón de navegación «Ir al catálogo», desacopla la ordenación por tendencia de /catalogo erradicando la confusión de 500 títulos y la apertura automática indeseada de los filtros avanzados en Home.razor, y redirige defensivamente accesos antiguos a /tendencias).*
