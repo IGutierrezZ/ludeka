@@ -60,10 +60,10 @@ public class HomeDashboardService : IHomeDashboardService
             .Take(20)
             .ToList();
 
-        // 3. Carril 3: Novedades del Sector (orden cronológico descendente)
+        // 3. Carril 3: Novedades del Sector (orden de llegada a Ludeka descendente)
         var allReleases = await _weeklyReleaseService.GetReleasesAsync(fromDate: null, ct: ct);
         var recentReleases = allReleases
-            .OrderByDescending(r => r.ReleaseDate)
+            .OrderByDescending(r => r.CreatedAt)
             .Take(20)
             .ToList();
 

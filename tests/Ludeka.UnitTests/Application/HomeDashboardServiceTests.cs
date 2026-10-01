@@ -129,12 +129,13 @@ public class HomeDashboardServiceTests
             ]
         };
 
+        var now = DateTimeOffset.UtcNow;
         var releaseFake = new FakeWeeklyReleaseService
         {
             ReleasesToReturn =
             [
-                new(Guid.NewGuid(), "Novedad 1", "Devir", new DateOnly(2026, 9, 1), null, null, 30m, false, null),
-                new(Guid.NewGuid(), "Novedad 2", "Maldito", new DateOnly(2026, 9, 15), null, null, 50m, false, null)
+                new(Guid.NewGuid(), "Novedad 1", "Devir", new DateOnly(2026, 9, 1), null, null, 30m, false, null, CreatedAt: now.AddMinutes(-10)),
+                new(Guid.NewGuid(), "Novedad 2", "Maldito", new DateOnly(2026, 9, 15), null, null, 50m, false, null, CreatedAt: now)
             ]
         };
 
@@ -164,7 +165,7 @@ public class HomeDashboardServiceTests
         Assert.Equal("Sorteo Promocionado", result.Giveaways[0].Title);
         Assert.False(result.Giveaways[1].IsPromoted);
 
-        // Verificar orden de novedades: Fecha más reciente primero
+        // Verificar orden de novedades: Entrada más reciente en Ludeka primero
         Assert.Equal("Novedad 2", result.RecentReleases[0].Title);
         Assert.Equal(new DateOnly(2026, 9, 15), result.RecentReleases[0].ReleaseDate);
 

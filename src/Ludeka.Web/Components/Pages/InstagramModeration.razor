@@ -539,7 +539,7 @@
                         <div class="p-3 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
                             <div class="min-w-0">
                                 <span class="font-bold text-[var(--text-primary)] block truncate">@r.Title</span>
-                                <span class="text-[0.68rem] text-[var(--text-muted)]">Editorial: @r.Publisher &bull; Fecha: @r.ReleaseDate.ToString("dd/MM/yyyy")</span>
+                                <span class="text-[0.68rem] text-[var(--text-muted)]">Editorial: @r.Publisher &bull; Fecha: @(r.ReleaseDate.HasValue ? r.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Próximamente")</span>
                             </div>
                             <button type="button"
                                     @onclick="() => CreateFromRelease(r.Id)"

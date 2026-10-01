@@ -60,7 +60,7 @@ public record WeeklyReleaseDto(
     Guid Id,
     string Title,
     string Publisher,
-    DateOnly ReleaseDate,
+    DateOnly? ReleaseDate,
     Guid? GameId,
     string? CoverImageUrl,
     decimal? EstimatedPvp,
@@ -68,12 +68,13 @@ public record WeeklyReleaseDto(
     string? Notes,
     string? InstagramPermalink = null,
     bool IsPublishedOnInstagram = false,
-    string? SourceUrl = null);
+    string? SourceUrl = null,
+    DateTimeOffset CreatedAt = default);
 
 public record CreateWeeklyReleaseRequest(
     string Title,
     string Publisher,
-    DateOnly ReleaseDate,
+    DateOnly? ReleaseDate = null,
     Guid? GameId = null,
     string? CoverImageUrl = null,
     decimal? EstimatedPvp = null,
@@ -85,7 +86,7 @@ public record UpdateWeeklyReleaseRequest(
     Guid Id,
     string Title,
     string Publisher,
-    DateOnly ReleaseDate,
+    DateOnly? ReleaseDate = null,
     Guid? GameId = null,
     string? CoverImageUrl = null,
     decimal? EstimatedPvp = null,

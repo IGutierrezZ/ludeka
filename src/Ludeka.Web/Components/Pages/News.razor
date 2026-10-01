@@ -128,7 +128,7 @@
                             @* Badge flotante de fecha de lanzamiento *@
                             <div class="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-md text-[0.65rem] font-bold shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)] flex items-center gap-1">
                                 <Icon Name="calendar-days" Size="11" />
-                                <span>@release.ReleaseDate.ToString("dd/MM")</span>
+                                <span>@(release.ReleaseDate.HasValue ? release.ReleaseDate.Value.ToString("dd/MM") : "Próximamente")</span>
                             </div>
                         </a>
 
@@ -228,7 +228,7 @@
                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                     </div>
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha de Lanzamiento *</label>
+                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha de Lanzamiento (Opcional)</label>
                         <input type="date"
                                @bind="_formReleaseDate"
                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
@@ -315,7 +315,7 @@
     private bool _isCreateModalOpen;
     private string _formTitle = string.Empty;
     private string _formPublisher = string.Empty;
-    private DateOnly _formReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private DateOnly? _formReleaseDate;
     private decimal? _formPvp;
     private bool _formIsReprint;
     private string? _formCoverImageUrl;
@@ -343,7 +343,7 @@
                                          r.Publisher.Contains(term, StringComparison.OrdinalIgnoreCase));
             }
 
-            return query.OrderByDescending(r => r.ReleaseDate).ToList();
+            return query.OrderByDescending(r => r.CreatedAt).ToList();
         }
     }
 
@@ -405,6 +405,7 @@
         _isCreateModalOpen = false;
         _formTitle = string.Empty;
         _formPublisher = string.Empty;
+        _formReleaseDate = null;
         _formPvp = null;
         _formIsReprint = false;
         _formCoverImageUrl = null;

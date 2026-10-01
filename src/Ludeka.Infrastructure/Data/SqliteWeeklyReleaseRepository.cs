@@ -29,13 +29,14 @@ public class SqliteWeeklyReleaseRepository : DbContextRepositoryBase, IWeeklyRel
 
         if (fromDate.HasValue)
         {
-            query = query.Where(r => r.ReleaseDate >= fromDate.Value);
+            query = query.Where(r => r.ReleaseDate.HasValue && r.ReleaseDate.Value >= fromDate.Value);
         }
 
-        return await query
-            .OrderBy(r => r.ReleaseDate)
+        var list = await query.ToListAsync(ct);
+        return list
+            .OrderByDescending(r => r.CreatedAt)
             .ThenBy(r => r.Title)
-            .ToListAsync(ct);
+            .ToList();
     }
 
     public async Task<WeeklyRelease?> GetByIdAsync(Guid id, CancellationToken ct = default)
