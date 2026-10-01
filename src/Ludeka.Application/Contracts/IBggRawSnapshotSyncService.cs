@@ -47,4 +47,9 @@ public interface IBggRawSnapshotSyncService
     /// Versión de sistema para auto-vinculación de expansiones sin guarda interactiva.
     /// </summary>
     Task<int> RunScheduledAutoLinkExistingExpansionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Asegura y sincroniza de forma puntual el snapshot crudo de un juego específico si no existe previamente.
+    /// </summary>
+    Task<bool> EnsureSnapshotAsync(int bggId, CancellationToken ct = default);
 }

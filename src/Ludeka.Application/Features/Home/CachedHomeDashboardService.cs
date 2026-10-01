@@ -32,7 +32,7 @@ public class CachedHomeDashboardService : IHomeDashboardService
             entry.SlidingExpiration = DefaultSlidingExpiration;
             entry.AbsoluteExpirationRelativeToNow = DefaultAbsoluteExpiration;
             return await _inner.GetDashboardDataAsync(ct);
-        }) ?? new HomeDashboardDto([], [], [], []);
+        }) ?? new HomeDashboardDto([], [], [], [], []);
     }
 
     public void Invalidate()

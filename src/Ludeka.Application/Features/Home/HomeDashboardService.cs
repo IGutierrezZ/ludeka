@@ -16,17 +16,20 @@ public class HomeDashboardService : IHomeDashboardService
     private readonly IGiveawayService _giveawayService;
     private readonly IWeeklyReleaseService _weeklyReleaseService;
     private readonly IBoardGameEventRepository _eventRepository;
+    private readonly IDailyTrendingGameRepository? _trendingRepository;
 
     public HomeDashboardService(
         ICatalogService catalogService,
         IGiveawayService giveawayService,
         IWeeklyReleaseService weeklyReleaseService,
-        IBoardGameEventRepository eventRepository)
+        IBoardGameEventRepository eventRepository,
+        IDailyTrendingGameRepository? trendingRepository = null)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _giveawayService = giveawayService ?? throw new ArgumentNullException(nameof(giveawayService));
         _weeklyReleaseService = weeklyReleaseService ?? throw new ArgumentNullException(nameof(weeklyReleaseService));
         _eventRepository = eventRepository ?? throw new ArgumentNullException(nameof(eventRepository));
+        _trendingRepository = trendingRepository;
     }
 
     public async Task<HomeDashboardDto> GetDashboardDataAsync(CancellationToken ct = default)
@@ -34,6 +37,20 @@ public class HomeDashboardService : IHomeDashboardService
         // 1. Carril 1: Top 20 Juegos ordenados por ranking / valoración
         var catalogResult = await _catalogService.GetCatalogAsync(new GameFilterCriteria(), page: 1, pageSize: 20, ct: ct);
         var topGames = catalogResult.Games;
+
+        // 1b. Carril 1 (Tendencias): Top 20 en tendencia del día (BGG Hotness)
+        var trendingGames = new List<GameSummaryDto>();
+        if (_trendingRepository != null)
+        {
+            var latestTrending = await _trendingRepository.GetLatestTrendingAsync(20, ct);
+            foreach (var item in latestTrending)
+            {
+                if (item.Game != null)
+                {
+                    trendingGames.Add(GameSummaryDto.FromEntity(item.Game) with { TrendingRank = item.Rank });
+                }
+            }
+        }
 
         // 2. Carril 2: Sorteos Activos y Destacados (priorizando IsPromoted == true y fecha límite inminente)
         var allGiveaways = await _giveawayService.GetGiveawaysAsync(includeExpired: false, ct: ct);
@@ -55,7 +72,7 @@ public class HomeDashboardService : IHomeDashboardService
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var upcomingEvents = events.Select(e => MapEventToDto(e, today)).ToList();
 
-        return new HomeDashboardDto(topGames, giveaways, recentReleases, upcomingEvents);
+        return new HomeDashboardDto(topGames, giveaways, recentReleases, upcomingEvents, trendingGames);
     }
 
     private static BoardGameEventDto MapEventToDto(BoardGameEvent e, DateOnly today)

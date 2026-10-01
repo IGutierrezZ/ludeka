@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
     "ProductVersion" character varying(32) NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
@@ -1703,7 +1703,7 @@ START TRANSACTION;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925222136_AddUserMilestones') THEN
     CREATE TABLE "UserMilestones" (
         "Id" uuid NOT NULL,
         "UserId" character varying(128) NOT NULL,
@@ -1716,23 +1716,161 @@ END $EF$;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925222136_AddUserMilestones') THEN
     CREATE INDEX "IX_UserMilestones_UserId" ON "UserMilestones" ("UserId");
     END IF;
 END $EF$;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925222136_AddUserMilestones') THEN
     CREATE UNIQUE INDEX "IX_UserMilestones_UserId_Type" ON "UserMilestones" ("UserId", "Type");
     END IF;
 END $EF$;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925234500_AddUserMilestones') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925222136_AddUserMilestones') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20260925234500_AddUserMilestones', '10.0.12');
+    VALUES ('20260925222136_AddUserMilestones', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925231052_AddLeaderboardPreferences') THEN
+    ALTER TABLE "UserPreferences" ADD "LeaderboardAnonymous" boolean NOT NULL DEFAULT FALSE;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925231052_AddLeaderboardPreferences') THEN
+    ALTER TABLE "UserPreferences" ADD "LeaderboardOptIn" boolean NOT NULL DEFAULT FALSE;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925231052_AddLeaderboardPreferences') THEN
+    ALTER TABLE "UserPreferences" ADD "LeaderboardPseudonym" text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260925231052_AddLeaderboardPreferences') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260925231052_AddLeaderboardPreferences', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "Games" ADD "LocalizedTitles" jsonb;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "Games" ADD "RegionalPublishers" jsonb;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "Games" ADD "SpanishPublisher" character varying(200);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "InferredFootprint" integer NOT NULL DEFAULT 0;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "MaxPlayTimeMinutes" integer NOT NULL DEFAULT 0;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "MinPlayTimeMinutes" integer NOT NULL DEFAULT 0;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "RegionalPublishersJson" text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "ScalabilityJson" text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "SleevesJson" text;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    ALTER TABLE "BggCatalogStaging" ADD "SpanishPublisher" character varying(200);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    CREATE INDEX "IX_Games_SpanishPublisher" ON "Games" ("SpanishPublisher");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260927023336_AddBggQualityAndLocalizationFields') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260927023336_AddBggQualityAndLocalizationFields', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260930060047_AddWeeklyReleaseSourceUrl') THEN
+    ALTER TABLE "WeeklyReleases" ADD "SourceUrl" character varying(1000);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260930060047_AddWeeklyReleaseSourceUrl') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260930060047_AddWeeklyReleaseSourceUrl', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
@@ -1769,6 +1907,68 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
 
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE TABLE "DailyTrendingGames" (
+        "Id" uuid NOT NULL,
+        "DateUtc" date NOT NULL,
+        "Rank" integer NOT NULL,
+        "BggId" integer NOT NULL,
+        "Title" character varying(250) NOT NULL,
+        "YearPublished" integer,
+        "ThumbnailUrl" character varying(500),
+        "GameId" uuid,
+        "CreatedAtUtc" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_DailyTrendingGames" PRIMARY KEY ("Id"),
+        CONSTRAINT "FK_DailyTrendingGames_Games_GameId" FOREIGN KEY ("GameId") REFERENCES "Games" ("Id") ON DELETE SET NULL
+    );
+    END IF;
+END $EF$;
 
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE INDEX "IX_DailyTrendingGames_BggId" ON "DailyTrendingGames" ("BggId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE INDEX "IX_DailyTrendingGames_DateUtc" ON "DailyTrendingGames" ("DateUtc");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE UNIQUE INDEX "IX_DailyTrendingGames_DateUtc_BggId" ON "DailyTrendingGames" ("DateUtc", "BggId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE UNIQUE INDEX "IX_DailyTrendingGames_DateUtc_Rank" ON "DailyTrendingGames" ("DateUtc", "Rank");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    CREATE INDEX "IX_DailyTrendingGames_GameId" ON "DailyTrendingGames" ("GameId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001131304_AddDailyTrendingGames') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261001131304_AddDailyTrendingGames', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
 

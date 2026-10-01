@@ -7,6 +7,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Ludeka.Application.Features.Bgg;
@@ -27,6 +28,10 @@ public class BggDiscoveryService : IBggDiscoveryService
     private readonly IBggCatalogStagingRepository? _stagingRepo;
     private readonly ILogger<BggDiscoveryService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IDailyTrendingGameRepository? _trendingRepo;
+    private readonly IBggRawSnapshotSyncService? _snapshotSyncService;
+    private readonly IAiGameSummaryService? _aiSummaryService;
+    private readonly IUserCollectionRepository? _collectionRepo;
 
     public BggDiscoveryService(
         IBggClient bggClient,
@@ -34,7 +39,11 @@ public class BggDiscoveryService : IBggDiscoveryService
         IPendingBggImportRepository pendingRepo,
         ILogger<BggDiscoveryService> logger,
         IBggCatalogStagingRepository? stagingRepo = null,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IDailyTrendingGameRepository? trendingRepo = null,
+        IBggRawSnapshotSyncService? snapshotSyncService = null,
+        IAiGameSummaryService? aiSummaryService = null,
+        IUserCollectionRepository? collectionRepo = null)
     {
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
         _gameRepo = gameRepo ?? throw new ArgumentNullException(nameof(gameRepo));
@@ -42,6 +51,10 @@ public class BggDiscoveryService : IBggDiscoveryService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stagingRepo = stagingRepo;
         _permissionGuard = permissionGuard;
+        _trendingRepo = trendingRepo;
+        _snapshotSyncService = snapshotSyncService;
+        _aiSummaryService = aiSummaryService;
+        _collectionRepo = collectionRepo;
     }
 
     /// <summary>
@@ -207,6 +220,212 @@ public class BggDiscoveryService : IBggDiscoveryService
             AlreadyCatalogedCount: alreadyCatalogedCount,
             AlreadyInQueueCount: alreadyInQueueCount,
             EnqueuedTitles: enqueuedTitles
+        );
+    }
+
+    /// <inheritdoc />
+    public async Task<BggTrendingSyncResultDto> SyncDailyTrendingAsync(int maxItems = 50, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        return await RunDailyTrendingSyncAsync(maxItems, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<BggTrendingSyncResultDto> RunDailyTrendingSyncAsync(int maxItems = 50, CancellationToken ct = default)
+    {
+        if (maxItems <= 0) maxItems = 50;
+        if (maxItems > 50) maxItems = 50;
+
+        var todayUtc = DateOnly.FromDateTime(DateTime.UtcNow);
+        _logger.LogInformation("Iniciando sincronización de tendencias diarias BGG (Hotness) para {Date} (límite: {MaxItems}).", todayUtc, maxItems);
+
+        IReadOnlyList<BggTopGameDto> hotGames;
+        try
+        {
+            hotGames = await _bggClient.FetchTopGamesAsync(maxItems, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al consultar las tendencias (Hotness) de BGG: {Message}", ex.Message);
+            return new BggTrendingSyncResultDto(todayUtc, 0, 0, 0, 0, []);
+        }
+
+        int alreadyCatalogedCount = 0;
+        int newlyCatalogedCount = 0;
+        int failedCount = 0;
+        var newlyCatalogedTitles = new List<string>();
+        var trendingEntities = new List<DailyTrendingGame>();
+
+        for (int i = 0; i < hotGames.Count; i++)
+        {
+            int rank = i + 1;
+            if (rank > 50) break;
+
+            var candidate = hotGames[i];
+            if (candidate.BggId <= 0 || string.IsNullOrWhiteSpace(candidate.Title))
+                continue;
+
+            Guid? gameId = null;
+
+            try
+            {
+                var existingGame = await _gameRepo.GetByBggIdAsync(candidate.BggId, ct);
+                if (existingGame != null)
+                {
+                    gameId = existingGame.Id;
+                    alreadyCatalogedCount++;
+
+                    if (_snapshotSyncService != null)
+                    {
+                        try
+                        {
+                            await _snapshotSyncService.EnsureSnapshotAsync(candidate.BggId, ct);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "No se pudo asegurar snapshot para el juego existente #{BggId}: {Message}", candidate.BggId, ex.Message);
+                        }
+                    }
+
+                    if (existingGame.AiSummary == null && _aiSummaryService != null)
+                    {
+                        try
+                        {
+                            var summaryDto = await _aiSummaryService.GenerateSummaryAsync(existingGame, ct);
+                            existingGame.SetAiSummary(new AiGameSummary(
+                                summaryDto.GeneralVerdict,
+                                summaryDto.ScalabilitySummary,
+                                summaryDto.AgeSummary,
+                                summaryDto.FootprintSummary,
+                                summaryDto.Model,
+                                summaryDto.GeneratedAt ?? DateTime.UtcNow
+                            ));
+                            await _gameRepo.UpdateAsync(existingGame, ct);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Fallo al generar resumen IA para juego existente #{BggId}: {Message}", candidate.BggId, ex.Message);
+                        }
+                    }
+                }
+                else
+                {
+                    // Ingesta inmediata del título ausente
+                    if (_snapshotSyncService != null)
+                    {
+                        try
+                        {
+                            await _snapshotSyncService.EnsureSnapshotAsync(candidate.BggId, ct);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Fallo al asegurar snapshot para juego nuevo #{BggId}: {Message}", candidate.BggId, ex.Message);
+                        }
+                    }
+
+                    var fetchedGame = await _bggClient.FetchGameByBggIdAsync(candidate.BggId, ct);
+                    if (fetchedGame == null)
+                    {
+                        _logger.LogWarning("BGG no devolvió detalle para el juego en tendencia #{BggId} ('{Title}').", candidate.BggId, candidate.Title);
+                        failedCount++;
+                    }
+                    else
+                    {
+                        if (_aiSummaryService != null)
+                        {
+                            try
+                            {
+                                var summaryDto = await _aiSummaryService.GenerateSummaryAsync(fetchedGame, ct);
+                                fetchedGame.SetAiSummary(new AiGameSummary(
+                                    summaryDto.GeneralVerdict,
+                                    summaryDto.ScalabilitySummary,
+                                    summaryDto.AgeSummary,
+                                    summaryDto.FootprintSummary,
+                                    summaryDto.Model,
+                                    summaryDto.GeneratedAt ?? DateTime.UtcNow
+                                ));
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Fallo al generar resumen IA para #{BggId} durante ingesta de tendencias: {Message}", candidate.BggId, ex.Message);
+                            }
+                        }
+
+                        await _gameRepo.AddRangeAsync([fetchedGame], ct);
+                        gameId = fetchedGame.Id;
+                        newlyCatalogedCount++;
+                        newlyCatalogedTitles.Add(fetchedGame.SpanishTitle);
+
+                        if (_collectionRepo != null)
+                        {
+                            try
+                            {
+                                await _collectionRepo.PromotePendingItemsAsync(candidate.BggId, gameId.Value, ct);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Fallo al promover colecciones para #{BggId}: {Message}", candidate.BggId, ex.Message);
+                            }
+                        }
+
+                        try
+                        {
+                            var pending = await _pendingRepo.GetByBggIdAsync(candidate.BggId, ct);
+                            if (pending != null && pending.Status != CatalogQueueStatus.Completed)
+                            {
+                                pending.MarkAsCompleted();
+                                await _pendingRepo.UpdateAsync(pending, ct);
+                            }
+                        }
+                        catch
+                        {
+                            // Ignorar fallo secundario en cola
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al procesar juego #{BggId} ('{Title}') en sincronización de tendencias: {Message}",
+                    candidate.BggId, candidate.Title, ex.Message);
+                failedCount++;
+            }
+
+            var trendingItem = new DailyTrendingGame(
+                dateUtc: todayUtc,
+                rank: rank,
+                bggId: candidate.BggId,
+                title: candidate.Title,
+                yearPublished: candidate.YearPublished,
+                thumbnailUrl: candidate.ThumbnailUrl,
+                gameId: gameId
+            );
+            trendingEntities.Add(trendingItem);
+        }
+
+        if (_trendingRepo != null && trendingEntities.Count > 0)
+        {
+            try
+            {
+                await _trendingRepo.UpsertDailyTrendingBatchAsync(trendingEntities, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al persistir el lote de tendencias diarias para {Date}: {Message}", todayUtc, ex.Message);
+            }
+        }
+
+        _logger.LogInformation("Sincronización de tendencias BGG finalizada para {Date}. Total procesados: {Total}, Ya catalogados: {Cataloged}, Nuevos catalogados: {Newly}, Fallidos: {Failed}.",
+            todayUtc, trendingEntities.Count, alreadyCatalogedCount, newlyCatalogedCount, failedCount);
+
+        return new BggTrendingSyncResultDto(
+            DateUtc: todayUtc,
+            TotalTrendingProcessed: trendingEntities.Count,
+            AlreadyCatalogedCount: alreadyCatalogedCount,
+            NewlyCatalogedCount: newlyCatalogedCount,
+            FailedCount: failedCount,
+            NewlyCatalogedTitles: newlyCatalogedTitles
         );
     }
 }

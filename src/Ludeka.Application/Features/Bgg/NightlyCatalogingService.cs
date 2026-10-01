@@ -114,18 +114,19 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 _logger.LogWarning(ex, "Advertencia en Fase 1 (Detección en Novedades): {Message}", ex.Message);
             }
 
-            // --- FASE 1.5: Auto-descubrimiento de Novedades y Tendencias BGG ---
+            // --- FASE 1.5: Sincronización de Tendencias BGG e Ingesta Inmediata ---
             if (_discoveryService != null)
             {
                 try
                 {
-                    var discoveryResult = await _discoveryService.RunBggTrendsDiscoveryAsync(maxItems: 50, ct);
-                    bggDiscoveryCount = discoveryResult.EnqueuedCount;
-                    _logger.LogInformation("Fase 1.5 completada: {Count} tendencias/lanzamientos BGG descubiertos y encolados.", bggDiscoveryCount);
+                    var syncResult = await _discoveryService.RunDailyTrendingSyncAsync(maxItems: 50, ct);
+                    bggDiscoveryCount = syncResult.NewlyCatalogedCount;
+                    _logger.LogInformation("Fase 1.5 completada: {Count} títulos de tendencias catalogados de inmediato ({Total} procesados en instantánea).",
+                        bggDiscoveryCount, syncResult.TotalTrendingProcessed);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Advertencia en Fase 1.5 (Auto-descubrimiento BGG): {Message}", ex.Message);
+                    _logger.LogWarning(ex, "Advertencia en Fase 1.5 (Sincronización de Tendencias BGG): {Message}", ex.Message);
                 }
             }
 

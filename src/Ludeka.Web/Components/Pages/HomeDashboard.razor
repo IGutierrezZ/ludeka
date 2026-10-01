@@ -22,18 +22,51 @@
     }
     else
     {
-        @* 2. Carril 1: Top 20 Mejores Juegos *@
-        <section class="space-y-4" aria-label="Top 20 Mejores Juegos de Mesa">
-            <RailHeader IconName="trophy"
-                        Title="Top 20 Juegos de Mesa"
-                        Count="_dashboard.TopGames.Count"
-                        CountLabel="títulos"
-                        Href="/catalogo"
-                        LinkText="Ver catálogo completo"
-                        AriaLabel="Top 20 Mejores Juegos de Mesa" />
+        @* 2. Carril 1: Conmutador Editorial: En tendencia (defecto) vs Mejor valorados *@
+        <section class="space-y-4" aria-label="@(_showTrending ? "Juegos en tendencia hoy" : "Top 20 Juegos de Mesa")">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center flex-wrap gap-2.5 sm:gap-3">
+                    <span class="text-[var(--brand-primary)]">
+                        <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="22" />
+                    </span>
+                    <h2 class="rail-title text-xl sm:text-2xl">
+                        @(_showTrending ? "En tendencia hoy" : "Top 20 Juegos de Mesa")
+                    </h2>
+
+                    @* Conmutador editorial *@
+                    <div class="inline-flex items-center bg-[var(--bg-surface)] p-0.5 sm:p-1 rounded-xl border border-[var(--border-subtle)] shadow-sm text-xs font-bold" role="tablist" aria-label="Seleccionar vista de juegos destacados">
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(_showTrending ? "true" : "false")"
+                                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => _showTrending = true">
+                            <Icon Name="flame" Size="13" />
+                            <span>En tendencia</span>
+                        </button>
+                        <button type="button"
+                                role="tab"
+                                aria-selected="@(!_showTrending ? "true" : "false")"
+                                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(!_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => _showTrending = false">
+                            <Icon Name="trophy" Size="13" />
+                            <span>Mejor valorados</span>
+                        </button>
+                    </div>
+                </div>
+
+                <a href="@(_showTrending ? "/catalogo?orden=tendencia" : "/catalogo")" class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
+                    @(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo") <span aria-hidden="true">&rarr;</span>
+                </a>
+            </header>
+
+            @{
+                var displayedGames = (_showTrending && _dashboard.TrendingGames != null && _dashboard.TrendingGames.Count > 0)
+                    ? _dashboard.TrendingGames
+                    : _dashboard.TopGames;
+            }
 
             <div class="flex gap-2.5 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                @foreach (var game in _dashboard.TopGames)
+                @foreach (var game in displayedGames)
                 {
                     <HomeGameCard Game="game" />
                 }
@@ -116,6 +149,7 @@
 
 @code {
     private bool _isLoading = true;
+    private bool _showTrending = true;
     private HomeDashboardDto _dashboard = new([], [], [], []);
 
     protected override async Task OnInitializedAsync()

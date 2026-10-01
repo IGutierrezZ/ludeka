@@ -26,4 +26,16 @@ public interface IBggDiscoveryService
     /// Escanea y encola específicamente lanzamientos de un año objetivo (por defecto año actual y previo).
     /// </summary>
     Task<BggDiscoveryResultDto> DiscoverAndEnqueueNewReleasesAsync(int? targetYear = null, int maxItems = 50, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sincroniza la foto de tendencias (Hotness 1..50) del día en la base de datos e ingiere de forma
+    /// inmediata en el catálogo y tabla satélite de snapshots crudos todos aquellos títulos que falten.
+    /// Exige el permiso de moderación 'CanEditGames'.
+    /// </summary>
+    Task<BggTrendingSyncResultDto> SyncDailyTrendingAsync(int maxItems = 50, CancellationToken ct = default);
+
+    /// <summary>
+    /// Ejecución del sistema para la sincronización de tendencias del lote nocturno (sin guarda de sesión).
+    /// </summary>
+    Task<BggTrendingSyncResultDto> RunDailyTrendingSyncAsync(int maxItems = 50, CancellationToken ct = default);
 }

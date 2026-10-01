@@ -30,7 +30,14 @@
             <span>@Game.BggRating.ToString("0.0")</span>
         </div>
 
-        @if (Game.IsExpansion)
+        @if (Game.TrendingRank.HasValue)
+        {
+            <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-rose-950/80 backdrop-blur-sm border border-rose-500/40 text-[0.65rem] sm:text-[0.7rem] font-black text-rose-200 flex items-center gap-0.5 sm:gap-1 shadow-md">
+                <Icon Name="flame" Size="11" />
+                <span>#@Game.TrendingRank.Value</span>
+            </div>
+        }
+        else if (Game.IsExpansion)
         {
             <div class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 sm:px-2 py-0.5 rounded-md bg-purple-950/80 backdrop-blur-sm border border-purple-500/40 text-[0.6rem] sm:text-[0.65rem] font-bold text-purple-200 flex items-center gap-0.5 sm:gap-1">
                 <Icon Name="puzzle" Size="11" />

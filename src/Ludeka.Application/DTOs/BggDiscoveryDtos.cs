@@ -13,3 +13,30 @@ public record BggDiscoveryResultDto(
     int AlreadyInQueueCount,
     IReadOnlyList<string> EnqueuedTitles
 );
+
+/// <summary>
+/// DTO representativo de un juego en la foto diaria de tendencias de BGG.
+/// </summary>
+public record DailyTrendingGameDto(
+    System.Guid Id,
+    System.DateOnly DateUtc,
+    int Rank,
+    int BggId,
+    string Title,
+    int? YearPublished,
+    string? ThumbnailUrl,
+    System.Guid? GameId,
+    string? Slug
+);
+
+/// <summary>
+/// Resultado del proceso diario de sincronización de tendencias (Hotness) e ingesta inmediata de ausentes.
+/// </summary>
+public record BggTrendingSyncResultDto(
+    System.DateOnly DateUtc,
+    int TotalTrendingProcessed,
+    int AlreadyCatalogedCount,
+    int NewlyCatalogedCount,
+    int FailedCount,
+    IReadOnlyList<string> NewlyCatalogedTitles
+);

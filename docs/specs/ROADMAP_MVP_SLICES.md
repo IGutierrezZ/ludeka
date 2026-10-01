@@ -895,6 +895,20 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 93: Listado Diario de Juegos en Tendencia (BGG Hotness), Ingesta Inmediata Satélite y Conmutador de Portada y Catálogo
+- **Identificador SDD:** `change-93-juegos-en-tendencia`
+- **Objetivo Principal:**
+  1. **Persistencia Histórica Diaria:** Entidad `DailyTrendingGame` con fecha UTC (`DateOnly`), ranking (1..50), metadatos de origen y vinculación atómica opcional con `Game` (`GameId`, `OnDelete(SetNull)`), con soporte dual en SQLite y PostgreSQL (`DailyTrendingGames`).
+  2. **Ingesta Inmediata y Orquestación Nocturna:** Integración en `BggDiscoveryService` y Fase 1.5 de `NightlyCatalogingService` (`RunDailyTrendingSyncAsync`) para persistir la fotografía del día y, ante títulos ausentes en catálogo, disparar inmediatamente la ingesta satélite en `BggRawSnapshots` (`IBggRawSnapshotSyncService.EnsureSnapshotAsync`), la descarga completa de BGG, la síntesis con IA Gemini y el alta en `Games`.
+  3. **Conmutador Editorial en Portada:** Conmutador accesible de pestañas en Carril 1 de `HomeDashboard.razor` («En tendencia» por defecto vs «Mejor valorados») con fallback defensivo ante bases vacías.
+  4. **Distintivo Visual de Ranking:** Insignia compacta de alto contraste con icono de llama y número de posición en `HomeGameCard.razor` (`TrendingRank`).
+  5. **Ordenación por Tendencia en Catálogo:** Nuevo criterio `GameSortOrder.Trending = 8` implementado en `SqliteGameRepository.SearchAsync` (vía SQL y vía índice en memoria) y conmutador visual con parámetro de consulta `?orden=tendencia` en `/catalogo` (`Home.razor`).
+- **Estado:** ✅ **Completado y Archivado** (2.215 pruebas unitarias pasando al 100% [2.225 totales con integración]).
+- **Documento:** [`archive/inc-93-juegos-en-tendencia.md`](file:///c:/repos/Ludeka/docs/increments/archive/inc-93-juegos-en-tendencia.md).
+- **Módulos del Sistema:** [`48-tendencias-diarias-bgg-portada-catalogo.md`](file:///c:/repos/Ludeka/docs/specs/sistema/48-tendencias-diarias-bgg-portada-catalogo.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

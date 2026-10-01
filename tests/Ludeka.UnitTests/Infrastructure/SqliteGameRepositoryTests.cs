@@ -448,6 +448,32 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.DoesNotContain(p1, item1 => p2.Any(item2 => item2.Id == item1.Id));
     }
 
+    [Fact]
+    public async Task SearchAsync_SortByTrending_OrdersByDailyTrendingRankFirst()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+        var games = await _context.Games.Take(3).ToListAsync();
+        Assert.True(games.Count >= 3);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Marcamos el tercer juego con rank 1 y el primer juego con rank 2
+        var trend1 = new DailyTrendingGame(today, 1, games[2].BggId, games[2].SpanishTitle, gameId: games[2].Id);
+        var trend2 = new DailyTrendingGame(today, 2, games[0].BggId, games[0].SpanishTitle, gameId: games[0].Id);
+
+        await _context.DailyTrendingGames.AddRangeAsync(trend1, trend2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var criteria = new GameFilterCriteria(SortBy: GameSortOrder.Trending);
+        var (results, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 10);
+
+        // Assert
+        Assert.True(total >= 3);
+        Assert.Equal(games[2].Id, results[0].Id);
+        Assert.Equal(games[0].Id, results[1].Id);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

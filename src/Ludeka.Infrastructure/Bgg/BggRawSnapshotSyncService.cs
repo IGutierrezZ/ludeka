@@ -400,4 +400,33 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         }
         return false;
     }
+
+    /// <inheritdoc />
+    public async Task<bool> EnsureSnapshotAsync(int bggId, CancellationToken ct = default)
+    {
+        if (bggId <= 0) return false;
+
+        var existing = await _snapshotRepo.GetByBggIdAsync(bggId, ct);
+        if (existing != null) return true;
+
+        try
+        {
+            var xml = await _bggClient.FetchRawThingXmlAsync(bggId, ct);
+            if (string.IsNullOrWhiteSpace(xml)) return false;
+
+            var doc = XDocument.Parse(xml);
+            var item = doc.Root?.Element("item");
+            if (item == null) return false;
+
+            string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+            var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+            await _snapshotRepo.UpsertAsync(snapshot, ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al asegurar snapshot para BggId {BggId}: {Message}", bggId, ex.Message);
+            return false;
+        }
+    }
 }

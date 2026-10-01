@@ -151,6 +151,9 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IBggRawSnapshotRepository, SqliteBggRawSnapshotRepository>();
         services.AddScoped<IBggRawSnapshotSyncService, BggRawSnapshotSyncService>();
 
+        // Incremento 92: Persistencia diaria de tendencias (BGG Hotness)
+        services.AddScoped<IDailyTrendingGameRepository, SqliteDailyTrendingGameRepository>();
+
         // Incremento 24: Detección Automática de Juegos en Novedades y Cola Nocturna Inteligente BGG/Gemini
         services.Configure<NightlyCatalogingOptions>(configuration.GetSection("NightlyCataloging"));
         services.AddScoped<INewsGameExtractor, NewsGameExtractor>();
