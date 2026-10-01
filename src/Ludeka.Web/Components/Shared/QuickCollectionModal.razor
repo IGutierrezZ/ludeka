@@ -1,0 +1,199 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@inject IUserLibraryService LibraryService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+
+@if (IsOpen && Game != null)
+{
+    <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="quick-collection-title"
+         @onclick="Close">
+        <div class="w-full max-w-md bg-[var(--bg-card)] rounded-t-3xl sm:rounded-2xl border border-[var(--border-subtle)] shadow-2xl p-4 sm:p-6 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto"
+             @onclick:stopPropagation="true">
+            @* Tirador táctil móvil *@
+            <div class="w-10 h-1 bg-[var(--border-subtle)] rounded-full mx-auto sm:hidden -mt-1 mb-2"></div>
+
+            @* Cabecera con juego seleccionado *@
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] shrink-0">
+                        @{
+                            var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                            var effectiveImg = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
+                                ? Game.ThumbnailUrl
+                                : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : placeholderUrl);
+                        }
+                        <img src="@effectiveImg"
+                             alt="Carátula de @Game.SpanishTitle"
+                             class="w-full h-full object-cover"
+                             onerror="this.onerror=null; this.src='@placeholderUrl';" />
+                    </div>
+                    <div class="min-w-0">
+                        <h3 id="quick-collection-title" class="font-black text-sm sm:text-base text-[var(--text-primary)] truncate">
+                            @Game.SpanishTitle
+                        </h3>
+                        <p class="text-[0.7rem] text-[var(--text-secondary)] truncate">
+                            @Game.Designer &bull; <span class="font-semibold text-[var(--brand-primary)]">@Game.YearPublished</span>
+                        </p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        @onclick="Close"
+                        class="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors"
+                        aria-label="Cerrar selector">
+                    <Icon Name="x" Size="18" />
+                </button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_feedbackMessage))
+            {
+                <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-semibold text-center animate-fade-in flex items-center justify-center gap-1.5">
+                    <Icon Name="check" Size="13" />
+                    <span>@_feedbackMessage</span>
+                </div>
+            }
+
+            @* 3 Acciones directas de colección *@
+            <div class="space-y-1.5">
+                <span class="text-[0.68rem] font-bold uppercase tracking-wider text-[var(--text-muted)] block">
+                    Estado en tu colección
+                </span>
+                <div class="grid grid-cols-3 gap-2" role="group" aria-label="Estados de colección">
+                    @* Tengo / En mi ludoteca *@
+                    <button type="button"
+                            @onclick="() => ToggleStatus(CollectionStatus.InCollection)"
+                            class="px-2 py-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1.5 @(_collectionItem?.Status == CollectionStatus.InCollection ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+                        <Icon Name="library" Size="18" />
+                        <span class="text-[0.72rem]">Tengo</span>
+                    </button>
+
+                    @* Jugado *@
+                    <button type="button"
+                            @onclick="TogglePlayed"
+                            class="px-2 py-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1.5 @(_collectionItem?.IsPlayed == true ? "bg-emerald-600 text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+                        <Icon Name="dices" Size="18" />
+                        <span class="text-[0.72rem]">Jugado</span>
+                    </button>
+
+                    @* Quiero comprar / Deseado *@
+                    <button type="button"
+                            @onclick="() => ToggleStatus(CollectionStatus.Wishlist)"
+                            class="px-2 py-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1.5 @(_collectionItem?.Status == CollectionStatus.Wishlist ? "bg-amber-600 text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
+                        <Icon Name="bookmark" Size="18" />
+                        <span class="text-[0.72rem]">Deseado</span>
+                    </button>
+                </div>
+            </div>
+
+            @if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+            {
+                <p class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-secondary)] text-center">
+                    <span>Para guardar tu colección, </span>
+                    <a href="/login?returnUrl=@Uri.EscapeDataString(Navigation.Uri)" class="font-bold text-[var(--brand-primary)] underline">inicia sesión</a>.
+                </p>
+            }
+
+            @* Botón de navegación a la ficha completa *@
+            <a href="/juegos/@Game.Slug"
+               class="w-full py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--border-subtle)] text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                <span>Ver ficha completa</span>
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public GameSummaryDto? Game { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<GameSummaryDto> OnGameUpdated { get; set; }
+
+    private UserCollectionItemDto? _collectionItem;
+    private string? _feedbackMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && Game != null)
+        {
+            _feedbackMessage = null;
+            if (!string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+            {
+                try
+                {
+                    _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
+                }
+                catch
+                {
+                    _collectionItem = null;
+                }
+            }
+            else
+            {
+                _collectionItem = null;
+            }
+        }
+    }
+
+    private async Task ToggleStatus(CollectionStatus targetStatus)
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+            return;
+        }
+
+        if (Game == null) return;
+
+        try
+        {
+            var newStatus = _collectionItem?.Status == targetStatus ? (CollectionStatus?)null : targetStatus;
+            _collectionItem = await LibraryService.SetCollectionStateAsync(Game.Id, newStatus);
+            _feedbackMessage = newStatus switch
+            {
+                CollectionStatus.InCollection => "Añadido a tu ludoteca («Tengo»)",
+                CollectionStatus.Wishlist => "Añadido a tus deseados",
+                _ => "Eliminado de tu colección"
+            };
+            await OnGameUpdated.InvokeAsync(Game);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+        }
+    }
+
+    private async Task TogglePlayed()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+            return;
+        }
+
+        if (Game == null) return;
+
+        try
+        {
+            _collectionItem = await LibraryService.TogglePlayedStateAsync(Game.Id);
+            _feedbackMessage = _collectionItem?.IsPlayed == true
+                ? "Marcado como jugado"
+                : "Desmarcado de jugado";
+            await OnGameUpdated.InvokeAsync(Game);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+}
