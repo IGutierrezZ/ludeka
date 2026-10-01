@@ -39,6 +39,15 @@ Este incremento formaliza la arquitectura de persistencia desacoplada para snaps
 * **Problema:** En el endpoint `/login/external` de [`Program.cs`](file:///f:/repos/Ludeka/src/Ludeka.Web/Program.cs#L337), `AuthenticationProperties.RedirectUri` está fijado a `"/"`, descartando cualquier `returnUrl` que el usuario haya traído al loguearse.
 * **Solución:** Leer `form["returnUrl"]`, sanitizarlo mediante `LoginRedirect.IsLocalUrl(returnUrl) ? returnUrl! : "/"` y asignarlo a `AuthenticationProperties.RedirectUri`.
 
+#### REQ-A6: Reordenación de Pestañas Secundarias y Jerarquía Vertical en Ficha
+* **Problema:** En [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor), las pestañas secundarias sitúan la «Guía de Fundas» como primera pestaña cuando el «Hub Multimedia» aporta mayor valor inmediato al visitante. Además, el bloque editorial de síntesis IA precede al semáforo de escalabilidad, relegando la información más objetiva y consultada.
+* **Solución:**
+  * **Pestañas secundarias:** El Hub Multimedia se sitúa como primera pestaña por defecto (`_activeSecondaryTab = "media"`), seguido de Guía de Fundas y Consultorio de Reglas.
+  * **Jerarquía vertical:** Tras el carrusel fotográfico, el orden visual pasa a ser:
+    1. Semáforo Dinámico de Escalabilidad (jugadores y votos).
+    2. Expansiones (si aplica) y Pestañas Secundarias (Hub Multimedia, Fundas, Reglas).
+    3. Síntesis generada por IA / Veredicto fundador al final de la columna principal.
+
 ---
 
 ### Slice B: Refinamiento del Catálogo y Tarjetas Lúdicas

@@ -69,6 +69,16 @@
   ```
   Esto garantiza que tras la autenticación con Google, Discord o Facebook, el framework redirija al usuario a la página local exacta desde la que solicitó el acceso.
 
+### Decisión D5: Jerarquía de Atención Editorial y Priorización Multimedia en Ficha
+* **Contexto:** El usuario demanda priorizar los datos de comensales y el contenido audiovisual antes de las valoraciones de texto de la IA.
+* **Diseño:**
+  1. En `GameDetail.razor`, la variable de estado inicial de las pestañas secundarias se establece en:
+     ```csharp
+     private string _activeSecondaryTab = "media";
+     ```
+  2. El orden de los botones de pestañas se reubica para mostrar: (1) Hub Multimedia, (2) Guía de Fundas, (3) Consultorio de Reglas.
+  3. En la maquetación de la columna de 8 anchos, el bloque del `ScalabilityTrafficLight` se posiciona inmediatamente tras el carrusel fotográfico, seguido de las pestañas secundarias (con los vídeos por delante) y desplazando la tarjeta `AiSummaryCard` / `FoundingVerdictCard` al fondo de la columna como cierre reflexivo.
+
 ---
 
 ## 2. Diagrama de Flujo: Poblado de Snapshots BGG con *Rate Limiting*

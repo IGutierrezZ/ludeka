@@ -14,6 +14,7 @@
 - [ ] 1.3 Retirar el badge técnico `@Summary.Model` en [`AiSummaryCard.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/AiSummaryCard.razor), manteniendo únicamente la insignia editorial y fecha.
 - [ ] 1.4 Extender [`GameEditorModal.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameEditorModal.razor) para gestionar y subir a R2 la portada frontal, trasera de caja y despliegue en mesa para alimentar el carrusel de INC-85.
 - [ ] 1.5 Corregir el endpoint `/login/external` en [`Program.cs`](file:///f:/repos/Ludeka/src/Ludeka.Web/Program.cs) para respetar el parámetro `returnUrl` sanitizado con `LoginRedirect.IsLocalUrl(...)`.
+- [ ] 1.6 Reordenar las pestañas secundarias en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) para situar el Hub Multimedia en primer lugar (y activo por defecto), y reestructurar la jerarquía visual de la columna principal colocando el semáforo de escalabilidad tras el carrusel, seguido del multimedia/fundas, y desplazando la síntesis editorial al fondo.
 
 ### Fase 2: Slice B — Refinamiento del Catálogo y Tarjetas Lúdicas
 - [ ] 2.1 Definir el enum `GameSortOrder` en `Ludeka.Core.Enums` y extender `GameFilterCriteria` con la propiedad `SortBy`.
