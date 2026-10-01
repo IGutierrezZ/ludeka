@@ -161,7 +161,32 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         if (!hasInMemoryFilters)
         {
             int total = await query.CountAsync(ct);
-            query = ApplyQuerySorting(query, criteria.SortBy);
+            if (criteria.SortBy == GameSortOrder.Trending)
+            {
+                var latestDate = await scope.Context.DailyTrendingGames.Select(t => (DateOnly?)t.DateUtc).MaxAsync(ct);
+                if (latestDate.HasValue)
+                {
+                    query = from g in query
+                            join dt in scope.Context.DailyTrendingGames.Where(t => t.DateUtc == latestDate.Value)
+                            on g.Id equals dt.GameId into dtg
+                            from t in dtg.DefaultIfEmpty()
+                            orderby t != null ? 0 : 1,
+                                    t != null ? t.Rank : int.MaxValue,
+                                    g.BggRank.HasValue ? 0 : 1,
+                                    g.BggRank ?? int.MaxValue,
+                                    g.BggRating descending
+                            select g;
+                }
+                else
+                {
+                    query = ApplyQuerySorting(query, criteria.SortBy);
+                }
+            }
+            else
+            {
+                query = ApplyQuerySorting(query, criteria.SortBy);
+            }
+
             var pagedItems = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -222,8 +247,21 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         int totalCount = indexList.Count;
 
-        // Ordenar según el criterio solicitado (ranking BGG por defecto, rating, dureza, duración, año, título)
-        var pagedIds = ApplyIndexSorting(indexList, criteria.SortBy)
+        // Cargar mapa de tendencias si el orden solicitado es Trending
+        Dictionary<Guid, int>? trendingRanks = null;
+        if (criteria.SortBy == GameSortOrder.Trending)
+        {
+            var latestDate = await scope.Context.DailyTrendingGames.Select(t => (DateOnly?)t.DateUtc).MaxAsync(ct);
+            if (latestDate.HasValue)
+            {
+                trendingRanks = await scope.Context.DailyTrendingGames
+                    .Where(t => t.DateUtc == latestDate.Value && t.GameId.HasValue)
+                    .ToDictionaryAsync(t => t.GameId!.Value, t => t.Rank, ct);
+            }
+        }
+
+        // Ordenar según el criterio solicitado (ranking BGG por defecto, rating, dureza, duración, año, título, tendencias)
+        var pagedIds = ApplyIndexSorting(indexList, criteria.SortBy, trendingRanks)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(g => g.Id)
@@ -759,10 +797,19 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         };
     }
 
-    public static IEnumerable<GameFilterIndexItem> ApplyIndexSorting(IEnumerable<GameFilterIndexItem> items, GameSortOrder sortBy)
+    public static IEnumerable<GameFilterIndexItem> ApplyIndexSorting(
+        IEnumerable<GameFilterIndexItem> items,
+        GameSortOrder sortBy,
+        IReadOnlyDictionary<Guid, int>? trendingRanks = null)
     {
         return sortBy switch
         {
+            GameSortOrder.Trending => items
+                .OrderBy(g => (trendingRanks != null && trendingRanks.ContainsKey(g.Id)) ? 0 : 1)
+                .ThenBy(g => (trendingRanks != null && trendingRanks.TryGetValue(g.Id, out var r)) ? r : int.MaxValue)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating),
             GameSortOrder.RatingDesc => items
                 .OrderByDescending(g => g.BggRating)
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)

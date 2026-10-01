@@ -24,4 +24,5 @@ public record HomeDashboardDto(
     IReadOnlyList<GameSummaryDto> TopGames,
     IReadOnlyList<GiveawayDto> Giveaways,
     IReadOnlyList<WeeklyReleaseDto> RecentReleases,
-    IReadOnlyList<BoardGameEventDto> UpcomingEvents);
+    IReadOnlyList<BoardGameEventDto> UpcomingEvents,
+    IReadOnlyList<GameSummaryDto>? TrendingGames = null);

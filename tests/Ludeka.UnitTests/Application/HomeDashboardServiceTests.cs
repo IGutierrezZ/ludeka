@@ -9,6 +9,7 @@ using Ludeka.Application.Features.Catalog;
 using Ludeka.Application.Features.Home;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
@@ -86,6 +87,24 @@ public class HomeDashboardServiceTests
             CallCount++;
             return Task.FromResult(DtoToReturn);
         }
+    }
+
+    private class FakeDailyTrendingGameRepo : IDailyTrendingGameRepository
+    {
+        public List<DailyTrendingGame> ItemsToReturn { get; set; } = [];
+
+        public Task<DateOnly?> GetLatestDateAsync(CancellationToken ct = default) =>
+            Task.FromResult(ItemsToReturn.Select(t => (DateOnly?)t.DateUtc).Max());
+
+        public Task<IReadOnlyList<DailyTrendingGame>> GetLatestTrendingAsync(int limit = 50, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<DailyTrendingGame>>(ItemsToReturn.Take(limit).ToList());
+
+        public Task<IReadOnlyList<DailyTrendingGame>> GetTrendingByDateAsync(DateOnly dateUtc, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<DailyTrendingGame>>(ItemsToReturn.Where(t => t.DateUtc == dateUtc).ToList());
+
+        public Task LinkGameAsync(int bggId, Guid gameId, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task UpsertDailyTrendingBatchAsync(IEnumerable<DailyTrendingGame> items, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     [Fact]
@@ -177,6 +196,60 @@ public class HomeDashboardServiceTests
         Assert.True(result.Giveaways[0].IsPromoted);
         Assert.Equal("Estándar Mañana", result.Giveaways[1].Title);
         Assert.False(result.Giveaways[1].IsPromoted);
+    }
+
+    [Fact]
+    public async Task GetDashboardDataAsync_WhenTrendingRepositoryProvided_PopulatesTrendingGamesWithRanks()
+    {
+        // Arrange
+        var game = new Game(
+            bggId: 777,
+            originalTitle: "Juego en Tendencia",
+            spanishTitle: "Juego en Tendencia",
+            designer: "Autor",
+            publisher: "Editorial",
+            yearPublished: 2026,
+            coverImageUrl: null,
+            thumbnailUrl: null,
+            description: "Desc",
+            bggRating: 8.2,
+            bggRank: 50,
+            ludistRating: 8.2,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: true,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.Low,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(30, 60, 20)
+        );
+
+        var trendingItem = new DailyTrendingGame(
+            dateUtc: DateOnly.FromDateTime(DateTime.UtcNow),
+            rank: 1,
+            bggId: 777,
+            title: "Juego en Tendencia",
+            gameId: game.Id
+        );
+        typeof(DailyTrendingGame).GetProperty("Game")!.SetValue(trendingItem, game);
+
+        var trendingFake = new FakeDailyTrendingGameRepo { ItemsToReturn = [trendingItem] };
+        var service = new HomeDashboardService(
+            new FakeCatalogService(),
+            new FakeGiveawayService(),
+            new FakeWeeklyReleaseService(),
+            new FakeBoardGameEventRepository(),
+            trendingFake
+        );
+
+        // Act
+        var result = await service.GetDashboardDataAsync();
+
+        // Assert
+        Assert.NotNull(result.TrendingGames);
+        var trendingGame = Assert.Single(result.TrendingGames);
+        Assert.Equal("Juego en Tendencia", trendingGame.SpanishTitle);
+        Assert.Equal(1, trendingGame.TrendingRank);
     }
 
     [Fact]

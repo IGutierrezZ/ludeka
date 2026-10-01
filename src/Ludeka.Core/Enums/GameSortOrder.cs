@@ -27,5 +27,8 @@ public enum GameSortOrder
     YearDesc = 6,
 
     /// <summary>Alfabético por título en español (A-Z).</summary>
-    TitleAsc = 7
+    TitleAsc = 7,
+
+    /// <summary>En tendencia hoy (BGG Hotness del día).</summary>
+    Trending = 8
 }

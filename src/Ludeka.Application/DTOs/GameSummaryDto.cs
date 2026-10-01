@@ -35,7 +35,8 @@ public record GameSummaryDto(
     string? BaseGameTitle = null,
     string? SpanishPublisher = null,
     IReadOnlyList<RegionalPublisherEntry>? RegionalPublishers = null,
-    IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null
+    IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null,
+    int? TrendingRank = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
