@@ -940,6 +940,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 96: Optimización Visual Móvil de Portada y Catálogo, Acciones Rápidas de Colección y Procesamiento Continuo de IA en Lotes
+- **Identificador SDD:** `inc-96-opt-movil-portada-catalogo`
+- **Objetivo Principal:**
+  1. **Portada Móvil Optimizada:** Ocultación de Hero en pantallas pequeñas (`hidden md:block`), carril de catálogo en una fila compacta con selector de vista («Tendencia» / «Top») y flecha (`→`), carriles secundarios (sorteos, novedades, eventos) a fila única y pie de página contrastado en carbón profundo (`#12161A`).
+  2. **Catálogo y Colección en Móvil:** Barra superior unificada en una sola fila (Buscador `flex-1` + Filtros + Leyenda), modo lista ultra-denso (~44 px) con acordeón expandible y 3 acciones directas de colección («Tengo», «Jugado», «Deseado») + «Ver ficha», y modo cuadrícula con botón flotante `+` para desplegar el modal *bottom sheet* de colección rápida.
+  3. **Fix de Ordenación en Caché:** Inclusión obligatoria de `SortBy` en el cálculo de hash de `CachedCatalogService`.
+  4. **Procesamiento Continuo de IA en Lotes en Segundo Plano para Staging:** Nuevo método y botón administrativo en `/admin/cola-catalogo` para procesar de forma ininterrumpida los títulos en staging pendientes exclusivamente de síntesis con Gemini Flash y promoción automática al catálogo.
+- **Estado:** ⏳ **En verificación / Cierre de PR** (2.253 pruebas unitarias pasando al 100% [2.263 totales con integración]).
+- **Documento:** [`inc-96-opt-movil-portada-catalogo.md`](../increments/inc-96-opt-movil-portada-catalogo.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
