@@ -110,6 +110,7 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             r.Notes,
             r.InstagramPermalink,
             r.IsPublishedOnInstagram,
-            r.SourceUrl);
+            r.SourceUrl,
+            r.CreatedAt);
     }
 }

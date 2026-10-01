@@ -909,6 +909,24 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 94: Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento
+- **Identificador SDD:** `inc-94-retencion-caducados-novedades`
+- **Objetivo Principal:**
+  1. **Novedades con Fecha Opcional:** `WeeklyRelease.ReleaseDate` pasa a ser nullable (`DateOnly?`) para permitir novedades y anuncios editoriales sin fecha fija ("Próximamente"), con soporte de migración EF Core, DTOs y formularios de alta/edición adaptados.
+  2. **Ordenación por Fecha de Llegada:** Tanto en `/novedades` como en el carril de novedades del dashboard de portada, la ordenación se rige estrictamente por la fecha de entrada en la plataforma (`CreatedAt` descendente), independientemente de la fecha de lanzamiento.
+  3. **Eventos Multidía Vigentes:** Retirada del bloque de relleno artificial con eventos pasados en `SqliteBoardGameEventRepository`, asegurando que los eventos finalizan su visibilidad pública en cuanto expira su `EndDate`.
+  4. **Servicio y Job de Retención y Purga:** `IDataRetentionService` y `DataRetentionService` con políticas configurables (`DataRetentionOptions`):
+     - Sorteos vencidos con margen de gracia de 7 días (`DeadlineAt <= now - 7d`).
+     - Eventos concluidos con margen de gracia de 7 días (`EndDate <= today - 7d`).
+     - Novedades con $\ge 60$ días publicadas en Ludeka (`CreatedAt <= now - 60d`) cuya fecha haya pasado o no tengan fecha (`ReleaseDate == null || ReleaseDate < today`).
+  5. **Liberación de Almacenamiento:** Detección de claves relativas de imágenes gestionadas localmente o en Cloudflare R2 (`ManagedImageKeyExtractor`) y borrado seguro mediante `IImageStorageService.DeleteImageAsync` antes de purgar las entidades en base de datos.
+  6. **Ejecutor Desatendido e Idempotencia:** Runner `data-retention` en `Ludeka.Jobs` (`DataRetentionJobRunner`) con concesión de ventana diaria (`JobWindowKeyCalculator.DailyUtc`), y servicio hosted en background (`DataRetentionHostedService`).
+- **Estado:** ✅ **Completado y Archivado** (2.238 pruebas unitarias pasando al 100% [2.248 totales con integración]).
+- **Documento:** [`archive/inc-94-retencion-caducados-novedades.md`](../increments/archive/inc-94-retencion-caducados-novedades.md).
+- **Módulos del Sistema:** [`16-sorteos-novedades-y-eventos.md`](file:///c:/repos/Ludeka/docs/specs/sistema/16-sorteos-novedades-y-eventos.md) · [`49-retencion-caducados-novedades-imagenes.md`](file:///c:/repos/Ludeka/docs/specs/sistema/49-retencion-caducados-novedades-imagenes.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

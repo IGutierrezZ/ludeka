@@ -27,29 +27,13 @@ public class SqliteBoardGameEventRepository : DbContextRepositoryBase, IBoardGam
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         await using var scope = await CreateScopeAsync(ct);
-        // Primero eventos vigentes o futuros (EndDate >= hoy) ordenados por StartDate ascendente
-        var upcoming = await scope.Context.BoardGameEvents
+        // Solo eventos vigentes o futuros (EndDate >= hoy) ordenados por StartDate ascendente
+        return await scope.Context.BoardGameEvents
             .AsNoTracking()
             .Where(e => e.EndDate >= today)
             .OrderBy(e => e.StartDate)
             .Take(limit)
             .ToListAsync(ct);
-
-        if (upcoming.Count < limit)
-        {
-            // Si hay pocos eventos futuros, completar con los más recientes para no dejar el carril vacío
-            int remaining = limit - upcoming.Count;
-            var past = await scope.Context.BoardGameEvents
-                .AsNoTracking()
-                .Where(e => e.EndDate < today)
-                .OrderByDescending(e => e.EndDate)
-                .Take(remaining)
-                .ToListAsync(ct);
-
-            upcoming.AddRange(past);
-        }
-
-        return upcoming;
     }
 
     public async Task<IReadOnlyList<BoardGameEvent>> GetAllEventsAsync(CancellationToken ct = default)

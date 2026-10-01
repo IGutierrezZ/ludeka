@@ -18,6 +18,7 @@ public class SqliteCommunityRepositoriesTests : IAsyncLifetime
     private SqliteGiveawayRepository _giveawayRepo = null!;
     private SqliteWeeklyReleaseRepository _releaseRepo = null!;
     private SqliteRuleQARepository _ruleQaRepo = null!;
+    private SqliteBoardGameEventRepository _eventRepo = null!;
 
     public async Task InitializeAsync()
     {
@@ -34,6 +35,7 @@ public class SqliteCommunityRepositoriesTests : IAsyncLifetime
         _giveawayRepo = new SqliteGiveawayRepository(_context);
         _releaseRepo = new SqliteWeeklyReleaseRepository(_context);
         _ruleQaRepo = new SqliteRuleQARepository(_context);
+        _eventRepo = new SqliteBoardGameEventRepository(_context);
     }
 
     public async Task DisposeAsync()
@@ -76,11 +78,12 @@ public class SqliteCommunityRepositoriesTests : IAsyncLifetime
 
         var releases = await _releaseRepo.GetReleasesAsync(today);
 
-        // Assert
+        // Assert: orden de llegada (CreatedAt desc) -> Dune Uprising se dio de alta después, va primero
         Assert.Equal(2, releases.Count);
-        Assert.Equal("Harmonies", releases[0].Title);
-        Assert.False(releases[0].IsReprint);
-        Assert.True(releases[1].IsReprint);
+        Assert.Equal("Dune Uprising", releases[0].Title);
+        Assert.True(releases[0].IsReprint);
+        Assert.Equal("Harmonies", releases[1].Title);
+        Assert.False(releases[1].IsReprint);
     }
 
     [Fact]
@@ -142,5 +145,36 @@ public class SqliteCommunityRepositoriesTests : IAsyncLifetime
         Assert.NotNull(refreshed);
         Assert.Equal(answer.Id, refreshed.AcceptedAnswerId);
         Assert.True(refreshed.Answers.First().IsAccepted);
+    }
+
+    [Fact]
+    public async Task BoardGameEventRepository_GetUpcomingEventsAsync_ExcludesFinishedEvents()
+    {
+        // Arrange: evento de varios días ya finalizado, evento en curso y evento futuro
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var finishedMultiDay = new BoardGameEvent(
+            "Feria Pasada", "Terminó ayer", "/images/e1.jpg",
+            today.AddDays(-5), today.AddDays(-1), "Sevilla");
+
+        var ongoingMultiDay = new BoardGameEvent(
+            "Feria En Curso", "Termina mañana", "/images/e2.jpg",
+            today.AddDays(-2), today.AddDays(1), "Valencia");
+
+        var futureMultiDay = new BoardGameEvent(
+            "Feria Futura", "Empieza en una semana", "/images/e3.jpg",
+            today.AddDays(7), today.AddDays(10), "Zaragoza");
+
+        await _eventRepo.AddAsync(finishedMultiDay);
+        await _eventRepo.AddAsync(ongoingMultiDay);
+        await _eventRepo.AddAsync(futureMultiDay);
+
+        // Act
+        var upcoming = await _eventRepo.GetUpcomingEventsAsync(limit: 20);
+
+        // Assert: solo los que no han superado EndDate (en curso o futuros)
+        Assert.Equal(2, upcoming.Count);
+        Assert.DoesNotContain(upcoming, e => e.Title == "Feria Pasada");
+        Assert.Equal("Feria En Curso", upcoming[0].Title);
+        Assert.Equal("Feria Futura", upcoming[1].Title);
     }
 }

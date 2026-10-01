@@ -1,9 +1,9 @@
 # 16. Módulo de Sorteos, Novedades y Grandes Eventos Lúdicos
 
-> **Estado:** Implementado y Verificado (INC-36, INC-79, INC-87)  
-> **Incrementos SDD:** `change-22-draws-news-events-split` (INC-22) · [`rediseno-paginas-editoriales` (INC-36)](file:///c:/repos/Ludeka/openspec/changes/archive/2026-09-10-rediseno-paginas-editoriales/proposal.md) · `change-79-giveaways-compact-card-and-detail-page` (INC-79) · [`change-87-novedades-eventos-fichas-y-tarjetas` (INC-87)](file:///f:/repos/Ludeka/docs/increments/archive/inc-87-novedades-eventos-fichas-y-tarjetas.md)  
+> **Estado:** Implementado y Verificado (INC-36, INC-79, INC-87, INC-94)  
+> **Incrementos SDD:** `change-22-draws-news-events-split` (INC-22) · [`rediseno-paginas-editoriales` (INC-36)](file:///c:/repos/Ludeka/openspec/changes/archive/2026-09-10-rediseno-paginas-editoriales/proposal.md) · `change-79-giveaways-compact-card-and-detail-page` (INC-79) · [`change-87-novedades-eventos-fichas-y-tarjetas` (INC-87)](file:///f:/repos/Ludeka/docs/increments/archive/inc-87-novedades-eventos-fichas-y-tarjetas.md) · `inc-94-retencion-caducados-novedades` (INC-94)  
 > **Rutas:** `/sorteos` (alias `/radar`), `/sorteos/{id}` (alias `/sorteo/{id}`), `/novedades`, `/novedades/{id}` (alias `/novedad/{id}`), `/eventos`, `/eventos/{id}` (alias `/evento/{id}`), `/admin/eventos`  
-> **Tests:** suite total **2.139** en verde al 100% (incluye pruebas unitarias de `WeeklyReleaseService`, pruebas de contrato de páginas `ReleaseDetailPage` y `EventDetailPage`, y contratos de marcado anti-CLS).
+> **Tests:** suite total **2.238** en verde al 100% (incluye pruebas unitarias de `WeeklyReleaseService`, `DataRetentionService`, contratos de páginas `ReleaseDetailPage` y `EventDetailPage`, y contratos de marcado anti-CLS).
 
 ---
 
@@ -47,9 +47,10 @@ Ubicación: `src/Ludeka.Core/Entities/Giveaway.cs`
 
 ### 2.3 Entidad `WeeklyRelease`
 Ubicación: `src/Ludeka.Core/Entities/WeeklyRelease.cs`
-- **Atributos Clave:** `Title`, `Publisher`, `ReleaseDate`, `EstimatedPvp`, `IsReprint`, `Notes`, `CoverImageUrl`, `GameId`, `SourceUrl`.
+- **Atributos Clave:** `Title`, `Publisher`, `ReleaseDate` (`DateOnly?`, nullable en INC-94 para admitir anuncios "Próximamente"), `EstimatedPvp`, `IsReprint`, `Notes`, `CoverImageUrl`, `GameId`, `SourceUrl`, `CreatedAt`.
+- **Regla de Ordenación:** En `/novedades` y portada, las novedades se ordenan estrictamente por orden de entrada a Ludeka (`CreatedAt` descendente), con independencia de la fecha prevista.
 - **Métodos:**
-  - `Update(...)` (INC-87): Mutación determinista de todos los campos del lanzamiento, incluyendo `SourceUrl`, vinculación `GameId` y actualización automática de `UpdatedAt`.
+  - `Update(...)` (INC-87, INC-94): Mutación determinista de todos los campos del lanzamiento, incluyendo `ReleaseDate` opcional, `SourceUrl`, vinculación `GameId` y actualización automática de `UpdatedAt`.
 
 ---
 

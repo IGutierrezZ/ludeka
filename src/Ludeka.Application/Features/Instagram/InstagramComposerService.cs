@@ -135,7 +135,9 @@ public class InstagramComposerService : IInstagramComposerService
     {
         var title = EscapeXml(r.Title);
         var publisher = EscapeXml(r.Publisher);
-        var releaseDateStr = r.ReleaseDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+        var releaseDateStr = r.ReleaseDate.HasValue
+            ? r.ReleaseDate.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+            : "Próximamente";
         var pvpStr = r.EstimatedPvp.HasValue ? $"{r.EstimatedPvp.Value:0.00} €" : "PVP por confirmar";
         var coverUrl = !string.IsNullOrWhiteSpace(r.CoverImageUrl) ? EscapeXml(r.CoverImageUrl) : string.Empty;
 
@@ -278,11 +280,12 @@ public class InstagramComposerService : IInstagramComposerService
         var handle = FormatSocialHandle(r.Publisher);
         var pvpText = r.EstimatedPvp.HasValue ? $"\n💶 PVP estimado: ~{r.EstimatedPvp.Value:0.00} €" : string.Empty;
         var notesText = !string.IsNullOrWhiteSpace(r.Notes) ? $"\n📝 {r.Notes}" : string.Empty;
+        var releaseDateText = r.ReleaseDate.HasValue ? r.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Próximamente";
 
         return $@"{badge} {r.Title}
 
 🏢 Editorial: {handle}
-🗓️ Fecha de lanzamiento: {r.ReleaseDate:dd/MM/yyyy}{pvpText}{notesText}
+🗓️ Fecha de lanzamiento: {releaseDateText}{pvpText}{notesText}
 
 👉 Consulta su ficha técnica, semáforo de comensales y disponibilidad en tiendas colaboradoras en ludeka.app/novedades (enlace en bio).
 

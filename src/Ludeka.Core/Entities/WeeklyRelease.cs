@@ -7,7 +7,7 @@ public class WeeklyRelease
     public Guid Id { get; private set; } = Guid.NewGuid();
     public string Title { get; private set; } = string.Empty;
     public string Publisher { get; private set; } = string.Empty;
-    public DateOnly ReleaseDate { get; private set; }
+    public DateOnly? ReleaseDate { get; private set; }
     public Guid? GameId { get; private set; }
     public string? CoverImageUrl { get; private set; }
     public decimal? EstimatedPvp { get; private set; }
@@ -28,7 +28,7 @@ public class WeeklyRelease
     public WeeklyRelease(
         string title,
         string publisher,
-        DateOnly releaseDate,
+        DateOnly? releaseDate = null,
         Guid? gameId = null,
         string? coverImageUrl = null,
         decimal? estimatedPvp = null,
@@ -57,7 +57,7 @@ public class WeeklyRelease
     public void Update(
         string title,
         string publisher,
-        DateOnly releaseDate,
+        DateOnly? releaseDate = null,
         Guid? gameId = null,
         string? coverImageUrl = null,
         decimal? estimatedPvp = null,

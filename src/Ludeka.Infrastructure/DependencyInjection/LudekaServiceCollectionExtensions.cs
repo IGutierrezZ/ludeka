@@ -17,6 +17,7 @@ using Ludeka.Application.Features.Identity;
 using Ludeka.Application.Features.Instagram;
 using Ludeka.Application.Features.Jobs;
 using Ludeka.Application.Features.Library;
+using Ludeka.Application.Features.Maintenance;
 using Ludeka.Application.Features.Media;
 using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
@@ -287,6 +288,10 @@ public static class LudekaServiceCollectionExtensions
         // AddLudekaExternalIntegrations (R2b), que es donde tasks.md 3.1 afirma el orden completo de
         // esa IEnumerable<T>.
         services.AddScoped<ISocialCollectorService, SocialCollectorService>();
+
+        // Incremento 94: Retención y Purga de Entidades Caducadas y Liberación de Almacenamiento
+        services.Configure<DataRetentionOptions>(configuration.GetSection(DataRetentionOptions.SectionName));
+        services.AddScoped<IDataRetentionService, DataRetentionService>();
 
         return services;
     }
