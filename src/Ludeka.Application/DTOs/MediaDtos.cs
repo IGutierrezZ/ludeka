@@ -30,13 +30,15 @@ public record MediaItemDto(
     int UserLikesCount = 0
 )
 {
-    public string CategoryDisplayName => Category switch
+    public string CategoryDisplayName => GetCategoryDisplayName(Category);
+
+    public static string GetCategoryDisplayName(MediaCategory category) => category switch
     {
         MediaCategory.QuickOverview => "Cómo Funciona",
         MediaCategory.Tutorial => "Tutorial",
         MediaCategory.Gameplay => "Partida Completa",
         MediaCategory.ReviewOpinion => "Reseña u Opinión",
-        _ => Category.ToString()
+        _ => category.ToString()
     };
 
     public static MediaItemDto FromDomain(MediaItem item, string? gameTitle = null, int userLikesCount = 0)

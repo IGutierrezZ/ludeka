@@ -104,6 +104,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-89** | Saneamiento Integral de Consultas SQL Restantes, Eliminación de Egress O(N) y Blindaje de Caché de Fichas Públicas | ✅ Archivado | [inc-89-opt-consultas-egress-fase2.md](archive/inc-89-opt-consultas-egress-fase2.md) |
 | **INC-90** | Tabla Satélite de Snapshots Crudos BGG, Extracción de Expansiones y Refinamiento Integral de Catálogo y Ficha | ✅ Archivado | [inc-90-bgg-raw-snapshots.md](archive/inc-90-bgg-raw-snapshots.md) |
 | **INC-91** | Runner Desatendido de Volcado Masivo de Snapshots Crudos BGG y Sincronización Continua Web | ✅ Archivado | [inc-91-runner-volcado-snapshots-crudos.md](archive/inc-91-runner-volcado-snapshots-crudos.md) |
+| **INC-92** | Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos | ⏳ En progreso | [inc-92-hub-multimedia-gestion-flash.md](inc-92-hub-multimedia-gestion-flash.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -134,7 +135,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno en curso)* | - | - | - | - |
+| **INC-91** | `inc/hub-multimedia-gestion-flash` | `F:\repos\ludeka-wt\hub-multimedia-gestion-flash` | ⏳ En progreso | Rediseño y despeje del Hub Multimedia, controles de moderación directa (categoría/borrado) e ingesta flash por URL de YouTube. |
 
 *(INC-91 entregó su verificación con 2.185 pruebas unitarias en verde al 100%, y quedó archivado el 2026-10-01. Introduce el runner desatendido de consola y Cloud Run Job `bgg-raw-backfill` en `Ludeka.Jobs` [`BggRawBackfillJobRunner`] con coordinación de ventana temporal, procesamiento en lotes de 50 títulos con rate-limiting estricto [~1.200 ms] y auto-vinculación/descubrimiento final, métodos de sistema en `IBggRawSnapshotSyncService` sin guarda interactiva, y el botón de sincronización continua con control de arranque/pausa y telemetría de lotes en `/admin/cola-catalogacion`).*
 

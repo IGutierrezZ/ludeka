@@ -619,6 +619,115 @@ public class MediaServiceTests : IAsyncLifetime
         Assert.Equal(2, hub.TotalCount);
     }
 
+    [Fact]
+    public async Task FlashIngestAsync_WithValidYouTubeUrl_ExtractsMetadataAndCreatesApprovedItem()
+    {
+        var game = await SeedGameAsync("Ark Nova");
+        var fakeExtractor = new FakeSocialMetadataExtractor("Cómo jugar a Ark Nova", "Zacatrus!", "https://img.youtube.com/vi/abc12345678/hqdefault.jpg");
+        var currentUser = new TestCurrentUserService();
+        var auditService = new TestAuditService();
+
+        var service = new MediaService(_mediaRepository, _gameRepository, _brokenLinkChecker, currentUser, auditService, metadataExtractor: fakeExtractor);
+
+        var result = await service.FlashIngestAsync(
+            game.Id,
+            "https://www.youtube.com/watch?v=abc12345678",
+            MediaCategory.Tutorial
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal("Cómo jugar a Ark Nova", result.Title);
+        Assert.Equal("Zacatrus!", result.AuthorChannel);
+        Assert.Equal(MediaCategory.Tutorial, result.Category);
+        Assert.Equal(MediaType.Tutorial, result.Type);
+        Assert.Equal(ModerationStatus.Approved, result.Status);
+        Assert.Equal(game.Id, result.GameId);
+        Assert.Single(auditService.Commands);
+        Assert.Equal(AuditAction.Created, auditService.Commands[0].Action);
+
+        var hub = await service.GetGameMediaAsync(game.Id);
+        Assert.Single(hub.Tutorials);
+        Assert.Equal("Cómo jugar a Ark Nova", hub.Tutorials[0].Title);
+    }
+
+    [Fact]
+    public async Task FlashIngestAsync_ForPlaythroughWithoutBadge_ExtractsBadgeFromGame()
+    {
+        var game = await SeedGameAsync("Ark Nova");
+        var fakeExtractor = new FakeSocialMetadataExtractor("Partida a 2 comensales Ark Nova", "Meeple", "https://thumb.jpg");
+        var currentUser = new TestCurrentUserService();
+
+        var service = new MediaService(_mediaRepository, _gameRepository, _brokenLinkChecker, currentUser, metadataExtractor: fakeExtractor);
+
+        var result = await service.FlashIngestAsync(
+            game.Id,
+            "https://youtu.be/xyz98765432",
+            MediaCategory.Gameplay
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal(MediaType.Playthrough, result.Type);
+        Assert.Equal(MediaCategory.Gameplay, result.Category);
+        Assert.NotNull(result.PlayerCountBadge);
+        Assert.Equal("Partida a 2", result.PlayerCountBadge);
+    }
+
+    [Fact]
+    public async Task FlashIngestAsync_WithDuplicateUrl_ThrowsInvalidOperationException()
+    {
+        var game = await SeedGameAsync("Catan");
+        var currentUser = new TestCurrentUserService();
+        var service = new MediaService(_mediaRepository, _gameRepository, _brokenLinkChecker, currentUser);
+
+        await service.FlashIngestAsync(game.Id, "https://www.youtube.com/watch?v=dup12345678", MediaCategory.QuickOverview);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.FlashIngestAsync(game.Id, "https://www.youtube.com/watch?v=dup12345678", MediaCategory.Tutorial));
+    }
+
+    [Fact]
+    public async Task FlashIngestAsync_WithInvalidUrl_ThrowsArgumentException()
+    {
+        var game = await SeedGameAsync("Catan");
+        var currentUser = new TestCurrentUserService();
+        var service = new MediaService(_mediaRepository, _gameRepository, _brokenLinkChecker, currentUser);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.FlashIngestAsync(game.Id, "https://vimeo.com/123456", MediaCategory.Tutorial));
+    }
+
+    [Fact]
+    public async Task FlashIngestAsync_WithoutPermission_ThrowsUnauthorized()
+    {
+        var game = await SeedGameAsync("Catan");
+        var unprivilegedUser = new TestCurrentUserService
+        {
+            RolesList = ["Player"],
+            Permissions = ModeratorPermission.None
+        };
+        var service = new MediaService(_mediaRepository, _gameRepository, _brokenLinkChecker, unprivilegedUser);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.FlashIngestAsync(game.Id, "https://www.youtube.com/watch?v=perm1234567", MediaCategory.Tutorial));
+    }
+
+    private class FakeSocialMetadataExtractor(string title, string channel, string image) : ISocialMetadataExtractor
+    {
+        public Task<SocialMetadataResultDto?> ExtractFromUrlAsync(string url, System.Threading.CancellationToken ct = default)
+        {
+            return Task.FromResult<SocialMetadataResultDto?>(new SocialMetadataResultDto(
+                Url: url,
+                Platform: SocialPlatform.YouTube,
+                Title: title,
+                AuthorOrChannel: channel,
+                Description: title,
+                ImageUrl: image,
+                IsVideo: true,
+                VideoId: "test12345"
+            ));
+        }
+    }
+
     private class TestCurrentUserService : ICurrentUserService
     {
         public string UserId { get; set; } = "user_mod_1";

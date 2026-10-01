@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.Helpers;
 
 namespace Ludeka.Application.Features.Media;
 
@@ -15,6 +17,10 @@ public class MediaService : IMediaService
     private const string DenialMessage =
         "Se requiere el permiso de moderación 'CanApproveMedia' para moderar contenido multimedia.";
 
+    private static readonly Regex YouTubeIdRegex = new(
+        @"(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private readonly IMediaRepository _mediaRepository;
     private readonly IGameRepository _gameRepository;
     private readonly IBrokenLinkCheckerService _brokenLinkChecker;
@@ -22,6 +28,7 @@ public class MediaService : IMediaService
     private readonly IAuditService? _auditService;
     private readonly ISessionPermissionGuard? _permissionGuard;
     private readonly IUserLikeRepository? _userLikeRepository;
+    private readonly ISocialMetadataExtractor? _metadataExtractor;
 
     public MediaService(
         IMediaRepository mediaRepository,
@@ -30,7 +37,8 @@ public class MediaService : IMediaService
         ICurrentUserService? currentUserService = null,
         IAuditService? auditService = null,
         ISessionPermissionGuard? permissionGuard = null,
-        IUserLikeRepository? userLikeRepository = null)
+        IUserLikeRepository? userLikeRepository = null,
+        ISocialMetadataExtractor? metadataExtractor = null)
     {
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
@@ -39,6 +47,7 @@ public class MediaService : IMediaService
         _auditService = auditService;
         _permissionGuard = permissionGuard;
         _userLikeRepository = userLikeRepository;
+        _metadataExtractor = metadataExtractor;
     }
 
     public async Task<GameMediaHubDto> GetGameMediaAsync(Guid gameId, CancellationToken ct = default)
@@ -329,6 +338,121 @@ public class MediaService : IMediaService
         }
 
         return true;
+    }
+
+    public async Task<MediaItemDto> FlashIngestAsync(
+        Guid gameId,
+        string url,
+        MediaCategory category,
+        string? playerCountBadge = null,
+        CancellationToken ct = default)
+    {
+        if (_permissionGuard is not null)
+        {
+            await _permissionGuard.RequireAsync(ModeratorPermission.CanApproveMedia, DenialMessage, ct);
+        }
+        else
+        {
+            EnsurePermission();
+        }
+
+        var game = await _gameRepository.GetByIdAsync(gameId, ct);
+        if (game == null)
+        {
+            throw new InvalidOperationException($"El juego con ID '{gameId}' no existe en el catálogo.");
+        }
+
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new ArgumentException("La URL del vídeo no puede estar vacía.", nameof(url));
+        }
+
+        url = url.Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+        {
+            throw new ArgumentException("La URL provista no tiene un formato válido.", nameof(url));
+        }
+
+        if (await _mediaRepository.ExistsByUrlAsync(url, ct))
+        {
+            throw new InvalidOperationException("Este vídeo ya está incorporado en el catálogo multimedia.");
+        }
+
+        var ytMatch = YouTubeIdRegex.Match(url);
+        if (!ytMatch.Success)
+        {
+            throw new ArgumentException("La URL debe ser un enlace válido de YouTube.", nameof(url));
+        }
+        var videoId = ytMatch.Groups[1].Value;
+
+        var fallbackThumbnail = $"https://img.youtube.com/vi/{videoId}/hqdefault.jpg";
+        var title = $"{game.SpanishTitle} - {MediaItemDto.GetCategoryDisplayName(category)}";
+        var channel = "YouTube";
+        var thumbnail = fallbackThumbnail;
+        int? durationSeconds = null;
+
+        if (_metadataExtractor != null)
+        {
+            try
+            {
+                var meta = await _metadataExtractor.ExtractFromUrlAsync(url, ct);
+                if (meta != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(meta.Title)) title = meta.Title;
+                    if (!string.IsNullOrWhiteSpace(meta.AuthorOrChannel)) channel = meta.AuthorOrChannel;
+                    if (!string.IsNullOrWhiteSpace(meta.ImageUrl)) thumbnail = meta.ImageUrl;
+                }
+            }
+            catch
+            {
+                // Fallback silencioso si no hay conexión o falla oEmbed
+            }
+        }
+
+        var mediaType = category switch
+        {
+            MediaCategory.QuickOverview => MediaType.QuickOverview,
+            MediaCategory.Tutorial => MediaType.Tutorial,
+            MediaCategory.Gameplay => MediaType.Playthrough,
+            MediaCategory.ReviewOpinion => MediaType.Tutorial,
+            _ => MediaType.Tutorial
+        };
+
+        if (mediaType == MediaType.Playthrough && string.IsNullOrWhiteSpace(playerCountBadge))
+        {
+            playerCountBadge = PlayerCountExtractor.ExtractPlayerBadge(title, null, game);
+        }
+
+        var item = new MediaItem(
+            type: mediaType,
+            platform: MediaPlatform.YouTube,
+            title: title,
+            url: url,
+            thumbnailUrl: thumbnail,
+            authorChannel: channel,
+            gameId: gameId,
+            durationSeconds: durationSeconds,
+            playerCountBadge: mediaType == MediaType.Playthrough ? playerCountBadge : null,
+            status: ModerationStatus.Approved,
+            category: category
+        );
+
+        await _mediaRepository.AddAsync(item, ct);
+
+        if (_auditService != null && _currentUserService != null)
+        {
+            await _auditService.RecordChangeAsync(new RecordAuditCommand(
+                UserId: _currentUserService.UserId,
+                UserName: _currentUserService.UserName,
+                Action: AuditAction.Created,
+                EntityType: AuditEntityType.Media,
+                EntityId: item.Id.ToString(),
+                EntityName: item.Title,
+                Summary: $"Ingesta flash del vídeo '{item.Title}' ({category}) para el juego '{game.SpanishTitle}'"
+            ), ct);
+        }
+
+        return MediaItemDto.FromDomain(item, game.SpanishTitle);
     }
 
     private void EnsurePermission()

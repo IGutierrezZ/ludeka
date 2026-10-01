@@ -22,4 +22,5 @@ public interface IMediaService
     Task<MediaItemDto?> UpdateMediaCategoryAsync(Guid id, MediaCategory newCategory, CancellationToken ct = default);
     Task<MediaItemDto?> ReassignMediaGameAsync(Guid id, Guid newGameId, CancellationToken ct = default);
     Task<bool> DeleteMediaAsync(Guid id, CancellationToken ct = default);
+    Task<MediaItemDto> FlashIngestAsync(Guid gameId, string url, MediaCategory category, string? playerCountBadge = null, CancellationToken ct = default);
 }

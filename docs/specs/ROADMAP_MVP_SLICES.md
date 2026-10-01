@@ -871,6 +871,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 91: Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos
+- **Identificador SDD:** `change-91-hub-multimedia-gestion-flash`
+- **Objetivo Principal:**
+  1. **Despeje y Jerarquía Visual:** Retirada de cabeceras y subtítulos redundantes en `MultimediaHub.razor` («Hub Multimedia en Español», descripciones explicativas ya representadas por la pestaña activa), front-loading del selector de formatos con conteos por categoría e iconografía Lucide normalizada.
+  2. **Tarjetas Limpias:** Supresión de botones y barras inferiores redundantes («YouTube Tutorial», «Reproducir →», «Ver análisis →») que restaban espacio vertical y generaban ruido visual, permitiendo la apertura del reproductor modal directamente al pulsar sobre cualquier parte de la tarjeta o miniatura.
+  3. **Controles de Moderación Visibles y Directos:** Incorporación de barra de acciones administrativas de alto contraste (`IsModeratorUser`) en cada tarjeta para cambiar de categoría de inmediato (`OpenModerateModal`) o eliminar el vídeo de la ficha con confirmación directa (`PromptDeleteDirect`).
+  4. **Ingesta Flash de YouTube:** Implementación de `FlashIngestAsync` en `IMediaService` y `MediaService` para permitir a administradores y moderadores añadir cualquier vídeo a una ficha introduciendo únicamente la URL y la categoría deseada, con extracción automática de metadatos (título, autor/canal, duración, miniatura e inferencia de comensales para partidas), validación de formato, prevención de duplicados y auditoría (`AuditAction.Created`).
+- **Estado:** ⏳ **En progreso** (2.189 pruebas unitarias pasando al 100%).
+- **Documento:** [`inc-91-hub-multimedia-gestion-flash.md`](file:///c:/repos/Ludeka/docs/increments/inc-91-hub-multimedia-gestion-flash.md).
+- **Módulos del Sistema:** [`04-hub-multimedia.md`](file:///c:/repos/Ludeka/docs/specs/sistema/04-hub-multimedia.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
