@@ -107,6 +107,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-92** | Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos | ✅ Archivado | [inc-92-hub-multimedia-gestion-flash.md](archive/inc-92-hub-multimedia-gestion-flash.md) |
 | **INC-93** | Listado Diario de Juegos en Tendencia (BGG Hotness), Ingesta Inmediata Satélite y Conmutador de Portada y Catálogo | ✅ Archivado | [inc-93-juegos-en-tendencia.md](archive/inc-93-juegos-en-tendencia.md) |
 | **INC-94** | Retención y Purga de Entidades Caducadas (Sorteos, Eventos y Novedades Editoriales) y Liberación de Almacenamiento | ✅ Archivado | [inc-94-retencion-caducados-novedades.md](archive/inc-94-retencion-caducados-novedades.md) |
+| **INC-95** | Pantalla Dedicada de Tendencias BGG Top 50 con Movimiento Diario y Desacople de Catálogo | ⏳ En progreso | [inc-95-pantalla-tendencias.md](inc-95-pantalla-tendencias.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -137,7 +138,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno en curso)* | — | — | — | — |
+| **INC-95** | `inc/pantalla-tendencias` | `F:\repos\ludeka-wt\pantalla-tendencias` | ⏳ En progreso | Pantalla dedicada de tendencias BGG Top 50 con movimiento diario y desacople de catálogo |
 
 
 *(PR #167 entregó su verificación con 2.241 pruebas unitarias [2.251 totales con integración] en verde al 100%, y quedó fusionado y archivado el 2026-10-01. Implementa el cierre accesible y no bloqueante del menú desplegable superior móvil [`MainLayout.razor`] al interactuar fuera de él o sobre cualquier otra acción mediante [`mobile-nav.js`], soporte de tecla `Escape` con restitución de foco al botón `<summary>` [WCAG 2.2 AA], cierre automático al redimensionar a escritorio [`lg: 1024px`] o en eventos `popstate`, registro con `defer` en [`App.razor`] y custodia mediante 3 pruebas de contrato en `MobileNavigationContractTests.cs`).*

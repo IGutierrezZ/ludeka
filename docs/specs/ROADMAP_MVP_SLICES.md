@@ -927,6 +927,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 95: Pantalla Dedicada de Tendencias BGG Top 50 con Movimiento Diario y Desacople de Catálogo
+- **Identificador SDD:** `inc-95-pantalla-tendencias`
+- **Objetivo Principal:**
+  1. **Pantalla Especializada de Tendencias (`/tendencias`):** Vista dedicada que carga con exactitud los 50 puestos del ranking mundial diario de BGG Hotness (`DailyTrendingGames`) en formato lista editorial.
+  2. **Deltas y Movimiento respecto al Día Anterior:** Comparación automática con el snapshot previo disponible (sube 🔺, igual =, baja 🔻 o entra ✨ nuevo).
+  3. **Desacople del Catálogo General:** Retirada de la ordenación por tendencia en `/catalogo`, evitando que el listado global diluya los 50 títulos o abra el acordeón de filtros avanzados, y redirección defensiva de enlaces antiguos a `/tendencias`.
+  4. **Enlace en Portada:** Actualización del enlace del Carril 1 («Ver todas las tendencias») hacia `/tendencias`.
+- **Estado:** ⏳ **En progreso** (Worktree `inc/pantalla-tendencias`).
+- **Documento:** [`inc-95-pantalla-tendencias.md`](../increments/inc-95-pantalla-tendencias.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
