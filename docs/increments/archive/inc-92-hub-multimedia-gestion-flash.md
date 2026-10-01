@@ -1,10 +1,10 @@
-# Incremento 91: Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos
+# Incremento 92: Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos
 
 > **Slug:** `hub-multimedia-gestion-flash`  
 > **Rama:** `inc/hub-multimedia-gestion-flash`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Fecha:** 2026-10-01  
-> **Pruebas automáticas asociadas:** 2.189 unitarias pasando al 100%
+> **Pruebas automáticas asociadas:** 2.195 unitarias pasando al 100% (2.205 totales con integración)
 
 ---
 
@@ -33,7 +33,7 @@ En la ficha de detalle de juego (`/juegos/{slug}`), la pestaña secundaria «Hub
 ### 2.3. Barra de Moderación Directa para Administradores
 - Incorporación de una barra inferior contextual visible únicamente para usuarios con permisos (`IsModeratorUser`).
 - Botón **[🏷 Cambiar Categoría]**: abre el modal de moderación enfocado en el selector de categoría (`QuickOverview`, `Tutorial`, `Gameplay`, `ReviewOpinion`) y reasignación de juego.
-- Botón **[🗑 Eliminar]**: activa la confirmación de desvinculación/borrado directo sin pasos intermedios.
+- Botón **[🗑 Eliminar]**: activa la confirmación de desvinculación/borrado directo sin pasos intermedios (`PromptDeleteDirect`).
 
 ### 2.4. Ingesta Flash de YouTube (`FlashIngestAsync`)
 - **Firma del Contrato:** `Task<MediaItemDto> FlashIngestAsync(Guid gameId, string url, MediaCategory category, string? playerCountBadge = null, CancellationToken ct = default);` en `IMediaService`.
@@ -64,4 +64,4 @@ En la ficha de detalle de juego (`/juegos/{slug}`), la pestaña secundaria «Hub
   - Declaración y presencia de controles de Ingesta Flash y modal correspondiente.
   - Declaración de acciones de moderación directa (cambio de categoría y borrado).
   - Exposición del parámetro `GameId` en `MultimediaHub.razor`.
-- **Suite Global:** 2.189 pruebas unitarias pasando al 100%.
+- **Suite Global:** 2.195 pruebas unitarias pasando al 100% (2.205 totales con integración).

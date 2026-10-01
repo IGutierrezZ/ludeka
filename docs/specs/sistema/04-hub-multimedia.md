@@ -58,6 +58,7 @@ Ubicación: [`src/Ludeka.Core/Helpers/PlayerCountExtractor.cs`](file:///c:/repos
   - Padrón oficial de canales con [`IChannelFocusProvider`](file:///c:/repos/Ludeka/src/Ludeka.Application/Contracts/IChannelFocusProvider.cs) para priorizar editoriales, divulgadores y tiendas hispanohablantes.
 - **Servicio de Medios y Moderación:** [`MediaService`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Media/MediaService.cs):
   - `GetGameMediaAsync`: segrega activamente en colecciones de `QuickOverviews`, `Tutorials`, `Playthroughs`, `InstagramPosts`, `ShortReels` y `ReviewsAndOpinions`.
+  - `FlashIngestAsync`: ingesta flash directa de vídeos de YouTube mediante URL y categoría (INC-92). Valida formato de URL (`youtube.com`, `youtu.be`, `shorts`), previene duplicados (`ExistsByUrlAsync`), extrae metadatos mediante `ISocialMetadataExtractor` (título, duración, miniatura, autor/canal), infiere número de comensales para partidas (`PlayerCountExtractor`) y publica de forma inmediata con estado aprobado y auditoría (`AuditAction.Created`).
   - `UpdateMediaCategoryAsync`: cambio dinámico de categoría editorial.
   - `ReassignMediaGameAsync`: reasignación hacia otro juego del catálogo con validación de existencia.
   - `DeleteMediaAsync`: eliminación física de enlaces erróneos u obsoletos.
@@ -72,12 +73,12 @@ Ubicación: [`src/Ludeka.Core/Helpers/PlayerCountExtractor.cs`](file:///c:/repos
 ## 5. Componentes UI (`Ludeka.Web`)
 
 - [`MultimediaHub.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/MultimediaHub.razor):
-  - 4 pestañas interactivas: `⚡ Cómo Funciona`, `🎬 Tutoriales`, `🎲 Partidas`, `💬 Redes & Reseñas`.
-  - Pestaña social dividida en subsección destacada para **Reseñas en Vídeo** (16:9) y cuadrícula de redes sociales.
-  - Botón contextual `[ ⚙️ Moderar ]` visible en cada tarjeta exclusivamente para usuarios con permiso de moderación o Mesa Fundadora:
-    - **Selector de Categoría en Vivo:** permite reclasificar el vídeo instantáneamente sin salir de la ficha.
-    - **Buscador Asistido de Reasignación:** caja de texto con autocompletado en tiempo real para mover el vídeo a la ficha correcta en caso de catalogación errónea.
-    - **Eliminación Segura:** modal de confirmación con advertencia de irreversibilidad.
+  - **Despeje Visual y Cabecera Compacta (INC-92):** Supresión de títulos y subtítulos estáticos redundantes («Hub Multimedia en Español»). Acceso frontal inmediato al selector de 4 pestañas interactivas: `⚡ Cómo Funciona`, `🎬 Tutoriales`, `🎲 Partidas`, `💬 Redes & Reseñas` con badges numéricos de contenido e iconografía Lucide normalizada (sin emojis crudos).
+  - **Tarjetas Limpias y Sin Ruido (INC-92):** Eliminación de pies de tarjeta repetitivos («YouTube Tutorial», «Reproducir →», «Ver análisis →»). La reproducción se lanza directamente al pulsar la tarjeta o su miniatura (o mediante `Enter` / `Espacio`), ahorrando espacio vertical.
+  - **Barra de Moderación Directa en Tarjetas (INC-92):** Barra inferior visible exclusivamente para moderadores (`IsModeratorUser`):
+    - **`[🏷 Cambiar Categoría]`:** abre el modal enfocado en el selector de categoría y reasignación de juego.
+    - **`[🗑 Eliminar]`:** activa el diálogo directo de confirmación y desvinculación sin pasos intermedios.
+  - **Modal de Ingesta Flash (INC-92):** Botón `[⚡ Ingesta Flash]` para moderadores que despliega un modal reactivo para pegar la URL de YouTube, seleccionar categoría destino, indicar comensales opcionales para partidas y publicar al instante.
 - [`MediaModeration.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/MediaModeration.razor):
   - Accesible desde `/admin/multimedia` y `/moderacion-media`.
   - Bandeja centralizada de pendientes y huérfanos con selector de categoría preseleccionado por la heurística de `MediaClassifier`.
