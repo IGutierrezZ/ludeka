@@ -242,8 +242,84 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
     public async Task AddRangeAsync(IEnumerable<Game> games, CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
-        await scope.Context.Games.AddRangeAsync(games, ct);
+        var gamesList = games.ToList();
+        var usedSlugsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var game in gamesList)
+        {
+            await EnsureUniqueSlugAsync(scope.Context, game, usedSlugsInBatch, ct);
+            usedSlugsInBatch.Add(game.Slug);
+        }
+
+        await scope.Context.Games.AddRangeAsync(gamesList, ct);
         await scope.Context.SaveChangesAsync(ct);
+    }
+
+    private static async Task EnsureUniqueSlugAsync(
+        LudekaDbContext context,
+        Game game,
+        HashSet<string> usedSlugsInBatch,
+        CancellationToken ct)
+    {
+        string baseSlug = string.IsNullOrWhiteSpace(game.Slug)
+            ? Game.GenerateSlug(game.SpanishTitle)
+            : game.Slug;
+
+        if (string.IsNullOrWhiteSpace(baseSlug))
+        {
+            baseSlug = $"juego-{game.BggId}";
+        }
+
+        string currentSlug = baseSlug;
+
+        // Si el slug actual no está en la base de datos ni en el lote en curso, lo conservamos
+        bool existsInDb = await context.Games.AnyAsync(g => g.Slug == currentSlug && g.Id != game.Id, ct);
+        if (!existsInDb && !usedSlugsInBatch.Contains(currentSlug))
+        {
+            if (game.Slug != currentSlug)
+            {
+                game.SetSlug(currentSlug);
+            }
+            return;
+        }
+
+        // Colisión detectada: intentamos desambiguar primero por año de publicación
+        if (game.YearPublished > 0)
+        {
+            string yearSlug = $"{baseSlug}-{game.YearPublished}";
+            bool yearExists = await context.Games.AnyAsync(g => g.Slug == yearSlug && g.Id != game.Id, ct);
+            if (!yearExists && !usedSlugsInBatch.Contains(yearSlug))
+            {
+                game.SetSlug(yearSlug);
+                return;
+            }
+        }
+
+        // Si también colisiona con el año (o no tiene año), probamos con el BggId
+        if (game.BggId > 0)
+        {
+            string bggSlug = $"{baseSlug}-{game.BggId}";
+            bool bggExists = await context.Games.AnyAsync(g => g.Slug == bggSlug && g.Id != game.Id, ct);
+            if (!bggExists && !usedSlugsInBatch.Contains(bggSlug))
+            {
+                game.SetSlug(bggSlug);
+                return;
+            }
+        }
+
+        // Si todavía colisiona, usamos un contador incremental -2, -3, etc.
+        int suffix = 2;
+        while (true)
+        {
+            string suffixSlug = $"{baseSlug}-{suffix}";
+            bool suffixExists = await context.Games.AnyAsync(g => g.Slug == suffixSlug && g.Id != game.Id, ct);
+            if (!suffixExists && !usedSlugsInBatch.Contains(suffixSlug))
+            {
+                game.SetSlug(suffixSlug);
+                return;
+            }
+            suffix++;
+        }
     }
 
     public async Task UpdateAsync(Game game, CancellationToken ct = default)
