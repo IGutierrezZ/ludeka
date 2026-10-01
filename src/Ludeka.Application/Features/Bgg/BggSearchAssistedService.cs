@@ -127,7 +127,15 @@ public class BggSearchAssistedService : IBggSearchAssistedService
                 }
             }
 
-            await _gameRepo.AddRangeAsync([fetchedGame], ct);
+            try
+            {
+                await _gameRepo.AddRangeAsync([fetchedGame], ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error al guardar en catálogo el juego BGG #{BggId} ('{Title}').", bggId, fetchedGame.SpanishTitle);
+                throw;
+            }
             gameId = fetchedGame.Id;
 
             // Si estaba en la cola de importaciones pendientes, marcarlo como completado

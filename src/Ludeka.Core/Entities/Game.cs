@@ -432,6 +432,13 @@ public partial class Game
         AiSummary = summary;
     }
 
+    public void SetSlug(string newSlug)
+    {
+        if (string.IsNullOrWhiteSpace(newSlug))
+            throw new ArgumentException("El slug no puede estar vacío.", nameof(newSlug));
+        Slug = GenerateSlug(newSlug);
+    }
+
     public static string GenerateSlug(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;

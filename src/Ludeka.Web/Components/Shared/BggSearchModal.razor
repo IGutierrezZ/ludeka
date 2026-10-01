@@ -212,7 +212,10 @@
         }
         catch (Exception ex)
         {
-            _errorMessage = $"No se pudo añadir el juego: {ex.Message}";
+            var message = ex.InnerException != null
+                ? $"{ex.Message} ({ex.InnerException.Message})"
+                : ex.Message;
+            _errorMessage = $"No se pudo añadir el juego: {message}";
         }
         finally
         {
