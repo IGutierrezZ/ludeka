@@ -424,7 +424,8 @@ public class SocialIngestionService : ISocialIngestionService
             mediaCategory: dto.MediaCategory,
             playerCountBadge: dto.PlayerCountBadge,
             thumbnailUrl: dto.ThumbnailUrl,
-            moderatorNotes: dto.ModeratorNotes);
+            moderatorNotes: dto.ModeratorNotes,
+            sourceUrl: dto.SourceUrl);
 
         await _inboxRepository.UpdateAsync(item, ct);
         _logger.LogInformation("Ítem {Id} actualizado por moderador", item.Id);

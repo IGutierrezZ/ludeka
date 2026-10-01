@@ -423,6 +423,45 @@ public class SocialIngestionServiceTests
     }
 
     [Fact]
+    public async Task UpdateItemAsync_WhenSourceUrlProvided_UpdatesSourceUrl()
+    {
+        // Arrange
+        var service = CreateService();
+        var initial = new SocialInboxItem(
+            sourceUrl: "https://instagram.com/p/old",
+            platform: SocialPlatform.Instagram,
+            detectedType: SocialSubmissionType.WeeklyRelease,
+            title: "Novedad Devir",
+            organizerOrAuthor: "Devir");
+
+        _inboxRepo.Items.Add(initial);
+
+        var updateDto = new SocialInboxUpdateDto(
+            Id: initial.Id,
+            Title: "Novedad Devir Oficial",
+            OrganizerOrAuthor: "Devir Iberia",
+            Collaborator: null,
+            DetectedType: SocialSubmissionType.WeeklyRelease,
+            GameId: null,
+            GameTitle: null,
+            EventOrReleaseDate: null,
+            EventEndDate: null,
+            Location: null,
+            EstimatedPvp: null,
+            MediaCategory: null,
+            PlayerCountBadge: null,
+            ThumbnailUrl: null,
+            ModeratorNotes: null,
+            SourceUrl: "https://devir.es/noticia-oficial");
+
+        // Act
+        var updated = await service.UpdateItemAsync(updateDto);
+
+        // Assert
+        Assert.Equal("https://devir.es/noticia-oficial", updated.SourceUrl);
+    }
+
+    [Fact]
     public async Task ApproveAndPublishAsync_GiveawayItem_CreatesGiveawayAndSetsApproved()
     {
         // Arrange
