@@ -39,3 +39,5 @@ Este incremento aúna la solución de almacenamiento desacoplado de snapshots cr
 - Entidad y tabla satélite `BggRawSnapshots` con soporte dual SQLite/PostgreSQL.
 - Auto-captura en pipeline de importación y catálogo.
 - Servicio `IBggRawSnapshotSyncService` con *rate-limiting* estricto y botón administrativo con telemetría en vivo en `/admin/cola-catalogacion`.
+- Extracción de enlaces de expansiones en `BggXmlParser` (`boardgameexpansion`, inbound hacia base game y outbound hacia expansiones).
+- Auto-vinculación de `BaseGameId` entre juegos base y expansiones, y encolado de expansiones desde los snapshots crudos.

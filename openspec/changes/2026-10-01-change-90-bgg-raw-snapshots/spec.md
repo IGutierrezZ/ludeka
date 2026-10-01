@@ -104,6 +104,18 @@ Este incremento formaliza la arquitectura de persistencia desacoplada para snaps
 * **Servicio:** `IBggRawSnapshotSyncService` que busca títulos en `Games` sin registro en `BggRawSnapshots` y los descarga secuencialmente aplicando una pausa de cortesía configurable (por defecto 1.200 ms entre llamadas).
 * **Interfaz Administrativa:** En `/admin/cola-catalogacion`, incorporar tarjeta con métricas (total catálogo, capturados y pendientes) y botón para iniciar/pausar la sincronización en vivo, protegido por `CanEditGames`.
 
+#### REQ-C4: Extracción y Vinculación Automática de Expansiones en BGG
+* **Extracción en Parser:** En `BggXmlParser.cs`, detectar el atributo `type="boardgameexpansion"` en el `<item>` raíz para clasificar la entidad como `GameType.Expansion`.
+* **Identificación del Juego Base:** Para items de tipo expansión, extraer el BGG ID del juego base padre desde `<link type="boardgameexpansion" id="..." value="..." inbound="true" />`.
+* **Identificación de Expansiones Vinculadas:** Para juegos base (`type="boardgame"`), extraer los enlaces de salida `<link type="boardgameexpansion" id="..." value="..." />` hacia sus expansiones oficiales.
+* **Auto-vinculación en Persistencia:**
+  * Al catalogar o sincronizar una expansión, si su juego base ya existe en la base de datos (`Games.Any(g => g.BggId == baseGameBggId)`), enlazar automáticamente `BaseGameId = baseGame.Id`.
+  * Al catalogar un juego base, si existen expansiones huérfanas en la base de datos que referencien su BGG ID, vincularlas asignando el nuevo `BaseGameId`.
+
+#### REQ-C5: Detección y Carga Asistida de Expansiones desde Snapshots Crudos
+* **Aprovechamiento de Snapshots:** Dado que `BggRawSnapshot.RawJson` contiene todos los enlaces de expansiones sin truncar, proveer un método en el repositorio/servicio de snapshots para listar las expansiones reportadas por BGG para cualquier juego base.
+* **Acción Administrativa:** En la administración de catálogo o cola de catalogación, permitir inspeccionar qué expansiones oficiales existen en BGG para un juego y encolar su importación masiva o individual hacia `Games`.
+
 ---
 
 ## 3. Criterios de Aceptación y Casos de Prueba (Gherkin)
@@ -137,4 +149,14 @@ Dado un juego catalogado desde BGG con ID 224517
 Cuando se procesa el XML devuelto por BGG
 Entonces se almacena un registro en "BggRawSnapshots" con el payload JSON completo
 Y la tabla "Games" permanece ligera sin almacenar el blob crudo
+```
+
+### Escenario 5: Vinculación Bidireccional de Expansiones de BGG
+```gherkin
+Dado un juego base catalogado con BGG ID 167791 ("Terraforming Mars")
+Y una expansión catalogada con BGG ID 218127 ("Terraforming Mars: Hellas & Elysium") cuyo enlace inbound apunta a 167791
+Cuando el sistema procesa o sincroniza los metadatos desde BGG
+Entonces la expansión se clasifica como GameType.Expansion
+Y su "BaseGameId" queda enlazado al Guid del juego base "Terraforming Mars"
+Y en la ficha de "Terraforming Mars" la expansión aparece listada en la sección de ecosistema
 ```

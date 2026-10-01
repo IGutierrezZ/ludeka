@@ -32,10 +32,13 @@
 - [ ] 3.3 Integrar la auto-captura transparente de snapshots en el pipeline de consulta de BGG (`BggXmlApiClient` / `BggCatalogQueueService`).
 - [ ] 3.4 Implementar el servicio `BggRawSnapshotSyncService` con *rate limiting* (~1.200 ms) y cancelación cooperativa.
 - [ ] 3.5 Añadir la tarjeta de control de snapshots con métricas y botón de sincronización por lotes en `/admin/cola-catalogacion` protegido con `CanEditGames`.
+- [ ] 3.6 Extender `BggXmlParser` para detectar `type="boardgameexpansion"`, extraer el enlace inbound al juego base (`inboundBaseGameBggId`) y los enlaces de salida de expansiones de cada juego base.
+- [ ] 3.7 Implementar la auto-vinculación de `BaseGameId` entre juegos base y expansiones en el repositorio y servicios de ingesta, y habilitar la acción para encolar expansiones desde los snapshots crudos.
 
 ### Fase 4: Verificación Automatizada y Regresión (TDD)
 - [ ] 4.1 Añadir pruebas unitarias para `BggRawSnapshot` y el repositorio satélite.
 - [ ] 4.2 Añadir pruebas unitarias para ordenación dinámica en `SqliteGameRepository`.
 - [ ] 4.3 Añadir pruebas de contrato y renderizado para `GameCard`, `AiSummaryCard` y `GameEditorModal`.
 - [ ] 4.4 Añadir pruebas para la redirección de `returnUrl` en autenticación externa.
-- [ ] 4.5 Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`) y certificar 100% verde sin regresiones.
+- [ ] 4.5 Añadir pruebas unitarias para el parseo y vinculación automática de expansiones desde BGG (`BggXmlParser` y auto-vinculación de `BaseGameId`).
+- [ ] 4.6 Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`) y certificar 100% verde sin regresiones.

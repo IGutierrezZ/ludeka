@@ -97,6 +97,20 @@
 * **Diseño:**
   1. Retirar el bloque inferior "Ediciones territoriales:" cuando coincide o es redundante con la editorial local ya informada en la línea de autoría.
 
+### Decisión D9: Extracción de Relaciones de Expansiones y Auto-vinculación en Dominio
+* **Contexto:** BGG expone relaciones de expansiones explícitas (`<link type="boardgameexpansion" id="..." value="..." [inbound="true"] />`), pero hasta ahora `BggXmlParser` las ignoraba y forzaba `GameType.BaseGame`, dejando `BaseGameId = null` para todas las expansiones.
+* **Diseño:**
+  1. `BggXmlParser.cs`:
+     * Leer `item.Attribute("type")?.Value`. Si es `"boardgameexpansion"`, tipificar `GameType.Expansion`.
+     * Para expansiones, extraer `inboundBaseGameBggId` del enlace `<link type="boardgameexpansion" inbound="true" />`.
+     * Para juegos base, extraer la colección de enlaces de salida `<link type="boardgameexpansion" />` (outbound) conteniendo `{ BggId, Title }`.
+  2. Auto-vinculación en Persistencia:
+     * En el pipeline de guardado / importación (`BggCatalogQueueService` y `SqliteGameRepository`), resolver si existe en `Games` el juego base correspondiente y asignar `BaseGameId`.
+     * Resolver la vinculación inversa: si se cataloga un juego base, actualizar las expansiones existentes con ese `bggId` que tuvieran `BaseGameId == null`.
+  3. Carga Asistida desde Snapshots:
+     * Exponer en `IBggRawSnapshotRepository` la consulta de enlaces de expansiones guardados en el snapshot de un juego base.
+     * Permitir al administrador encolar con un solo clic las expansiones detectadas de cualquier juego base del catálogo.
+
 ---
 
 ## 2. Diagrama de Flujo: Poblado de Snapshots BGG con *Rate Limiting*
