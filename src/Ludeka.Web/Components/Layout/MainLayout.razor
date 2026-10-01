@@ -57,8 +57,8 @@
             @* Zona de Utilidades y Controles de Usuario *@
             <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
                 @* Menú móvil: los destinos de la nav principal, accesibles siempre
-                   (details/summary SSR puro, accesible, sin JavaScript) *@
-                <details class="lg:hidden relative">
+                   (details/summary SSR puro, accesible, con cierre automático exterior) *@
+                <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative">
                     <summary aria-label="Menú de navegación"
                              class="px-2.5 py-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:border-[var(--brand-primary)] text-xs font-bold transition-all flex items-center gap-1.5 text-[var(--text-primary)] shadow-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden shrink-0">
                         <Icon Name="menu" Size="14" />
