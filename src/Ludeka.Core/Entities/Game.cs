@@ -314,6 +314,18 @@ public partial class Game
         ExtraDurationMinutes = extraDurationMinutes;
     }
 
+    public void SetBaseGameId(Guid baseGameId)
+    {
+        if (baseGameId == Guid.Empty) throw new ArgumentException("El BaseGameId no puede estar vacío.", nameof(baseGameId));
+        BaseGameId = baseGameId;
+        Type = GameType.Expansion;
+    }
+
+    public void SetGameType(GameType type)
+    {
+        Type = type;
+    }
+
     public void AddPurchaseLink(GamePurchaseLink link)
     {
         ArgumentNullException.ThrowIfNull(link);

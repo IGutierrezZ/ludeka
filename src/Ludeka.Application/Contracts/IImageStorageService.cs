@@ -51,6 +51,14 @@ public interface IImageStorageService
         string contentType,
         CancellationToken ct = default);
 
+    Task<GameImageUploadResult> SaveGameImageAsync(
+        string slug,
+        string slot,
+        Stream contentStream,
+        string originalFileName,
+        string contentType,
+        CancellationToken ct = default) => SaveGameCoverAsync(slug, contentStream, originalFileName, contentType, ct);
+
     Task<GameImageUploadResult> SaveEventPosterAsync(
         string eventSlugOrId,
         Stream contentStream,

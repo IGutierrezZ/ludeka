@@ -23,4 +23,7 @@ public interface IBggClient
     Task<IReadOnlyList<BggSearchResultDto>> SearchGamesAsync(string query, CancellationToken ct = default);
 
     Task<IReadOnlyList<BggTopGameDto>> FetchTopGamesAsync(int limit = 50, CancellationToken ct = default);
+
+    Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+        => Task.FromResult<string?>(null);
 }

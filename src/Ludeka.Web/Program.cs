@@ -324,6 +324,7 @@ app.MapPost("/login/external", async (
 
     var form = await httpContext.Request.ReadFormAsync();
     var provider = form["provider"].ToString();
+    var returnUrl = form["returnUrl"].ToString();
 
     var registration = ExternalAuthenticationSchemes
         .GetEnabledProviders(options.Value)
@@ -334,7 +335,8 @@ app.MapPost("/login/external", async (
         return Results.BadRequest(new { error = "El proveedor de acceso indicado no está habilitado." });
     }
 
-    return Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, [registration.Scheme]);
+    var redirectTarget = LoginRedirect.IsLocalUrl(returnUrl) ? returnUrl : "/";
+    return Results.Challenge(new AuthenticationProperties { RedirectUri = redirectTarget }, [registration.Scheme]);
 }).AllowAnonymous();
 
 app.MapGet("/logout", async (HttpContext httpContext) =>

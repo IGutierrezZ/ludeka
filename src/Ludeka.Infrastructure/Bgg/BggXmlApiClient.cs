@@ -50,7 +50,7 @@ public class BggXmlApiClient : IBggClient, IDisposable
         });
     }
 
-    public async Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
+    public async Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
     {
         if (bggId <= 0) return null;
 
@@ -104,14 +104,7 @@ public class BggXmlApiClient : IBggClient, IDisposable
                     return null;
                 }
 
-                string xmlContent = await response.Content.ReadAsStringAsync(ct);
-                if (string.IsNullOrWhiteSpace(xmlContent)) return null;
-
-                var doc = XDocument.Parse(xmlContent);
-                var item = doc.Root?.Element("item");
-                if (item == null) return null;
-
-                return BggXmlParser.ParseItem(item);
+                return await response.Content.ReadAsStringAsync(ct);
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -128,6 +121,25 @@ public class BggXmlApiClient : IBggClient, IDisposable
         }
 
         return null;
+    }
+
+    public async Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
+    {
+        string? xmlContent = await FetchRawThingXmlAsync(bggId, ct);
+        if (string.IsNullOrWhiteSpace(xmlContent)) return null;
+
+        try
+        {
+            var doc = XDocument.Parse(xmlContent);
+            var item = doc.Root?.Element("item");
+            if (item == null) return null;
+
+            return BggXmlParser.ParseItem(item);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public Task<IReadOnlyList<BggCollectionItemDto>> FetchUserCollectionAsync(string username, CancellationToken ct = default)

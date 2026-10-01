@@ -53,10 +53,14 @@
             <div>
                 <div class="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
                     <span class="text-[0.65rem] sm:text-xs font-bold text-[var(--brand-primary)] shrink-0">@Game.YearPublished</span>
-                    @if (!string.IsNullOrWhiteSpace(Game.IdealPlayerCountText))
+                    @{
+                        var compactPlayers = FormatCompactPlayers(Game.IdealPlayerCountText);
+                    }
+                    @if (!string.IsNullOrWhiteSpace(compactPlayers))
                     {
-                        <span class="text-[0.58rem] sm:text-[0.68rem] font-bold px-1 sm:px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)] truncate max-w-[5rem] sm:max-w-none">
-                            @Game.IdealPlayerCountText
+                        <span class="text-[var(--color-mustplay)] font-bold text-[0.62rem] sm:text-[0.7rem] truncate flex items-center gap-0.5 shrink-0" title="@Game.IdealPlayerCountText">
+                            <Icon Name="users" Size="11" />
+                            <span>@compactPlayers</span>
                         </span>
                     }
                 </div>
@@ -82,53 +86,63 @@
                 </div>
             </div>
 
-            <div class="hidden sm:flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
+            <div class="flex items-center gap-1.5 flex-wrap pt-2 border-t border-[var(--border-subtle)] text-[var(--text-muted)]">
                 @switch (Game.Style)
                 {
                     case GameStyle.Eurogame:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="settings" Size="12" /> Euro</span>
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Eurogame (gestión y optimización)" aria-label="Eurogame">
+                            <Icon Name="settings" Size="12" />
+                        </span>
                         break;
                     case GameStyle.Ameritrash:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="dices" Size="12" /> Temático</span>
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Temático / Ameritrash (aventura y dados)" aria-label="Temático">
+                            <Icon Name="dices" Size="12" />
+                        </span>
                         break;
                     case GameStyle.PartyGame:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="party-popper" Size="12" /> Party</span>
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Party Game (social y risas)" aria-label="Party Game">
+                            <Icon Name="party-popper" Size="12" />
+                        </span>
                         break;
                     case GameStyle.FillerAbstract:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="puzzle" Size="12" /> Filler</span>
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Filler / Abstracto (rápido o mental)" aria-label="Filler">
+                            <Icon Name="puzzle" Size="12" />
+                        </span>
                         break;
                     default:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="book-open" Size="12" /> Narrativo</span>
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Narrativo / Campaña" aria-label="Narrativo">
+                            <Icon Name="book-open" Size="12" />
+                        </span>
                         break;
-                }
-
-                @if (Game.IsOfficialSolo)
-                {
-                    <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="user" Size="12" /> Solo</span>
-                }
-
-                @if (Game.IsAccessibleEarlier)
-                {
-                    <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"><Icon Name="baby" Size="12" /> @Game.CommunityAge+</span>
                 }
 
                 @switch (Game.Footprint)
                 {
                     case TableFootprint.SmallTable:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Mesa pequeña / cafetería">
-                            <Icon Name="armchair" Size="12" /> Mesa pequeña
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa pequeña / cafetería" aria-label="Mesa pequeña">
+                            <Icon Name="armchair" Size="12" />
                         </span>
                         break;
                     case TableFootprint.TableMonster:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Monstruo de mesa / despliegue masivo">
-                            <Icon Name="castle" Size="12" /> Mesa grande
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa grande / despliegue masivo" aria-label="Mesa grande">
+                            <Icon Name="castle" Size="12" />
                         </span>
                         break;
                     default:
-                        <span class="px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]" title="Mesa de comedor estándar">
-                            <Icon Name="utensils" Size="12" /> Mesa estándar
+                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa estándar de comedor" aria-label="Mesa estándar">
+                            <Icon Name="utensils" Size="12" />
                         </span>
                         break;
+                }
+
+                @if (Game.IsAccessibleEarlier)
+                {
+                    <span class="h-6 px-1.5 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center gap-0.5 text-[0.62rem] font-bold shrink-0"
+                          title="Edad recomendada por la comunidad: @Game.CommunityAge+ años"
+                          aria-label="Edad comunitaria: @Game.CommunityAge+ años">
+                        <Icon Name="baby" Size="11" />
+                        <span>@Game.CommunityAge+</span>
+                    </span>
                 }
             </div>
         </div>
@@ -141,4 +155,16 @@
 
     [Parameter]
     public string? CountryCode { get; set; }
+
+    private static string FormatCompactPlayers(string? idealText)
+    {
+        if (string.IsNullOrWhiteSpace(idealText) || idealText.Contains("Sin datos", StringComparison.OrdinalIgnoreCase))
+            return string.Empty;
+
+        return idealText
+            .Replace("Ideal:", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("jugadores", "J", StringComparison.OrdinalIgnoreCase)
+            .Replace("jugador", "J", StringComparison.OrdinalIgnoreCase)
+            .Trim();
+    }
 }

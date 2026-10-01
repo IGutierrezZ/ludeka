@@ -8,40 +8,10 @@
 
 <PageTitle>Catálogo de Juegos de Mesa — Ludeka</PageTitle>
 
-<div class="container-ludeka py-6">
-    @* Cabecera editorial compartida (INC-36, DD-06) y buscador principal en bloque propio *@
-    <PageHeaderEditorial Badge="Catálogo Colaborativo" BadgeIcon="dices"
-                         Subtitle="Catálogo colaborativo, valoraciones comunitarias y escalabilidad en mesa.">
-        <Title>Descubre tu próxima partida<span class="text-[var(--brand-primary)]">.</span></Title>
-    </PageHeaderEditorial>
-
-    <div class="max-w-xl mt-6 mb-8">
+<div class="container-ludeka pt-3 pb-8">
+    @* Buscador principal elevado (elevación visual sin redundancias) *@
+    <div class="max-w-2xl mb-5">
         <CatalogSearchBar Value="@_searchTerm" ValueChanged="@OnSearchChanged" />
-    </div>
-
-    @* Filtros prácticos de situación real y tipo de juego *@
-    <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none" role="group" aria-label="Filtros del catálogo">
-        <button type="button" class="filter-btn @(_activePreset == Preset.Todos ? "active" : "")" @onclick="() => SetPreset(Preset.Todos)">
-            @(HasActiveRefinements ? "Todos" : $"Todos ({_totalCount})")
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.JuegosBase ? "active" : "")" @onclick="() => SetPreset(Preset.JuegosBase)">
-            <Icon Name="dices" Size="12" /> Juegos Base
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.Expansiones ? "active" : "")" @onclick="() => SetPreset(Preset.Expansiones)">
-            <Icon Name="puzzle" Size="12" /> Expansiones
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.EspecialParejas ? "active" : "")" @onclick="() => SetPreset(Preset.EspecialParejas)">
-            <Icon Name="swords" Size="12" /> Especial Parejas (2J)
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.MesaFamiliar ? "active" : "")" @onclick="() => SetPreset(Preset.MesaFamiliar)">
-            <Icon Name="users" Size="12" /> Mesa Familiar
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.SoloTop ? "active" : "")" @onclick="() => SetPreset(Preset.SoloTop)">
-            <Icon Name="user" Size="12" /> Modo Solitario
-        </button>
-        <button type="button" class="filter-btn @(_activePreset == Preset.PartidasRapidas ? "active" : "")" @onclick="() => SetPreset(Preset.PartidasRapidas)">
-            <Icon Name="timer" Size="12" /> &le; 45 min
-        </button>
     </div>
 
     @* Zona de Filtros Avanzados (Colapsable / Acordeón con multiselección) *@
@@ -363,9 +333,127 @@
                         </div>
                     </div>
                 </div>
+
+                @* Criterio de ordenación *@
+                <div class="pt-3 border-t border-[var(--border-subtle)] flex flex-col gap-2" role="group" aria-label="Criterio de ordenación">
+                    <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <Icon Name="arrow-up-down" Size="13" />
+                        <span>Ordenar catálogo por</span>
+                    </span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.Rank ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.Rank)"
+                                aria-pressed="@(_sortBy == GameSortOrder.Rank ? "true" : "false")">
+                            <Icon Name="trophy" Size="12" />
+                            <span>Ranking BGG</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.RatingDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.RatingDesc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.RatingDesc ? "true" : "false")">
+                            <Icon Name="star" Size="12" />
+                            <span>Valoración</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.ComplexityAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.ComplexityAsc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.ComplexityAsc ? "true" : "false")"
+                                title="Juegos más accesibles y familiares primero">
+                            <Icon Name="feather" Size="12" />
+                            <span>Dureza (Ligero)</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.ComplexityDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.ComplexityDesc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.ComplexityDesc ? "true" : "false")"
+                                title="Juegos más complejos y densos primero">
+                            <Icon Name="shield-alert" Size="12" />
+                            <span>Dureza (Duro)</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.DurationAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.DurationAsc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.DurationAsc ? "true" : "false")">
+                            <Icon Name="timer" Size="12" />
+                            <span>Más rápidos</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.DurationDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.DurationDesc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.DurationDesc ? "true" : "false")">
+                            <Icon Name="clock" Size="12" />
+                            <span>Más largos</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.YearDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.YearDesc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.YearDesc ? "true" : "false")">
+                            <Icon Name="calendar" Size="12" />
+                            <span>Novedades</span>
+                        </button>
+                        <button type="button"
+                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.TitleAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
+                                @onclick="() => SetSortOrder(GameSortOrder.TitleAsc)"
+                                aria-pressed="@(_sortBy == GameSortOrder.TitleAsc ? "true" : "false")">
+                            <Icon Name="a-large-small" Size="12" />
+                            <span>Título (A-Z)</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         }
     </div>
+
+    @* Leyenda de iconografía lúdica *@
+    <details class="text-[0.68rem] text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-3 mb-6 transition-all">
+        <summary class="font-bold text-[var(--text-secondary)] cursor-pointer flex items-center gap-1.5 select-none hover:text-[var(--brand-primary)] focus-visible:outline-none">
+            <Icon Name="info" Size="13" />
+            <span>Leyenda de iconografía en tarjetas</span>
+        </summary>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-2.5 mt-2 border-t border-[var(--border-subtle)]">
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="settings" Size="11" /></span>
+                <span>Eurogame</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="dices" Size="11" /></span>
+                <span>Temático</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="party-popper" Size="11" /></span>
+                <span>Party Game</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="puzzle" Size="11" /></span>
+                <span>Filler / Abstracto</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="book-open" Size="11" /></span>
+                <span>Narrativo</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="armchair" Size="11" /></span>
+                <span>Mesa pequeña</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="utensils" Size="11" /></span>
+                <span>Mesa estándar</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="castle" Size="11" /></span>
+                <span>Mesa grande</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="baby" Size="11" /></span>
+                <span>Edad recomendada</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--color-mustplay)]"><Icon Name="users" Size="11" /></span>
+                <span>Comensales</span>
+            </div>
+        </div>
+    </details>
 
     @* Barra de estado de resultados y selector conmutable de modo de vista *@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-[var(--border-subtle)] text-xs">
@@ -493,6 +581,7 @@
     private readonly HashSet<TableFootprint> _selectedFootprints = [];
     private readonly HashSet<ConfrontationType> _selectedConfrontations = [];
     private readonly HashSet<int> _selectedMaxDurations = [];
+    private GameSortOrder _sortBy = GameSortOrder.Rank;
 
     private bool _showAdvancedFilters = false;
 
@@ -518,7 +607,8 @@
         _selectedStyles.Count +
         _selectedFootprints.Count +
         _selectedConfrontations.Count +
-        _selectedMaxDurations.Count;
+        _selectedMaxDurations.Count +
+        (_sortBy != GameSortOrder.Rank ? 1 : 0);
 
     private bool HasActiveRefinements =>
         ActiveAdvancedFiltersCount > 0 ||
@@ -714,6 +804,25 @@
             }
         }
 
+        if (query.TryGetValue("orden", out var oVal) && !string.IsNullOrWhiteSpace(oVal))
+        {
+            _sortBy = oVal.ToString().ToLowerInvariant() switch
+            {
+                "rating" => GameSortOrder.RatingDesc,
+                "dureza-asc" or "ligero" => GameSortOrder.ComplexityAsc,
+                "dureza-desc" or "duro" => GameSortOrder.ComplexityDesc,
+                "duracion-asc" or "rapido" => GameSortOrder.DurationAsc,
+                "duracion-desc" or "largo" => GameSortOrder.DurationDesc,
+                "novedad" or "ano" or "year" => GameSortOrder.YearDesc,
+                "alfabetico" or "titulo" or "az" => GameSortOrder.TitleAsc,
+                _ => GameSortOrder.Rank
+            };
+        }
+        else
+        {
+            _sortBy = GameSortOrder.Rank;
+        }
+
         if (ActiveAdvancedFiltersCount > 0)
         {
             _showAdvancedFilters = true;
@@ -799,6 +908,21 @@
         if (_selectedTypes.Count > 0)
         {
             queryParams["tipos"] = string.Join(",", _selectedTypes.Select(t => t.ToString().ToLowerInvariant()));
+        }
+
+        if (_sortBy != GameSortOrder.Rank)
+        {
+            queryParams["orden"] = _sortBy switch
+            {
+                GameSortOrder.RatingDesc => "rating",
+                GameSortOrder.ComplexityAsc => "dureza-asc",
+                GameSortOrder.ComplexityDesc => "dureza-desc",
+                GameSortOrder.DurationAsc => "duracion-asc",
+                GameSortOrder.DurationDesc => "duracion-desc",
+                GameSortOrder.YearDesc => "novedad",
+                GameSortOrder.TitleAsc => "alfabetico",
+                _ => null
+            };
         }
 
         var targetUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/catalogo", queryParams);
@@ -979,6 +1103,14 @@
         await LoadCatalogAsync();
     }
 
+    private async Task SetSortOrder(GameSortOrder order)
+    {
+        _sortBy = order;
+        _currentPage = 1;
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
     private async Task ResetFilters()
     {
         _activePreset = Preset.Todos;
@@ -989,6 +1121,7 @@
         _selectedTypes.Clear();
         _selectedStyles.Clear();
         _selectedConfrontations.Clear();
+        _sortBy = GameSortOrder.Rank;
         _searchTerm = string.Empty;
         _currentPage = 1;
         SyncUrl();
@@ -1034,7 +1167,8 @@
                 EspecialParejas: _activePreset == Preset.EspecialParejas,
                 MesaFamiliar: _activePreset == Preset.MesaFamiliar,
                 SoloTop: _activePreset == Preset.SoloTop,
-                TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null
+                TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null,
+                SortBy: _sortBy
             );
 
             var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize, ct: ct);

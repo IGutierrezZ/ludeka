@@ -55,12 +55,96 @@ public static class BggSimulationDataset
 
     private static readonly List<GameBlueprint> Blueprints = [];
 
+    private static readonly Dictionary<int, int> ExpansionToBaseMap = new()
+    {
+        [290448] = 266192,
+        [300580] = 266192,
+        [366161] = 266192,
+        [247030] = 167791,
+        [230914] = 167791,
+        [2993] = 822,
+        [8443] = 822,
+        [202976] = 173346,
+        [342035] = 316554,
+        [265492] = 199792,
+    };
+
     static BggSimulationDataset()
     {
         InitializeBlueprints();
     }
 
     public static IReadOnlyList<int> GetAllBggIds() => Blueprints.Select(b => b.BggId).ToList();
+
+    public static string GetRawThingXml(int bggId)
+    {
+        var b = Blueprints.FirstOrDefault(x => x.BggId == bggId);
+        string type = (b != null && b.Type == GameType.Expansion) ? "boardgameexpansion" : "boardgame";
+        string title = b?.OriginalTitle ?? $"Juego Simulado #{bggId}";
+        int year = b?.YearPublished ?? 2020;
+        string desc = b?.Description ?? "Descripción simulada para pruebas.";
+        int minP = b != null && b.Scalability.Count > 0 ? b.Scalability.Min(s => s.PlayerCount) : 1;
+        int maxP = b != null && b.Scalability.Count > 0 ? b.Scalability.Max(s => s.PlayerCount) : 4;
+        int playTime = b?.EstimatedPerPlayerMinutes != null ? b.EstimatedPerPlayerMinutes * maxP : 60;
+        double rating = b?.BggRating ?? 7.5;
+        int? rank = b?.BggRank ?? 100;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        sb.AppendLine("<items termsofuse=\"https://boardgamegeek.com/xmlapi/termsofuse\">");
+        sb.AppendLine($"  <item type=\"{type}\" id=\"{bggId}\">");
+        if (!string.IsNullOrWhiteSpace(b?.ThumbnailUrl))
+            sb.AppendLine($"    <thumbnail>{b.ThumbnailUrl}</thumbnail>");
+        if (!string.IsNullOrWhiteSpace(b?.CoverImageUrl))
+            sb.AppendLine($"    <image>{b.CoverImageUrl}</image>");
+        sb.AppendLine($"    <name type=\"primary\" sortindex=\"1\" value=\"{System.Security.SecurityElement.Escape(title)}\" />");
+        if (b != null && !string.IsNullOrWhiteSpace(b.SpanishTitle) && b.SpanishTitle != title)
+            sb.AppendLine($"    <name type=\"alternate\" sortindex=\"1\" value=\"{System.Security.SecurityElement.Escape(b.SpanishTitle)} (Edición en español)\" />");
+        sb.AppendLine($"    <description>{System.Security.SecurityElement.Escape(desc)}</description>");
+        sb.AppendLine($"    <yearpublished value=\"{year}\" />");
+        sb.AppendLine($"    <minplayers value=\"{minP}\" />");
+        sb.AppendLine($"    <maxplayers value=\"{maxP}\" />");
+        sb.AppendLine($"    <playingtime value=\"{playTime}\" />");
+        sb.AppendLine($"    <minplaytime value=\"{b?.MinMinutes ?? 30}\" />");
+        sb.AppendLine($"    <maxplaytime value=\"{b?.MaxMinutes ?? 90}\" />");
+        sb.AppendLine($"    <minage value=\"{b?.BoxAge ?? 10}\" />");
+
+        if (!string.IsNullOrWhiteSpace(b?.Designer))
+            sb.AppendLine($"    <link type=\"boardgamedesigner\" id=\"101\" value=\"{System.Security.SecurityElement.Escape(b.Designer)}\" />");
+        if (!string.IsNullOrWhiteSpace(b?.Publisher))
+            sb.AppendLine($"    <link type=\"boardgamepublisher\" id=\"201\" value=\"{System.Security.SecurityElement.Escape(b.Publisher)}\" />");
+
+        if (ExpansionToBaseMap.TryGetValue(bggId, out int baseId))
+        {
+            var baseGame = Blueprints.FirstOrDefault(x => x.BggId == baseId);
+            string baseTitle = baseGame?.OriginalTitle ?? "Juego Base";
+            sb.AppendLine($"    <link type=\"boardgameexpansion\" id=\"{baseId}\" value=\"{System.Security.SecurityElement.Escape(baseTitle)}\" inbound=\"true\" />");
+        }
+        else
+        {
+            var expansionIds = ExpansionToBaseMap.Where(kvp => kvp.Value == bggId).Select(kvp => kvp.Key).ToList();
+            foreach (var expId in expansionIds)
+            {
+                var expGame = Blueprints.FirstOrDefault(x => x.BggId == expId);
+                string expTitle = expGame?.OriginalTitle ?? $"Expansión #{expId}";
+                sb.AppendLine($"    <link type=\"boardgameexpansion\" id=\"{expId}\" value=\"{System.Security.SecurityElement.Escape(expTitle)}\" />");
+            }
+        }
+
+        sb.AppendLine("    <statistics page=\"1\">");
+        sb.AppendLine("      <ratings>");
+        sb.AppendLine("        <usersrated value=\"1500\" />");
+        sb.AppendLine($"        <average value=\"{rating.ToString("F2", CultureInfo.InvariantCulture)}\" />");
+        sb.AppendLine("        <ranks>");
+        sb.AppendLine($"          <rank type=\"subtype\" id=\"1\" name=\"boardgame\" friendlyname=\"Board Game Rank\" value=\"{rank ?? 999}\" />");
+        sb.AppendLine("        </ranks>");
+        sb.AppendLine("      </ratings>");
+        sb.AppendLine("    </statistics>");
+        sb.AppendLine("  </item>");
+        sb.AppendLine("</items>");
+
+        return sb.ToString();
+    }
 
     public static Game? CreateGameInstance(int bggId)
     {

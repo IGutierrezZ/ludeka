@@ -21,6 +21,10 @@ public static class BggXmlParser
         int bggId = int.Parse(item.Attribute("id")?.Value ?? "0");
         if (bggId <= 0) return null;
 
+        string itemType = item.Attribute("type")?.Value ?? "boardgame";
+        bool isExpansion = itemType.Equals("boardgameexpansion", StringComparison.OrdinalIgnoreCase);
+        GameType gameType = isExpansion ? GameType.Expansion : GameType.BaseGame;
+
         // Títulos
         var names = item.Elements("name").ToList();
         string originalTitle = names.FirstOrDefault(n => n.Attribute("type")?.Value == "primary")?.Attribute("value")?.Value
@@ -85,9 +89,56 @@ public static class BggXmlParser
             duration: new GameDuration(quality.MinPlayTime, quality.MaxPlayTime, estPerPlayer),
             scalability: quality.Scalability,
             sleeves: quality.Sleeves,
+            type: gameType,
             spanishPublisher: quality.SpanishPublisher,
             regionalPublishers: quality.RegionalPublishers
         );
+    }
+
+    public static int? ExtractInboundBaseGameBggId(XElement item)
+    {
+        if (item == null) return null;
+
+        var inboundLink = item.Elements("link")
+            .FirstOrDefault(l => l.Attribute("type")?.Value == "boardgameexpansion" &&
+                                 string.Equals(l.Attribute("inbound")?.Value, "true", StringComparison.OrdinalIgnoreCase));
+
+        if (inboundLink != null && int.TryParse(inboundLink.Attribute("id")?.Value, out int baseId) && baseId > 0)
+        {
+            return baseId;
+        }
+
+        return null;
+    }
+
+    public static IReadOnlyList<int> ExtractOutboundExpansionBggIds(XElement item)
+    {
+        if (item == null) return [];
+
+        return item.Elements("link")
+            .Where(l => l.Attribute("type")?.Value == "boardgameexpansion" &&
+                        !string.Equals(l.Attribute("inbound")?.Value, "true", StringComparison.OrdinalIgnoreCase))
+            .Select(l => int.TryParse(l.Attribute("id")?.Value, out int id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+    }
+
+    public static IReadOnlyList<BggExpansionLinkDto> ExtractExpansionLinks(XElement item)
+    {
+        if (item == null) return [];
+
+        var results = new List<BggExpansionLinkDto>();
+        foreach (var l in item.Elements("link").Where(l => l.Attribute("type")?.Value == "boardgameexpansion"))
+        {
+            if (int.TryParse(l.Attribute("id")?.Value, out int id) && id > 0)
+            {
+                string name = l.Attribute("value")?.Value ?? string.Empty;
+                bool isInbound = string.Equals(l.Attribute("inbound")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+                results.Add(new BggExpansionLinkDto(id, WebUtility.HtmlDecode(name).Trim(), isInbound));
+            }
+        }
+        return results;
     }
 
     private static string ExtractSpanishTitle(List<XElement> names, string fallback)

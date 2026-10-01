@@ -77,7 +77,7 @@
                 <button type="button"
                         @onclick="() => _activeTab = EditorTab.Cover"
                         class="px-3.5 py-2 text-xs font-extrabold rounded-t-xl transition-colors border-b-2 flex items-center gap-1.5 @(_activeTab == EditorTab.Cover ? "text-[var(--brand-primary)] border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)]" : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]")">
-                    <Icon Name="image" Size="14" /> Carátula
+                    <Icon Name="image" Size="14" /> Carátula y Galería
                 </button>
                 <button type="button"
                         @onclick="() => _activeTab = EditorTab.Sleeves"
@@ -284,68 +284,144 @@
                     </div>
                 }
 
-                @* PESTAÑA 4: CARÁTULA E IMÁGENES *@
+                @* PESTAÑA 4: CARÁTULA E IMÁGENES (CARRUSEL INC-85 / INC-90) *@
                 @if (_activeTab == EditorTab.Cover)
                 {
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-                        @* Vista Previa *@
-                        <div class="w-full aspect-square rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-hidden relative flex items-center justify-center">
-                            @if (!string.IsNullOrWhiteSpace(_coverImageUrl))
-                            {
-                                <img src="@_coverImageUrl"
-                                     alt="Vista previa de carátula"
-                                     class="w-full h-full object-cover"
-                                     onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
-                            }
-                            else
-                            {
-                                <img src="/images/game-placeholder.svg"
-                                     alt="Placeholder"
-                                     class="w-20 h-20 opacity-40" />
-                            }
+                    <div class="space-y-6">
+                        <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                            <Icon Name="image" Size="16" />
+                            <span>Gestiona las 3 imágenes del carrusel de la ficha: portada frontal, trasera de caja y despliegue de componentes en mesa.</span>
+                        </div>
 
-                            <div class="absolute bottom-2 left-2 right-2 px-2 py-1 rounded bg-black/60 backdrop-blur-sm text-[0.62rem] text-center text-white/90 truncate">
-                                @(!string.IsNullOrWhiteSpace(_coverImageUrl) ? _coverImageUrl : "Sin carátula")
+                        @* SLOT 1: CARÁTULA FRONTAL *@
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon Name="image" Size="14" /> 1. Carátula Frontal (Portada)
+                                    </h4>
+                                    <p class="text-[0.7rem] text-[var(--text-secondary)]">Imagen principal del juego para catálogo, fichas y tarjetas.</p>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(_coverImageUrl))
+                                {
+                                    <button type="button" @onclick="() => { _coverImageUrl = null; _customCoverUrl = string.Empty; }" class="text-[0.68rem] text-rose-400 hover:underline">Quitar</button>
+                                }
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                                <div class="w-24 h-24 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-hidden flex items-center justify-center shrink-0">
+                                    @if (!string.IsNullOrWhiteSpace(_coverImageUrl))
+                                    {
+                                        <img src="@_coverImageUrl" alt="Portada" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/game-placeholder.svg" alt="Placeholder" class="w-12 h-12 opacity-30" />
+                                    }
+                                </div>
+                                <div class="sm:col-span-3 space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <label for="input-cover-file" class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 cursor-pointer inline-flex items-center gap-1.5">
+                                            <Icon Name="folder" Size="13" /> Subir archivo
+                                        </label>
+                                        <InputFile id="input-cover-file" OnChange='e => HandleFileSelectedForSlot(e, "cover")' accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+                                        @if (_uploadingSlot == "cover")
+                                        {
+                                            <span class="text-xs text-amber-400 flex items-center gap-1"><Icon Name="settings" Size="12" class="animate-spin" /> Subiendo...</span>
+                                        }
+                                    </div>
+                                    <div class="flex gap-2 items-center">
+                                        <span class="text-xs text-[var(--text-muted)] flex items-center gap-1 shrink-0"><Icon Name="link" Size="12" /> URL:</span>
+                                        <input type="url" @bind="_customCoverUrl" placeholder="https://..." class="flex-1 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none" />
+                                        <button type="button" @onclick="ApplyCoverUrl" class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-xs font-bold border border-[var(--border-subtle)]">Aplicar</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        @* Controles de Carga *@
-                        <div class="sm:col-span-2 space-y-4">
-                            @* Opción 1: Subida de archivo físico *@
-                            <div class="p-3.5 rounded-2xl bg-[var(--bg-surface-elevated)]/60 border border-[var(--border-subtle)] space-y-2">
-                                <label for="input-cover-file" class="text-xs font-extrabold text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer">
-                                    <Icon Name="folder" Size="14" /> Subir Archivo Local (.jpg, .png, .webp &le; 5 MB)
-                                </label>
-                                <InputFile id="input-cover-file"
-                                           OnChange="HandleFileSelected"
-                                           accept=".jpg,.jpeg,.png,.webp"
-                                           class="text-xs text-[var(--text-secondary)] file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[var(--brand-primary)] file:text-white hover:file:opacity-90 cursor-pointer" />
-                                
-                                @if (_isUploadingImage)
+                        @* SLOT 2: TRASERA DE CAJA *@
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon Name="rotate-cw" Size="14" /> 2. Trasera de Caja (Contraportada)
+                                    </h4>
+                                    <p class="text-[0.7rem] text-[var(--text-secondary)]">Foto o arte de la contraportada con información de componentes.</p>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(_backCoverImageUrl))
                                 {
-                                    <div class="flex items-center gap-2 text-xs text-amber-400">
-                                        <span class="animate-spin inline-block"><Icon Name="settings" Size="14" /></span>
-                                        <span>Procesando y guardando imagen...</span>
-                                    </div>
+                                    <button type="button" @onclick="() => { _backCoverImageUrl = null; _customBackCoverUrl = string.Empty; }" class="text-[0.68rem] text-rose-400 hover:underline">Quitar</button>
                                 }
                             </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                                <div class="w-24 h-24 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-hidden flex items-center justify-center shrink-0">
+                                    @if (!string.IsNullOrWhiteSpace(_backCoverImageUrl))
+                                    {
+                                        <img src="@_backCoverImageUrl" alt="Contraportada" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/game-placeholder.svg" alt="Placeholder" class="w-12 h-12 opacity-30" />
+                                    }
+                                </div>
+                                <div class="sm:col-span-3 space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <label for="input-back-file" class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 cursor-pointer inline-flex items-center gap-1.5">
+                                            <Icon Name="folder" Size="13" /> Subir archivo
+                                        </label>
+                                        <InputFile id="input-back-file" OnChange='e => HandleFileSelectedForSlot(e, "back")' accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+                                        @if (_uploadingSlot == "back")
+                                        {
+                                            <span class="text-xs text-amber-400 flex items-center gap-1"><Icon Name="settings" Size="12" class="animate-spin" /> Subiendo...</span>
+                                        }
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="url" @bind="_customBackCoverUrl" placeholder="https://..." class="flex-1 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none" />
+                                        <button type="button" @onclick="ApplyBackCoverUrl" class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-xs font-bold border border-[var(--border-subtle)]">Aplicar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                            @* Opción 2: URL Externa *@
-                            <div class="p-3.5 rounded-2xl bg-[var(--bg-surface-elevated)]/60 border border-[var(--border-subtle)] space-y-2">
-                                <label for="input-cover-url" class="text-xs font-extrabold text-[var(--text-primary)] flex items-center gap-1.5">
-                                    <Icon Name="link" Size="14" /> O especificar URL de Imagen Remota
-                                </label>
-                                <div class="flex gap-2">
-                                    <input id="input-cover-url"
-                                           type="url"
-                                           @bind="_customCoverUrl"
-                                           placeholder="https://cf.geekdo-images.com/..."
-                                           class="flex-1 px-3 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:border-[var(--brand-primary)] focus:outline-none" />
-                                    <button type="button"
-                                            @onclick="ApplyCoverUrl"
-                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-xs font-bold text-[var(--text-primary)] border border-[var(--border-subtle)]">
-                                        Aplicar
-                                    </button>
+                        @* SLOT 3: DESPLIEGUE EN MESA *@
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon Name="layers" Size="14" /> 3. Despliegue en Mesa (Componentes / Gameplay)
+                                    </h4>
+                                    <p class="text-[0.7rem] text-[var(--text-secondary)]">Foto real de la mesa montada para apreciar tablero y componentes.</p>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(_tableImageUrl))
+                                {
+                                    <button type="button" @onclick="() => { _tableImageUrl = null; _customTableUrl = string.Empty; }" class="text-[0.68rem] text-rose-400 hover:underline">Quitar</button>
+                                }
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                                <div class="w-24 h-24 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-hidden flex items-center justify-center shrink-0">
+                                    @if (!string.IsNullOrWhiteSpace(_tableImageUrl))
+                                    {
+                                        <img src="@_tableImageUrl" alt="Mesa" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/game-placeholder.svg" alt="Placeholder" class="w-12 h-12 opacity-30" />
+                                    }
+                                </div>
+                                <div class="sm:col-span-3 space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <label for="input-table-file" class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 cursor-pointer inline-flex items-center gap-1.5">
+                                            <Icon Name="folder" Size="13" /> Subir archivo
+                                        </label>
+                                        <InputFile id="input-table-file" OnChange='e => HandleFileSelectedForSlot(e, "table")' accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+                                        @if (_uploadingSlot == "table")
+                                        {
+                                            <span class="text-xs text-amber-400 flex items-center gap-1"><Icon Name="settings" Size="12" class="animate-spin" /> Subiendo...</span>
+                                        }
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="url" @bind="_customTableUrl" placeholder="https://..." class="flex-1 px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none" />
+                                        <button type="button" @onclick="ApplyTableUrl" class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-xs font-bold border border-[var(--border-subtle)]">Aplicar</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -568,10 +644,14 @@
 
     private string? _coverImageUrl;
     private string _customCoverUrl = string.Empty;
+    private string? _backCoverImageUrl;
+    private string _customBackCoverUrl = string.Empty;
+    private string? _tableImageUrl;
+    private string _customTableUrl = string.Empty;
+    private string? _uploadingSlot;
     private string? _resolutionNotes;
 
     private bool _isSaving;
-    private bool _isUploadingImage;
     private string? _errorMessage;
     private string? _successMessage;
 
@@ -604,6 +684,10 @@
 
             _coverImageUrl = Game.CoverImageUrl;
             _customCoverUrl = Game.CoverImageUrl ?? string.Empty;
+            _backCoverImageUrl = Game.BackCoverImageUrl;
+            _customBackCoverUrl = Game.BackCoverImageUrl ?? string.Empty;
+            _tableImageUrl = Game.TableImageUrl;
+            _customTableUrl = Game.TableImageUrl ?? string.Empty;
 
             _sleeves = Game.Sleeves != null ? new List<SleeveItem>(Game.Sleeves) : [];
         }
@@ -633,28 +717,54 @@
         }
     }
 
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    private void ApplyBackCoverUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(_customBackCoverUrl))
+        {
+            _backCoverImageUrl = _customBackCoverUrl.Trim();
+        }
+    }
+
+    private void ApplyTableUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(_customTableUrl))
+        {
+            _tableImageUrl = _customTableUrl.Trim();
+        }
+    }
+
+    private async Task HandleFileSelectedForSlot(InputFileChangeEventArgs e, string slot)
     {
         var file = e.File;
         if (file == null || Game == null) return;
 
-        _isUploadingImage = true;
+        _uploadingSlot = slot;
         _errorMessage = null;
 
         try
         {
             using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            var result = await ImageStorageService.SaveGameCoverAsync(
-                Game.Slug,
-                stream,
-                file.Name,
-                file.ContentType
-            );
+            var result = slot == "cover"
+                ? await ImageStorageService.SaveGameCoverAsync(Game.Slug, stream, file.Name, file.ContentType)
+                : await ImageStorageService.SaveGameImageAsync(Game.Slug, slot, stream, file.Name, file.ContentType);
 
             if (result.Success && !string.IsNullOrWhiteSpace(result.RelativePath))
             {
-                _coverImageUrl = result.RelativePath;
-                _customCoverUrl = result.RelativePath;
+                if (slot == "cover")
+                {
+                    _coverImageUrl = result.RelativePath;
+                    _customCoverUrl = result.RelativePath;
+                }
+                else if (slot == "back")
+                {
+                    _backCoverImageUrl = result.RelativePath;
+                    _customBackCoverUrl = result.RelativePath;
+                }
+                else if (slot == "table")
+                {
+                    _tableImageUrl = result.RelativePath;
+                    _customTableUrl = result.RelativePath;
+                }
             }
             else
             {
@@ -667,7 +777,7 @@
         }
         finally
         {
-            _isUploadingImage = false;
+            _uploadingSlot = null;
         }
     }
 
@@ -788,6 +898,8 @@
                 Language: _language,
                 Footprint: _footprint,
                 CoverImageUrl: _coverImageUrl,
+                BackCoverImageUrl: _backCoverImageUrl,
+                TableImageUrl: _tableImageUrl,
                 AssociatedReportId: AssociatedReportId,
                 ResolutionNotes: _resolutionNotes,
                 Sleeves: _sleeves

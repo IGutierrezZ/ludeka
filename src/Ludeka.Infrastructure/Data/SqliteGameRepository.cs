@@ -130,27 +130,39 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         {
             string term = criteria.SearchTerm.Trim();
             string pattern = $"%{term}%";
-            query = query.Where(g =>
-                EF.Functions.Like(g.SpanishTitle, pattern) ||
-                EF.Functions.Like(g.OriginalTitle, pattern) ||
-                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
-                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
-                (g.Designer != null && EF.Functions.Like(g.Designer, pattern)));
+            if (scope.Context.Database.IsNpgsql())
+            {
+                query = query.Where(g =>
+                    EF.Functions.ILike(g.SpanishTitle, pattern) ||
+                    EF.Functions.ILike(g.OriginalTitle, pattern) ||
+                    (g.SpanishPublisher != null && EF.Functions.ILike(g.SpanishPublisher, pattern)) ||
+                    (g.Publisher != null && EF.Functions.ILike(g.Publisher, pattern)) ||
+                    (g.Designer != null && EF.Functions.ILike(g.Designer, pattern)));
+            }
+            else
+            {
+                query = query.Where(g =>
+                    EF.Functions.Like(g.SpanishTitle, pattern) ||
+                    EF.Functions.Like(g.OriginalTitle, pattern) ||
+                    (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
+                    (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                    (g.Designer != null && EF.Functions.Like(g.Designer, pattern)));
+            }
         }
 
         // Determinar si hay filtros que requieran deserialización de colecciones complejas en memoria (Scalability, Complexities)
         bool hasInMemoryFilters = criteria.EspecialParejas
             || (criteria.PlayerCounts != null && criteria.PlayerCounts.Count > 0)
             || criteria.PlayerCount.HasValue
-            || (criteria.Complexities != null && criteria.Complexities.Count > 0);
+            || (criteria.Complexities != null && criteria.Complexities.Count > 0)
+            || criteria.SortBy == GameSortOrder.ComplexityAsc
+            || criteria.SortBy == GameSortOrder.ComplexityDesc;
 
         if (!hasInMemoryFilters)
         {
             int total = await query.CountAsync(ct);
+            query = ApplyQuerySorting(query, criteria.SortBy);
             var pagedItems = await query
-                .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
-                .ThenBy(g => g.BggRank ?? int.MaxValue)
-                .ThenByDescending(g => g.BggRating)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(ct);
@@ -167,7 +179,9 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 g.Age,
                 g.Style,
                 g.BggRank,
-                g.BggRating
+                g.BggRating,
+                g.YearPublished,
+                g.SpanishTitle
             ))
             .ToListAsync(ct);
 
@@ -208,11 +222,8 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         int totalCount = indexList.Count;
 
-        // Ordenar por ranking BGG (con los rankeados primero) y luego rating, y aislar los IDs de la página solicitada
-        var pagedIds = indexList
-            .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
-            .ThenBy(g => g.BggRank ?? int.MaxValue)
-            .ThenByDescending(g => g.BggRating)
+        // Ordenar según el criterio solicitado (ranking BGG por defecto, rating, dureza, duración, año, título)
+        var pagedIds = ApplyIndexSorting(indexList, criteria.SortBy)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(g => g.Id)
@@ -381,6 +392,12 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     game.BackCoverImageUrl,
                     game.TableImageUrl
                 );
+
+                if (game.BaseGameId.HasValue && game.BaseGameId.Value != Guid.Empty)
+                {
+                    existing.SetBaseGameId(game.BaseGameId.Value);
+                }
+                existing.SetGameType(game.Type);
             }
 
             await scope.Context.SaveChangesAsync(ct);
@@ -404,18 +421,20 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
     public async Task<IReadOnlyList<Game>> GetByPublisherAsync(string publisherName, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(publisherName)) return Array.Empty<Game>();
-
         var clean = publisherName.Trim();
         var pattern = $"%{clean}%";
         await using var scope = await CreateScopeAsync(ct);
+        var isNpgsql = scope.Context.Database.IsNpgsql();
 
         // 1. Filtrar en SQL directamente los juegos cuya editorial principal o española coincide
         var matchedGames = await scope.Context.Games
             .AsNoTracking()
             .Where(g =>
-                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
-                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)))
+                isNpgsql
+                    ? ((g.Publisher != null && EF.Functions.ILike(g.Publisher, pattern)) ||
+                       (g.SpanishPublisher != null && EF.Functions.ILike(g.SpanishPublisher, pattern)))
+                    : ((g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                       (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern))))
             .ToListAsync(ct);
 
         var matchedIds = new HashSet<Guid>(matchedGames.Select(g => g.Id));
@@ -518,10 +537,12 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         if (string.IsNullOrWhiteSpace(designerName)) return Array.Empty<Game>();
 
         var clean = designerName.Trim();
+        var pattern = $"%{clean}%";
         await using var scope = await CreateScopeAsync(ct);
+        var isNpgsql = scope.Context.Database.IsNpgsql();
         return await scope.Context.Games
             .AsNoTracking()
-            .Where(g => EF.Functions.Like(g.Designer, $"%{clean}%"))
+            .Where(g => isNpgsql ? EF.Functions.ILike(g.Designer, pattern) : EF.Functions.Like(g.Designer, pattern))
             .OrderBy(g => g.SpanishTitle)
             .ToListAsync(ct);
     }
@@ -543,14 +564,21 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         string pattern = $"%{term.Trim()}%";
 
         await using var scope = await CreateScopeAsync(ct);
+        var isNpgsql = scope.Context.Database.IsNpgsql();
         return await scope.Context.Games
             .AsNoTracking()
             .Where(g =>
-                EF.Functions.Like(g.SpanishTitle, pattern) ||
-                EF.Functions.Like(g.OriginalTitle, pattern) ||
-                (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
-                (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
-                (g.Designer != null && EF.Functions.Like(g.Designer, pattern)))
+                isNpgsql
+                    ? (EF.Functions.ILike(g.SpanishTitle, pattern) ||
+                       EF.Functions.ILike(g.OriginalTitle, pattern) ||
+                       (g.SpanishPublisher != null && EF.Functions.ILike(g.SpanishPublisher, pattern)) ||
+                       (g.Publisher != null && EF.Functions.ILike(g.Publisher, pattern)) ||
+                       (g.Designer != null && EF.Functions.ILike(g.Designer, pattern)))
+                    : (EF.Functions.Like(g.SpanishTitle, pattern) ||
+                       EF.Functions.Like(g.OriginalTitle, pattern) ||
+                       (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
+                       (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
+                       (g.Designer != null && EF.Functions.Like(g.Designer, pattern))))
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank ?? int.MaxValue)
             .ThenByDescending(g => g.BggRating)
@@ -700,4 +728,93 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             return GameComplexity.Heavy;
         return GameComplexity.Medium;
     }
+
+    public static IQueryable<Game> ApplyQuerySorting(IQueryable<Game> query, GameSortOrder sortBy)
+    {
+        return sortBy switch
+        {
+            GameSortOrder.RatingDesc => query
+                .OrderByDescending(g => g.BggRating)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.DurationAsc => query
+                .OrderBy(g => g.Duration.MaxMinutes)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.DurationDesc => query
+                .OrderByDescending(g => g.Duration.MaxMinutes)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.YearDesc => query
+                .OrderByDescending(g => g.YearPublished)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.TitleAsc => query
+                .OrderBy(g => g.SpanishTitle)
+                .ThenBy(g => g.OriginalTitle),
+            _ => query
+                .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating)
+        };
+    }
+
+    public static IEnumerable<GameFilterIndexItem> ApplyIndexSorting(IEnumerable<GameFilterIndexItem> items, GameSortOrder sortBy)
+    {
+        return sortBy switch
+        {
+            GameSortOrder.RatingDesc => items
+                .OrderByDescending(g => g.BggRating)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.ComplexityAsc => items
+                .OrderBy(g => CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating),
+            GameSortOrder.ComplexityDesc => items
+                .OrderByDescending(g => CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating),
+            GameSortOrder.DurationAsc => items
+                .OrderBy(g => g.Duration.MaxMinutes)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.DurationDesc => items
+                .OrderByDescending(g => g.Duration.MaxMinutes)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.YearDesc => items
+                .OrderByDescending(g => g.YearPublished)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.TitleAsc => items
+                .OrderBy(g => g.SpanishTitle, StringComparer.CurrentCultureIgnoreCase),
+            _ => items
+                .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating)
+        };
+    }
+
+    public async Task<IReadOnlyList<Game>> GetByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    {
+        var idList = bggIds.Where(id => id > 0).Distinct().ToList();
+        if (idList.Count == 0) return [];
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => idList.Contains(g.BggId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Game>> GetUnlinkedExpansionsAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => g.Type == GameType.Expansion && g.BaseGameId == null && g.BggId > 0)
+            .ToListAsync(ct);
+    }
 }
+

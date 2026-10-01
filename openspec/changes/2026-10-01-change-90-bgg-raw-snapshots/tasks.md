@@ -1,0 +1,44 @@
+# Lista de Tareas: INC-90 — Snapshots Crudos BGG, Refinamiento Integral de Catálogo, Ficha Editorial y Retorno de Sesión
+
+> **ID del Cambio:** `change-90-bgg-raw-snapshots`  
+> **Incremento Asociado:** INC-90  
+> **Estado:** ⏳ Planificado y en progreso  
+
+---
+
+## Tareas de Implementación por Slices
+
+### Fase 1: Slice A — Ficha de Juego, Permisos y Retorno de Sesión
+- [x] 1.1 Unificar el enlace a BGG en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) eliminando el botón redundante de la botonera superior y conservando la insignia canónica en los metadatos.
+- [x] 1.2 Proteger el botón «Cartel para Redes» en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) mediante la guarda de autorización `CanEditGames` para moderadores/fundadores.
+- [x] 1.3 Retirar el badge técnico `@Summary.Model` en [`AiSummaryCard.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/AiSummaryCard.razor), manteniendo únicamente la insignia editorial y fecha.
+- [x] 1.4 Extender [`GameEditorModal.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameEditorModal.razor) para gestionar y subir a R2 la portada frontal, trasera de caja y despliegue en mesa para alimentar el carrusel de INC-85.
+- [x] 1.5 Corregir el endpoint `/login/external` en [`Program.cs`](file:///f:/repos/Ludeka/src/Ludeka.Web/Program.cs) para respetar el parámetro `returnUrl` sanitizado con `LoginRedirect.IsLocalUrl(...)`.
+- [x] 1.6 Reordenar las pestañas secundarias en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) para situar el Hub Multimedia en primer lugar (y activo por defecto), y reestructurar la jerarquía visual de la columna principal colocando el semáforo de escalabilidad tras el carrusel, seguido del multimedia/fundas, y desplazando la síntesis editorial al fondo.
+- [x] 1.7 Retirar el bloque redundante de «Ediciones territoriales» en [`GameDetail.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/GameDetail.razor) unificando la información editorial en la línea de autoría.
+
+### Fase 2: Slice B — Refinamiento del Catálogo y Tarjetas Lúdicas
+- [x] 2.1 Definir el enum `GameSortOrder` en `Ludeka.Core.Enums` y extender `GameFilterCriteria` con la propiedad `SortBy`.
+- [x] 2.2 Implementar la ordenación dinámica (ranking, puntuación, dureza, duración, año y título) en [`SqliteGameRepository.SearchAsync`](file:///f:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteGameRepository.cs).
+- [x] 2.3 Retirar la fila de filtros rápidos superiores en [`Home.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor) y agregar el selector «Ordenar por» en el panel de filtros avanzados con persistencia en URL (`orden`).
+- [x] 2.4 Refactorizar [`GameCard.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Shared/GameCard.razor): formatear jugadores en modo compacto `3-4J`, reducir los badges inferiores a solo iconos con tooltip y retirar la píldora «Solo».
+- [x] 2.5 Añadir leyenda accesible de iconografía en el catálogo.
+- [x] 2.6 Suprimir el encabezado `<PageHeaderEditorial>` en [`Home.razor`](file:///f:/repos/Ludeka/src/Ludeka.Web/Components/Pages/Home.razor) para elevar la barra de búsqueda y las tarjetas al primer plano visual sin scroll.
+- [x] 2.7 Implementar búsqueda insensible a mayúsculas/minúsculas en PostgreSQL (`IsNpgsql()`) mediante `EF.Functions.ILike` en [`SqliteGameRepository.cs`](file:///f:/repos/Ludeka/src/Ludeka.Infrastructure/Data/SqliteGameRepository.cs), corrigiendo los fallos de búsqueda como "ark no" vs "Ark Nova".
+
+### Fase 3: Slice C — Tabla Satélite de Snapshots Crudos BGG y Poblado Defensivo
+- [ ] 3.1 Crear la entidad `BggRawSnapshot` y configurar su mapeo en `LudekaDbContext` (soporte dual `jsonb` en PostgreSQL y `TEXT` en SQLite).
+- [ ] 3.2 Implementar el repositorio `IBggRawSnapshotRepository` y `SqliteBggRawSnapshotRepository`.
+- [ ] 3.3 Integrar la auto-captura transparente de snapshots en el pipeline de consulta de BGG (`BggXmlApiClient` / `BggCatalogQueueService`).
+- [ ] 3.4 Implementar el servicio `BggRawSnapshotSyncService` con *rate limiting* (~1.200 ms) y cancelación cooperativa.
+- [ ] 3.5 Añadir la tarjeta de control de snapshots con métricas y botón de sincronización por lotes en `/admin/cola-catalogacion` protegido con `CanEditGames`.
+- [ ] 3.6 Extender `BggXmlParser` para detectar `type="boardgameexpansion"`, extraer el enlace inbound al juego base (`inboundBaseGameBggId`) y los enlaces de salida de expansiones de cada juego base.
+- [ ] 3.7 Implementar la auto-vinculación de `BaseGameId` entre juegos base y expansiones en el repositorio y servicios de ingesta, y habilitar la acción para encolar expansiones desde los snapshots crudos.
+
+### Fase 4: Verificación Automatizada y Regresión (TDD)
+- [ ] 4.1 Añadir pruebas unitarias para `BggRawSnapshot` y el repositorio satélite.
+- [ ] 4.2 Añadir pruebas unitarias para ordenación dinámica en `SqliteGameRepository`.
+- [ ] 4.3 Añadir pruebas de contrato y renderizado para `GameCard`, `AiSummaryCard` y `GameEditorModal`.
+- [ ] 4.4 Añadir pruebas para la redirección de `returnUrl` en autenticación externa.
+- [ ] 4.5 Añadir pruebas unitarias para el parseo y vinculación automática de expansiones desde BGG (`BggXmlParser` y auto-vinculación de `BaseGameId`).
+- [ ] 4.6 Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`) y certificar 100% verde sin regresiones.

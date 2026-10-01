@@ -17,5 +17,7 @@ public sealed record GameFilterIndexItem(
     AgeRating Age,
     GameStyle Style,
     int? BggRank,
-    double BggRating
+    double BggRating,
+    int YearPublished = 0,
+    string SpanishTitle = ""
 );

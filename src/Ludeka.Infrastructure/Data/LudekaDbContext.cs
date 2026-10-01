@@ -44,6 +44,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
     public DbSet<UserLike> UserLikes => Set<UserLike>();
     public DbSet<UserMilestone> UserMilestones => Set<UserMilestone>();
+    public DbSet<BggRawSnapshot> BggRawSnapshots => Set<BggRawSnapshot>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -581,5 +582,19 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         userMilestone.Property(m => m.UnlockedAt).IsRequired();
         userMilestone.HasIndex(m => new { m.UserId, m.Type }).IsUnique();
         userMilestone.HasIndex(m => m.UserId);
+
+        // --- Configuración de BggRawSnapshot (INC-90: Snapshots crudos BGG desacoplados) ---
+        var snapshot = modelBuilder.Entity<BggRawSnapshot>();
+        snapshot.ToTable("BggRawSnapshots");
+        snapshot.HasKey(s => s.BggId);
+        snapshot.Property(s => s.BggId).ValueGeneratedNever();
+        snapshot.Property(s => s.RawJson).IsRequired();
+        if (Database.IsNpgsql())
+        {
+            snapshot.Property(s => s.RawJson).HasColumnType("jsonb");
+        }
+        snapshot.Property(s => s.ApiVersion).IsRequired();
+        snapshot.Property(s => s.FetchedAtUtc).IsRequired();
+        snapshot.HasIndex(s => s.FetchedAtUtc);
     }
 }

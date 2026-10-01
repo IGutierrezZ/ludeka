@@ -8,9 +8,6 @@
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-2xs">
                 <Icon Name="bot" Size="14" /> Síntesis generada por IA
             </span>
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[0.68rem] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                <Icon Name="zap" Size="14" /> @Summary.Model
-            </span>
             @if (Summary.GeneratedAt.HasValue)
             {
                 <span class="text-[0.68rem] text-[var(--text-muted)]">
