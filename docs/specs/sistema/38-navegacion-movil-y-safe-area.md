@@ -1,9 +1,9 @@
 # 38. Navegación Móvil, Barra Inferior y Áreas Seguras (Safe-Area)
 
 > **Módulo:** 38 — Navegación Móvil, Barra Inferior y Áreas Seguras  
-> **Estado:** Implementado y Verificado (INC-60)  
-> **Fuentes:** [`MobileBottomNav.razor`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Components/Shared/MobileBottomNav.razor), [`App.razor`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Components/App.razor), [`MainLayout.razor`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Components/Layout/MainLayout.razor), [`MainLayout.razor.css`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Components/Layout/MainLayout.razor.css), [`CollectionActionBar.razor`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Components/Shared/CollectionActionBar.razor), [`input.css`](file:///C:/repos/ludeka-wt/navegacion-movil/src/Ludeka.Web/Styles/input.css)  
-> **Pruebas:** `tests/Ludeka.UnitTests/Web/MobileNavigationContractTests.cs` (8 contratos) y suite completa (1.695 pruebas superadas al 100%)
+> **Estado:** Implementado y Verificado (INC-60 / Cierre Menú Móvil)  
+> **Fuentes:** [`MobileBottomNav.razor`](file:///src/Ludeka.Web/Components/Shared/MobileBottomNav.razor), [`App.razor`](file:///src/Ludeka.Web/Components/App.razor), [`MainLayout.razor`](file:///src/Ludeka.Web/Components/Layout/MainLayout.razor), [`mobile-nav.js`](file:///src/Ludeka.Web/wwwroot/js/mobile-nav.js), [`MainLayout.razor.css`](file:///src/Ludeka.Web/Components/Layout/MainLayout.razor.css), [`CollectionActionBar.razor`](file:///src/Ludeka.Web/Components/Shared/CollectionActionBar.razor), [`input.css`](file:///src/Ludeka.Web/Styles/input.css)  
+> **Pruebas:** `tests/Ludeka.UnitTests/Web/MobileNavigationContractTests.cs` (11 contratos) y suite completa (2.241 pruebas unitarias superadas al 100%)
 
 ---
 
@@ -94,3 +94,14 @@ En la ficha del juego, los controles de estado de colección se transforman de u
 - **Botón 3:** Icono `shopping-cart` + etiqueta `Comprar`.
 
 Esta disposición permite marcar y alternar estados de colección de forma inmediata con el pulgar mientras se explora el catálogo o se lee una ficha.
+
+---
+
+## 5. Menú Desplegable Superior Móvil y Cierre por Descarte Exterior (`mobile-nav.js`)
+
+En la cabecera superior (`MainLayout.razor`), la navegación de escritorio se colapsa en vista móvil (`lg:hidden`) en un botón desplegable semántico estructurado sobre la etiqueta nativa `<details id="mobile-nav-details" data-mobile-nav>`:
+
+1. **Renderizado Estático Resiliente (SSR):** El menú abre y cierra nativamente con su `<summary>` sin depender de conexiones activas de SignalR ni JavaScript obligatorio para el toggle básico.
+2. **Cierre por Clic Exterior No Bloqueante (`mobile-nav.js`):** Escucha global en `pointerdown` y `click` sobre `document` que retira el atributo `open` cuando el usuario pulsa en cualquier punto fuera del menú. La interacción no bloquea la propagación de eventos, por lo que si el usuario pulsa sobre otra acción (ej. login, selector de tema, o enlaces de la página), dicha acción se ejecuta a la vez que el menú se repliega.
+3. **Accesibilidad WCAG 2.2 AA:** Escucha de la tecla `Escape` con cierre automático y restitución del foco al botón `<summary>`.
+4. **Respuesta a Navegación y Viewport:** Se repliega automáticamente si se redimensiona a resolución de escritorio (`>= 1024px`) o si ocurre navegación en el historial (`popstate`).

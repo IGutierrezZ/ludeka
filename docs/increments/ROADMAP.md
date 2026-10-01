@@ -140,6 +140,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 | *(Ninguno en curso)* | — | — | — | — |
 
 
+*(PR #167 entregó su verificación con 2.241 pruebas unitarias [2.251 totales con integración] en verde al 100%, y quedó fusionado y archivado el 2026-10-01. Implementa el cierre accesible y no bloqueante del menú desplegable superior móvil [`MainLayout.razor`] al interactuar fuera de él o sobre cualquier otra acción mediante [`mobile-nav.js`], soporte de tecla `Escape` con restitución de foco al botón `<summary>` [WCAG 2.2 AA], cierre automático al redimensionar a escritorio [`lg: 1024px`] o en eventos `popstate`, registro con `defer` en [`App.razor`] y custodia mediante 3 pruebas de contrato en `MobileNavigationContractTests.cs`).*
+
+
 *(INC-94 entregó su PR #166, verificada con 2.238 pruebas unitarias [2.248 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Implementa la fecha de lanzamiento opcional [DateOnly?] en WeeklyRelease con insignia "Próximamente", la ordenación por orden de llegada [CreatedAt desc] en novedades, la restricción de visibilidad de eventos hasta su fecha de fin [EndDate >= today], la política de retención y purga [IDataRetentionService y DataRetentionService] con 7 días de gracia para sorteos y eventos y 60 días para novedades con fecha vencida o nula, la liberación segura de almacenamiento en disco y Cloudflare R2 vía ManagedImageKeyExtractor y DeleteImageAsync, y el runner desatendido data-retention [DataRetentionJobRunner] en Ludeka.Jobs con idempotencia de ventana diaria).*
 
 
