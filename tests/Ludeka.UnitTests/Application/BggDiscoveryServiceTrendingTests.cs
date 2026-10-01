@@ -246,6 +246,9 @@ public class BggDiscoveryServiceTrendingTests
         public Task<DateOnly?> GetLatestDateAsync(CancellationToken ct = default) =>
             Task.FromResult(Items.Select(i => (DateOnly?)i.DateUtc).Max());
 
+        public Task<DateOnly?> GetPreviousDateAsync(DateOnly dateUtc, CancellationToken ct = default) =>
+            Task.FromResult(Items.Where(i => i.DateUtc < dateUtc).Select(i => (DateOnly?)i.DateUtc).Max());
+
         public Task<IReadOnlyList<DailyTrendingGame>> GetLatestTrendingAsync(int limit = 50, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<DailyTrendingGame>>(Items.OrderBy(i => i.Rank).Take(limit).ToList());
 

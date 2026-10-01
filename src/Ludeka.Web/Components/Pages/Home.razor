@@ -342,13 +342,6 @@
                     </span>
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.Trending ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.Trending)"
-                                aria-pressed="@(_sortBy == GameSortOrder.Trending ? "true" : "false")">
-                            <Icon Name="flame" Size="12" />
-                            <span>En tendencia</span>
-                        </button>
-                        <button type="button"
                                 class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.Rank ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
                                 @onclick="() => SetSortOrder(GameSortOrder.Rank)"
                                 aria-pressed="@(_sortBy == GameSortOrder.Rank ? "true" : "false")">
@@ -614,8 +607,7 @@
         _selectedStyles.Count +
         _selectedFootprints.Count +
         _selectedConfrontations.Count +
-        _selectedMaxDurations.Count +
-        (_sortBy != GameSortOrder.Rank ? 1 : 0);
+        _selectedMaxDurations.Count;
 
     private bool HasActiveRefinements =>
         ActiveAdvancedFiltersCount > 0 ||
@@ -813,9 +805,15 @@
 
         if (query.TryGetValue("orden", out var oVal) && !string.IsNullOrWhiteSpace(oVal))
         {
-            _sortBy = oVal.ToString().ToLowerInvariant() switch
+            var oNormalized = oVal.ToString().ToLowerInvariant();
+            if (oNormalized is "tendencia" or "tendencias" or "trending" or "hot" or "hotness")
             {
-                "tendencia" or "tendencias" or "trending" or "hot" or "hotness" => GameSortOrder.Trending,
+                Navigation.NavigateTo("/tendencias", replace: true);
+                return;
+            }
+
+            _sortBy = oNormalized switch
+            {
                 "rating" => GameSortOrder.RatingDesc,
                 "dureza-asc" or "ligero" => GameSortOrder.ComplexityAsc,
                 "dureza-desc" or "duro" => GameSortOrder.ComplexityDesc,
@@ -922,7 +920,6 @@
         {
             queryParams["orden"] = _sortBy switch
             {
-                GameSortOrder.Trending => "tendencia",
                 GameSortOrder.RatingDesc => "rating",
                 GameSortOrder.ComplexityAsc => "dureza-asc",
                 GameSortOrder.ComplexityDesc => "dureza-desc",

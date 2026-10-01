@@ -144,6 +144,25 @@ public class CatalogFilterContractTests
         Assert.DoesNotContain("@((MarkupString)Game.Description)", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HomeCatalog_FilterContract_ShouldDecoupleSortFromFiltersAndRedirectTrending()
+    {
+        var source = ReadSource(HomeCatalogPath);
+
+        // Ya no contiene el botón de ordenación 'En tendencia'
+        Assert.DoesNotContain("<span>En tendencia</span>", source, StringComparison.Ordinal);
+
+        // Redirige URLs con orden=tendencia hacia /tendencias
+        Assert.Contains("Navigation.NavigateTo(\"/tendencias\", replace: true)", source, StringComparison.Ordinal);
+
+        // ActiveAdvancedFiltersCount no incluye _sortBy
+        Assert.DoesNotContain("(_sortBy != GameSortOrder.Rank ? 1 : 0)", source, StringComparison.Ordinal);
+
+        // Enlace en HomeDashboard apunta a /tendencias
+        var dashboardSource = ReadSource("src/Ludeka.Web/Components/Pages/HomeDashboard.razor");
+        Assert.Contains("href=\"@(_showTrending ? \"/tendencias\" : \"/catalogo\")\"", dashboardSource, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

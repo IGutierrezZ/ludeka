@@ -31,6 +31,16 @@ public class SqliteDailyTrendingGameRepository : DbContextRepositoryBase, IDaily
             .MaxAsync(ct);
     }
 
+    public async Task<DateOnly?> GetPreviousDateAsync(DateOnly dateUtc, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.DailyTrendingGames
+            .AsNoTracking()
+            .Where(t => t.DateUtc < dateUtc)
+            .Select(t => (DateOnly?)t.DateUtc)
+            .MaxAsync(ct);
+    }
+
     public async Task<IReadOnlyList<DailyTrendingGame>> GetTrendingByDateAsync(DateOnly dateUtc, CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
