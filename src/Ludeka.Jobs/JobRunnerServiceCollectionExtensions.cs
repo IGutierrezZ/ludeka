@@ -23,6 +23,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, SeedDirectoryJobRunner>();
         services.AddScoped<IJobRunner, BackfillQualityJobRunner>();
         services.AddScoped<IJobRunner, BggRawBackfillJobRunner>();
+        services.AddScoped<IJobRunner, DataRetentionJobRunner>();
         return services;
     }
 }

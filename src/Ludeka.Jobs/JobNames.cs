@@ -18,6 +18,7 @@ public static class JobNames
     public const string SeedDirectory = "seed-directory";
     public const string BackfillQuality = "backfill-quality";
     public const string BggRawBackfill = "bgg-raw-backfill";
+    public const string DataRetention = "data-retention";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -31,6 +32,7 @@ public static class JobNames
         DrainStaging,
         SeedDirectory,
         BackfillQuality,
-        BggRawBackfill
+        BggRawBackfill,
+        DataRetention
     ];
 }
