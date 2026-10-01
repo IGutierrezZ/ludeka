@@ -36,4 +36,9 @@ public interface IDailyTrendingGameRepository
     /// Obtiene la fecha más reciente de tendencias registrada en la base de datos.
     /// </summary>
     Task<DateOnly?> GetLatestDateAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Obtiene la fecha más reciente anterior a la fecha especificada con datos registrados.
+    /// </summary>
+    Task<DateOnly?> GetPreviousDateAsync(DateOnly dateUtc, CancellationToken ct = default);
 }

@@ -96,6 +96,9 @@ public class HomeDashboardServiceTests
         public Task<DateOnly?> GetLatestDateAsync(CancellationToken ct = default) =>
             Task.FromResult(ItemsToReturn.Select(t => (DateOnly?)t.DateUtc).Max());
 
+        public Task<DateOnly?> GetPreviousDateAsync(DateOnly dateUtc, CancellationToken ct = default) =>
+            Task.FromResult(ItemsToReturn.Where(t => t.DateUtc < dateUtc).Select(t => (DateOnly?)t.DateUtc).Max());
+
         public Task<IReadOnlyList<DailyTrendingGame>> GetLatestTrendingAsync(int limit = 50, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<DailyTrendingGame>>(ItemsToReturn.Take(limit).ToList());
 

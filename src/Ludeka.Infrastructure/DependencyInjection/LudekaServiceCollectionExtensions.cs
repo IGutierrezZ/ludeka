@@ -23,6 +23,7 @@ using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
+using Ludeka.Application.Features.Trending;
 using Ludeka.Application.Options;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
@@ -152,8 +153,9 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IBggRawSnapshotRepository, SqliteBggRawSnapshotRepository>();
         services.AddScoped<IBggRawSnapshotSyncService, BggRawSnapshotSyncService>();
 
-        // Incremento 92: Persistencia diaria de tendencias (BGG Hotness)
+        // Incremento 93 / 95: Persistencia diaria de tendencias (BGG Hotness) y servicio de deltas
         services.AddScoped<IDailyTrendingGameRepository, SqliteDailyTrendingGameRepository>();
+        services.AddScoped<ITrendingService, TrendingService>();
 
         // Incremento 24: Detección Automática de Juegos en Novedades y Cola Nocturna Inteligente BGG/Gemini
         services.Configure<NightlyCatalogingOptions>(configuration.GetSection("NightlyCataloging"));
