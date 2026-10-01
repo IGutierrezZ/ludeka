@@ -51,7 +51,7 @@ public class LudekaJobsCompositionTests
         Assert.False(currentUser.HasPermission(ModeratorPermission.CanEditGames));
 
         var runners = sp.GetServices<IJobRunner>().ToList();
-        Assert.Equal(8, runners.Count);
+        Assert.Equal(9, runners.Count);
         Assert.Contains(runners, r => r.Name == JobNames.NightlyCataloging && r is NightlyCatalogingJobRunner);
         Assert.Contains(runners, r => r.Name == JobNames.PriceRadar && r is PriceRadarJobRunner);
         Assert.Contains(runners, r => r.Name == JobNames.SocialCollector && r is SocialCollectorJobRunner);
@@ -60,5 +60,6 @@ public class LudekaJobsCompositionTests
         Assert.Contains(runners, r => r.Name == JobNames.DrainStaging && r is DrainStagingJobRunner);
         Assert.Contains(runners, r => r.Name == JobNames.SeedDirectory && r is SeedDirectoryJobRunner);
         Assert.Contains(runners, r => r.Name == JobNames.BackfillQuality && r is BackfillQualityJobRunner);
+        Assert.Contains(runners, r => r.Name == JobNames.BggRawBackfill && r is BggRawBackfillJobRunner);
     }
 }

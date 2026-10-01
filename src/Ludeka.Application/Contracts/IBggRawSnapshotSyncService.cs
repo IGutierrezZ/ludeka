@@ -32,4 +32,19 @@ public interface IBggRawSnapshotSyncService
     /// si su juego base correspondiente existe en el catálogo.
     /// </summary>
     Task<int> AutoLinkExistingExpansionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema para ejecutor en segundo plano (Ludeka.Jobs o background worker) sin guarda interactiva.
+    /// </summary>
+    Task<BggRawSnapshotSyncResultDto> RunScheduledSyncBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema para descubrimiento y encolado de expansiones sin guarda interactiva.
+    /// </summary>
+    Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema para auto-vinculación de expansiones sin guarda interactiva.
+    /// </summary>
+    Task<int> RunScheduledAutoLinkExistingExpansionsAsync(CancellationToken ct = default);
 }
