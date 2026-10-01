@@ -147,6 +147,10 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IBggCatalogQueueService, BggCatalogQueueService>();
         services.AddScoped<IBggSearchAssistedService, BggSearchAssistedService>();
 
+        // Incremento 90: Snapshots Crudos BGG desacoplados y auto-vinculación de expansiones
+        services.AddScoped<IBggRawSnapshotRepository, SqliteBggRawSnapshotRepository>();
+        services.AddScoped<IBggRawSnapshotSyncService, BggRawSnapshotSyncService>();
+
         // Incremento 24: Detección Automática de Juegos en Novedades y Cola Nocturna Inteligente BGG/Gemini
         services.Configure<NightlyCatalogingOptions>(configuration.GetSection("NightlyCataloging"));
         services.AddScoped<INewsGameExtractor, NewsGameExtractor>();

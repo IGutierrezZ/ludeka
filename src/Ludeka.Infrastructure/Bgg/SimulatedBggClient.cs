@@ -22,6 +22,13 @@ public class SimulatedBggClient : IBggClient
         return Task.FromResult(game);
     }
 
+    public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var xml = BggSimulationDataset.GetRawThingXml(bggId);
+        return Task.FromResult<string?>(xml);
+    }
+
     public Task<IReadOnlyList<BggSearchResultDto>> SearchGamesAsync(string query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

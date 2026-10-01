@@ -392,6 +392,12 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     game.BackCoverImageUrl,
                     game.TableImageUrl
                 );
+
+                if (game.BaseGameId.HasValue && game.BaseGameId.Value != Guid.Empty)
+                {
+                    existing.SetBaseGameId(game.BaseGameId.Value);
+                }
+                existing.SetGameType(game.Type);
             }
 
             await scope.Context.SaveChangesAsync(ct);
@@ -791,4 +797,24 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 .ThenByDescending(g => g.BggRating)
         };
     }
+
+    public async Task<IReadOnlyList<Game>> GetByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    {
+        var idList = bggIds.Where(id => id > 0).Distinct().ToList();
+        if (idList.Count == 0) return [];
+
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => idList.Contains(g.BggId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Game>> GetUnlinkedExpansionsAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.Games
+            .Where(g => g.Type == GameType.Expansion && g.BaseGameId == null && g.BggId > 0)
+            .ToListAsync(ct);
+    }
 }
+

@@ -1737,5 +1737,38 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    CREATE TABLE "BggRawSnapshots" (
+        "BggId" integer NOT NULL,
+        "RawJson" jsonb NOT NULL,
+        "ApiVersion" integer NOT NULL,
+        "FetchedAtUtc" timestamp with time zone NOT NULL,
+        "UpdatedAtUtc" timestamp with time zone,
+        CONSTRAINT "PK_BggRawSnapshots" PRIMARY KEY ("BggId")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    CREATE INDEX "IX_BggRawSnapshots_FetchedAtUtc" ON "BggRawSnapshots" ("FetchedAtUtc");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001120000_AddBggRawSnapshots') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261001120000_AddBggRawSnapshots', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+
 
 

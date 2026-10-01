@@ -28,6 +28,12 @@ public enum CatalogQueueOrigin
     /// <summary>
     /// Descubierto automáticamente a partir de la lista de tendencias mundiales (Hotness) de BoardGameGeek.
     /// </summary>
-    BggHotness = 4
+    BggHotness = 4,
+
+    /// <summary>
+    /// Descubierto automáticamente a partir de enlaces de expansión en snapshots de BGG.
+    /// </summary>
+    BggExpansionDiscovery = 5
 }
+
 

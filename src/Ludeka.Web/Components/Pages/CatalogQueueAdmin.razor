@@ -10,6 +10,7 @@
 @inject IBggMassIngestionService MassIngestionService
 @inject IBggDiscoveryService DiscoveryService
 @inject IDirectorySeederService DirectorySeederService
+@inject IBggRawSnapshotSyncService SnapshotSyncService
 @inject ICurrentUserService CurrentUserService
 @inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Navigation
@@ -569,6 +570,169 @@
             }
         </div>
 
+        @* Sección Snapshots Crudos BGG & Expansiones Satélite (INC-90) *@
+        <div class="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+                <div class="space-y-1">
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[0.7rem] font-bold">
+                        <Icon Name="database" Size="12" /> Snapshots Crudos BGG & Expansiones (INC-90)
+                    </div>
+                    <h2 class="text-base font-bold text-[var(--text-primary)]">
+                        Tabla Satélite de Payloads BGG & Auto-Vinculación de Expansiones
+                    </h2>
+                    <p class="text-xs text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+                        Preserva el payload íntegro de BGG XMLAPI2 en formato desacoplado (jsonb) para recálculos deterministas futuros, sin sobrecargar la entidad Game, con auto-vinculación de expansiones y descubrimiento satélite.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button"
+                            @onclick="ExecuteSyncSnapshotsBatchAsync"
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
+                            class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                        @if (_isSyncingSnapshots)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Sincronizando Lote BGG...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="refresh-cw" Size="14" />
+                            <span>Sincronizar Lote (20)</span>
+                        }
+                    </button>
+
+                    <button type="button"
+                            @onclick="ExecuteDiscoverExpansionsAsync"
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        @if (_isDiscoveringExpansions)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Buscando...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="plus-circle" Size="14" />
+                            <span>Descubrir y Encolar Expansiones</span>
+                        }
+                    </button>
+
+                    <button type="button"
+                            @onclick="ExecuteAutoLinkExpansionsAsync"
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        @if (_isAutoLinkingExpansions)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Vinculando...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="link" Size="14" />
+                            <span>Auto-vincular Huérfanas</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @* Cuadrícula de Métricas de Snapshots *@
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                    <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
+                        <Icon Name="gamepad-2" Size="12" /> Juegos con BGG ID
+                    </span>
+                    <div class="text-xl font-black text-[var(--text-primary)]">
+                        @(_snapshotStatus?.TotalGamesWithBggId ?? 0)
+                    </div>
+                    <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                        Total en catálogo caliente
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                    <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
+                        <Icon Name="database" Size="12" /> Snapshots Almacenados
+                    </span>
+                    <div class="text-xl font-black text-cyan-400">
+                        @(_snapshotStatus?.TotalSnapshots ?? 0)
+                    </div>
+                    <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                        Tabla satélite desacoplada
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                    <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
+                        <Icon Name="clock" Size="12" /> Snapshots Pendientes
+                    </span>
+                    <div class="text-xl font-black @((_snapshotStatus?.PendingSnapshots ?? 0) > 0 ? "text-amber-400" : "text-emerald-400")">
+                        @(_snapshotStatus?.PendingSnapshots ?? 0)
+                    </div>
+                    <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                        @((_snapshotStatus?.PendingSnapshots ?? 0) > 0 ? "Requieren ingesta asistida" : "100% sincronizado")
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                    <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
+                        <Icon Name="layers" Size="12" /> Expansiones en Catálogo
+                    </span>
+                    <div class="text-xl font-black text-[var(--text-primary)]">
+                        @(_snapshotStatus?.TotalExpansions ?? 0)
+                    </div>
+                    <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                        <span class="text-emerald-400 font-medium">@(_snapshotStatus?.LinkedExpansions ?? 0) vinculadas</span> / <span class="text-amber-400 font-medium">@(_snapshotStatus?.UnlinkedExpansions ?? 0) huérfanas</span>
+                    </div>
+                </div>
+            </div>
+
+            @* Alertas de Resultado *@
+            @if (_snapshotSyncResult != null)
+            {
+                <div class="p-4 rounded-xl @(_snapshotSyncResult.FailedCount == 0 ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300") border text-xs space-y-1">
+                    <div class="flex items-center justify-between font-bold">
+                        <span>@_snapshotSyncResult.Message</span>
+                        <button type="button" @onclick="() => _snapshotSyncResult = null" class="text-base font-bold">&times;</button>
+                    </div>
+                    @if (_snapshotSyncResult.SyncedTitles.Count > 0)
+                    {
+                        <div class="text-[var(--text-secondary)] text-[0.75rem]">
+                            <strong>Juegos sincronizados:</strong> @string.Join(", ", _snapshotSyncResult.SyncedTitles)
+                        </div>
+                    }
+                    @if (_snapshotSyncResult.LinkedExpansions.Count > 0)
+                    {
+                        <div class="text-emerald-400 text-[0.75rem]">
+                            <strong>Expansiones auto-vinculadas:</strong> @string.Join(", ", _snapshotSyncResult.LinkedExpansions)
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_expansionDiscoveryResult != null)
+            {
+                <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
+                    <div>
+                        <strong>Descubrimiento completado:</strong> @_expansionDiscoveryResult.DiscoveredCount expansiones detectadas, <strong>@_expansionDiscoveryResult.EnqueuedCount agregadas a la cola</strong> de importación.
+                        @if (_expansionDiscoveryResult.EnqueuedTitles.Count > 0)
+                        {
+                            <span class="text-[var(--text-secondary)] block text-[0.75rem] mt-0.5">@string.Join(", ", _expansionDiscoveryResult.EnqueuedTitles)</span>
+                        }
+                    </div>
+                    <button type="button" @onclick="() => _expansionDiscoveryResult = null" class="text-base font-bold">&times;</button>
+                </div>
+            }
+
+            @if (_autoLinkResultCount.HasValue)
+            {
+                <div class="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
+                    <span><strong>Auto-vinculación finalizada:</strong> Se han enlazado @_autoLinkResultCount.Value expansiones huérfanas a sus juegos base correspondientes.</span>
+                    <button type="button" @onclick="() => _autoLinkResultCount = null" class="text-base font-bold">&times;</button>
+                </div>
+            }
+        </div>
+
         @* Tarjeta INC-54: Padrón Exhaustivo del Directorio Lúdico Español *@
         <div class="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -903,6 +1067,15 @@
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
     private IReadOnlyList<NightlyCatalogingExecutionLogDto> _history = [];
 
+    // Incremento 90: Snapshots Crudos BGG y Expansiones
+    private BggRawSnapshotStatusDto? _snapshotStatus;
+    private BggRawSnapshotSyncResultDto? _snapshotSyncResult;
+    private BggExpansionDiscoveryResultDto? _expansionDiscoveryResult;
+    private int? _autoLinkResultCount;
+    private bool _isSyncingSnapshots = false;
+    private bool _isDiscoveringExpansions = false;
+    private bool _isAutoLinkingExpansions = false;
+
     private bool CanManageQueue =>
         CurrentUserService.IsFoundingTeam ||
         (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames));
@@ -936,6 +1109,7 @@
             _stagingMetrics = await MassIngestionService.GetMetricsAsync();
             _pendingQualityCount = await MassIngestionService.GetPendingQualityBackfillCountAsync();
             _totalCatalogCount = await MassIngestionService.GetTotalCatalogCountAsync();
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
         }
         catch (Exception)
         {
@@ -1323,6 +1497,66 @@
         {
             _continuousBackfillMessage = "Deteniendo actualización de calidad...";
             _continuousBackfillCts.Cancel();
+        }
+    }
+
+    private async Task ExecuteSyncSnapshotsBatchAsync()
+    {
+        if (_isSyncingSnapshots) return;
+        _isSyncingSnapshots = true;
+        _snapshotSyncResult = null;
+        try
+        {
+            _snapshotSyncResult = await SnapshotSyncService.SyncBatchAsync(batchSize: 20, delayMs: 1200);
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            _snapshotSyncResult = new BggRawSnapshotSyncResultDto(0, 0, 1, [], [], $"Error al sincronizar snapshots: {ex.Message}");
+        }
+        finally
+        {
+            _isSyncingSnapshots = false;
+        }
+    }
+
+    private async Task ExecuteDiscoverExpansionsAsync()
+    {
+        if (_isDiscoveringExpansions) return;
+        _isDiscoveringExpansions = true;
+        _expansionDiscoveryResult = null;
+        try
+        {
+            _expansionDiscoveryResult = await SnapshotSyncService.DiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 50);
+            await LoadDataAsync();
+        }
+        catch (Exception)
+        {
+            _expansionDiscoveryResult = new BggExpansionDiscoveryResultDto(0, 0, []);
+        }
+        finally
+        {
+            _isDiscoveringExpansions = false;
+        }
+    }
+
+    private async Task ExecuteAutoLinkExpansionsAsync()
+    {
+        if (_isAutoLinkingExpansions) return;
+        _isAutoLinkingExpansions = true;
+        _autoLinkResultCount = null;
+        try
+        {
+            _autoLinkResultCount = await SnapshotSyncService.AutoLinkExistingExpansionsAsync();
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
+        }
+        catch (Exception)
+        {
+            _autoLinkResultCount = 0;
+        }
+        finally
+        {
+            _isAutoLinkingExpansions = false;
         }
     }
 

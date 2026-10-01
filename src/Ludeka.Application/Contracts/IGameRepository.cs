@@ -54,5 +54,11 @@ public interface IGameRepository
 
     Task<IReadOnlyList<Game>> GetGamesWithPurchaseLinksAsync(int? limit = null, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<IReadOnlyList<Game>> GetByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<IReadOnlyList<Game>> GetUnlinkedExpansionsAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
 }
 
