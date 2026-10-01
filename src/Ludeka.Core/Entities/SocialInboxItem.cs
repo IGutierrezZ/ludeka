@@ -118,7 +118,8 @@ public class SocialInboxItem
         MediaCategory? mediaCategory,
         string? playerCountBadge,
         string? thumbnailUrl,
-        string? moderatorNotes)
+        string? moderatorNotes,
+        string? sourceUrl = null)
     {
         if (Status != SocialInboxStatus.PendingReview)
             throw new InvalidOperationException("Solo se pueden editar elementos en estado pendiente de revisión.");
@@ -145,6 +146,11 @@ public class SocialInboxItem
         if (!string.IsNullOrWhiteSpace(thumbnailUrl))
         {
             ThumbnailUrl = thumbnailUrl.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(sourceUrl))
+        {
+            SourceUrl = sourceUrl.Trim();
         }
 
         ModeratorNotes = string.IsNullOrWhiteSpace(moderatorNotes) ? null : moderatorNotes.Trim();

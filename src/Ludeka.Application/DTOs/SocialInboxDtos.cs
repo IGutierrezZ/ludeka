@@ -147,7 +147,8 @@ public record SocialInboxUpdateDto(
     MediaCategory? MediaCategory,
     string? PlayerCountBadge,
     string? ThumbnailUrl,
-    string? ModeratorNotes
+    string? ModeratorNotes,
+    string? SourceUrl = null
 );
 
 public record MonitoredAccountDto(

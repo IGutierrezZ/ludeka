@@ -86,6 +86,43 @@ public class ReleaseDetailPageContractTests
         }
     }
 
+    [Fact]
+    public void Page_ShouldDeclareModeratorAddLinkActionWhenSourceUrlIsEmpty()
+    {
+        var source = ReadSource(PagePath);
+
+        Assert.Contains("Añadir enlace oficial a la noticia", source, StringComparison.Ordinal);
+        Assert.Contains("Información catalogada directamente por el equipo editorial", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Page_ShouldValidateSourceUrlMandatoryInEditModal()
+    {
+        var source = ReadSource(PagePath);
+
+        Assert.Contains("Enlace Oficial a la Noticia / Fuente (URL) *", source, StringComparison.Ordinal);
+        Assert.Contains("El enlace oficial o noticia de la novedad es obligatorio", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NewsPage_ShouldValidateSourceUrlMandatoryInCreateModal()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Pages/News.razor");
+
+        Assert.Contains("Enlace Oficial a la Noticia / Fuente *", source, StringComparison.Ordinal);
+        Assert.Contains("El enlace oficial o noticia de la novedad es obligatorio (igual que en sorteos).", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SocialInboxEditModal_ShouldDeclareSourceUrlFieldAndValidation()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Shared/SocialInboxEditModal.razor");
+
+        Assert.Contains("_sourceUrl", source, StringComparison.Ordinal);
+        Assert.Contains("Enlace Oficial a la Noticia / Fuente *", source, StringComparison.Ordinal);
+        Assert.Contains("El enlace oficial o noticia de la novedad es obligatorio (igual que en sorteos).", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

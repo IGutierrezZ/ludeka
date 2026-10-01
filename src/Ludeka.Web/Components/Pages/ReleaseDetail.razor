@@ -169,9 +169,20 @@ else
                     }
                     else
                     {
-                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2">
-                            <Icon Name="newspaper" Size="14" Class="text-[var(--brand-primary)]" />
-                            <span>Información catalogada directamente por el equipo editorial</span>
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)] flex flex-col items-center justify-center gap-2">
+                            <div class="flex items-center justify-center gap-2">
+                                <Icon Name="newspaper" Size="14" Class="text-[var(--brand-primary)]" />
+                                <span>Información catalogada directamente por el equipo editorial</span>
+                            </div>
+                            @if (CanModerate)
+                            {
+                                <button type="button"
+                                        @onclick="OpenEditModal"
+                                        class="mt-1 px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity inline-flex items-center gap-1.5 shadow-sm">
+                                    <Icon Name="link" Size="13" />
+                                    <span>Añadir enlace oficial a la noticia</span>
+                                </button>
+                            }
                         </div>
                     }
                 </div>
@@ -355,13 +366,13 @@ else
 
                 @* URL de Noticia Oficial / Origen *@
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace a Noticia / Fuente Original (URL)</label>
+                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace Oficial a la Noticia / Fuente (URL) *</label>
                     <input type="url"
                            @bind="_editSourceUrl"
-                           placeholder="https://..."
+                           placeholder="https://... (web de editorial, tienda o publicación oficial)"
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
                     <span class="text-[0.68rem] text-[var(--text-muted)] mt-1 block">
-                        Enlace a la web de la editorial o tienda donde se anunció la novedad.
+                        Obligatorio (igual que en sorteos): enlace a la web de la editorial o tienda donde se anunció la novedad.
                     </span>
                 </div>
 
@@ -624,6 +635,19 @@ else
         if (string.IsNullOrWhiteSpace(_editPublisher))
         {
             _editError = "La editorial es obligatoria.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editSourceUrl))
+        {
+            _editError = "El enlace oficial o noticia de la novedad es obligatorio (igual que en sorteos).";
+            return;
+        }
+
+        if (!Uri.TryCreate(_editSourceUrl.Trim(), UriKind.Absolute, out var parsedUri) ||
+            (parsedUri.Scheme != Uri.UriSchemeHttp && parsedUri.Scheme != Uri.UriSchemeHttps))
+        {
+            _editError = "El enlace oficial debe ser una URL válida que empiece por http:// o https://.";
             return;
         }
 
