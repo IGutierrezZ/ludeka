@@ -80,7 +80,16 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
     public async Task<BggRawSnapshotSyncResultDto> SyncBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
+        return await SyncBatchCoreAsync(batchSize, delayMs, ct);
+    }
 
+    public Task<BggRawSnapshotSyncResultDto> RunScheduledSyncBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+    {
+        return SyncBatchCoreAsync(batchSize, delayMs, ct);
+    }
+
+    private async Task<BggRawSnapshotSyncResultDto> SyncBatchCoreAsync(int batchSize, int delayMs, CancellationToken ct)
+    {
         var missingIds = await _snapshotRepo.GetMissingBggIdsAsync(batchSize, ct);
         if (missingIds.Count == 0)
         {
@@ -187,7 +196,16 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
     public async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
+        return await DiscoverAndEnqueueMissingExpansionsCoreAsync(maxToEnqueue, ct);
+    }
 
+    public Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default)
+    {
+        return DiscoverAndEnqueueMissingExpansionsCoreAsync(maxToEnqueue, ct);
+    }
+
+    private async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsCoreAsync(int maxToEnqueue, CancellationToken ct)
+    {
         var snapshots = await _snapshotRepo.GetAllSnapshotsAsync(500, ct);
         var candidates = new Dictionary<int, string>();
 
@@ -247,7 +265,16 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
     public async Task<int> AutoLinkExistingExpansionsAsync(CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
+        return await AutoLinkExistingExpansionsCoreAsync(ct);
+    }
 
+    public Task<int> RunScheduledAutoLinkExistingExpansionsAsync(CancellationToken ct = default)
+    {
+        return AutoLinkExistingExpansionsCoreAsync(ct);
+    }
+
+    private async Task<int> AutoLinkExistingExpansionsCoreAsync(CancellationToken ct)
+    {
         var unlinkedExpansions = await _gameRepo.GetUnlinkedExpansionsAsync(ct);
         if (unlinkedExpansions.Count == 0) return 0;
 

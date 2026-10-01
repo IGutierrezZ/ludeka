@@ -586,19 +586,39 @@
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap">
+                    @if (_isContinuousSnapshotsSyncActive)
+                    {
+                        <button type="button"
+                                @onclick="CancelContinuousSnapshotsSync"
+                                class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm animate-pulse">
+                            <Icon Name="pause" Size="14" />
+                            <span>Pausar Sincronización Continua</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="ExecuteContinuousSnapshotsSync"
+                                disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.PendingSnapshots == 0))"
+                                class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                            <Icon Name="play" Size="14" />
+                            <span>Sincronización Total en Segundo Plano</span>
+                        </button>
+                    }
+
                     <button type="button"
                             @onclick="ExecuteSyncSnapshotsBatchAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
-                            class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isContinuousSnapshotsSyncActive)"
+                            class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-[var(--text-primary)] text-xs font-bold transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
                         @if (_isSyncingSnapshots)
                         {
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando Lote BGG...</span>
+                            <span>Sincronizando Lote...</span>
                         }
                         else
                         {
                             <Icon Name="refresh-cw" Size="14" />
-                            <span>Sincronizar Lote (20)</span>
+                            <span>Lote Rápido (20)</span>
                         }
                     </button>
 
@@ -685,6 +705,25 @@
                         <span class="text-emerald-400 font-medium">@(_snapshotStatus?.LinkedExpansions ?? 0) vinculadas</span> / <span class="text-amber-400 font-medium">@(_snapshotStatus?.UnlinkedExpansions ?? 0) huérfanas</span>
                     </div>
                 </div>
+            </div>
+
+            @* Alerta de Sincronización Continua en Segundo Plano *@
+            @if (!string.IsNullOrEmpty(_continuousSnapshotsSyncMessage))
+            {
+                <div class="p-4 rounded-xl @(_isContinuousSnapshotsSyncActive ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-300" : "bg-emerald-500/10 border-emerald-500/25 text-emerald-300") border text-xs flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <Icon Name="@(_isContinuousSnapshotsSyncActive ? "loader" : "circle-check")" Size="14" class="@(_isContinuousSnapshotsSyncActive ? "animate-spin text-cyan-400" : "text-emerald-400")" />
+                        @_continuousSnapshotsSyncMessage
+                    </span>
+                    @if (!_isContinuousSnapshotsSyncActive)
+                    {
+                        <button type="button" @onclick="() => _continuousSnapshotsSyncMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                    }
+                </div>
+            }
+
+            <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)] flex items-center justify-between">
+                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-cyan-400" /> <strong>Ejecución desatendida en consola:</strong> Para volcar todos los títulos sin depender del navegador ni de la sesión web: <code class="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill</code></span>
             </div>
 
             @* Alertas de Resultado *@
@@ -1075,6 +1114,11 @@
     private bool _isSyncingSnapshots = false;
     private bool _isDiscoveringExpansions = false;
     private bool _isAutoLinkingExpansions = false;
+
+    // Incremento 91: Sincronización continua de snapshots en segundo plano
+    private CancellationTokenSource? _continuousSnapshotsSyncCts;
+    private string? _continuousSnapshotsSyncMessage;
+    private bool _isContinuousSnapshotsSyncActive => _continuousSnapshotsSyncCts != null;
 
     private bool CanManageQueue =>
         CurrentUserService.IsFoundingTeam ||
@@ -1560,6 +1604,70 @@
         }
     }
 
+    private void CancelContinuousSnapshotsSync()
+    {
+        _continuousSnapshotsSyncCts?.Cancel();
+    }
+
+    private void ExecuteContinuousSnapshotsSync()
+    {
+        if (_isContinuousSnapshotsSyncActive || !CanManageQueue) return;
+
+        _continuousSnapshotsSyncCts = new CancellationTokenSource();
+        _continuousSnapshotsSyncMessage = "Sincronización continua de snapshots iniciada en segundo plano...";
+        var token = _continuousSnapshotsSyncCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var syncService = scope.ServiceProvider.GetRequiredService<IBggRawSnapshotSyncService>();
+
+                int totalSynced = 0;
+                int totalErrors = 0;
+                int batchNumber = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    batchNumber++;
+                    var res = await syncService.RunScheduledSyncBatchAsync(batchSize: 50, delayMs: 1200, token);
+                    if (res.ProcessedCount == 0)
+                    {
+                        _continuousSnapshotsSyncMessage = $"Sincronización continua completada: todos los títulos disponen de snapshot ({totalSynced} sincronizados en esta sesión).";
+                        break;
+                    }
+
+                    totalSynced += res.SuccessCount;
+                    totalErrors += res.FailedCount;
+
+                    var status = await syncService.GetStatusAsync(token);
+                    _continuousSnapshotsSyncMessage = $"Sincronización en curso (Lote #{batchNumber}): {totalSynced} snapshots guardados, {totalErrors} incidencias. Quedan {status.PendingSnapshots} títulos pendientes.";
+
+                    if (res.SuccessCount == 0 && res.FailedCount == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousSnapshotsSyncMessage = "Sincronización continua de snapshots detenida por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousSnapshotsSyncMessage = $"Error durante la sincronización continua: {ex.Message}";
+            }
+            finally
+            {
+                _continuousSnapshotsSyncCts?.Dispose();
+                _continuousSnapshotsSyncCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
     private void StartPollingTimer()
     {
         _pollTimer?.Dispose();
@@ -1576,7 +1684,7 @@
                         StateHasChanged();
                     });
 
-                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive && !_isContinuousSweepActive)
+                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive && !_isContinuousSweepActive && !_isContinuousSnapshotsSyncActive)
                     {
                         break;
                     }
@@ -1593,6 +1701,8 @@
     {
         _pollTimer?.Dispose();
         _pollTimer = null;
+        _continuousSnapshotsSyncCts?.Cancel();
+        _continuousSnapshotsSyncCts?.Dispose();
     }
 
     private static string GetStatusColor(string? status) => status switch
