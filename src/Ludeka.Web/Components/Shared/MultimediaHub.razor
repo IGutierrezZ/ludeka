@@ -6,82 +6,82 @@
 @inject ICurrentUserService CurrentUserService
 
 <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-xl space-y-6">
-    @* Cabecera y Selector de Formatos Multimedia *@
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
-        <div class="flex items-center gap-2 overflow-x-auto max-w-full">
+    @* Cabecera y Filtros Multimedia *@
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
+        <div class="flex flex-wrap items-center gap-1.5">
             <span class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shrink-0 hidden sm:flex" title="Hub Multimedia">
                 <Icon Name="tv" Size="18" />
             </span>
 
-            @* Pestañas Selectoras de Formatos *@
-            <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-x-auto max-w-full" role="tablist" aria-label="Formatos multimedia">
-                <button type="button"
-                        id="tab-quick"
-                        role="tab"
-                        aria-selected="@(_activeTab == "quick" ? "true" : "false")"
-                        aria-controls="panel-quick"
-                        @onclick='() => _activeTab = "quick"'
-                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "quick" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    <Icon Name="zap" Size="14" />
-                    <span>Cómo Funciona</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "quick" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                        @(MediaHub?.QuickOverviews.Count ?? 0)
-                    </span>
-                </button>
+            @* Píldoras de Filtrado sin scroll *@
+            <button type="button"
+                    @onclick='() => _activeFilter = "all"'
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "all" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                <Icon Name="tv" Size="13" />
+                <span>Todos</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "all" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @TotalVideosCount
+                </span>
+            </button>
 
-                <button type="button"
-                        id="tab-tutorials"
-                        role="tab"
-                        aria-selected="@(_activeTab == "tutorials" ? "true" : "false")"
-                        aria-controls="panel-tutorials"
-                        @onclick='() => _activeTab = "tutorials"'
-                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    <Icon Name="clapperboard" Size="14" />
-                    <span>Tutoriales</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "tutorials" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                        @(MediaHub?.Tutorials.Count ?? 0)
-                    </span>
-                </button>
+            <button type="button"
+                    @onclick='() => _activeFilter = "quick"'
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "quick" ? "bg-amber-500 text-black shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                <Icon Name="zap" Size="13" />
+                <span>Cómo Funciona</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "quick" ? "bg-black/20 text-black" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @(MediaHub?.QuickOverviews.Count ?? 0)
+                </span>
+            </button>
 
-                <button type="button"
-                        id="tab-playthroughs"
-                        role="tab"
-                        aria-selected="@(_activeTab == "playthroughs" ? "true" : "false")"
-                        aria-controls="panel-playthroughs"
-                        @onclick='() => _activeTab = "playthroughs"'
-                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "playthroughs" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    <Icon Name="dices" Size="14" />
-                    <span>Partidas Completas</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "playthroughs" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                        @(MediaHub?.Playthroughs.Count ?? 0)
-                    </span>
-                </button>
+            <button type="button"
+                    @onclick='() => _activeFilter = "tutorials"'
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                <Icon Name="clapperboard" Size="13" />
+                <span>Tutoriales</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "tutorials" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @(MediaHub?.Tutorials.Count ?? 0)
+                </span>
+            </button>
 
-                <button type="button"
-                        id="tab-social"
-                        role="tab"
-                        aria-selected="@(_activeTab == "social" ? "true" : "false")"
-                        aria-controls="panel-social"
-                        @onclick='() => _activeTab = "social"'
-                        class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 @(_activeTab == "social" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    <Icon Name="message-circle" Size="14" />
-                    <span>Opiniones y Redes</span>
-                    <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeTab == "social" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                        @((MediaHub?.InstagramPosts.Count ?? 0) + (MediaHub?.ShortReels.Count ?? 0) + (MediaHub?.ReviewsAndOpinions.Count ?? 0))
-                    </span>
-                </button>
-            </div>
+            <button type="button"
+                    @onclick='() => _activeFilter = "playthroughs"'
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "playthroughs" ? "bg-emerald-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                <Icon Name="dices" Size="13" />
+                <span>Partidas Completas</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "playthroughs" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @(MediaHub?.Playthroughs.Count ?? 0)
+                </span>
+            </button>
+
+            <button type="button"
+                    @onclick='() => _activeFilter = "social"'
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "social" ? "bg-purple-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                <Icon Name="message-circle" Size="13" />
+                <span>Opiniones y Redes</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "social" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @SocialCount
+                </span>
+            </button>
         </div>
 
-        @* Botón de Ingesta Flash para Administradores / Moderadores *@
+        @* Botones de Acción para Administradores / Moderadores *@
         @if (IsModeratorUser)
         {
-            <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <div class="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+                <button type="button"
+                        @onclick="OpenYouTubeSearchModal"
+                        title="Búsqueda quirúrgica en YouTube con el título pre-rellenado"
+                        class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+                    <Icon Name="search" Size="13" />
+                    <span>Buscar en YouTube</span>
+                </button>
+
                 <button type="button"
                         @onclick="OpenFlashIngestModal"
                         title="Añadir vídeo por URL al instante"
-                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-                    <Icon Name="zap" Size="14" />
+                        class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+                    <Icon Name="zap" Size="13" />
                     <span>Ingesta Flash</span>
                 </button>
             </div>
@@ -97,566 +97,193 @@
         </div>
     }
 
-    @* Contenido de las pestañas *@
-    @if (_activeTab == "quick")
-    {
-        @* PESTAÑA: CÓMO FUNCIONA / VISTAZO EN 2 MIN (16:9) *@
-        <div id="panel-quick" role="tabpanel" aria-labelledby="tab-quick">
-            @if (MediaHub != null && MediaHub.QuickOverviews.Count > 0)
-            {
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @foreach (var video in MediaHub.QuickOverviews)
-                    {
-                        <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                             role="button"
-                             tabindex="0"
-                             aria-label="@($"Reproducir cómo funciona: {video.Title}")"
-                             @onkeydown="(e) => HandleCardKeyDown(e, video)"
-                             @onclick="() => OpenEmbedModal(video)">
-                            <div class="aspect-video relative overflow-hidden bg-black">
-                                <img src="@video.ThumbnailUrl"
-                                     alt="@video.Title"
-                                     loading="lazy"
-                                     decoding="async"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
-
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="w-12 h-12 rounded-full bg-amber-500/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-amber-500 transition-all">
-                                        <Icon Name="zap" Size="22" />
-                                    </div>
-                                </div>
-
-                                <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-500/90 text-black text-[0.62rem] font-bold tracking-tight shadow inline-flex items-center gap-1">
-                                    <Icon Name="zap" Size="10" /> En 2 minutos
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(video.FormattedDuration))
-                                {
-                                    <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
-                                        <Icon Name="timer" Size="10" /> @video.FormattedDuration
-                                    </div>
-                                }
-                            </div>
-
-                            <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
-                                <div>
-                                    <div class="flex items-center justify-between gap-2 mb-0.5">
-                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
-                                            @video.AuthorChannel
-                                        </span>
-                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@video.Id" InitialLikesCount="@video.UserLikesCount" Compact="true" />
-                                    </div>
-                                    <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
-                                        @video.Title
-                                    </h3>
-                                </div>
-
-                                @if (IsModeratorUser)
-                                {
-                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
-                                         @onclick:stopPropagation="true">
-                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                            <Icon Name="settings" Size="11" /> Moderación
-                                        </span>
-                                        <div class="flex items-center gap-1.5">
-                                            <button type="button"
-                                                    @onclick="() => OpenModerateModal(video)"
-                                                    title="Cambiar categoría o reasignar"
-                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
-                                            </button>
-                                            <button type="button"
-                                                    @onclick="() => PromptDeleteDirect(video)"
-                                                    title="Eliminar vídeo de la ficha"
-                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                                <Icon Name="x" Size="11" /> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="py-12 px-4 text-center rounded-xl bg-[var(--bg-surface)] border border-dashed border-[var(--border-subtle)] space-y-2">
-                    <span class="inline-block"><Icon Name="zap" Size="30" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)]">Sin vídeo de mecánicas rápidas todavía</h3>
-                    <p class="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
-                        Aún no tenemos un vídeo breve de 2 minutos para este título. Puedes consultar los tutoriales completos de reglas.
-                    </p>
-                </div>
-            }
-        </div>
+    @* Cuadrícula de Vídeos Filtrados *@
+    @{
+        var displayedVideos = GetDisplayedItems();
     }
-    else if (_activeTab == "tutorials")
+
+    @if (displayedVideos.Count > 0)
     {
-        @* PESTAÑA: TUTORIALES COMPLETOS (16:9) *@
-        <div id="panel-tutorials" role="tabpanel" aria-labelledby="tab-tutorials">
-            @if (MediaHub != null && MediaHub.Tutorials.Count > 0)
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @foreach (var video in displayedVideos)
             {
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @foreach (var tutorial in MediaHub.Tutorials)
-                    {
-                        <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                             role="button"
-                             tabindex="0"
-                             aria-label="@($"Reproducir tutorial: {tutorial.Title}")"
-                             @onkeydown="(e) => HandleCardKeyDown(e, tutorial)"
-                             @onclick="() => OpenEmbedModal(tutorial)">
-                            <div class="aspect-video relative overflow-hidden bg-black">
-                                <img src="@tutorial.ThumbnailUrl"
-                                     alt="@tutorial.Title"
-                                     loading="lazy"
-                                     decoding="async"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
+                var (badgeIcon, badgeLabel, badgeClasses) = GetTypeBadge(video);
 
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
-                                        <Icon Name="play" Size="22" />
-                                    </div>
-                                </div>
+                <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
+                     role="button"
+                     tabindex="0"
+                     aria-label="@($"Reproducir {badgeLabel}: {video.Title}")"
+                     @onkeydown="(e) => HandleCardKeyDown(e, video)"
+                     @onclick="() => OpenEmbedModal(video)">
+                    <div class="aspect-video relative overflow-hidden bg-black">
+                        <img src="@video.ThumbnailUrl"
+                             alt="@video.Title"
+                             loading="lazy"
+                             decoding="async"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                @if (!string.IsNullOrWhiteSpace(tutorial.FormattedDuration))
+                        @* Badge del Tipo de Vídeo *@
+                        <div class="absolute top-2 left-2 flex items-center gap-1.5 flex-wrap z-10">
+                            <span class="px-2.5 py-0.5 rounded-full @badgeClasses text-[0.62rem] font-bold tracking-tight shadow-md inline-flex items-center gap-1 backdrop-blur-sm">
+                                @if (badgeIcon == "zap")
                                 {
-                                    <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
-                                        <Icon Name="timer" Size="10" /> @tutorial.FormattedDuration
-                                    </div>
+                                    <Icon Name="zap" Size="10" />
                                 }
-                            </div>
-
-                            <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
-                                <div>
-                                    <div class="flex items-center justify-between gap-2 mb-0.5">
-                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
-                                            @tutorial.AuthorChannel
-                                        </span>
-                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@tutorial.Id" InitialLikesCount="@tutorial.UserLikesCount" Compact="true" />
-                                    </div>
-                                    <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
-                                        @tutorial.Title
-                                    </h3>
-                                </div>
-
-                                @if (IsModeratorUser)
+                                else if (badgeIcon == "clapperboard")
                                 {
-                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
-                                         @onclick:stopPropagation="true">
-                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                            <Icon Name="settings" Size="11" /> Moderación
-                                        </span>
-                                        <div class="flex items-center gap-1.5">
-                                            <button type="button"
-                                                    @onclick="() => OpenModerateModal(tutorial)"
-                                                    title="Cambiar categoría o reasignar"
-                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
-                                            </button>
-                                            <button type="button"
-                                                    @onclick="() => PromptDeleteDirect(tutorial)"
-                                                    title="Eliminar vídeo de la ficha"
-                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                                <Icon Name="x" Size="11" /> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <Icon Name="clapperboard" Size="10" />
                                 }
+                                else if (badgeIcon == "dices")
+                                {
+                                    <Icon Name="dices" Size="10" />
+                                }
+                                else if (badgeIcon == "message-circle")
+                                {
+                                    <Icon Name="message-circle" Size="10" />
+                                }
+                                else if (badgeIcon == "camera")
+                                {
+                                    <Icon Name="camera" Size="10" />
+                                }
+                                else if (badgeIcon == "smartphone")
+                                {
+                                    <Icon Name="smartphone" Size="10" />
+                                }
+                                else
+                                {
+                                    <Icon Name="play" Size="10" />
+                                }
+                                <span>@badgeLabel</span>
+                            </span>
+
+                            @if (video.Category == MediaCategory.Gameplay && !string.IsNullOrWhiteSpace(video.PlayerCountBadge) && !badgeLabel.Equals(video.PlayerCountBadge, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <span class="px-2 py-0.5 rounded-full bg-black/70 text-white border border-white/20 text-[0.62rem] font-semibold inline-flex items-center gap-1 backdrop-blur-sm">
+                                    <Icon Name="users" Size="10" />
+                                    <span>@video.PlayerCountBadge</span>
+                                </span>
+                            }
+                        </div>
+
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
+                                <Icon Name="play" Size="22" />
                             </div>
                         </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto">
-                    <span class="inline-block mb-2"><Icon Name="clapperboard" Size="36" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)] mb-1">Aún no hay tutoriales en español</h3>
-                    <p class="text-xs text-[var(--text-secondary)] mb-3 leading-relaxed">
-                        Nadie ha añadido un tutorial de reglas de este juego a la comunidad todavía. ¿Conoces uno excelente de YouTube?
-                    </p>
-                    <a href="/moderacion-media" class="inline-block text-xs text-[var(--brand-primary)] hover:underline font-semibold">
-                        &rarr; Avisar al equipo en moderación
-                    </a>
-                </div>
-            }
-        </div>
-    }
-    else if (_activeTab == "playthroughs")
-    {
-        @* PESTAÑA 2: PARTIDAS COMPLETAS (16:9 + BADGE DE COMENSALES) *@
-        <div id="panel-playthroughs" role="tabpanel" aria-labelledby="tab-playthroughs">
-            @if (MediaHub != null && MediaHub.Playthroughs.Count > 0)
-            {
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @foreach (var play in MediaHub.Playthroughs)
-                    {
-                        <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                             role="button"
-                             tabindex="0"
-                             aria-label="@($"Ver partida completa: {play.Title}")"
-                             @onkeydown="(e) => HandleCardKeyDown(e, play)"
-                             @onclick="() => OpenEmbedModal(play)">
-                            <div class="aspect-video relative overflow-hidden bg-black">
-                                <img src="@play.ThumbnailUrl"
-                                     alt="@play.Title"
-                                     loading="lazy"
-                                     decoding="async"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
 
-                                <div class="absolute top-2.5 left-2.5">
-                    <span class="px-2.5 py-1 rounded-lg bg-[var(--bg-nav)] text-[var(--text-primary)] border border-[var(--border-highlight)] font-bold text-xs shadow-lg flex items-center gap-1.5 backdrop-blur-sm">
-                        <Icon Name="users" Size="12" aria-hidden="true" />
-                        <span>@(play.PlayerCountBadge ?? "Partida")</span>
-                    </span>
-                                </div>
-
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
-                                        <Icon Name="play" Size="22" />
-                                    </div>
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(play.FormattedDuration))
-                                {
-                                    <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
-                                        <Icon Name="timer" Size="10" /> @play.FormattedDuration
-                                    </div>
-                                }
+                        @if (!string.IsNullOrWhiteSpace(video.FormattedDuration))
+                        {
+                            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
+                                <Icon Name="timer" Size="10" /> @video.FormattedDuration
                             </div>
-
-                            <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
-                                <div>
-                                    <div class="flex items-center justify-between gap-2 mb-0.5">
-                                        <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
-                                            @play.AuthorChannel
-                                        </span>
-                                        <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@play.Id" InitialLikesCount="@play.UserLikesCount" Compact="true" />
-                                    </div>
-                                    <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
-                                        @play.Title
-                                    </h3>
-                                </div>
-
-                                @if (IsModeratorUser)
-                                {
-                                    <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
-                                         @onclick:stopPropagation="true">
-                                        <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                            <Icon Name="settings" Size="11" /> Moderación
-                                        </span>
-                                        <div class="flex items-center gap-1.5">
-                                            <button type="button"
-                                                    @onclick="() => OpenModerateModal(play)"
-                                                    title="Cambiar categoría o reasignar"
-                                                    class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                                <Icon Name="tag" Size="11" /> Cambiar Categoría
-                                            </button>
-                                            <button type="button"
-                                                    @onclick="() => PromptDeleteDirect(play)"
-                                                    title="Eliminar vídeo de la ficha"
-                                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                                <Icon Name="x" Size="11" /> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
+                        }
+                        else if (video.LikesCount.HasValue && video.Type == MediaType.InstagramPost)
+                        {
+                            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-bold tracking-tight inline-flex items-center gap-1">
+                                <Icon Name="heart" Size="10" /> @video.LikesCount
                             </div>
+                        }
+                    </div>
+
+                    <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-0.5">
+                                <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                                    @video.AuthorChannel
+                                </span>
+                                <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@video.Id" InitialLikesCount="@video.UserLikesCount" Compact="true" />
+                            </div>
+                            <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
+                                @video.Title
+                            </h3>
                         </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto">
-                    <span class="inline-block mb-2"><Icon Name="dices" Size="36" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)] mb-1">Sin partidas completas registradas</h3>
-                    <p class="text-xs text-[var(--text-secondary)] mb-3 leading-relaxed">
-                        Aún no tenemos partidas con número de comensales registradas en español para este juego.
-                    </p>
-                    <a href="/moderacion-media" class="inline-block text-xs text-[var(--brand-primary)] hover:underline font-semibold">
-                        &rarr; Proponer partida en moderación
-                    </a>
+
+                        @if (IsModeratorUser)
+                        {
+                            <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                                 @onclick:stopPropagation="true">
+                                <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
+                                    <Icon Name="settings" Size="11" /> Moderación
+                                </span>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button"
+                                            @onclick="() => OpenModerateModal(video)"
+                                            title="Cambiar categoría o reasignar"
+                                            class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                        <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                    </button>
+                                    <button type="button"
+                                            @onclick="() => PromptDeleteDirect(video)"
+                                            title="Eliminar vídeo de la ficha"
+                                            class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                        <Icon Name="x" Size="11" /> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
             }
         </div>
     }
     else
     {
-        @* PESTAÑA 3: OPINIONES Y REDES (YouTube Reseñas + Instagram 1:1 + Shorts/Reels 9:16) *@
-        <div id="panel-social" role="tabpanel" aria-labelledby="tab-social" class="space-y-6">
-            @* Subsección 0: Reseñas y Análisis en Vídeo (YouTube) *@
-            @if (MediaHub != null && MediaHub.ReviewsAndOpinions.Count > 0)
-            {
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider inline-flex items-center gap-1.5">
-                            <Icon Name="clapperboard" Size="12" /> Reseñas y Análisis Críticos
-                        </span>
-                        <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
+        @if (_activeFilter == "all")
+        {
+            <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-3">
+                <span class="inline-block p-3 rounded-2xl bg-[var(--bg-card)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shadow-sm">
+                    <Icon Name="tv" Size="32" />
+                </span>
+                <h3 class="text-sm font-bold text-[var(--text-primary)]">
+                    Aún no hay tutoriales ni vídeos en español
+                </h3>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Nadie ha añadido tutoriales, partidas ni reseñas de este juego a la comunidad todavía. ¿Conoces uno excelente de YouTube?
+                </p>
+                @if (IsModeratorUser)
+                {
+                    <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
+                        <button type="button"
+                                @onclick="OpenYouTubeSearchModal"
+                                class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                            <Icon Name="search" Size="13" />
+                            <span>Buscar en YouTube</span>
+                        </button>
+                        <button type="button"
+                                @onclick="OpenFlashIngestModal"
+                                class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                            <Icon Name="zap" Size="13" />
+                            <span>Ingesta Flash</span>
+                        </button>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        @foreach (var review in MediaHub.ReviewsAndOpinions)
-                        {
-                            <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                                 role="button"
-                                 tabindex="0"
-                                 aria-label="@($"Reproducir reseña: {review.Title}")"
-                                 @onkeydown="(e) => HandleCardKeyDown(e, review)"
-                                 @onclick="() => OpenEmbedModal(review)">
-                                <div class="aspect-video relative overflow-hidden bg-black">
-                                    <img src="@review.ThumbnailUrl"
-                                         alt="@review.Title"
-                                         loading="lazy"
-                                         decoding="async"
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
-
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
-                                            <Icon Name="play" Size="22" />
-                                        </div>
-                                    </div>
-
-                                    <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-purple-500/90 text-white text-[0.62rem] font-bold tracking-tight shadow inline-flex items-center gap-1">
-                                        <Icon Name="message-circle" Size="10" /> Reseña / Opinión
-                                    </div>
-
-                                    @if (!string.IsNullOrWhiteSpace(review.FormattedDuration))
-                                    {
-                                        <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
-                                            <Icon Name="timer" Size="10" /> @review.FormattedDuration
-                                        </div>
-                                    }
-                                </div>
-
-                                <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
-                                    <div>
-                                        <div class="flex items-center justify-between gap-2 mb-0.5">
-                                            <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
-                                                @review.AuthorChannel
-                                            </span>
-                                            <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@review.Id" InitialLikesCount="@review.UserLikesCount" Compact="true" />
-                                        </div>
-                                        <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
-                                            @review.Title
-                                        </h3>
-                                    </div>
-
-                                    @if (IsModeratorUser)
-                                    {
-                                        <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
-                                             @onclick:stopPropagation="true">
-                                            <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                                <Icon Name="settings" Size="11" /> Moderación
-                                            </span>
-                                            <div class="flex items-center gap-1.5">
-                                                <button type="button"
-                                                        @onclick="() => OpenModerateModal(review)"
-                                                        title="Cambiar categoría o reasignar"
-                                                        class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                                    <Icon Name="tag" Size="11" /> Cambiar Categoría
-                                                </button>
-                                                <button type="button"
-                                                        @onclick="() => PromptDeleteDirect(review)"
-                                                        title="Eliminar vídeo de la ficha"
-                                                        class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                                    <Icon Name="x" Size="11" /> Eliminar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @* Subsección A: Posts de Instagram (1:1) *@
-            @if (MediaHub != null && MediaHub.InstagramPosts.Count > 0)
-            {
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider inline-flex items-center gap-1.5">
-                            <Icon Name="camera" Size="12" /> Reseñas en Instagram (Fotos 1:1)
-                        </span>
-                        <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach (var post in MediaHub.InstagramPosts)
-                        {
-                            <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                                 role="button"
-                                 tabindex="0"
-                                 aria-label="@($"Ver publicación de {post.AuthorChannel}: {post.Title}")"
-                                 @onkeydown="(e) => HandleCardKeyDown(e, post)"
-                                 @onclick="() => OpenEmbedModal(post)">
-                                <div class="aspect-square relative overflow-hidden bg-black">
-                                    <img src="@post.ThumbnailUrl"
-                                         alt="@post.Title"
-                                         loading="lazy"
-                                         decoding="async"
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                    
-                                    @if (post.LikesCount.HasValue)
-                                    {
-                                        <div class="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white border border-white/20 text-xs font-bold flex items-center gap-1 backdrop-blur-sm">
-                                            <Icon Name="heart" Size="12" aria-hidden="true" />
-                                            <span>@post.LikesCount</span>
-                                        </div>
-                                    }
-                                </div>
-
-                                <div class="p-3 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
-                                    <div>
-                                        <span class="text-xs font-bold text-[var(--brand-primary)] block mb-1">
-                                            @post.AuthorChannel
-                                        </span>
-                                        @if (!string.IsNullOrWhiteSpace(post.Excerpt))
-                                        {
-                                            <p class="text-xs text-[var(--text-secondary)] line-clamp-3 italic leading-relaxed">
-                                                "@post.Excerpt"
-                                            </p>
-                                        }
-                                        else
-                                        {
-                                            <p class="text-xs text-[var(--text-secondary)] line-clamp-2">
-                                                @post.Title
-                                            </p>
-                                        }
-                                    </div>
-
-                                    @if (IsModeratorUser)
-                                    {
-                                        <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between"
-                                             @onclick:stopPropagation="true">
-                                            <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                                <Icon Name="settings" Size="11" /> Moderación
-                                            </span>
-                                            <div class="flex items-center gap-1.5">
-                                                <button type="button"
-                                                        @onclick="() => OpenModerateModal(post)"
-                                                        title="Cambiar categoría o reasignar"
-                                                        class="px-2 py-0.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                                    <Icon Name="tag" Size="10" /> Categoría
-                                                </button>
-                                                <button type="button"
-                                                        @onclick="() => PromptDeleteDirect(post)"
-                                                        title="Eliminar publicación"
-                                                        class="px-2 py-0.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                                    <Icon Name="x" Size="10" /> Eliminar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @* Subsección B: Vídeos Verticales (Reels / Shorts 9:16) *@
-            @if (MediaHub != null && MediaHub.ShortReels.Count > 0)
-            {
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider inline-flex items-center gap-1.5">
-                            <Icon Name="smartphone" Size="12" /> Vídeos Verticales (Reels & Shorts 9:16)
-                        </span>
-                        <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        @foreach (var reel in MediaHub.ShortReels)
-                        {
-                            <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
-                                 role="button"
-                                 tabindex="0"
-                                 aria-label="@($"Ver vídeo vertical de {reel.AuthorChannel}: {reel.Title}")"
-                                 @onkeydown="(e) => HandleCardKeyDown(e, reel)"
-                                 @onclick="() => OpenEmbedModal(reel)">
-                                <div class="aspect-[9/16] relative overflow-hidden bg-black">
-                                    <img src="@reel.ThumbnailUrl"
-                                         alt="@reel.Title"
-                                         loading="lazy"
-                                         decoding="async"
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                    
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
-
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <div class="w-10 h-10 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
-                                            <Icon Name="play" Size="18" />
-                                        </div>
-                                    </div>
-
-                                    <div class="absolute bottom-2 inset-x-2 flex items-center justify-between text-[0.68rem] text-white font-semibold">
-                                        <span class="truncate max-w-[70%] text-white">@reel.AuthorChannel</span>
-                                        @if (!string.IsNullOrWhiteSpace(reel.FormattedDuration))
-                                        {
-                                            <span class="px-1.5 py-0.5 rounded bg-black/80 font-mono text-[0.65rem]">
-                                                @reel.FormattedDuration
-                                            </span>
-                                        }
-                                    </div>
-                                </div>
-
-                                <div class="p-2 bg-[var(--bg-card)] border-t border-[var(--border-subtle)] flex flex-col justify-between">
-                                    <h4 class="text-[0.72rem] font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--brand-primary)]">
-                                        @reel.Title
-                                    </h4>
-                                    @if (IsModeratorUser)
-                                    {
-                                        <div class="mt-2 pt-1.5 border-t border-[var(--border-subtle)] flex items-center justify-between gap-1"
-                                             @onclick:stopPropagation="true">
-                                            <button type="button"
-                                                    @onclick="() => OpenModerateModal(reel)"
-                                                    title="Moderar vídeo"
-                                                    class="px-1.5 py-0.5 rounded bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.6rem] font-bold transition-colors flex items-center gap-0.5 border border-[var(--border-subtle)]">
-                                                <Icon Name="tag" Size="9" /> Categoría
-                                            </button>
-                                            <button type="button"
-                                                    @onclick="() => PromptDeleteDirect(reel)"
-                                                    title="Eliminar vídeo"
-                                                    class="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.6rem] font-bold transition-colors flex items-center gap-0.5 border border-rose-500/20">
-                                                <Icon Name="x" Size="9" />
-                                            </button>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @* Estado vacío si no hay posts ni reels ni reseñas *@
-            @if (MediaHub == null || (!MediaHub.HasSocial))
-            {
-                <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto">
-                    <span class="inline-block mb-2"><Icon Name="message-circle" Size="36" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)] mb-1">Sin menciones en redes todavía</h3>
-                    <p class="text-xs text-[var(--text-secondary)] mb-3 leading-relaxed">
-                        Aún no se han indexado reseñas en vídeo, posts de Instagram ni Reels sobre este título.
-                    </p>
+                }
+                else
+                {
                     <a href="/moderacion-media" class="inline-block text-xs text-[var(--brand-primary)] hover:underline font-semibold">
-                        &rarr; Proponer post en moderación
+                        &rarr; Avisar al equipo en moderación
                     </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-2">
+                <span class="inline-block text-[var(--text-muted)]"><Icon Name="tv" Size="28" /></span>
+                <h3 class="text-sm font-bold text-[var(--text-primary)]">Sin contenidos en este formato todavía</h3>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Aún no se han indexado vídeos o publicaciones para este filtro en este juego.
+                </p>
+                <div class="pt-2">
+                    <button type="button"
+                            @onclick='() => _activeFilter = "all"'
+                            class="px-3 py-1.5 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--brand-primary)] text-xs font-bold border border-[var(--border-subtle)] transition-colors">
+                        Ver todos los vídeos (@TotalVideosCount)
+                    </button>
                 </div>
-            }
-        </div>
+            </div>
+        }
     }
 </div>
 
@@ -941,6 +568,14 @@
     </div>
 }
 
+@* Modal de Búsqueda Quirúrgica en YouTube *@
+<YouTubeSearchModal
+    IsOpen="@_isYouTubeSearchOpen"
+    InitialGameId="@GameId"
+    InitialGameTitle="@GameTitle"
+    OnClose="() => _isYouTubeSearchOpen = false"
+    OnVideoIngested="HandleYouTubeVideoIngestedAsync" />
+
 @code {
     [Parameter]
     public Guid GameId { get; set; }
@@ -954,11 +589,87 @@
     [Parameter]
     public EventCallback OnMediaChanged { get; set; }
 
-    private string _activeTab = "tutorials";
+    private string _activeFilter = "all";
     private bool _isEmbedModalOpen;
     private MediaItemDto? _selectedMediaItem;
+    private bool _isYouTubeSearchOpen;
 
     private bool IsModeratorUser => CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia));
+
+    private int TotalVideosCount =>
+        (MediaHub?.QuickOverviews.Count ?? 0) +
+        (MediaHub?.Tutorials.Count ?? 0) +
+        (MediaHub?.Playthroughs.Count ?? 0) +
+        (MediaHub?.ReviewsAndOpinions.Count ?? 0) +
+        (MediaHub?.InstagramPosts.Count ?? 0) +
+        (MediaHub?.ShortReels.Count ?? 0);
+
+    private int SocialCount =>
+        (MediaHub?.ReviewsAndOpinions.Count ?? 0) +
+        (MediaHub?.InstagramPosts.Count ?? 0) +
+        (MediaHub?.ShortReels.Count ?? 0);
+
+    private List<MediaItemDto> GetDisplayedItems()
+    {
+        if (MediaHub == null) return [];
+
+        IEnumerable<MediaItemDto> source = _activeFilter switch
+        {
+            "quick" => MediaHub.QuickOverviews,
+            "tutorials" => MediaHub.Tutorials,
+            "playthroughs" => MediaHub.Playthroughs,
+            "social" => (MediaHub.ReviewsAndOpinions ?? [])
+                .Concat(MediaHub.InstagramPosts ?? [])
+                .Concat(MediaHub.ShortReels ?? []),
+            _ => (MediaHub.QuickOverviews ?? [])
+                .Concat(MediaHub.Tutorials ?? [])
+                .Concat(MediaHub.Playthroughs ?? [])
+                .Concat(MediaHub.ReviewsAndOpinions ?? [])
+                .Concat(MediaHub.InstagramPosts ?? [])
+                .Concat(MediaHub.ShortReels ?? [])
+                .DistinctBy(x => x.Id)
+        };
+
+        return source
+            .OrderByDescending(x => x.UserLikesCount)
+            .ThenByDescending(x => x.LikesCount ?? 0)
+            .ThenByDescending(x => x.PublishedAt)
+            .ToList();
+    }
+
+    private static (string IconName, string Label, string BadgeClasses) GetTypeBadge(MediaItemDto item)
+    {
+        if (item.Type == MediaType.InstagramPost)
+        {
+            return ("camera", "Instagram", "bg-pink-600/90 text-white");
+        }
+        if (item.Type == MediaType.ShortReel)
+        {
+            return ("smartphone", "Short / Reel", "bg-indigo-600/90 text-white");
+        }
+
+        return item.Category switch
+        {
+            MediaCategory.QuickOverview => ("zap", "Cómo Funciona", "bg-amber-500 text-black"),
+            MediaCategory.Tutorial => ("clapperboard", "Tutorial", "bg-[var(--brand-primary)] text-white"),
+            MediaCategory.Gameplay => ("dices", !string.IsNullOrWhiteSpace(item.PlayerCountBadge) ? item.PlayerCountBadge : "Partida Completa", "bg-emerald-600 text-white"),
+            MediaCategory.ReviewOpinion => ("message-circle", "Reseña / Opinión", "bg-purple-600 text-white"),
+            _ => ("play", item.CategoryDisplayName, "bg-slate-700 text-white")
+        };
+    }
+
+    private void OpenYouTubeSearchModal()
+    {
+        _isYouTubeSearchOpen = true;
+    }
+
+    private async Task HandleYouTubeVideoIngestedAsync()
+    {
+        _isYouTubeSearchOpen = false;
+        _bannerSuccess = true;
+        _bannerMessage = "Vídeo incorporado con éxito al Hub Multimedia.";
+        await OnMediaChanged.InvokeAsync();
+    }
 
     // Estados para Ingesta Flash
     private bool _isFlashIngestOpen;
@@ -988,18 +699,7 @@
 
     protected override void OnParametersSet()
     {
-        if (MediaHub != null && MediaHub.HasQuickOverviews && !MediaHub.HasTutorials && _activeTab == "tutorials")
-        {
-            _activeTab = "quick";
-        }
-        else if (MediaHub != null && !MediaHub.HasTutorials && MediaHub.HasPlaythroughs && _activeTab == "tutorials")
-        {
-            _activeTab = "playthroughs";
-        }
-        else if (MediaHub != null && !MediaHub.HasTutorials && !MediaHub.HasPlaythroughs && MediaHub.HasSocial && _activeTab == "tutorials")
-        {
-            _activeTab = "social";
-        }
+        // Se preserva el filtro o "all" por defecto.
     }
 
     private void OpenEmbedModal(MediaItemDto item)
@@ -1162,7 +862,7 @@
         _flashUrl = string.Empty;
         _flashErrorMessage = null;
         _flashPlayerBadge = null;
-        _flashCategory = _activeTab switch
+        _flashCategory = _activeFilter switch
         {
             "quick" => MediaCategory.QuickOverview,
             "playthroughs" => MediaCategory.Gameplay,
@@ -1208,7 +908,7 @@
             _bannerSuccess = true;
             _bannerMessage = $"¡Vídeo ingestado con éxito! '{created.Title}' añadido como {created.CategoryDisplayName}.";
 
-            _activeTab = created.Category switch
+            _activeFilter = created.Category switch
             {
                 MediaCategory.QuickOverview => "quick",
                 MediaCategory.Gameplay => "playthroughs",

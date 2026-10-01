@@ -64,6 +64,36 @@ public class MultimediaHubUiContractTests
         Assert.Contains("public Guid GameId { get; set; }", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MultimediaHub_ShouldDeclareYouTubeSearchControlsAndModal()
+    {
+        var source = ReadSource(MultimediaHubPath);
+
+        Assert.Contains("Buscar en YouTube", source, StringComparison.Ordinal);
+        Assert.Contains("OpenYouTubeSearchModal", source, StringComparison.Ordinal);
+        Assert.Contains("YouTubeSearchModal", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MultimediaHub_ShouldDeclareResponsiveFilterPillsWithoutScroll()
+    {
+        var source = ReadSource(MultimediaHubPath);
+
+        Assert.Contains("Todos", source, StringComparison.Ordinal);
+        Assert.Contains("GetDisplayedItems", source, StringComparison.Ordinal);
+        Assert.Contains("GetTypeBadge", source, StringComparison.Ordinal);
+        Assert.Contains("OrderByDescending(x => x.UserLikesCount)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void YouTubeSearchModal_ShouldSupportInitialGameParameters()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Shared/YouTubeSearchModal.razor");
+
+        Assert.Contains("public Guid? InitialGameId { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public string? InitialGameTitle { get; set; }", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
