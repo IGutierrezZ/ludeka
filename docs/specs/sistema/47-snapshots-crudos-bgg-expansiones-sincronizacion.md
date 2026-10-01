@@ -2,8 +2,8 @@
 
 > **Estado:** Implementado y Verificado  
 > **Fecha:** 2026-10-01  
-> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`)  
-> **Pruebas Verificadas:** 2.179 unitarias + 10 de integración (2.189 totales en verde)
+> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`) e INC-91 (`inc/bgg-raw-runner`)  
+> **Pruebas Verificadas:** 2.185 unitarias en verde  
 
 ---
 
@@ -97,3 +97,32 @@ Como parte del barrido de usabilidad del incremento INC-90:
    - Selector configurable «Ordenar por» en el modal de filtros avanzados (`GameSortOrder`: Ranking, Mejor Valorados, Dureza, Duración, Año de Publicación).
    - Tarjetas `GameCard.razor` optimizadas: badge compacto de jugadores (`3-4J`), badges inferiores reducidos a solo iconos con tooltip y leyenda explicativa accesible.
    - Búsqueda SQL tolerante a mayúsculas y acentos (`ILike`).
+
+---
+
+## 7. Volcado Masivo Desatendido (`Ludeka.Jobs`) y Sincronización Continua Web (INC-91)
+
+Para abordar el volcado de los ~13.853 títulos de catálogo respetando los ~1.200 ms por llamada sin depender de mantener abierto el navegador:
+
+### 7.1 Métodos de Sistema sin Guarda de Sesión Interactiva
+`Ludeka.Jobs` emplea `DenyAllSessionPermissionGuard`. Se incorporan en `IBggRawSnapshotSyncService` métodos desacoplados que ejecutan la lógica de negocio sin exigir sesión web de moderador:
+- `RunScheduledSyncBatchAsync(batchSize, delayMs, ct)`.
+- `RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue, ct)`.
+- `RunScheduledAutoLinkExistingExpansionsAsync(ct)`.
+
+### 7.2 Runner de Consola `bgg-raw-backfill` (`BggRawBackfillJobRunner`)
+- Registrado en `JobNames.BggRawBackfill` (`bgg-raw-backfill`) y cableado en `Ludeka.Jobs`.
+- Ejecutable mediante:
+  ```bash
+  dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill
+  ```
+- O como Cloud Run Job en infraestructura gestionada.
+- Arrendamiento seguro vía `IJobExecutionCoordinator.ExecuteWithWindowLeaseAsync`.
+- Itera en lotes de 50 títulos hasta que no queden pendientes (`ProcessedCount == 0`).
+- Al finalizar el volcado, ejecuta automáticamente `RunScheduledAutoLinkExistingExpansionsAsync` y `RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 200)`.
+
+### 7.3 Sincronización Continua en `CatalogQueueAdmin.razor`
+- Botón interactivo de inicio y parada («Sincronización Total en Segundo Plano» / «Pausar Sincronización Continua»).
+- Control reactivo con `CancellationTokenSource`, ejecución encadenada en bucle con telemetría en tiempo real (lotes procesados, éxitos, fallos y títulos restantes).
+- Liberación garantizada de recursos con `IDisposable`.
+
