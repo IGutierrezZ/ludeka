@@ -105,6 +105,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-90** | Tabla Satélite de Snapshots Crudos BGG, Extracción de Expansiones y Refinamiento Integral de Catálogo y Ficha | ✅ Archivado | [inc-90-bgg-raw-snapshots.md](archive/inc-90-bgg-raw-snapshots.md) |
 | **INC-91** | Runner Desatendido de Volcado Masivo de Snapshots Crudos BGG y Sincronización Continua Web | ✅ Archivado | [inc-91-runner-volcado-snapshots-crudos.md](archive/inc-91-runner-volcado-snapshots-crudos.md) |
 | **INC-92** | Rediseño y Despeje Visual del Hub Multimedia, Moderación Directa e Ingesta Flash de Vídeos | ✅ Archivado | [inc-92-hub-multimedia-gestion-flash.md](archive/inc-92-hub-multimedia-gestion-flash.md) |
+| **INC-93** | Listado Diario de Juegos en Tendencia (BGG Hotness), Ingesta Inmediata Satélite y Conmutador de Portada y Catálogo | ⏳ En progreso | [inc-93-juegos-en-tendencia.md](inc-93-juegos-en-tendencia.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -135,7 +136,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno en curso)* | - | - | - | - |
+| **INC-93** | `inc/tendencias-bgg` | `F:\repos\ludeka-wt\tendencias-bgg` | ⏳ En progreso | Persistencia diaria de tendencias (Hotness 1..50), ingesta completa inmediata en trabajo de fondo con snapshots crudos satélite e IA, y conmutador editorial en portada y catálogo |
+
 
 *(INC-92 entregó su verificación con 2.195 pruebas unitarias [2.205 totales con integración] en verde al 100%, y quedó archivado el 2026-10-01. Despeja visualmente el Hub Multimedia retirando cabeceras y subtítulos redundantes, elimina pies repetitivos de tarjetas de vídeo abriendo el reproductor modal directamente al pulsar la tarjeta o miniatura, dota a los administradores de una barra de moderación directa de alto contraste [categoría y eliminación en un clic] e implementa la Ingesta Flash de YouTube mediante FlashIngestAsync en IMediaService).*
 

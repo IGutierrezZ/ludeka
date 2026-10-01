@@ -45,6 +45,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserLike> UserLikes => Set<UserLike>();
     public DbSet<UserMilestone> UserMilestones => Set<UserMilestone>();
     public DbSet<BggRawSnapshot> BggRawSnapshots => Set<BggRawSnapshot>();
+    public DbSet<DailyTrendingGame> DailyTrendingGames => Set<DailyTrendingGame>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -596,5 +597,22 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         snapshot.Property(s => s.ApiVersion).IsRequired();
         snapshot.Property(s => s.FetchedAtUtc).IsRequired();
         snapshot.HasIndex(s => s.FetchedAtUtc);
+
+        // --- Configuración de DailyTrendingGame (INC-92: Tendencias BGG diarias) ---
+        var trending = modelBuilder.Entity<DailyTrendingGame>();
+        trending.ToTable("DailyTrendingGames");
+        trending.HasKey(t => t.Id);
+        trending.Property(t => t.Title).IsRequired().HasMaxLength(250);
+        trending.Property(t => t.ThumbnailUrl).HasMaxLength(500);
+        trending.HasIndex(t => new { t.DateUtc, t.Rank }).IsUnique();
+        trending.HasIndex(t => new { t.DateUtc, t.BggId }).IsUnique();
+        trending.HasIndex(t => t.DateUtc);
+        trending.HasIndex(t => t.BggId);
+        trending.HasIndex(t => t.GameId);
+        trending.HasOne(t => t.Game)
+            .WithMany()
+            .HasForeignKey(t => t.GameId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
