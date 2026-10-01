@@ -3,8 +3,8 @@
 > **ID:** INC-93  
 > **Slug:** `tendencias-bgg`  
 > **Rama:** `inc/tendencias-bgg`  
-> **Estado:** ⏳ En progreso  
-> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 05 (`docs/specs/sistema/05-integracion-bgg.md`), Módulo 15 (`docs/specs/sistema/15-dashboard-inicio-editorial.md`), Módulo 18 (`docs/specs/sistema/18-deteccion-novedades-y-cola-nocturna.md`), Módulo 29 (`docs/specs/sistema/29-ingesta-continua-novedades-bgg.md`), Módulo 47 (`docs/specs/sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`)  
+> **Estado:** ✅ Archivado (2.215 pruebas unitarias en verde al 100% [2.225 totales con integración])  
+> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 05 (`docs/specs/sistema/05-integracion-bgg.md`), Módulo 15 (`docs/specs/sistema/15-dashboard-inicio-editorial.md`), Módulo 18 (`docs/specs/sistema/18-deteccion-novedades-y-cola-nocturna.md`), Módulo 29 (`docs/specs/sistema/29-ingesta-continua-novedades-bgg.md`), Módulo 47 (`docs/specs/sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`), Módulo 48 (`docs/specs/sistema/48-tendencias-diarias-bgg-portada-catalogo.md`)  
 > **Dependencias:** INC-90, INC-91, INC-92.
 
 ---
