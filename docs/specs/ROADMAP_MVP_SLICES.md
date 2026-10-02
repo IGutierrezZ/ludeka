@@ -1009,9 +1009,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   3. **Paginación Monotónica por Cursor Anti-Bucle:** Incorporar cursor `afterBggId` en `IGameRepository.GetGamesPendingQualityBackfillAsync`, `BggQualityBackfillResultDto` y `CatalogQueueAdmin.razor` para resolver definitivamente el bucle infinito sobre los 421 juegos sin votos comunitarios.
   4. **Idempotencia y Comparación Semántica:** Incorporar `ScalabilityNeedsUpdate` y comparadores de fundas/editoriales para prevenir escrituras innecesarias en base de datos cuando los metadatos ya están actualizados o carecen de votos en ambos extremos.
   5. **Ejecución Desatendida en CLI:** Actualizar `BackfillQualityJobRunner` en `Ludeka.Jobs` con latido `IJobHeartbeat` y optimización local para barridos masivos programados.
-- **Estado:** ⏳ **En progreso** (Implementado y verificado con 2.300 pruebas unitarias pasando al 100%).
-- **Documento:** [`inc-103-barrido-calidad-snapshots-locales.md`](../increments/inc-103-barrido-calidad-snapshots-locales.md).
-- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`43-snapshots-bgg-crudos-para-descubrimiento.md`](sistema/43-snapshots-bgg-crudos-para-descubrimiento.md).
+- **Estado:** ✅ **Completado y Archivado** (2.309 pruebas unitarias pasando al 100% [2.319 totales con integración]).
+- **Documento:** [`archive/inc-103-barrido-calidad-snapshots-locales.md`](../increments/archive/inc-103-barrido-calidad-snapshots-locales.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
 ---
 
