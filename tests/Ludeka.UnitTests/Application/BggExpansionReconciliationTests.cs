@@ -295,6 +295,60 @@ public class BggExpansionReconciliationTests : IDisposable
         Assert.Equal(2, result.LinkedExpansionsCount);
     }
 
+    [Fact]
+    public async Task Reconcile_GameWithZeroPlayerCountInScalability_DoesNotThrowAndSanitizesScalability()
+    {
+        var baseGame = CreateGame(500, "Base Catan", GameType.BaseGame);
+        // Creamos un juego con Scalability que incluye PlayerCount = 0
+        var scalabilityWithZero = new List<ScalabilityEntry>
+        {
+            new(0, "0J", ScalabilityStatus.Recommended, 5, 2, 0),
+            new(2, "2J", ScalabilityStatus.MustPlay, 10, 1, 0)
+        };
+        var expGame = new Game(
+            bggId: 501,
+            originalTitle: "Catan Exp",
+            spanishTitle: "Catan Exp",
+            designer: "Teuber",
+            publisher: "Devir",
+            yearPublished: 2020,
+            coverImageUrl: null,
+            thumbnailUrl: null,
+            description: "Desc",
+            bggRating: 7.0,
+            bggRank: 50,
+            ludistRating: 7.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(30, 60, 20),
+            scalability: scalabilityWithZero,
+            type: GameType.BaseGame
+        );
+
+        _context.Games.AddRange(baseGame, expGame);
+        await _context.SaveChangesAsync();
+
+        var snap = """{"item":{"@type":"boardgameexpansion","@id":"501","link":[{"@type":"boardgameexpansion","@id":"500","@value":"Base Catan","@inbound":"true"}]}}""";
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(501, snap));
+
+        var result = await _service.ReconcileAndLinkExpansionsFromSnapshotsAsync(batchSize: 50);
+
+        Assert.Equal(1, result.TotalEvaluated);
+        Assert.Equal(1, result.ReclassifiedExpansionsCount);
+        Assert.Equal(1, result.LinkedExpansionsCount);
+
+        var updated = await _gameRepo.GetByBggIdAsync(501);
+        Assert.NotNull(updated);
+        Assert.Equal(GameType.Expansion, updated.Type);
+        Assert.Equal(baseGame.Id, updated.BaseGameId);
+        // Debe haber purgado el 0
+        Assert.DoesNotContain(updated.Scalability, s => s.PlayerCount <= 0);
+    }
+
     private static Game CreateGame(int bggId, string title, GameType type, Guid? baseGameId = null)
     {
         return new Game(

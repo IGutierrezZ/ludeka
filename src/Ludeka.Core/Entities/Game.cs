@@ -366,7 +366,7 @@ public partial class Game
     {
         ArgumentNullException.ThrowIfNull(scalability);
         Scalability.Clear();
-        Scalability.AddRange(scalability);
+        Scalability.AddRange(scalability.Where(s => s.PlayerCount > 0));
     }
 
     public void UpdateDuration(GameDuration duration)

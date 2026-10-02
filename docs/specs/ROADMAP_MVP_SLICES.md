@@ -972,8 +972,20 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Promoción Nativa en Staging:** Asignar `GameType.Expansion` y `BaseGameId` en `BggMassIngestionService.PromoteReadyToCatalogBatchAsync` para evitar la creación de expansiones huérfanas en futuras importaciones.
   3. **Acción Administrativa y Runner CLI:** Nuevo botón interactivo en `/admin/cola-catalogacion` y runner desatendido CLI `JobNames.BggReconcileExpansions` (`bgg-reconcile-expansions`) en `Ludeka.Jobs`.
   4. **Desglose de Fallidos en Staging:** Desagregar la métrica `FailedCount` en `UnpromotedFailedCount` (~210 bloqueados) frente a títulos ya en catálogo con advertencias accesorias (~1.810).
+- **Estado:** ✅ **Completado y Archivado** (2.290 pruebas unitarias pasando al 100%).
+- **Documento:** [`archive/inc-100-vinculacion-expansiones-snapshots.md`](../increments/archive/inc-100-vinculacion-expansiones-snapshots.md).
+
+---
+
+## Incremento 101: Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones
+- **Identificador SDD:** `inc-101-hotfix-reconciliacion-minplayers`
+- **Objetivo Principal:**
+  1. **Invariante en Dominio:** Filtrar comensales `PlayerCount <= 0` en `Game.UpdateScalability`.
+  2. **Blindaje en Parser XML:** Descartar opciones espurias con 0 jugadores de las encuestas BGG en `BggXmlParser.ParseScalability`.
+  3. **Persistencia Defensiva en Repositorio:** Asegurar `minPlayers >= 1` y `maxPlayers >= minPlayers` en `SqliteGameRepository.UpdateAsync` calculando sobre comensales estrictamente positivos.
+  4. **Aislamiento en Reconciliación:** Envoltura `try-catch` granular por juego en `BggRawSnapshotSyncService` para que anomalías en un título no interrumpan el procesamiento del lote.
 - **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-100-vinculacion-expansiones-snapshots.md`](../increments/inc-100-vinculacion-expansiones-snapshots.md).
+- **Documento:** [`inc-101-hotfix-reconciliacion-minplayers.md`](../increments/inc-101-hotfix-reconciliacion-minplayers.md).
 
 ---
 

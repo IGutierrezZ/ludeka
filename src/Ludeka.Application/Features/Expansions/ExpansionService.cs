@@ -91,8 +91,8 @@ public class ExpansionService : IExpansionService
             );
         }
 
-        int baseMinPlayers = baseGame.Scalability.Count > 0 ? baseGame.Scalability.Min(s => s.PlayerCount) : 1;
-        int baseMaxPlayers = baseGame.Scalability.Count > 0 ? baseGame.Scalability.Max(s => s.PlayerCount) : 4;
+        int baseMinPlayers = Math.Max(1, baseGame.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min());
+        int baseMaxPlayers = Math.Max(baseMinPlayers, baseGame.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max());
         int baseEstimatedMinutes = baseGame.Duration.MaxMinutes > 0 ? baseGame.Duration.MaxMinutes : 60;
 
         var selectedIds = selectedExpansionIds?.Distinct().ToHashSet() ?? [];

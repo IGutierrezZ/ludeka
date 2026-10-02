@@ -112,7 +112,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-97** | Peticiones en Bloque Multi-ID a BGG (Batch Fetch) y Ampliación de Timeout en Runner de Snapshots Crudos | ✅ Archivado | [inc-97-peticiones-en-bloque-bgg-batch-fetch.md](archive/inc-97-peticiones-en-bloque-bgg-batch-fetch.md) |
 | **INC-98** | Persistencia Automática de Snapshots Satélite en Llamadas BGG XMLAPI2 y Métrica de Fallidos en Staging | ✅ Archivado | [inc-98-persistencia-automatica-snapshots.md](archive/inc-98-persistencia-automatica-snapshots.md) |
 | **INC-99** | Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia | ✅ Archivado | [inc-99-carrusel-expansiones-multimedia.md](archive/inc-99-carrusel-expansiones-multimedia.md) |
-| **INC-100** | Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging | ⏳ En progreso | [inc-100-vinculacion-expansiones-snapshots.md](inc-100-vinculacion-expansiones-snapshots.md) |
+| **INC-100** | Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging | ✅ Archivado | [inc-100-vinculacion-expansiones-snapshots.md](archive/inc-100-vinculacion-expansiones-snapshots.md) |
+| **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ⏳ En progreso | [inc-101-hotfix-reconciliacion-minplayers.md](inc-101-hotfix-reconciliacion-minplayers.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -142,7 +143,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| **INC-100** | `inc/vinculacion-expansiones-snapshots` | `F:\repos\ludeka-wt\vinculacion-expansiones-snapshots` | ⏳ En progreso | Reclasificación de `GameType.Expansion` y vinculación bidireccional desde 17.464 snapshots BGG locales, corrección de promoción y desglose de fallidos en staging |
+| **INC-101** | `inc/hotfix-reconciliacion-minplayers` | `F:\repos\ludeka-wt\hotfix-reconciliacion-minplayers` | ⏳ En progreso | Saneamiento de `minPlayers` y filtrado de comensales no positivos en escalabilidad, y tolerancia granular a fallos individuales en reconciliación de expansiones |
+
+*(INC-100 entregó su PR #180, verificada con 2.290 pruebas unitarias en verde al 100%, y quedó archivado y desplegado en Google Cloud Run el 2026-10-02. Implementa la reconciliación y vinculación masiva de expansiones desde 17.464 snapshots BGG locales mediante `BggRawSnapshotParser` y `BggRawSnapshotSyncService` sin llamadas externas a BGG, reclasificación determinista de títulos falsos a `GameType.Expansion`, asignación bidireccional de `BaseGameId`, promoción nativa en staging con tipo expansión, botón interactivo en `/admin/cola-catalogacion`, runner desatendido CLI `bgg-reconcile-expansions` [`BggReconcileExpansionsJobRunner`] en `Ludeka.Jobs`, y desagregación de la métrica de fallidos en Staging distinguiendo títulos no promovidos [~210] de títulos en catálogo con avisos menores accesorias [~1.810]).*
 
 *(INC-99 entregó su PR #179, verificada con 2.277 pruebas unitarias [2.287 totales con integración] en verde al 100%, y quedó archivado y desplegado en Google Cloud Run el 2026-10-02. Sustituye las cuadrículas verticales infinitas de expansiones y vídeos por carruseles horizontales con scroll táctil y botones de desplazamiento suave mediante `window.ludekaScrollRail` en `rail-scroll.js`, rediseña las opciones de formato del Hub Multimedia a una barra segmentada profesional en fila única con coherencia cromática editorial, compacta las tarjetas a proporciones optimizadas [2 o 3 visibles a la vez], y reestructura el Mezclador de Mesa en un layout a 2 columnas con selector vertical contenido y diagnóstico contiguo sin generar scroll kilométrico).*
 

@@ -211,8 +211,8 @@ public class InstagramComposerService : IInstagramComposerService
 
     private string ComposeGameSvg(Game game, bool isDark)
     {
-        var minPlayers = game.Scalability.Count > 0 ? game.Scalability.Min(s => s.PlayerCount) : 1;
-        var maxPlayers = game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4;
+        var minPlayers = Math.Max(1, game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min());
+        var maxPlayers = Math.Max(minPlayers, game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max());
         var idealPlayers = minPlayers == maxPlayers ? $"{minPlayers} jugadores" : $"{minPlayers}-{maxPlayers} jugadores";
 
         var data = new SocialCardDataDto(
@@ -295,8 +295,8 @@ public class InstagramComposerService : IInstagramComposerService
 
     private string GenerateGameCaption(Game game)
     {
-        var minPlayers = game.Scalability.Count > 0 ? game.Scalability.Min(s => s.PlayerCount) : 1;
-        var maxPlayers = game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4;
+        var minPlayers = Math.Max(1, game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min());
+        var maxPlayers = Math.Max(minPlayers, game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max());
         var idealPlayers = minPlayers == maxPlayers ? $"{minPlayers} jugadores" : $"{minPlayers}-{maxPlayers} jugadores";
 
         var data = new SocialCardDataDto(

@@ -158,8 +158,8 @@ public class BggMassIngestionService : IBggMassIngestionService
                         designer: fetchedGame.Designer,
                         publisher: fetchedGame.Publisher,
                         description: fetchedGame.Description,
-                        minPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Min(s => s.PlayerCount) : 1,
-                        maxPlayers: fetchedGame.Scalability.Count > 0 ? fetchedGame.Scalability.Max(s => s.PlayerCount) : 4,
+                        minPlayers: Math.Max(1, fetchedGame.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min()),
+                        maxPlayers: Math.Max(1, fetchedGame.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max()),
                         playingTimeMinutes: totalPlayTime,
                         minAge: fetchedGame.Age.BoxAge,
                         bggRating: fetchedGame.BggRating,
@@ -1094,7 +1094,8 @@ public class BggMassIngestionService : IBggMassIngestionService
 
             int min = staging.MinPlayTimeMinutes > 0 ? staging.MinPlayTimeMinutes : (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : 30);
             int max = staging.MaxPlayTimeMinutes > 0 ? staging.MaxPlayTimeMinutes : min;
-            int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4));
+            int maxPlayerCount = game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max();
+            int est = Math.Max(15, (staging.PlayingTimeMinutes > 0 ? staging.PlayingTimeMinutes : max) / Math.Max(1, maxPlayerCount));
 
             if (game.Duration == null || game.Duration.EstimatedPerPlayerMinutes != est || game.Duration.MinMinutes != min || game.Duration.MaxMinutes != max)
             {
@@ -1191,8 +1192,8 @@ public class BggMassIngestionService : IBggMassIngestionService
                         designer: fetched.Designer,
                         publisher: fetched.Publisher,
                         description: fetched.Description,
-                        minPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Min(s => s.PlayerCount) : 1,
-                        maxPlayers: fetched.Scalability.Count > 0 ? fetched.Scalability.Max(s => s.PlayerCount) : 4,
+                        minPlayers: Math.Max(1, fetched.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min()),
+                        maxPlayers: Math.Max(1, fetched.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max()),
                         playingTimeMinutes: totalPlayTime,
                         minAge: fetched.Age.BoxAge,
                         bggRating: fetched.BggRating,
