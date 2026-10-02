@@ -1,10 +1,10 @@
-# INC-102: Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
+# INC-103: Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
 
-> **Incremento:** INC-102  
+> **Incremento:** INC-103  
 > **Estado:** ⏳ En progreso  
 > **Rama:** `inc/barrido-calidad-snapshots-locales`  
 > **Worktree:** `F:\repos\ludeka-wt\barrido-calidad-snapshots-locales`  
-> **Artefactos SDD:** `openspec/changes/2026-10-02-change-102-barrido-calidad-snapshots-locales/`
+> **Artefactos SDD:** `openspec/changes/2026-10-02-change-103-barrido-calidad-snapshots-locales/`
 
 ---
 

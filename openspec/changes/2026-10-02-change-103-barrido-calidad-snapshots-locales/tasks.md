@@ -1,4 +1,4 @@
-# Tareas de Implementación: INC-102 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
+# Tareas de Implementación: INC-103 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
 
 ## Fase 1: Conversión Determinista JSON -> XML (`BggJsonToXmlConverter`)
 - [ ] 1.1 Implementar `BggJsonToXmlConverter` en `Ludeka.Infrastructure.Bgg` para reconstituir `XElement` desde el `RawJson` del snapshot BGG respetando `@atributos` y `#text`.

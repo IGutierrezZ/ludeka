@@ -1,4 +1,4 @@
-# Diseño Técnico: INC-102 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
+# Diseño Técnico: INC-103 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
 
 ## 1. Arquitectura de Componentes
 

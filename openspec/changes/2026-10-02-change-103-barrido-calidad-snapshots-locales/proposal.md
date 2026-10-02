@@ -1,4 +1,4 @@
-# Propuesta: INC-102 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG y Saneamiento Anti-Bucle en Pendientes Sin Votos
+# Propuesta: INC-103 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG y Saneamiento Anti-Bucle en Pendientes Sin Votos
 
 ## 1. Contexto y Problema Detectado
 

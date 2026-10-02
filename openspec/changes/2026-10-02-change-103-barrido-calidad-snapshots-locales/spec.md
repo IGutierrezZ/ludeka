@@ -1,4 +1,4 @@
-# Especificación: INC-102 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
+# Especificación: INC-103 — Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
 
 ## 1. Requerimientos Funcionales
 
