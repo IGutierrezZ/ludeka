@@ -326,6 +326,22 @@ public partial class Game
         Type = type;
     }
 
+    public void SetExpansionAporte(
+        ExpansionNecessity necessity,
+        IEnumerable<ExpansionImpactTag>? impactTags,
+        string whatItBringsSummary,
+        int? extraPlayerCount = null,
+        int? extraDurationMinutes = null)
+    {
+        Type = GameType.Expansion;
+        ExpansionNecessity = necessity;
+        ImpactTags.Clear();
+        if (impactTags != null) ImpactTags.AddRange(impactTags);
+        WhatItBringsSummary = whatItBringsSummary?.Trim();
+        ExtraPlayerCount = extraPlayerCount;
+        ExtraDurationMinutes = extraDurationMinutes;
+    }
+
     public void AddPurchaseLink(GamePurchaseLink link)
     {
         ArgumentNullException.ThrowIfNull(link);

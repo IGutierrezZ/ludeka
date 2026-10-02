@@ -114,7 +114,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-99** | Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia | ✅ Archivado | [inc-99-carrusel-expansiones-multimedia.md](archive/inc-99-carrusel-expansiones-multimedia.md) |
 | **INC-100** | Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging | ✅ Archivado | [inc-100-vinculacion-expansiones-snapshots.md](archive/inc-100-vinculacion-expansiones-snapshots.md) |
 | **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ✅ Archivado | [inc-101-hotfix-reconciliacion-minplayers.md](archive/inc-101-hotfix-reconciliacion-minplayers.md) |
-| **INC-102** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ⏳ En progreso | [inc-102-barrido-calidad-snapshots-locales.md](inc-102-barrido-calidad-snapshots-locales.md) |
+| **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ✅ Archivado | [inc-102-autovinculacion-expansiones-ia.md](archive/inc-102-autovinculacion-expansiones-ia.md) |
+| **INC-103** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ⏳ En progreso | [inc-103-barrido-calidad-snapshots-locales.md](inc-103-barrido-calidad-snapshots-locales.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -144,9 +145,11 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| **INC-102** | `inc/barrido-calidad-snapshots-locales` | `F:\repos\ludeka-wt\barrido-calidad-snapshots-locales` | ⏳ En progreso | Barrido y auditoría integral de calidad de catálogo desde 17.505 snapshots BGG locales (desacoplado de red), saneamiento anti-bucle en pendientes sin votos y CLI en Ludeka.Jobs |
+| **INC-103** | `inc/barrido-calidad-snapshots-locales` | `F:\repos\ludeka-wt\barrido-calidad-snapshots-locales` | ⏳ En progreso | Barrido y auditoría integral de calidad de catálogo desde 17.505 snapshots BGG locales (desacoplado de red), saneamiento anti-bucle en pendientes sin votos y CLI en Ludeka.Jobs |
 
-*(INC-101 entregó su PR #182, verificada con pruebas en verde al 100%, y quedó archivado y desplegado en Google Cloud Run el 2026-10-02. Implementa saneamiento de minPlayers y filtrado de comensales no positivos en escalabilidad, y tolerancia granular a fallos individuales en reconciliación de expansiones).*
+*(INC-102 entregó su verificación con 2.300 pruebas unitarias en verde al 100% [2.310 totales con integración], y quedó archivado el 2026-10-02. Implementa la auto-vinculación inmediata bidireccional de expansiones en búsqueda asistida de BGG en `/mi-ludoteca` mediante `BggSearchAssistedService` y `IBggRawSnapshotRepository`, la síntesis asistida de aporte lúdico con Google Gemini Flash y el generador determinista `HeuristicExpansionAporteGenerator`, y el estado vacío interactivo con botón de generación asistida en `ExpansionAporteCard.razor`).*
+
+*(INC-101 entregó su PR #182, verificada con 2.291 pruebas unitarias en verde al 100%, y quedó archivado el 2026-10-02. Implementa el saneamiento defensivo de `minPlayers` en `Game.cs`, `BggXmlParser.cs`, `SqliteGameRepository.cs` y servicios auxiliares, filtrando comensales `<= 0` y aislando con try-catch por entidad la reconciliación masiva de expansiones desde snapshots satélite).*
 
 *(INC-100 entregó su PR #180, verificada con 2.290 pruebas unitarias en verde al 100%, y quedó archivado y desplegado en Google Cloud Run el 2026-10-02. Implementa la reconciliación y vinculación masiva de expansiones desde 17.464 snapshots BGG locales mediante `BggRawSnapshotParser` y `BggRawSnapshotSyncService` sin llamadas externas a BGG, reclasificación determinista de títulos falsos a `GameType.Expansion`, asignación bidireccional de `BaseGameId`, promoción nativa en staging con tipo expansión, botón interactivo en `/admin/cola-catalogacion`, runner desatendido CLI `bgg-reconcile-expansions` [`BggReconcileExpansionsJobRunner`] en `Ludeka.Jobs`, y desagregación de la métrica de fallidos en Staging distinguiendo títulos no promovidos [~210] de títulos en catálogo con avisos menores accesorias [~1.810]).*
 

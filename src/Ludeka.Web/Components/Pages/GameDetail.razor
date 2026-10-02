@@ -238,11 +238,13 @@ else
                 @if (Game.IsExpansion)
                 {
                     <ExpansionAporteCard
+                        ExpansionId="@Game.Id"
                         Necessity="@Game.ExpansionNecessity"
                         ImpactTags="@Game.ImpactTags"
                         WhatItBringsSummary="@Game.WhatItBringsSummary"
                         ExtraPlayerCount="@Game.ExtraPlayerCount"
-                        ExtraDurationMinutes="@Game.ExtraDurationMinutes" />
+                        ExtraDurationMinutes="@Game.ExtraDurationMinutes"
+                        OnAporteGenerated="HandleExpansionAporteUpdated" />
 
                     @if (_sisterExpansions.Count > 0)
                     {
@@ -585,6 +587,19 @@ else
     {
         Game = updated;
         StateHasChanged();
+    }
+
+    private async Task HandleExpansionAporteUpdated()
+    {
+        if (!string.IsNullOrWhiteSpace(Slug))
+        {
+            var updated = await CatalogService.GetGameBySlugAsync(Slug);
+            if (updated != null)
+            {
+                Game = updated;
+                StateHasChanged();
+            }
+        }
     }
 
     private void OpenSocialCardModal()
