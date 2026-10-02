@@ -1001,6 +1001,20 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 103: Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG
+- **Identificador SDD:** `change-103-barrido-calidad-snapshots-locales`
+- **Objetivo Principal:**
+  1. **Conversión Determinista JSON a XML:** Implementar `BggJsonToXmlConverter` en `Ludeka.Infrastructure.Bgg` para reconstruir `XElement` fieles desde `BggRawSnapshot.RawJson` y permitir a `BggXmlParser` interpretar metadatos sin depender de llamadas HTTP.
+  2. **Estrategia Snapshot-First en Calidad:** Evaluar snapshots satélite locales en `EnrichSingleGameQualityAsync` antes de recurrir a la red externa, permitiendo auditar y enriquecer el 100% del catálogo (~17.505 títulos) a velocidad de memoria y CPU.
+  3. **Paginación Monotónica por Cursor Anti-Bucle:** Incorporar cursor `afterBggId` en `IGameRepository.GetGamesPendingQualityBackfillAsync`, `BggQualityBackfillResultDto` y `CatalogQueueAdmin.razor` para resolver definitivamente el bucle infinito sobre los 421 juegos sin votos comunitarios.
+  4. **Idempotencia y Comparación Semántica:** Incorporar `ScalabilityNeedsUpdate` y comparadores de fundas/editoriales para prevenir escrituras innecesarias en base de datos cuando los metadatos ya están actualizados o carecen de votos en ambos extremos.
+  5. **Ejecución Desatendida en CLI:** Actualizar `BackfillQualityJobRunner` en `Ludeka.Jobs` con latido `IJobHeartbeat` y optimización local para barridos masivos programados.
+- **Estado:** ✅ **Completado y Archivado** (2.309 pruebas unitarias pasando al 100% [2.319 totales con integración]).
+- **Documento:** [`archive/inc-103-barrido-calidad-snapshots-locales.md`](../increments/archive/inc-103-barrido-calidad-snapshots-locales.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

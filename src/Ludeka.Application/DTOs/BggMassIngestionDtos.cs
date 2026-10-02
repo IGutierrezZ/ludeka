@@ -151,7 +151,9 @@ public record BggQualityBackfillResultDto(
     int ProcessedCount,
     int UpdatedCount,
     int FailedCount,
-    string Message
+    string Message,
+    int LastBggIdProcessed = 0,
+    bool HasMore = false
 )
 {
     public int EvaluatedCount => ProcessedCount;

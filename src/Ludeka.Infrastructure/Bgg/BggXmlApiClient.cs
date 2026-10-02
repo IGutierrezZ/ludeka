@@ -206,6 +206,14 @@ public class BggXmlApiClient : IBggClient, IDisposable
         }
     }
 
+    /// <inheritdoc />
+    public Game? ParseGameFromRawJson(string rawJson)
+    {
+        var item = BggJsonToXmlConverter.ConvertToItemElement(rawJson);
+        if (item == null) return null;
+        return BggXmlParser.ParseItem(item);
+    }
+
     public Task<IReadOnlyList<BggCollectionItemDto>> FetchUserCollectionAsync(string username, CancellationToken ct = default)
     {
         return FetchUserCollectionAsync(username, null, ct);

@@ -168,14 +168,19 @@ En `BggMassIngestionService`:
 
 ---
 
-## 7. Verificación de Pruebas Automatizadas
+## 8. Saneamiento Anti-Bucle e Idempotencia Semántica en Calidad (INC-103)
 
-El saneamiento integral y el barrido determinista se encuentran respaldados por pruebas unitarias de regresión en todas las capas:
-- `GameEditorDomainTests`: Pruebas de años históricos (-2200, -3500, 1475, 1876, 0, 2026), límites de rango y preservación de votos comunitarios en `UpdateCatalogInformation`.
-- `BggXmlParserTests`: Pruebas de inferencia de `GameStyle` a partir de subdominios (`Thematic Games`, `Wargames`, `Party Games`, `Children's Games`, `Abstract Games`, `Strategy Games`), categorías y mecánicas temáticas (`Miniatures`, `Zombies`, `Dungeon Crawl`, `Trivia`, `Campaign`), y precedencia de confrontación (`Semi-Cooperative`, `Traitor`).
-- `BggMassIngestionBackfillTests`: Pruebas de promoción con estilo inferido y duración calculada no colapsada (~30 min/jugador en 120 min), y enriquecimiento retroactivo de ADN y escalabilidad comunitaria.
-- `SqliteGameRepositoryTests`: Pruebas de persistencia real de `MustPlay`, `BestVotes` y `Sleeves` tras `UpdateAsync`, selección correcta en el filtro de backfill y paginación determinista por cursor ascendente (`GetGamesCursorPagedAsync`).
-- `BggMassIngestionSweepTests`: Pruebas de barrido secuencial por cursor ascendente, corrección de falsos Eurogames a estilos reales inferidos, omisión de escrituras para juegos ya correctos (`SkippedCount`) y detección de catálogo agotado (`HasMore = false`).
-- `BackfillQualityJobRunnerTests`: Pruebas de iteración autónoma del runner de Cloud Run hasta agotar el catálogo y resultado de lease completado.
+### 8.1 Causa Raíz del Bucle en «Pendientes Sin Votos»
+En `/admin/cola-catalogacion`, la consulta `GetGamesPendingQualityBackfillAsync` filtraba por títulos cuya escalabilidad tuviera 0 elementos o 0 votos con `Take(limit)` sin cursor de desplazamiento. Aquellos títulos (~421 juegos) que legítimamente carecen de encuestas de comensales en BGG recibían el fallback (con 0 votos), volviendo a ser devueltos una y otra vez en sucesivas consultas e impidiendo que el proceso continuo terminase.
 
-**Total Verificado:** 2.037 pruebas automatizadas en verde al 100% (2.027 unitarias + 10 de integración).
+### 8.2 Paginación Monotónica por Cursor (`afterBggId`)
+- Se incorpora la sobrecarga `GetGamesPendingQualityBackfillAsync(int afterBggId, int limit, CancellationToken ct)` en `IGameRepository` y `SqliteGameRepository`, ordenando por `BggId ASC` y filtrando por `g.BggId > afterBggId`.
+- `BggQualityBackfillResultDto` incorpora `LastBggIdProcessed` y `HasMore`.
+- `CatalogQueueAdmin.razor` avanza el cursor secuencialmente garantizando que cada juego se evalúa a lo sumo una única vez por barrido.
+
+### 8.3 Idempotencia Semántica (`ScalabilityNeedsUpdate`)
+En `BggMassIngestionService`:
+- Se previene marcar `enriched = true` si tanto el catálogo existente como el snapshot carecen de votos comunitarios (`TotalVotes == 0`) y tienen el mismo número de comensales.
+- Esto elimina escrituras innecesarias en base de datos, reduce contención de I/O y asegura estabilidad estricta en el catálogo.
+
+**Total Verificado Actualizado:** 2.319 pruebas automatizadas en verde al 100% (2.309 unitarias + 10 de integración).

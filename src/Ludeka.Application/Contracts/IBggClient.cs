@@ -29,4 +29,10 @@ public interface IBggClient
 
     Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
         => Task.FromResult<string?>(null);
+
+    /// <summary>
+    /// Parsea una entidad Game completa desde el payload JSON de un snapshot satélite de BGG en memoria (sin llamadas HTTP).
+    /// </summary>
+    Game? ParseGameFromRawJson(string rawJson)
+        => null;
 }

@@ -34,7 +34,7 @@ public sealed class BackfillQualityJobRunner : IJobRunner
         return _coordinator.ExecuteWithWindowLeaseAsync(
             Name,
             windowKey,
-            async (_, workCt) =>
+            async (heartbeat, workCt) =>
             {
                 int totalEvaluated = 0;
                 int totalUpdated = 0;
@@ -44,6 +44,7 @@ public sealed class BackfillQualityJobRunner : IJobRunner
 
                 while (!workCt.IsCancellationRequested)
                 {
+                    await heartbeat.BeatAsync(workCt);
                     var result = await _service.RunScheduledSweepCatalogQualityBatchAsync(currentAfterBggId, 50, workCt);
                     totalEvaluated += result.EvaluatedCount;
                     totalUpdated += result.UpdatedCount;

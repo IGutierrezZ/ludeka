@@ -515,7 +515,9 @@ public class BggMassIngestionBackfillTests
         public Task<IReadOnlyList<Game>> GetByDesignerAsync(string designerName, CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Array.Empty<Game>());
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Games);
         public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
-            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0)).Take(limit).ToList());
+            => GetGamesPendingQualityBackfillAsync(0, limit, ct);
+        public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int afterBggId, int limit, CancellationToken ct = default)
+            => Task.FromResult((IReadOnlyList<Game>)Games.Where(g => g.BggId > afterBggId && (g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0))).OrderBy(g => g.BggId).Take(limit).ToList());
         public Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default)
             => Task.FromResult(Games.Count(g => g.Scalability.Count == 0 || g.Scalability.All(s => s.BestVotes == 0 && s.RecommendedVotes == 0)));
     }
