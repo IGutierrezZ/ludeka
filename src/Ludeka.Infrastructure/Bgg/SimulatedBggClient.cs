@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
+using System.Xml.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
@@ -16,30 +17,72 @@ namespace Ludeka.Infrastructure.Bgg;
 /// </summary>
 public class SimulatedBggClient : IBggClient
 {
-    public Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
+    private readonly IServiceScopeFactory? _scopeFactory;
+
+    public SimulatedBggClient(IServiceScopeFactory? scopeFactory = null)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    public async Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         var game = BggSimulationDataset.CreateGameInstance(bggId);
-        return Task.FromResult(game);
+        if (game != null && _scopeFactory != null)
+        {
+            var xml = BggSimulationDataset.GetRawThingXml(bggId);
+            await TryPersistSimulatedSnapshotsAsync([bggId], xml, ct);
+        }
+        return game;
     }
 
     public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
-        var xml = BggSimulationDataset.GetRawThingXml(bggId);
-        return Task.FromResult<string?>(xml);
+        if (bggId <= 0) return Task.FromResult<string?>(null);
+        return FetchRawThingsXmlAsync([bggId], ct);
     }
 
-    public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        if (bggIds == null) return Task.FromResult<string?>(null);
+        if (bggIds == null) return null;
 
         var validIds = bggIds.Where(id => id > 0).Distinct().Take(20).ToList();
-        if (validIds.Count == 0) return Task.FromResult<string?>(null);
+        if (validIds.Count == 0) return null;
 
         var xml = BggSimulationDataset.GetRawThingsXml(validIds);
-        return Task.FromResult<string?>(xml);
+        await TryPersistSimulatedSnapshotsAsync(validIds, xml, ct);
+        return xml;
+    }
+
+    private async Task TryPersistSimulatedSnapshotsAsync(IEnumerable<int> validIds, string? xml, CancellationToken ct)
+    {
+        if (_scopeFactory == null || string.IsNullOrWhiteSpace(xml)) return;
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetService<IBggRawSnapshotRepository>();
+            if (repo == null) return;
+
+            var doc = XDocument.Parse(xml);
+            var items = doc.Root?.Elements("item")?.ToList();
+            if (items == null) return;
+
+            foreach (var item in items)
+            {
+                if (int.TryParse(item.Attribute("id")?.Value, out int bggId) && bggId > 0)
+                {
+                    string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                    var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                    await repo.UpsertAsync(snapshot, ct);
+                }
+            }
+        }
+        catch
+        {
+            // Silencioso en simulación
+        }
     }
 
     public Task<IReadOnlyList<BggSearchResultDto>> SearchGamesAsync(string query, CancellationToken ct = default)

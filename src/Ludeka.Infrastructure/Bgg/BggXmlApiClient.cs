@@ -6,6 +6,7 @@ using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
@@ -20,12 +21,20 @@ public class BggXmlApiClient : IBggClient, IDisposable
     private readonly RateLimiter _rateLimiter;
     private readonly bool _ownsHttpClient;
     private readonly BggOptions _options;
+    private readonly IBggRawSnapshotRepository? _snapshotRepo;
+    private readonly ILogger<BggXmlApiClient>? _logger;
 
-    public BggXmlApiClient(HttpClient? httpClient = null, IOptions<BggOptions>? options = null)
+    public BggXmlApiClient(
+        HttpClient? httpClient = null,
+        IOptions<BggOptions>? options = null,
+        IBggRawSnapshotRepository? snapshotRepo = null,
+        ILogger<BggXmlApiClient>? logger = null)
     {
         _ownsHttpClient = httpClient == null;
         _httpClient = httpClient ?? new HttpClient();
         _options = options?.Value ?? new BggOptions();
+        _snapshotRepo = snapshotRepo;
+        _logger = logger;
 
         var bearerToken = _options.BearerToken;
         if (!string.IsNullOrWhiteSpace(bearerToken) && _httpClient.DefaultRequestHeaders.Authorization == null)
@@ -114,7 +123,13 @@ public class BggXmlApiClient : IBggClient, IDisposable
                     return null;
                 }
 
-                return await response.Content.ReadAsStringAsync(ct);
+                string xmlContent = await response.Content.ReadAsStringAsync(ct);
+                if (_snapshotRepo != null && !string.IsNullOrWhiteSpace(xmlContent))
+                {
+                    await TryPersistSnapshotsAsync(validIds, xmlContent, ct);
+                }
+
+                return xmlContent;
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -131,6 +146,45 @@ public class BggXmlApiClient : IBggClient, IDisposable
         }
 
         return null;
+    }
+
+    private async Task TryPersistSnapshotsAsync(IEnumerable<int> requestedIds, string xmlContent, CancellationToken ct)
+    {
+        if (_snapshotRepo == null || string.IsNullOrWhiteSpace(xmlContent)) return;
+
+        try
+        {
+            var doc = XDocument.Parse(xmlContent);
+            var items = doc.Root?.Elements("item")?.ToList();
+            if (items == null) return;
+
+            var foundIds = new HashSet<int>();
+
+            foreach (var item in items)
+            {
+                if (int.TryParse(item.Attribute("id")?.Value, out int bggId) && bggId > 0)
+                {
+                    foundIds.Add(bggId);
+                    string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                    var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                    await _snapshotRepo.UpsertAsync(snapshot, ct);
+                }
+            }
+
+            // Registrar snapshots vacíos de control para IDs solicitados que BGG no devolvió (eliminados/privados)
+            foreach (var reqId in requestedIds)
+            {
+                if (!foundIds.Contains(reqId) && reqId > 0)
+                {
+                    var placeholder = new BggRawSnapshot(reqId, "{\"notFound\":true}", apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                    await _snapshotRepo.UpsertAsync(placeholder, ct);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Error no bloqueante al auto-persistir snapshot de BGG: {Message}", ex.Message);
+        }
     }
 
     public async Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
