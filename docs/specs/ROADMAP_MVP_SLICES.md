@@ -984,8 +984,20 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Blindaje en Parser XML:** Descartar opciones espurias con 0 jugadores de las encuestas BGG en `BggXmlParser.ParseScalability`.
   3. **Persistencia Defensiva en Repositorio:** Asegurar `minPlayers >= 1` y `maxPlayers >= minPlayers` en `SqliteGameRepository.UpdateAsync` calculando sobre comensales estrictamente positivos.
   4. **Aislamiento en Reconciliación:** Envoltura `try-catch` granular por juego en `BggRawSnapshotSyncService` para que anomalías en un título no interrumpan el procesamiento del lote.
+- **Estado:** ✅ **Completado y Archivado** (2.291 pruebas unitarias pasando al 100%).
+- **Documento:** [`archive/inc-101-hotfix-reconciliacion-minplayers.md`](../increments/archive/inc-101-hotfix-reconciliacion-minplayers.md).
+
+---
+
+## Incremento 102: Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA
+- **Identificador SDD:** `change-102-autovinculacion-expansiones-ia`
+- **Objetivo Principal:**
+  1. **Auto-vinculación Bidireccional en Búsqueda Asistida:** Enlazar inmediatamente expansiones a su juego base (`BaseGameId`) y asociar expansiones huérfanas en catálogo al ingresar un juego base mediante `BggSearchAssistedService`.
+  2. **Síntesis Asistida de Aporte con IA:** Integrar `GenerateExpansionAporteAsync` y `EnsureExpansionAporteAsync` en `IAiGameSummaryService` y `GeminiGameSummaryService` con salida JSON estructurada y fallback heurístico determinista.
+  3. **Generación Automática en Ingesta:** Autogenerar el aporte de la expansión al añadirla a la ludoteca.
+  4. **Estado Vacío y Acción Interactiva en Ficha:** Rediseñar `ExpansionAporteCard.razor` para eliminar la tarjeta en blanco, incorporando estado vacío pedagógico y botón interactivo para generar la síntesis bajo demanda.
 - **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-101-hotfix-reconciliacion-minplayers.md`](../increments/inc-101-hotfix-reconciliacion-minplayers.md).
+- **Documento:** [`inc-102-autovinculacion-expansiones-ia.md`](../increments/inc-102-autovinculacion-expansiones-ia.md).
 
 ---
 

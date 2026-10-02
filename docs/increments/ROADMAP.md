@@ -113,7 +113,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-98** | Persistencia Automática de Snapshots Satélite en Llamadas BGG XMLAPI2 y Métrica de Fallidos en Staging | ✅ Archivado | [inc-98-persistencia-automatica-snapshots.md](archive/inc-98-persistencia-automatica-snapshots.md) |
 | **INC-99** | Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia | ✅ Archivado | [inc-99-carrusel-expansiones-multimedia.md](archive/inc-99-carrusel-expansiones-multimedia.md) |
 | **INC-100** | Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging | ✅ Archivado | [inc-100-vinculacion-expansiones-snapshots.md](archive/inc-100-vinculacion-expansiones-snapshots.md) |
-| **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ⏳ En progreso | [inc-101-hotfix-reconciliacion-minplayers.md](inc-101-hotfix-reconciliacion-minplayers.md) |
+| **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ✅ Archivado | [inc-101-hotfix-reconciliacion-minplayers.md](archive/inc-101-hotfix-reconciliacion-minplayers.md) |
+| **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ⏳ En progreso | [inc-102-autovinculacion-expansiones-ia.md](inc-102-autovinculacion-expansiones-ia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -143,7 +144,9 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| **INC-101** | `inc/hotfix-reconciliacion-minplayers` | `F:\repos\ludeka-wt\hotfix-reconciliacion-minplayers` | ⏳ En progreso | Saneamiento de `minPlayers` y filtrado de comensales no positivos en escalabilidad, y tolerancia granular a fallos individuales en reconciliación de expansiones |
+| **INC-102** | `inc/autovinculacion-expansiones-ia` | `F:\repos\ludeka-wt\autovinculacion-expansiones-ia` | ⏳ En progreso | Auto-vinculación inmediata bidireccional de expansiones en búsqueda asistida y síntesis asistida de aporte con IA |
+
+*(INC-101 entregó su PR #182, verificada con 2.291 pruebas unitarias en verde al 100%, y quedó archivado el 2026-10-02. Implementa el saneamiento defensivo de `minPlayers` en `Game.cs`, `BggXmlParser.cs`, `SqliteGameRepository.cs` y servicios auxiliares, filtrando comensales `<= 0` y aislando con try-catch por entidad la reconciliación masiva de expansiones desde snapshots satélite).*
 
 *(INC-100 entregó su PR #180, verificada con 2.290 pruebas unitarias en verde al 100%, y quedó archivado y desplegado en Google Cloud Run el 2026-10-02. Implementa la reconciliación y vinculación masiva de expansiones desde 17.464 snapshots BGG locales mediante `BggRawSnapshotParser` y `BggRawSnapshotSyncService` sin llamadas externas a BGG, reclasificación determinista de títulos falsos a `GameType.Expansion`, asignación bidireccional de `BaseGameId`, promoción nativa en staging con tipo expansión, botón interactivo en `/admin/cola-catalogacion`, runner desatendido CLI `bgg-reconcile-expansions` [`BggReconcileExpansionsJobRunner`] en `Ludeka.Jobs`, y desagregación de la métrica de fallidos en Staging distinguiendo títulos no promovidos [~210] de títulos en catálogo con avisos menores accesorias [~1.810]).*
 
