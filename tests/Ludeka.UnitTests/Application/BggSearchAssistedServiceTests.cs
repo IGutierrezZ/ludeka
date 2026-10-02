@@ -71,6 +71,12 @@ public class BggSearchAssistedServiceTests
         public Task UpdateAsync(Game game, CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<bool> HasAnyAsync(CancellationToken ct = default) => Task.FromResult(Games.Count > 0);
+
+        public Task<IReadOnlyList<Game>> GetByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        {
+            var set = bggIds.ToHashSet();
+            return Task.FromResult<IReadOnlyList<Game>>(Games.Where(g => set.Contains(g.BggId)).ToList());
+        }
     }
 
     private class FakeCollectionRepo : IUserCollectionRepository
@@ -149,9 +155,9 @@ public class BggSearchAssistedServiceTests
         }
     }
 
-    private static Game CreateGame(int bggId, string title)
+    private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame)
     {
-        return new Game(
+        var game = new Game(
             bggId: bggId,
             originalTitle: title,
             spanishTitle: title,
@@ -172,6 +178,8 @@ public class BggSearchAssistedServiceTests
             footprint: TableFootprint.StandardTable,
             duration: new GameDuration(45, 60, 20)
         );
+        game.SetGameType(type);
+        return game;
     }
 
     [Fact]
@@ -272,6 +280,182 @@ public class BggSearchAssistedServiceTests
         Assert.Equal("Fake AI Summary for Ark Nova", cataloged.AiSummary.GeneralVerdict);
     }
 
+    [Fact]
+    public async Task AddGameToCollectionAsync_WhenExpansionImportedAndBaseGameExists_AutoLinksToBaseGame()
+    {
+        // Arrange
+        var fakeBgg = new FakeBggClient();
+        var baseGame = CreateGame(199792, "Everdell", GameType.BaseGame);
+        var expansion = CreateGame(328001, "Everdell: New Leaf", GameType.Expansion);
+        fakeBgg.Games[328001] = expansion;
+
+        var fakeGameRepo = new FakeGameRepo();
+        fakeGameRepo.Games.Add(baseGame);
+
+        var fakeCollectionRepo = new FakeCollectionRepo();
+        var fakePendingRepo = new FakePendingRepo();
+        var fakeSnapshotRepo = new FakeBggRawSnapshotRepository();
+
+        string rawJson = """
+        {
+          "item": {
+            "@type": "boardgameexpansion",
+            "@id": "328001",
+            "link": [
+              {
+                "@type": "boardgameexpansion",
+                "@id": "199792",
+                "@value": "Everdell",
+                "@inbound": "true"
+              }
+            ]
+          }
+        }
+        """;
+        await fakeSnapshotRepo.UpsertAsync(new BggRawSnapshot(328001, rawJson));
+
+        var service = new BggSearchAssistedService(
+            fakeBgg, fakeGameRepo, fakeCollectionRepo, fakePendingRepo, new FakeCurrentUserService(),
+            snapshotRepo: fakeSnapshotRepo);
+
+        // Act
+        var resultId = await service.AddGameToCollectionAsync(328001, CollectionStatus.InCollection);
+
+        // Assert
+        var catalogedExpansion = fakeGameRepo.Games.FirstOrDefault(g => g.BggId == 328001);
+        Assert.NotNull(catalogedExpansion);
+        Assert.Equal(baseGame.Id, catalogedExpansion.BaseGameId);
+    }
+
+    [Fact]
+    public async Task AddGameToCollectionAsync_WhenBaseGameImportedAndOrphanExpansionsExist_AutoLinksExpansions()
+    {
+        // Arrange
+        var fakeBgg = new FakeBggClient();
+        var baseGame = CreateGame(199792, "Everdell", GameType.BaseGame);
+        var orphanExpansion = CreateGame(328001, "Everdell: New Leaf", GameType.Expansion);
+
+        fakeBgg.Games[199792] = baseGame;
+
+        var fakeGameRepo = new FakeGameRepo();
+        fakeGameRepo.Games.Add(orphanExpansion);
+
+        var fakeCollectionRepo = new FakeCollectionRepo();
+        var fakePendingRepo = new FakePendingRepo();
+        var fakeSnapshotRepo = new FakeBggRawSnapshotRepository();
+
+        string baseGameRawJson = """
+        {
+          "item": {
+            "@type": "boardgame",
+            "@id": "199792",
+            "link": [
+              {
+                "@type": "boardgameexpansion",
+                "@id": "328001",
+                "@value": "Everdell: New Leaf"
+              }
+            ]
+          }
+        }
+        """;
+        await fakeSnapshotRepo.UpsertAsync(new BggRawSnapshot(199792, baseGameRawJson));
+
+        var service = new BggSearchAssistedService(
+            fakeBgg, fakeGameRepo, fakeCollectionRepo, fakePendingRepo, new FakeCurrentUserService(),
+            snapshotRepo: fakeSnapshotRepo);
+
+        // Act
+        var resultId = await service.AddGameToCollectionAsync(199792, CollectionStatus.InCollection);
+
+        // Assert
+        var catalogedBaseGame = fakeGameRepo.Games.FirstOrDefault(g => g.BggId == 199792);
+        Assert.NotNull(catalogedBaseGame);
+        Assert.Equal(catalogedBaseGame.Id, orphanExpansion.BaseGameId);
+    }
+
+    [Fact]
+    public async Task AddGameToCollectionAsync_WhenExpansionImported_GeneratesExpansionAporte()
+    {
+        // Arrange
+        var fakeBgg = new FakeBggClient();
+        var baseGame = CreateGame(199792, "Everdell", GameType.BaseGame);
+        var expansion = CreateGame(328001, "Everdell: New Leaf", GameType.Expansion);
+        fakeBgg.Games[328001] = expansion;
+
+        var fakeGameRepo = new FakeGameRepo();
+        fakeGameRepo.Games.Add(baseGame);
+
+        var fakeCollectionRepo = new FakeCollectionRepo();
+        var fakePendingRepo = new FakePendingRepo();
+        var fakeSnapshotRepo = new FakeBggRawSnapshotRepository();
+        var fakeAi = new FakeAiSummaryService();
+
+        string rawJson = """
+        {
+          "item": {
+            "@type": "boardgameexpansion",
+            "@id": "328001",
+            "link": [
+              {
+                "@type": "boardgameexpansion",
+                "@id": "199792",
+                "@value": "Everdell",
+                "@inbound": "true"
+              }
+            ]
+          }
+        }
+        """;
+        await fakeSnapshotRepo.UpsertAsync(new BggRawSnapshot(328001, rawJson));
+
+        var service = new BggSearchAssistedService(
+            fakeBgg, fakeGameRepo, fakeCollectionRepo, fakePendingRepo, new FakeCurrentUserService(),
+            aiSummaryService: fakeAi,
+            snapshotRepo: fakeSnapshotRepo);
+
+        // Act
+        var resultId = await service.AddGameToCollectionAsync(328001, CollectionStatus.InCollection);
+
+        // Assert
+        var catalogedExpansion = fakeGameRepo.Games.FirstOrDefault(g => g.BggId == 328001);
+        Assert.NotNull(catalogedExpansion);
+        Assert.Equal("Fake Aporte for Everdell: New Leaf", catalogedExpansion.WhatItBringsSummary);
+        Assert.Equal(ExpansionNecessity.HighlyRecommended, catalogedExpansion.ExpansionNecessity);
+        Assert.Contains(ExpansionImpactTag.AddsPlayers, catalogedExpansion.ImpactTags);
+        Assert.Equal(1, catalogedExpansion.ExtraPlayerCount);
+        Assert.Equal(15, catalogedExpansion.ExtraDurationMinutes);
+    }
+
+    private class FakeBggRawSnapshotRepository : IBggRawSnapshotRepository
+    {
+        public Dictionary<int, BggRawSnapshot> Snapshots = [];
+
+        public Task<BggRawSnapshot?> GetByBggIdAsync(int bggId, CancellationToken ct = default)
+            => Task.FromResult(Snapshots.GetValueOrDefault(bggId));
+
+        public Task UpsertAsync(BggRawSnapshot snapshot, CancellationToken ct = default)
+        {
+            Snapshots[snapshot.BggId] = snapshot;
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<int>> GetMissingBggIdsAsync(int limit = 50, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<int>>([]);
+
+        public Task<int> GetCountAsync(CancellationToken ct = default)
+            => Task.FromResult(Snapshots.Count);
+
+        public Task<int> GetTotalGamesWithBggIdCountAsync(CancellationToken ct = default)
+            => Task.FromResult(0);
+
+        public Task<IReadOnlyList<BggRawSnapshot>> GetAllSnapshotsAsync(int limit = 500, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(Snapshots.Values.ToList());
+
+        public Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsAfterBggIdAsync(int lastBggId, int limit = 200, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(Snapshots.Values.Where(s => s.BggId > lastBggId).OrderBy(s => s.BggId).Take(limit).ToList());
+    }
+
     private class FakeAiSummaryService : IAiGameSummaryService
     {
         public Task<AiGameSummaryDto> GenerateSummaryAsync(Game game, CancellationToken ct = default)
@@ -285,6 +469,20 @@ public class BggSearchAssistedServiceTests
                 $"Fake AI Summary for {game.SpanishTitle}",
                 "FakeModel",
                 DateTime.UtcNow
+            ));
+        }
+
+        public Task<ExpansionAporteAiDto> GenerateExpansionAporteAsync(Game expansion, Game? baseGame = null, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ExpansionAporteAiDto(
+                ExpansionId: expansion.Id,
+                WhatItBringsSummary: $"Fake Aporte for {expansion.SpanishTitle}",
+                Necessity: ExpansionNecessity.HighlyRecommended,
+                ImpactTags: new List<ExpansionImpactTag> { ExpansionImpactTag.ModularContent, ExpansionImpactTag.AddsPlayers }.AsReadOnly(),
+                ExtraPlayerCount: 1,
+                ExtraDurationMinutes: 15,
+                Model: "FakeAiModel",
+                GeneratedAt: DateTime.UtcNow
             ));
         }
 

@@ -36,7 +36,7 @@ Ubicación: [`src/Ludeka.Core/Entities/ExpansionRecipe.cs`](file:///c:/repos/Lud
 
 ---
 
-## 3. Motor de Evaluación en Tiempo Real (`Ludeka.Application`)
+## 3. Motor de Evaluación y Auto-Vinculación (`Ludeka.Application`)
 
 - **Contrato:** [`IExpansionService`](file:///c:/repos/Ludeka/src/Ludeka.Application/Contracts/IExpansionService.cs) implementado en [`ExpansionService.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Expansions/ExpansionService.cs).
 - **Evaluación del Mezclador (`EvaluateMixerSelectionAsync`):**
@@ -44,6 +44,11 @@ Ubicación: [`src/Ludeka.Core/Entities/ExpansionRecipe.cs`](file:///c:/repos/Lud
   - Detecta sobrecarga si el incremento supera **+45 minutos**.
   - Detecta sobrecarga si se seleccionan más de **2 expansiones de alto impacto**.
   - Evalúa la matriz de sinergias par-a-par para advertir de incompatibilidades entre los módulos seleccionados.
+- **Auto-Vinculación Bidireccional Asistida (INC-102):**
+  - Ubicación: [`BggSearchAssistedService.cs`](file:///c:/repos/Ludeka/src/Ludeka.Application/Features/Bgg/BggSearchAssistedService.cs).
+  - Al incorporar una expansión vía búsqueda asistida de BGG en `/mi-ludoteca`, consulta el snapshot crudo satélite [`BggRawSnapshot`](file:///c:/repos/Ludeka/src/Ludeka.Core/Entities/BggRawSnapshot.cs) y resuelve el enlace entrante (`inbound="true"`, `@type="boardgameexpansion"`), vinculando automáticamente el `BaseGameId` con el juego base existente en catálogo.
+  - Si entra un juego base y existen expansiones huérfanas ya importadas, se vinculan retroactivamente de manera inmediata.
+  - Genera automáticamente el aporte editorial mediante [`IAiGameSummaryService.GenerateExpansionAporteAsync`](file:///c:/repos/Ludeka/src/Ludeka.Application/Contracts/IAiGameSummaryService.cs).
 
 ---
 
@@ -51,6 +56,7 @@ Ubicación: [`src/Ludeka.Core/Entities/ExpansionRecipe.cs`](file:///c:/repos/Lud
 
 - [`ParentGameBanner.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ParentGameBanner.razor): Banner en la cabecera de la ficha de expansión para navegar al juego base.
 - [`ExpansionAporteCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionAporteCard.razor): Tarjeta de aportes con badges de impacto y necesidad.
+  - **Estado Vacío y Acción IA (INC-102):** Si la expansión carece de aportes editoriales cargados, despliega un *empty state* con iconografía `sparkles` y un botón interactivo para generar la síntesis de aporte al instante con feedback visual de carga.
 - [`ExpansionSisterList.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor): Carrusel de expansiones hermanas.
 - [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor): Sección en el juego base con 3 pestañas:
   - **Carrusel Horizontal de Expansiones (INC-99):** Sustituye la cuadrícula vertical previa por un carril horizontal (`id="expansions-carousel-rail"`, `overflow-x-auto snap-x snap-mandatory scrollbar-none`), con tarjetas compactas (275px a 310px) que permiten ver 2 o 3 títulos simultáneos sin forzar scroll vertical. Incluye botones prev/next interactivos asistidos por `window.ludekaScrollRail`.
