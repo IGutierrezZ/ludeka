@@ -509,16 +509,19 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .ToList();
     }
 
-    public async Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
+    public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default)
+        => GetGamesPendingQualityBackfillAsync(0, limit, ct);
+
+    public async Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int afterBggId, int limit, CancellationToken ct = default)
     {
         if (limit <= 0) limit = 50;
 
         await using var scope = await CreateScopeAsync(ct);
         var candidates = await scope.Context.Games
             .AsNoTracking()
-            .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
-            .ThenBy(g => g.BggRank)
-            .Select(g => new { g.Id, g.Scalability })
+            .Where(g => g.BggId > afterBggId)
+            .OrderBy(g => g.BggId)
+            .Select(g => new { g.Id, g.BggId, g.Scalability })
             .ToListAsync(ct);
 
         var matchingIds = candidates

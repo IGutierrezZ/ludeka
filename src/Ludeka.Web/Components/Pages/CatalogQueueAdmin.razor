@@ -1655,7 +1655,7 @@
 
         try
         {
-            _qualityBackfillResult = await MassIngestionService.BackfillCatalogQualityBatchAsync(50);
+            _qualityBackfillResult = await MassIngestionService.BackfillCatalogQualityBatchAsync(afterBggId: 0, batchSize: 50);
             await LoadDataAsync();
         }
         catch (Exception ex)
@@ -1686,18 +1686,20 @@
 
                 int totalUpdated = 0;
                 int totalEvaluated = 0;
+                int currentAfterBggId = 0;
 
                 while (!token.IsCancellationRequested)
                 {
-                    var res = await massService.RunScheduledBackfillCatalogQualityBatchAsync(batchSize: 50, token);
+                    var res = await massService.RunScheduledBackfillCatalogQualityBatchAsync(afterBggId: currentAfterBggId, batchSize: 50, ct: token);
                     totalEvaluated += res.EvaluatedCount;
                     totalUpdated += res.UpdatedCount;
+                    currentAfterBggId = res.LastBggIdProcessed;
 
                     _continuousBackfillMessage = $"Procesando calidad: {totalUpdated} actualizados ({totalEvaluated} evaluados)...";
 
-                    if (res.EvaluatedCount == 0 || (res.UpdatedCount == 0 && res.FailedCount == 0))
+                    if (!res.HasMore || res.EvaluatedCount == 0)
                     {
-                        _continuousBackfillMessage = $"Actualización de calidad completada: {totalUpdated} juegos enriquecidos con éxito.";
+                        _continuousBackfillMessage = $"Actualización de calidad completada: {totalUpdated} juegos enriquecidos con éxito de {totalEvaluated} evaluados.";
                         break;
                     }
                 }

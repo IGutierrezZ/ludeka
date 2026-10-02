@@ -102,13 +102,13 @@ public interface IBggMassIngestionService
     /// Ejecuta el enriquecimiento retroactivo de calidad (escalabilidad, fundas, duraciones, huella y localización) para juegos existentes.
     /// Exige sesión y permiso de edición de fichas.
     /// </summary>
-    Task<BggQualityBackfillResultDto> BackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    Task<BggQualityBackfillResultDto> BackfillCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
         => Task.FromResult(new BggQualityBackfillResultDto(0, 0, 0, "Noop"));
 
     /// <summary>
     /// Versión de sistema para enriquecimiento retroactivo de calidad por lotes sin guarda interactiva (Ludeka.Jobs).
     /// </summary>
-    Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int batchSize = 50, CancellationToken ct = default)
+    Task<BggQualityBackfillResultDto> RunScheduledBackfillCatalogQualityBatchAsync(int afterBggId = 0, int batchSize = 50, CancellationToken ct = default)
         => Task.FromResult(new BggQualityBackfillResultDto(0, 0, 0, "Noop"));
 
     /// <summary>

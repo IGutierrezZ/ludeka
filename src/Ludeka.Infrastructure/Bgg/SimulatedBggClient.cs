@@ -36,6 +36,14 @@ public class SimulatedBggClient : IBggClient
         return game;
     }
 
+    /// <inheritdoc />
+    public Game? ParseGameFromRawJson(string rawJson)
+    {
+        var item = BggJsonToXmlConverter.ConvertToItemElement(rawJson);
+        if (item == null) return null;
+        return BggXmlParser.ParseItem(item);
+    }
+
     public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
     {
         if (bggId <= 0) return Task.FromResult<string?>(null);
