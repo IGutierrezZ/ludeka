@@ -73,7 +73,7 @@ if (guardFailure is not null)
     return 3;
 }
 
-var timeoutMinutes = builder.Configuration.GetValue("Workers:JobTimeoutMinutes", defaultValue: 30);
+var timeoutMinutes = builder.Configuration.GetValue("Workers:JobTimeoutMinutes", defaultValue: 120);
 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(timeoutMinutes));
 using var sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
 {

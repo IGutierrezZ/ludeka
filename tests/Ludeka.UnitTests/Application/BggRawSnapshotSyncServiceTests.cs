@@ -171,6 +171,31 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         Assert.Equal(baseGame.Id, refreshedExp.BaseGameId);
     }
 
+    [Fact]
+    public async Task SyncBatchAsync_ShouldProcessInChunksOf20_AndSaveAllSnapshots()
+    {
+        // Crear 25 juegos sin snapshot
+        for (int i = 1; i <= 25; i++)
+        {
+            _context.Games.Add(CreateGame(100 + i, $"Juego #{100 + i}"));
+        }
+        await _context.SaveChangesAsync();
+
+        var result = await _service.SyncBatchAsync(batchSize: 25, delayMs: 0);
+
+        Assert.Equal(25, result.ProcessedCount);
+        Assert.Equal(25, result.SuccessCount);
+        Assert.Equal(0, result.FailedCount);
+
+        int count = await _snapshotRepo.GetCountAsync();
+        Assert.Equal(25, count);
+
+        var snapshot1 = await _snapshotRepo.GetByBggIdAsync(101);
+        Assert.NotNull(snapshot1);
+        var snapshot25 = await _snapshotRepo.GetByBggIdAsync(125);
+        Assert.NotNull(snapshot25);
+    }
+
     private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null)
     {
         return new Game(
@@ -210,6 +235,30 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
         {
             return Task.FromResult<string?>(_xmlPayloads.GetValueOrDefault(bggId, $"<items><item type=\"boardgame\" id=\"{bggId}\"><name type=\"primary\" value=\"Juego {bggId}\" /></item></items>"));
+        }
+
+        public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<items>");
+            foreach (var id in bggIds)
+            {
+                if (_xmlPayloads.TryGetValue(id, out var xml))
+                {
+                    var doc = System.Xml.Linq.XDocument.Parse(xml);
+                    var item = doc.Root?.Element("item");
+                    if (item != null)
+                    {
+                        sb.AppendLine(item.ToString());
+                    }
+                }
+                else
+                {
+                    sb.AppendLine($"<item type=\"boardgame\" id=\"{id}\"><name type=\"primary\" value=\"Juego {id}\" /></item>");
+                }
+            }
+            sb.AppendLine("</items>");
+            return Task.FromResult<string?>(sb.ToString());
         }
 
         public Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default) => Task.FromResult<Game?>(null);
