@@ -79,6 +79,11 @@ Ubicación: [`src/Ludeka.Core/Helpers/PlayerCountExtractor.cs`](file:///c:/repos
     - **`[🏷 Cambiar Categoría]`:** abre el modal enfocado en el selector de categoría y reasignación de juego.
     - **`[🗑 Eliminar]`:** activa el diálogo directo de confirmación y desvinculación sin pasos intermedios.
   - **Modal de Ingesta Flash (INC-92):** Botón `[⚡ Ingesta Flash]` para moderadores que despliega un modal reactivo para pegar la URL de YouTube, seleccionar categoría destino, indicar comensales opcionales para partidas y publicar al instante.
+  - **Rediseño con Barra Segmentada y Carrusel Horizontal (INC-99):**
+    - **Barra Segmentada Profesional:** Sustitución de píldoras amontonadas con fondos discordantes por un control segmentado estilo cápsula (`bg-[var(--bg-surface-elevated)] p-1 rounded-xl border border-[var(--border-subtle)]`) en fila única, con badges de conteo y estilos acordes a la paleta de Ludeka (`Todos`, `Tutoriales`, `Cómo Funciona`, `Partidas`, `Opiniones y Redes`).
+    - **Carrusel Horizontal de Vídeos:** Sustitución de la cuadrícula vertical de 2 columnas gigantescas por un carril horizontal deslizante (`id="media-carousel-rail"`, `snap-x snap-mandatory scrollbar-none`), con tarjetas compactas (260px a 310px) en proporción 16:9 que permiten ver 2 o 3 vídeos a la vez sin forzar scroll vertical en la página.
+    - **Controles de Desplazamiento y Arrastre:** Flechas circulares prev/next en la barra superior conectadas con `window.ludekaScrollRail` en `rail-scroll.js`, manteniendo compatibilidad con arrastre por ratón o táctil.
+    - **Integración Limpia:** Supresión del doble contenedor con borde y padding pesado (`p-6 bg-[var(--bg-card)] border`), adaptándose de forma natural a la pestaña de `GameDetail.razor`.
 - [`MediaModeration.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Pages/MediaModeration.razor):
   - Accesible desde `/admin/multimedia` y `/moderacion-media`.
   - Bandeja centralizada de pendientes y huérfanos con selector de categoría preseleccionado por la heurística de `MediaClassifier`.
