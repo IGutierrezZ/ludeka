@@ -45,6 +45,35 @@ public class BggMassIngestionSweepTests
         return (service, gameRepo, stagingRepo, bggClient);
     }
 
+    private (BggMassIngestionService Service, FakeGameRepo GameRepo, FakeStagingRepo StagingRepo, FakeBggClient BggClient, FakeSnapshotRepo SnapshotRepo) CreateSutWithSnapshots(FakeSnapshotRepo? snapshotRepo = null)
+    {
+        var stagingRepo = new FakeStagingRepo();
+        var bggClient = new FakeBggClient();
+        var geekDo = new FakeGeekDoClient();
+        var images = new FakeImageStorageService();
+        var ai = new FakeAiSummaryService();
+        var gameRepo = new FakeGameRepo();
+        var snapRepo = snapshotRepo ?? new FakeSnapshotRepo();
+        using var httpClient = new HttpClient();
+        var options = Options.Create(new BggMassIngestionOptions { DelayBetweenBggCallsMs = 0 });
+
+        var service = new BggMassIngestionService(
+            stagingRepo,
+            bggClient,
+            geekDo,
+            images,
+            ai,
+            gameRepo,
+            httpClient,
+            options,
+            NullLogger<BggMassIngestionService>.Instance,
+            permissionGuard: null,
+            snapshotRepo: snapRepo
+        );
+
+        return (service, gameRepo, stagingRepo, bggClient, snapRepo);
+    }
+
     [Fact]
     public async Task SweepCatalogQualityBatchAsync_WhenCatalogEmpty_ReturnsZeroAndHasMoreFalse()
     {
@@ -199,6 +228,62 @@ public class BggMassIngestionSweepTests
         );
     }
 
+    [Fact]
+    public async Task PromoteReadyToCatalogBatchAsync_WhenSnapshotIsExpansion_AssignsGameTypeExpansionAndBaseGameId()
+    {
+        var (service, gameRepo, stagingRepo, _, snapRepo) = CreateSutWithSnapshots();
+
+        // 1. Juego base en catálogo
+        var baseGame = CreateGame(13, "Catan", GameStyle.Eurogame);
+        gameRepo.Games.Add(baseGame);
+
+        // 2. Snapshot satélite de la expansión 2807 con enlace inbound al juego base 13
+        var expSnapshotJson = """
+        {
+          "item": {
+            "@type": "boardgameexpansion",
+            "@id": "2807",
+            "link": [
+              {
+                "@type": "boardgameexpansion",
+                "@id": "13",
+                "@value": "Catan",
+                "@inbound": "true"
+              }
+            ]
+          }
+        }
+        """;
+        await snapRepo.UpsertAsync(new BggRawSnapshot(2807, expSnapshotJson));
+
+        // 3. Staging item listo para ser promovido
+        var stagingItem = new BggCatalogStagingItem(2807, "Catan 5-6 Jugadores", 1996, 90, 5000, 7.5, 7.2);
+        stagingItem.MarkFetched(
+            rawXml: "<item></item>",
+            spanishTitle: "Catan 5-6 Jugadores",
+            designer: "Klaus Teuber",
+            publisher: "Devir",
+            description: "Expansión 5-6 jugadores",
+            minPlayers: 5,
+            maxPlayers: 6,
+            playingTimeMinutes: 90,
+            minAge: 10,
+            bggRating: 7.5
+        );
+        stagingItem.MarkAiCompleted("{ \"generalVerdict\": \"Buena expansión\" }");
+        stagingRepo.Items.Add(stagingItem);
+
+        // Act: promover lote listo
+        var promotedCount = await service.PromoteReadyToCatalogBatchAsync(batchSize: 50);
+
+        // Assert
+        Assert.Equal(1, promotedCount);
+        var promotedGame = gameRepo.Games.FirstOrDefault(g => g.BggId == 2807);
+        Assert.NotNull(promotedGame);
+        Assert.Equal(GameType.Expansion, promotedGame.Type);
+        Assert.Equal(baseGame.Id, promotedGame.BaseGameId);
+    }
+
     #region Fakes
 
     private class FakeStagingRepo : IBggCatalogStagingRepository
@@ -224,7 +309,14 @@ public class BggMassIngestionSweepTests
         public Task<IReadOnlyList<BggCatalogStagingItem>> GetPendingFetchBatchAsync(int batchSize, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<BggCatalogStagingItem>> GetPendingImagesBatchAsync(int batchSize, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<BggCatalogStagingItem>> GetPendingAiBatchAsync(int batchSize, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<BggCatalogStagingItem>> GetPendingPromotionBatchAsync(int batchSize, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<BggCatalogStagingItem>> GetPendingPromotionBatchAsync(int batchSize, CancellationToken ct = default)
+        {
+            var pending = Items
+                .Where(i => i.AiStatus == StagingAiStatus.Completed && i.PromotionStatus != StagingPromotionStatus.Promoted)
+                .Take(batchSize)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<BggCatalogStagingItem>>(pending);
+        }
         public Task<BggStagingMetricsDto> GetMetricsAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task ResetQuotaExceededStatusAsync(CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> GetTotalCountAsync(CancellationToken ct = default) => Task.FromResult(Items.Count);
@@ -302,6 +394,27 @@ public class BggMassIngestionSweepTests
         public Task<IReadOnlyList<Game>> GetAllGamesAsync(CancellationToken ct = default) => Task.FromResult((IReadOnlyList<Game>)Games);
         public Task<IReadOnlyList<Game>> GetGamesPendingQualityBackfillAsync(int limit = 50, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<int> GetGamesPendingQualityBackfillCountAsync(CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private class FakeSnapshotRepo : IBggRawSnapshotRepository
+    {
+        public Dictionary<int, BggRawSnapshot> Snapshots = new();
+
+        public Task<BggRawSnapshot?> GetByBggIdAsync(int bggId, CancellationToken ct = default)
+            => Task.FromResult(Snapshots.GetValueOrDefault(bggId));
+
+        public Task UpsertAsync(BggRawSnapshot snapshot, CancellationToken ct = default)
+        {
+            Snapshots[snapshot.BggId] = snapshot;
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<int>> GetMissingBggIdsAsync(int limit = 50, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>([]);
+        public Task<int> GetCountAsync(CancellationToken ct = default) => Task.FromResult(Snapshots.Count);
+        public Task<int> GetTotalGamesWithBggIdCountAsync(CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<BggRawSnapshot>> GetAllSnapshotsAsync(int limit = 500, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(Snapshots.Values.Take(limit).ToList());
+        public Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsAfterBggIdAsync(int lastBggId, int limit = 200, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(Snapshots.Values.Where(s => s.BggId > lastBggId).OrderBy(s => s.BggId).Take(limit).ToList());
     }
 
     #endregion

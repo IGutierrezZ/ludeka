@@ -169,6 +169,12 @@ public class SqliteBggCatalogStagingRepository : DbContextRepositoryBase, IBggCa
             s.ImagesStatus == StagingImagesStatus.Failed ||
             s.AiStatus == StagingAiStatus.Failed ||
             s.PromotionStatus == StagingPromotionStatus.Failed, ct);
+        int unpromotedFailed = await db.BggCatalogStaging.CountAsync(s =>
+            s.PromotionStatus != StagingPromotionStatus.Promoted &&
+            (s.FetchStatus == StagingFetchStatus.Failed ||
+             s.ImagesStatus == StagingImagesStatus.Failed ||
+             s.AiStatus == StagingAiStatus.Failed ||
+             s.PromotionStatus == StagingPromotionStatus.Failed), ct);
 
         return new BggStagingMetricsDto(
             TotalInStaging: total,
@@ -181,7 +187,8 @@ public class SqliteBggCatalogStagingRepository : DbContextRepositoryBase, IBggCa
             AiQuotaExceededCount: aiQuotaExceeded,
             PendingPromotionCount: pendingPromotion,
             PromotedCount: promoted,
-            FailedCount: failed
+            FailedCount: failed,
+            UnpromotedFailedCount: unpromotedFailed
         );
     }
 

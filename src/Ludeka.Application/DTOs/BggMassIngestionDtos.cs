@@ -30,7 +30,8 @@ public record BggStagingMetricsDto(
     int AiQuotaExceededCount,
     int PendingPromotionCount,
     int PromotedCount,
-    int FailedCount
+    int FailedCount,
+    int UnpromotedFailedCount = 0
 );
 
 /// <summary>

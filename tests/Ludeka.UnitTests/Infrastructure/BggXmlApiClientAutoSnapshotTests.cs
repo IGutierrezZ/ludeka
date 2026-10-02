@@ -59,6 +59,14 @@ public class BggXmlApiClientAutoSnapshotTests
 
         public Task<IReadOnlyList<BggRawSnapshot>> GetAllSnapshotsAsync(int limit = 500, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(Snapshots.Values.Take(limit).ToList());
+
+        public Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsAfterBggIdAsync(int lastBggId, int limit = 200, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<BggRawSnapshot>>(
+                Snapshots.Values
+                    .Where(s => s.BggId > lastBggId)
+                    .OrderBy(s => s.BggId)
+                    .Take(limit)
+                    .ToList());
     }
 
     private const string SampleThingXml = """

@@ -964,6 +964,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 100: Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging
+- **Identificador SDD:** `inc-100-vinculacion-expansiones-snapshots`
+- **Objetivo Principal:**
+  1. **Reconciliación y Reclasificación Masiva:** Recorrer los 17.464 snapshots locales de `BggRawSnapshots` para reclasificar deterministamente las expansiones falsamente categorizadas como `GameType.BaseGame` a `GameType.Expansion` y vincularlas bidireccionalmente con su juego base (`BaseGameId`).
+  2. **Promoción Nativa en Staging:** Asignar `GameType.Expansion` y `BaseGameId` en `BggMassIngestionService.PromoteReadyToCatalogBatchAsync` para evitar la creación de expansiones huérfanas en futuras importaciones.
+  3. **Acción Administrativa y Runner CLI:** Nuevo botón interactivo en `/admin/cola-catalogacion` y runner desatendido CLI `JobNames.BggReconcileExpansions` (`bgg-reconcile-expansions`) en `Ludeka.Jobs`.
+  4. **Desglose de Fallidos en Staging:** Desagregar la métrica `FailedCount` en `UnpromotedFailedCount` (~210 bloqueados) frente a títulos ya en catálogo con advertencias accesorias (~1.810).
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`inc-100-vinculacion-expansiones-snapshots.md`](../increments/inc-100-vinculacion-expansiones-snapshots.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

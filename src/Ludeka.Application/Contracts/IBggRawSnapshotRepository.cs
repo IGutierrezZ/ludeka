@@ -39,4 +39,9 @@ public interface IBggRawSnapshotRepository
     /// Obtiene una lista de snapshots para análisis y descubrimiento de enlaces.
     /// </summary>
     Task<IReadOnlyList<BggRawSnapshot>> GetAllSnapshotsAsync(int limit = 500, CancellationToken ct = default);
+
+    /// <summary>
+    /// Obtiene un bloque de snapshots con BggId estrictamente superior a lastBggId, ordenados por BggId asc.
+    /// </summary>
+    Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsAfterBggIdAsync(int lastBggId, int limit = 200, CancellationToken ct = default);
 }

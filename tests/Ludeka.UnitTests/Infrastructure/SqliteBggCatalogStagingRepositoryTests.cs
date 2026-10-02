@@ -141,6 +141,32 @@ public class SqliteBggCatalogStagingRepositoryTests : IDisposable
         Assert.Equal(0, metrics.FetchedCount);
     }
 
+    [Fact]
+    public async Task GetMetricsAsync_ShouldDistinguishUnpromotedFailedFromPromotedWithIncidents()
+    {
+        // Item 1: Fallido en Fetch (nunca promovido)
+        var blockedItem = new BggCatalogStagingItem(10, "Blocked Game", 2020, 1, 5000, 8.0, 8.0);
+        blockedItem.MarkStageFailed("fetch", "BGG HTTP 503");
+
+        // Item 2: Promovido pero con fallo accesorio en imágenes
+        var promotedWithWarning = new BggCatalogStagingItem(20, "Promoted Game", 2020, 2, 5000, 8.0, 8.0);
+        promotedWithWarning.MarkStageFailed("images", "GeekDo 404");
+        promotedWithWarning.MarkPromoted();
+
+        // Item 3: Íntegro y promovido
+        var cleanPromoted = new BggCatalogStagingItem(30, "Clean Game", 2020, 3, 5000, 8.0, 8.0);
+        cleanPromoted.MarkPromoted();
+
+        await _repository.UpsertBatchAsync([blockedItem, promotedWithWarning, cleanPromoted]);
+
+        var metrics = await _repository.GetMetricsAsync();
+
+        Assert.Equal(3, metrics.TotalInStaging);
+        Assert.Equal(2, metrics.PromotedCount);
+        Assert.Equal(2, metrics.FailedCount);
+        Assert.Equal(1, metrics.UnpromotedFailedCount);
+    }
+
     public void Dispose()
     {
         _connection.Dispose();

@@ -52,4 +52,15 @@ public interface IBggRawSnapshotSyncService
     /// Asegura y sincroniza de forma puntual el snapshot crudo de un juego específico si no existe previamente.
     /// </summary>
     Task<bool> EnsureSnapshotAsync(int bggId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Re-evalúa masivamente todos los snapshots crudos de BGG en el catálogo caliente:
+    /// reclasifica como GameType.Expansion aquellos que en BGG son expansiones y los vincula bidireccionalmente a su juego base.
+    /// </summary>
+    Task<BggExpansionReconciliationResultDto> ReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default);
+
+    /// <summary>
+    /// Versión de sistema para reconciliación y vinculación de expansiones sin guarda interactiva.
+    /// </summary>
+    Task<BggExpansionReconciliationResultDto> RunScheduledReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default);
 }

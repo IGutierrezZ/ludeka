@@ -38,6 +38,7 @@ public class BggMassIngestionService : IBggMassIngestionService
     private readonly BggMassIngestionOptions _options;
     private readonly ILogger<BggMassIngestionService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IBggRawSnapshotRepository? _snapshotRepo;
 
     public BggMassIngestionService(
         IBggCatalogStagingRepository stagingRepo,
@@ -49,7 +50,8 @@ public class BggMassIngestionService : IBggMassIngestionService
         HttpClient httpClient,
         IOptions<BggMassIngestionOptions> options,
         ILogger<BggMassIngestionService> logger,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IBggRawSnapshotRepository? snapshotRepo = null)
     {
         _stagingRepo = stagingRepo ?? throw new ArgumentNullException(nameof(stagingRepo));
         _bggClient = bggClient ?? throw new ArgumentNullException(nameof(bggClient));
@@ -61,6 +63,7 @@ public class BggMassIngestionService : IBggMassIngestionService
         _options = options?.Value ?? new BggMassIngestionOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
+        _snapshotRepo = snapshotRepo;
     }
 
     /// <summary>
@@ -418,6 +421,28 @@ public class BggMassIngestionService : IBggMassIngestionService
                 var style = item.GetInferredStyle();
                 bool isSolo = scalability.Any(s => s.PlayerCount == 1 && s.Status != ScalabilityStatus.NotRecommended) || item.MinPlayers == 1;
 
+                bool isExpansion = false;
+                Guid? baseGameId = null;
+
+                if (_snapshotRepo != null)
+                {
+                    var snapshot = await _snapshotRepo.GetByBggIdAsync(item.BggId, ct);
+                    if (snapshot != null)
+                    {
+                        isExpansion = BggRawSnapshotParser.IsExpansionTypeFromJson(snapshot.RawJson);
+                        int? inboundBaseBggId = BggRawSnapshotParser.ExtractInboundBaseGameBggIdFromJson(snapshot.RawJson);
+                        if (inboundBaseBggId.HasValue && inboundBaseBggId.Value > 0)
+                        {
+                            isExpansion = true;
+                            var baseGame = await _gameRepo.GetByBggIdAsync(inboundBaseBggId.Value, ct);
+                            if (baseGame != null)
+                            {
+                                baseGameId = baseGame.Id;
+                            }
+                        }
+                    }
+                }
+
                 if (existing == null)
                 {
                     var newGame = new Game(
@@ -442,6 +467,8 @@ public class BggMassIngestionService : IBggMassIngestionService
                         duration: new GameDuration(minPlay, maxPlay, estPerPlayer),
                         scalability: scalability,
                         sleeves: sleeves,
+                        type: isExpansion ? GameType.Expansion : GameType.BaseGame,
+                        baseGameId: baseGameId,
                         backCoverImageUrl: item.BackCoverImageUrl,
                         tableImageUrl: item.TableImageUrl,
                         spanishPublisher: item.SpanishPublisher,
@@ -538,6 +565,15 @@ public class BggMassIngestionService : IBggMassIngestionService
                         catch
                         {
                             // Ignorar error de deserialización de IA
+                        }
+                    }
+
+                    if (isExpansion)
+                    {
+                        existing.SetGameType(GameType.Expansion);
+                        if (baseGameId.HasValue)
+                        {
+                            existing.SetBaseGameId(baseGameId.Value);
                         }
                     }
 
