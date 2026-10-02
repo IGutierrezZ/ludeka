@@ -134,6 +134,76 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         return generated;
     }
 
+    public async Task<ExpansionAporteAiDto> GenerateExpansionAporteAsync(
+        Game expansion,
+        Game? baseGame = null,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(expansion);
+
+        // 1. Simulación o falta de ApiKey
+        if (_options.ShouldSimulate || string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _logger.LogInformation("Gemini está en modo simulado o sin ApiKey. Empleando generador heurístico para aporte de '{Title}'.", expansion.SpanishTitle);
+            return HeuristicExpansionAporteGenerator.Generate(expansion, baseGame, "Heurística Editorial");
+        }
+
+        // 2. Llamada a Gemini API
+        try
+        {
+            var result = await CallGeminiExpansionAporteApiAsync(expansion, baseGame, ct);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al invocar Google Gemini API para aporte de expansión '{Title}'. Usando fallback heurístico.", expansion.SpanishTitle);
+        }
+
+        return HeuristicExpansionAporteGenerator.Generate(expansion, baseGame, "Heurística Editorial (Fallback)");
+    }
+
+    public async Task<ExpansionAporteAiDto> EnsureExpansionAporteAsync(Guid expansionId, CancellationToken ct = default)
+    {
+        var expansion = await _gameRepository.GetByIdAsync(expansionId, ct)
+            ?? throw new InvalidOperationException($"No se encontró la expansión con ID {expansionId}");
+
+        if (!string.IsNullOrWhiteSpace(expansion.WhatItBringsSummary))
+        {
+            return new ExpansionAporteAiDto(
+                expansion.Id,
+                expansion.WhatItBringsSummary,
+                expansion.ExpansionNecessity ?? ExpansionNecessity.Situational,
+                expansion.ImpactTags ?? [],
+                expansion.ExtraPlayerCount,
+                expansion.ExtraDurationMinutes,
+                Model: "Catálogo Existente",
+                GeneratedAt: DateTime.UtcNow
+            );
+        }
+
+        Game? baseGame = null;
+        if (expansion.BaseGameId.HasValue)
+        {
+            baseGame = await _gameRepository.GetByIdAsync(expansion.BaseGameId.Value, ct);
+        }
+
+        var generated = await GenerateExpansionAporteAsync(expansion, baseGame, ct);
+
+        expansion.SetExpansionAporte(
+            generated.Necessity,
+            generated.ImpactTags,
+            generated.WhatItBringsSummary,
+            generated.ExtraPlayerCount,
+            generated.ExtraDurationMinutes
+        );
+
+        await _gameRepository.UpdateAsync(expansion, ct);
+        return generated;
+    }
+
     public async Task<AiBatchProcessingResultDto> ProcessPendingSummariesBatchAsync(int batchSize = 20, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
@@ -556,5 +626,153 @@ public class GeminiGameSummaryService : IAiGameSummaryService
 
         [JsonPropertyName("footprintSummary")]
         public string? FootprintSummary { get; set; }
+    }
+
+    private async Task<ExpansionAporteAiDto?> CallGeminiExpansionAporteApiAsync(Game expansion, Game? baseGame, CancellationToken ct)
+    {
+        string prompt = BuildExpansionAportePrompt(expansion, baseGame);
+        string effectiveModel = _options.GetEffectiveModel();
+
+        var result = await TryGenerateExpansionAporteWithModelAsync(expansion, baseGame, prompt, effectiveModel, ct);
+        if (result != null) return result;
+
+        if (!effectiveModel.Equals(GeminiOptions.DefaultModel, StringComparison.OrdinalIgnoreCase))
+        {
+            result = await TryGenerateExpansionAporteWithModelAsync(expansion, baseGame, prompt, GeminiOptions.DefaultModel, ct);
+            if (result != null) return result;
+        }
+
+        return null;
+    }
+
+    private async Task<ExpansionAporteAiDto?> TryGenerateExpansionAporteWithModelAsync(
+        Game expansion,
+        Game? baseGame,
+        string prompt,
+        string model,
+        CancellationToken ct)
+    {
+        var requestBody = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    parts = new[]
+                    {
+                        new { text = prompt }
+                    }
+                }
+            },
+            generationConfig = new
+            {
+                responseMimeType = "application/json",
+                temperature = 0.2
+            }
+        };
+
+        string url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={_options.ApiKey}";
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await _httpClient.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            string errContent = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Gemini API error ({StatusCode}) al generar aporte de expansión: {Error}", response.StatusCode, errContent);
+            return null;
+        }
+
+        string jsonResponse = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(jsonResponse);
+        var candidates = doc.RootElement.GetProperty("candidates");
+        if (candidates.GetArrayLength() == 0) return null;
+
+        var textPart = candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+        if (string.IsNullOrWhiteSpace(textPart)) return null;
+
+        var parsed = JsonSerializer.Deserialize<GeminiExpansionAporteResponse>(textPart, JsonOptions);
+        if (parsed == null || string.IsNullOrWhiteSpace(parsed.WhatItBringsSummary)) return null;
+
+        var necessity = Enum.TryParse<ExpansionNecessity>(parsed.Necessity, true, out var nec)
+            ? nec
+            : ExpansionNecessity.Situational;
+
+        var tags = new List<ExpansionImpactTag>();
+        if (parsed.ImpactTags != null)
+        {
+            foreach (var t in parsed.ImpactTags)
+            {
+                if (Enum.TryParse<ExpansionImpactTag>(t, true, out var parsedTag))
+                {
+                    tags.Add(parsedTag);
+                }
+            }
+        }
+
+        return new ExpansionAporteAiDto(
+            expansion.Id,
+            parsed.WhatItBringsSummary.Trim(),
+            necessity,
+            tags,
+            parsed.ExtraPlayerCount,
+            parsed.ExtraDurationMinutes,
+            Model: model,
+            GeneratedAt: DateTime.UtcNow
+        );
+    }
+
+    private static string BuildExpansionAportePrompt(Game expansion, Game? baseGame)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Eres el crítico y arquitecto de juegos de mesa de Ludeka («Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa»).");
+        sb.AppendLine("Analiza la siguiente expansión oficial y genera un veredicto editorial estructurado sobre qué aporta a su juego base en español (castellano peninsular).");
+        sb.AppendLine();
+        sb.AppendLine($"[EXPANSIÓN]");
+        sb.AppendLine($"- Título: {expansion.SpanishTitle} (Original: {expansion.OriginalTitle})");
+        sb.AppendLine($"- Año: {expansion.YearPublished} | Autor: {expansion.Designer} | Editorial: {expansion.Publisher}");
+        sb.AppendLine($"- Valoración BGG: {expansion.BggRating:0.0}/10");
+        sb.AppendLine($"- Descripción: {expansion.Description}");
+        sb.AppendLine();
+
+        if (baseGame != null)
+        {
+            sb.AppendLine($"[JUEGO BASE]");
+            sb.AppendLine($"- Título: {baseGame.SpanishTitle} (Original: {baseGame.OriginalTitle})");
+            sb.AppendLine($"- Comensales base: {baseGame.Duration.EstimatedPerPlayerMinutes} min/jugador | Estilo: {baseGame.Style}");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("INSTRUCCIONES:");
+        sb.AppendLine("Devuelve estrictamente un JSON válido con esta estructura exacta:");
+        sb.AppendLine("{");
+        sb.AppendLine("  \"whatItBringsSummary\": \"Texto de 1 o 2 párrafos concisos explicando exactamente qué nuevas mecánicas, módulos, componentes y sensaciones añade al juego base. Lenguaje profesional, sin clichés ni marketing.\",");
+        sb.AppendLine("  \"necessity\": \"MustHave | HighlyRecommended | Situational | OnlyForFans | Dispensable\",");
+        sb.AppendLine("  \"impactTags\": [\"AddsPlayers\", \"ImprovesTwoPlayers\", \"FixesBalance\", \"AddsSoloMode\", \"AddsAsymmetry\", \"ModularContent\", \"NewMapOrFactions\", \"TightensTime\"],");
+        sb.AppendLine("  \"extraPlayerCount\": 0,");
+        sb.AppendLine("  \"extraDurationMinutes\": 0");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    private class GeminiExpansionAporteResponse
+    {
+        [JsonPropertyName("whatItBringsSummary")]
+        public string? WhatItBringsSummary { get; set; }
+
+        [JsonPropertyName("necessity")]
+        public string? Necessity { get; set; }
+
+        [JsonPropertyName("impactTags")]
+        public List<string>? ImpactTags { get; set; }
+
+        [JsonPropertyName("extraPlayerCount")]
+        public int? ExtraPlayerCount { get; set; }
+
+        [JsonPropertyName("extraDurationMinutes")]
+        public int? ExtraDurationMinutes { get; set; }
     }
 }

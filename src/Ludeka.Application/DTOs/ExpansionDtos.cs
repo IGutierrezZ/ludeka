@@ -147,3 +147,14 @@ public record ExpansionMixerEvaluationDto(
     IReadOnlyList<string> CautionWarnings,
     IReadOnlyList<string> SynergyHighlights
 );
+
+public record ExpansionAporteAiDto(
+    Guid ExpansionId,
+    string WhatItBringsSummary,
+    ExpansionNecessity Necessity,
+    IReadOnlyList<ExpansionImpactTag> ImpactTags,
+    int? ExtraPlayerCount = null,
+    int? ExtraDurationMinutes = null,
+    string Model = "Heurística Editorial",
+    DateTime? GeneratedAt = null
+);

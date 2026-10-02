@@ -1,4 +1,8 @@
+@using Ludeka.Application.Contracts
 @using Ludeka.Core.Enums
+@using Microsoft.Extensions.Logging
+@inject IAiGameSummaryService AiSummaryService
+@inject ILogger<ExpansionAporteCard> Logger
 
 <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
@@ -11,79 +15,148 @@
             </h2>
         </div>
 
-        @if (Necessity.HasValue)
-        {
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm @GetNecessityClass(Necessity.Value)">
-                <span class="inline-block size-2 rounded-full @GetNecessityDotClass(Necessity.Value)" aria-hidden="true"></span>
-                <span>@GetNecessityText(Necessity.Value)</span>
-            </div>
-        }
+        <div class="flex items-center gap-2">
+            @if (Necessity.HasValue)
+            {
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-sm @GetNecessityClass(Necessity.Value)">
+                    <span class="inline-block size-2 rounded-full @GetNecessityDotClass(Necessity.Value)" aria-hidden="true"></span>
+                    <span>@GetNecessityText(Necessity.Value)</span>
+                </div>
+            }
+
+            @if (CanGenerateWithAi && HasAporteData)
+            {
+                <button type="button"
+                        @onclick="HandleGenerateAporteAsync"
+                        disabled="@_isGenerating"
+                        title="Regenerar síntesis de aporte con IA"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.68rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--brand-primary)]/40 transition-all disabled:opacity-50">
+                    <Icon Name="sparkles" Size="11" />
+                    <span>@(_isGenerating ? "Actualizando..." : "Regenerar IA")</span>
+                </button>
+            }
+        </div>
     </div>
 
-    @* Chips de Impacto Lúdico *@
-    @if (ImpactTags != null && ImpactTags.Count > 0)
+    @* Estado Vacío (Empty State) cuando no hay datos de aporte *@
+    @if (!HasAporteData)
     {
-        <div>
-            <span class="text-xs font-semibold text-[var(--text-muted)] block mb-2">
-                Modificaciones y Nuevas Mecánicas:
-            </span>
-            <div class="flex flex-wrap gap-2">
-                @foreach (var tag in ImpactTags)
+        <div class="p-6 rounded-xl bg-[var(--bg-surface)] border border-dashed border-[var(--border-subtle)] flex flex-col items-center text-center gap-3">
+            <div class="size-10 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shadow-inner">
+                <Icon Name="sparkles" Size="20" />
+            </div>
+            <div class="max-w-md space-y-1">
+                <h3 class="text-sm font-bold text-[var(--text-primary)]">
+                    Aporte lúdico pendiente de veredicto
+                </h3>
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Esta expansión oficial aún no dispone de un resumen sobre las nuevas mecánicas, módulos y cambios que incorpora al juego base.
+                </p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_generationError))
+            {
+                <div class="text-xs text-rose-500 font-medium px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                    @_generationError
+                </div>
+            }
+
+            @if (CanGenerateWithAi)
+            {
+                <button type="button"
+                        @onclick="HandleGenerateAporteAsync"
+                        disabled="@_isGenerating"
+                        class="mt-1 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--on-brand)] text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:pointer-events-none">
+                    @if (_isGenerating)
+                    {
+                        <span class="inline-block size-3.5 border-2 border-white/30 border-t-[var(--on-brand)] rounded-full animate-spin"></span>
+                        <span>Generando síntesis con IA...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="sparkles" Size="14" />
+                        <span>Generar aporte con IA</span>
+                    }
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        @* Chips de Impacto Lúdico *@
+        @if (ImpactTags != null && ImpactTags.Count > 0)
+        {
+            <div>
+                <span class="text-xs font-semibold text-[var(--text-muted)] block mb-2">
+                    Modificaciones y Nuevas Mecánicas:
+                </span>
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var tag in ImpactTags)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)]">
+                            <Icon Name="@GetTagIcon(tag)" Size="12" />
+                            <span>@GetTagLabel(tag)</span>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Resumen Editorial *@
+        @if (!string.IsNullOrWhiteSpace(WhatItBringsSummary))
+        {
+            <div class="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed">
+                <p class="font-medium text-[var(--text-primary)] mb-1 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                    Veredicto de la Mesa:
+                </p>
+                @WhatItBringsSummary
+            </div>
+        }
+
+        @* Métricas de Impacto (Deltas de jugadores y duración) *@
+        @if (ExtraPlayerCount.HasValue || ExtraDurationMinutes.HasValue)
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                @if (ExtraPlayerCount.HasValue && ExtraPlayerCount.Value != 0)
                 {
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)]">
-                        <Icon Name="@GetTagIcon(tag)" Size="12" />
-                        <span>@GetTagLabel(tag)</span>
-                    </span>
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
+                        <Icon Name="users" Size="24" />
+                        <div>
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Escalabilidad</span>
+                            <span class="text-sm font-extrabold text-[var(--text-primary)]">
+                                @(ExtraPlayerCount.Value > 0 ? $"+{ExtraPlayerCount.Value} jugadores a la mesa" : $"{ExtraPlayerCount.Value} jugadores")
+                            </span>
+                        </div>
+                    </div>
+                }
+
+                @if (ExtraDurationMinutes.HasValue && ExtraDurationMinutes.Value != 0)
+                {
+                    <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
+                        <Icon Name="timer" Size="24" />
+                        <div>
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Impacto en Duración</span>
+                            <span class="text-sm font-extrabold @(ExtraDurationMinutes.Value < 0 ? "text-emerald-400" : "text-[var(--text-primary)]")">
+                                @(ExtraDurationMinutes.Value > 0 ? $"+{ExtraDurationMinutes.Value} min por partida" : $"{ExtraDurationMinutes.Value} min (acelera el arranque)")
+                            </span>
+                        </div>
+                    </div>
                 }
             </div>
-        </div>
-    }
-
-    @* Resumen Editorial *@
-    @if (!string.IsNullOrWhiteSpace(WhatItBringsSummary))
-    {
-        <div class="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed">
-            <p class="font-medium text-[var(--text-primary)] mb-1 text-xs uppercase tracking-wider text-[var(--text-muted)]">
-                Veredicto de la Mesa:
-            </p>
-            @WhatItBringsSummary
-        </div>
-    }
-
-    @* Métricas de Impacto (Deltas de jugadores y duración) *@
-    @if (ExtraPlayerCount.HasValue || ExtraDurationMinutes.HasValue)
-    {
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            @if (ExtraPlayerCount.HasValue && ExtraPlayerCount.Value != 0)
-            {
-                <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
-                    <Icon Name="users" Size="24" />
-                    <div>
-                        <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Escalabilidad</span>
-                        <span class="text-sm font-extrabold text-[var(--text-primary)]">
-                            @(ExtraPlayerCount.Value > 0 ? $"+{ExtraPlayerCount.Value} jugadores a la mesa" : $"{ExtraPlayerCount.Value} jugadores")
-                        </span>
-                    </div>
-                </div>
-            }
-
-            @if (ExtraDurationMinutes.HasValue && ExtraDurationMinutes.Value != 0)
-            {
-                <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
-                    <Icon Name="timer" Size="24" />
-                    <div>
-                        <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block">Impacto en Duración</span>
-                        <span class="text-sm font-extrabold @(ExtraDurationMinutes.Value < 0 ? "text-emerald-400" : "text-[var(--text-primary)]")">
-                            @(ExtraDurationMinutes.Value > 0 ? $"+{ExtraDurationMinutes.Value} min por partida" : $"{ExtraDurationMinutes.Value} min (acelera el arranque)")
-                        </span>
-                    </div>
-                </div>
-            }
-        </div>
+        }
     }
 </div>
 
 @code {
+    [Parameter]
+    public Guid ExpansionId { get; set; }
+
+    [Parameter]
+    public bool CanGenerateWithAi { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnAporteGenerated { get; set; }
+
     [Parameter]
     public ExpansionNecessity? Necessity { get; set; }
 
@@ -98,6 +171,42 @@
 
     [Parameter]
     public int? ExtraDurationMinutes { get; set; }
+
+    private bool _isGenerating = false;
+    private string? _generationError;
+
+    private bool HasAporteData =>
+        !string.IsNullOrWhiteSpace(WhatItBringsSummary) ||
+        (ImpactTags != null && ImpactTags.Count > 0) ||
+        Necessity.HasValue;
+
+    private async Task HandleGenerateAporteAsync()
+    {
+        if (_isGenerating || ExpansionId == Guid.Empty) return;
+        _isGenerating = true;
+        _generationError = null;
+
+        try
+        {
+            var result = await AiSummaryService.EnsureExpansionAporteAsync(ExpansionId);
+            Necessity = result.Necessity;
+            ImpactTags = result.ImpactTags;
+            WhatItBringsSummary = result.WhatItBringsSummary;
+            ExtraPlayerCount = result.ExtraPlayerCount;
+            ExtraDurationMinutes = result.ExtraDurationMinutes;
+
+            await OnAporteGenerated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error al generar aporte con IA para la expansión {ExpansionId}", ExpansionId);
+            _generationError = "No se pudo generar la síntesis en este momento. Reinténtalo más tarde.";
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
 
     private static string GetNecessityText(ExpansionNecessity n) => n switch
     {
