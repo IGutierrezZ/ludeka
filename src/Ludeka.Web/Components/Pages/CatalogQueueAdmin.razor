@@ -493,7 +493,17 @@
                         <div class="text-xl font-black @(_stagingMetrics.FailedCount > 0 ? "text-rose-500" : "text-[var(--text-muted)]")">@_stagingMetrics.FailedCount</div>
                         @if (_stagingMetrics.FailedCount > 0)
                         {
-                            <span class="text-[0.65rem] text-rose-400 font-medium block">Requieren revisión</span>
+                            <div class="text-[0.65rem] space-y-0.5 mt-0.5">
+                                <span class="text-rose-400 font-semibold block" title="Títulos bloqueados sin promover al catálogo por fallos en descarga XML">
+                                    @_stagingMetrics.UnpromotedFailedCount sin promover
+                                </span>
+                                @if (_stagingMetrics.FailedCount > _stagingMetrics.UnpromotedFailedCount)
+                                {
+                                    <span class="text-amber-400/90 font-medium block" title="Títulos ya promovidos al catálogo pero con avisos en imágenes o síntesis IA">
+                                        @(_stagingMetrics.FailedCount - _stagingMetrics.UnpromotedFailedCount) en catálogo c/avisos
+                                    </span>
+                                }
+                            </div>
                         }
                     </div>
                 </div>
@@ -714,7 +724,7 @@
 
                     <button type="button"
                             @onclick="ExecuteAutoLinkExpansionsAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isReconcilingExpansions)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isAutoLinkingExpansions)
                         {
@@ -725,6 +735,23 @@
                         {
                             <Icon Name="link" Size="14" />
                             <span>Auto-vincular Huérfanas</span>
+                        }
+                    </button>
+
+                    <button type="button"
+                            @onclick="ExecuteReconcileExpansionsAsync"
+                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isReconcilingExpansions)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-emerald-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                            title="Reclasifica expansiones falsas registradas como BaseGame y vincula bidireccionalmente con sus juegos base usando los snapshots locales">
+                        @if (_isReconcilingExpansions)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Reconciliando...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="check-check" Size="14" class="text-emerald-400" />
+                            <span>Reconciliar Expansiones desde Snapshots</span>
                         }
                     </button>
                 </div>
@@ -796,8 +823,9 @@
                 </div>
             }
 
-            <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)] flex items-center justify-between">
-                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-cyan-400" /> <strong>Ejecución desatendida en consola:</strong> Para volcar todos los títulos sin depender del navegador ni de la sesión web: <code class="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill</code></span>
+            <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-cyan-400" /> <strong>Backfill de snapshots:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill</code></span>
+                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-emerald-400" /> <strong>Reconciliador masivo:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-emerald-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-reconcile-expansions</code></span>
             </div>
 
             @* Alertas de Resultado *@
@@ -842,6 +870,35 @@
                 <div class="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
                     <span><strong>Auto-vinculación finalizada:</strong> Se han enlazado @_autoLinkResultCount.Value expansiones huérfanas a sus juegos base correspondientes.</span>
                     <button type="button" @onclick="() => _autoLinkResultCount = null" class="text-base font-bold">&times;</button>
+                </div>
+            }
+
+            @if (_expansionReconciliationResult != null)
+            {
+                var isError = _expansionReconciliationResult.Message?.StartsWith("Error", StringComparison.OrdinalIgnoreCase) ?? false;
+                <div class="p-4 rounded-xl @(!isError ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-rose-500/10 border-rose-500/30 text-rose-300") border text-xs space-y-2">
+                    <div class="flex items-center justify-between font-bold text-sm @(!isError ? "text-emerald-400" : "text-rose-400")">
+                        <span class="flex items-center gap-2">
+                            <Icon Name="@(!isError ? "circle-check" : "triangle-alert")" Size="16" />
+                            <span>Reconciliación de Expansiones Finalizada</span>
+                        </span>
+                        <button type="button" @onclick="() => _expansionReconciliationResult = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-base font-bold">&times;</button>
+                    </div>
+                    <p class="text-[var(--text-secondary)]">
+                        @(_expansionReconciliationResult.Message ?? $"Se evaluaron {_expansionReconciliationResult.TotalEvaluated} snapshots: {_expansionReconciliationResult.ReclassifiedExpansionsCount} reclasificadas a Expansión, {_expansionReconciliationResult.LinkedExpansionsCount} vinculadas a su juego base.")
+                    </p>
+                    @if (_expansionReconciliationResult.ReclassifiedTitles.Count > 0)
+                    {
+                        <div class="text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
+                            <strong>Reclasificadas a Expansión (@_expansionReconciliationResult.ReclassifiedTitles.Count):</strong> @string.Join(", ", _expansionReconciliationResult.ReclassifiedTitles.Take(15))@(_expansionReconciliationResult.ReclassifiedTitles.Count > 15 ? "..." : "")
+                        </div>
+                    }
+                    @if (_expansionReconciliationResult.LinkedExpansions.Count > 0)
+                    {
+                        <div class="text-emerald-400/90 pt-1 border-t border-[var(--border-subtle)]">
+                            <strong>Vinculadas con juego base (@_expansionReconciliationResult.LinkedExpansions.Count):</strong> @string.Join(", ", _expansionReconciliationResult.LinkedExpansions.Take(15))@(_expansionReconciliationResult.LinkedExpansions.Count > 15 ? "..." : "")
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -1192,6 +1249,10 @@
     private bool _isSyncingSnapshots = false;
     private bool _isDiscoveringExpansions = false;
     private bool _isAutoLinkingExpansions = false;
+
+    // Incremento 99: Reconciliación y Vinculación Masiva de Expansiones desde Snapshots
+    private BggExpansionReconciliationResultDto? _expansionReconciliationResult;
+    private bool _isReconcilingExpansions = false;
 
     // Incremento 91: Sincronización continua de snapshots en segundo plano
     private CancellationTokenSource? _continuousSnapshotsSyncCts;
@@ -1725,6 +1786,27 @@
         finally
         {
             _isAutoLinkingExpansions = false;
+        }
+    }
+
+    private async Task ExecuteReconcileExpansionsAsync()
+    {
+        if (_isReconcilingExpansions) return;
+        _isReconcilingExpansions = true;
+        _expansionReconciliationResult = null;
+        try
+        {
+            _expansionReconciliationResult = await SnapshotSyncService.ReconcileAndLinkExpansionsFromSnapshotsAsync();
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _expansionReconciliationResult = new BggExpansionReconciliationResultDto(0, 0, 0, [], [], $"Error al reconciliar expansiones: {ex.Message}");
+        }
+        finally
+        {
+            _isReconcilingExpansions = false;
         }
     }
 
