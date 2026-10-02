@@ -110,6 +110,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-95** | Pantalla Dedicada de Tendencias BGG Top 50 con Movimiento Diario y Desacople de Catálogo | ✅ Archivado | [inc-95-pantalla-tendencias.md](archive/inc-95-pantalla-tendencias.md) |
 | **INC-96** | Optimización Visual Móvil de Portada y Catálogo, Acciones Rápidas de Colección y Procesamiento Continuo de IA en Lotes | ✅ Archivado | [inc-96-opt-movil-portada-catalogo.md](archive/inc-96-opt-movil-portada-catalogo.md) |
 | **INC-97** | Peticiones en Bloque Multi-ID a BGG (Batch Fetch) y Ampliación de Timeout en Runner de Snapshots Crudos | ✅ Archivado | [inc-97-peticiones-en-bloque-bgg-batch-fetch.md](archive/inc-97-peticiones-en-bloque-bgg-batch-fetch.md) |
+| **INC-98** | Persistencia Automática de Snapshots Satélite en Llamadas BGG XMLAPI2 y Métrica de Fallidos en Staging | ⏳ En progreso | [inc-98-persistencia-automatica-snapshots.md](inc-98-persistencia-automatica-snapshots.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -140,7 +141,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno)* | — | — | — | *(Actualmente no hay incrementos en curso)* |
+| **INC-98** | `inc/persistencia-automatica-snapshots` | `F:\repos\ludeka-wt\persistencia-automatica-snapshots` | ⏳ En progreso | Persistencia automática de snapshots satélite en llamadas BGG y métrica de fallidos en staging |
 
 
 *(INC-97 entregó su verificación con 2.264 pruebas unitarias en verde al 100%, y quedó archivado el 2026-10-02. Incorpora peticiones agrupadas de hasta 20 identificadores en una sola llamada HTTP [`/xmlapi2/thing?id=1,2,3...&stats=1`] en `IBggClient` y `BggXmlApiClient` con rate-limiting y reintentos, refactoriza `BggRawSnapshotSyncService` para procesar y persistir snapshots en bloques de 20 reduciendo el tiempo de volcado de 7 horas a ~18 minutos, introduce registro de snapshots vacíos de control ante títulos retirados/privados en BGG para evitar bloqueos en bucle, y amplía el timeout por defecto en `Ludeka.Jobs` a 120 minutos).*
