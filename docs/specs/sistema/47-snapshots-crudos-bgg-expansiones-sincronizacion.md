@@ -2,8 +2,8 @@
 
 > **Estado:** Implementado y Verificado  
 > **Fecha:** 2026-10-02  
-> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`), INC-91 (`inc/bgg-raw-runner`) e INC-97 (`inc/bgg-batch-fetch`)  
-> **Pruebas Verificadas:** 2.264 unitarias en verde  
+> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`), INC-91 (`inc/bgg-raw-runner`), INC-97 (`inc/bgg-batch-fetch`) e INC-98 (`inc/persistencia-automatica-snapshots`)  
+> **Pruebas Verificadas:** 2.257 unitarias en verde  
 
 ---
 
@@ -136,3 +136,14 @@ Para optimizar el rendimiento del backfill masivo y reducir el tiempo de volcado
    - Si un identificador en catálogo ha sido retirado o marcado como privado en BGG (por lo que la API no devuelve elemento `<item>` para él), se persiste un snapshot de control con `{"notFound":true}` para evitar que entre en un bucle infinito de reintentos en sucesivos lotes.
 3. **Ampliación de Timeout de Tarea en `Ludeka.Jobs`:**
    - La configuración por defecto `Workers:JobTimeoutMinutes` se eleva de 30 a 120 minutos en `src/Ludeka.Jobs/Program.cs`, evitando cancelaciones prematuras en ejecuciones masivas en Cloud Run.
+
+### 7.5 Persistencia Automática a Nivel de Cliente y Telemetría de Staging (INC-98)
+Para garantizar que **cualquier** consulta externa a BoardGameGeek nutra de forma autónoma la tabla satélite `BggRawSnapshots` sin depender de llamadas explícitas desde servicios superiores:
+1. **Auto-Persistencia en Clientes BGG (`BggXmlApiClient` y `SimulatedBggClient`):**
+   - Inyección opcional y desacoplada de `IBggRawSnapshotRepository` en `BggXmlApiClient` y `IServiceScopeFactory` en `SimulatedBggClient`.
+   - En cada ejecución de `FetchRawThingsXmlAsync` y `FetchGameByBggIdAsync`, el cliente parsea los elementos `<item>`, los convierte a JSON canónico mediante `BggXmlToJsonConverter` y los upserta de inmediato en `BggRawSnapshots`.
+   - Si se solicitaron identificadores que BGG no devolvió en el XML de respuesta, se registra automáticamente el placeholder defensivo `{"notFound":true}`.
+   - Resiliencia no bloqueante: cualquier excepción en la base de datos se captura y registra en los logs de advertencia sin interrumpir el flujo principal de obtención de datos del juego.
+2. **Telemetría y Cuadrícula de Métricas de Staging (`CatalogQueueAdmin.razor`):**
+   - Ampliación de la cuadrícula de estado de staging a 7 columnas (`lg:grid-cols-7`).
+   - Nueva tarjeta destacada de «Fallidos» (`_stagingMetrics.FailedCount`), que aclara la discrepancia entre el total de elementos en staging y los promovidos exitosamente al catálogo.
