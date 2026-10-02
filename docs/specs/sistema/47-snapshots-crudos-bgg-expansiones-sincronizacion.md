@@ -147,3 +147,15 @@ Para garantizar que **cualquier** consulta externa a BoardGameGeek nutra de form
 2. **Telemetría y Cuadrícula de Métricas de Staging (`CatalogQueueAdmin.razor`):**
    - Ampliación de la cuadrícula de estado de staging a 7 columnas (`lg:grid-cols-7`).
    - Nueva tarjeta destacada de «Fallidos» (`_stagingMetrics.FailedCount`), que aclara la discrepancia entre el total de elementos en staging y los promovidos exitosamente al catálogo.
+
+### 7.6 Reconstitución Determinista JSON a XML y Barrido Snapshot-First (INC-103)
+Para aprovechar el 100% de cobertura de snapshots locales (~17.505 registros) y auditar o enriquecer el catálogo a velocidad de memoria y CPU sin realizar llamadas HTTP a la API de BGG:
+1. **Conversión Determinista JSON a XML (`BggJsonToXmlConverter`):**
+   - Implementado en `Ludeka.Infrastructure.Bgg.BggJsonToXmlConverter` como la inversa exacta de `BggXmlToJsonConverter`.
+   - Reconstituye árboles `XElement` fieles desde el `RawJson` del snapshot satélite respetando atributos (`@id`, `@value`), texto (`#text`) y colecciones repetidas (`<link>`, `<name>`, `<poll>`).
+2. **Método de Interfaz en `IBggClient`:**
+   - Incorpora `Game? ParseGameFromRawJson(string rawJson)` implementado en `BggXmlApiClient` y `SimulatedBggClient`.
+   - Reconstituye el `Game` mediante `BggJsonToXmlConverter` y `BggXmlParser.ParseGameElement`.
+3. **Estrategia Snapshot-First en Enriquecimiento de Calidad:**
+   - En `BggMassIngestionService.EnrichSingleGameQualityAsync`, se consulta `_snapshotRepo.GetByBggIdAsync(game.BggId, ct)` antes de cualquier llamada a red.
+   - Si el snapshot local está presente, se reconstruye el `Game` y se actualizan escalabilidad, fundas, duraciones, huella y editoriales sin realizar tráfico de red externo.
