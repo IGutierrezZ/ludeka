@@ -4,88 +4,122 @@
 @inject IMediaService MediaService
 @inject ICatalogService CatalogService
 @inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JSRuntime
 
-<div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-xl space-y-6">
-    @* Cabecera y Filtros Multimedia *@
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
-        <div class="flex flex-wrap items-center gap-1.5">
-            <span class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shrink-0 hidden sm:flex" title="Hub Multimedia">
-                <Icon Name="tv" Size="18" />
-            </span>
+<div class="space-y-4">
+    @{
+        var displayedVideos = GetDisplayedItems();
+    }
 
-            @* Píldoras de Filtrado sin scroll *@
+    @* Cabecera y Filtros Multimedia: Barra Segmentada Profesional *@
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
+        @* Barra Segmentada Estilizada *@
+        <div class="bg-[var(--bg-surface-elevated)] p-1 rounded-xl border border-[var(--border-subtle)] inline-flex items-center gap-1 overflow-x-auto max-w-full scrollbar-none self-start sm:self-auto" role="tablist" aria-label="Filtrar por formato de vídeo">
             <button type="button"
                     @onclick='() => _activeFilter = "all"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "all" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                    role="tab"
+                    aria-selected="@(_activeFilter == "all")"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap @(_activeFilter == "all" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]")">
                 <Icon Name="tv" Size="13" />
                 <span>Todos</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "all" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                <span class="px-1.5 py-0.5 rounded-full text-[0.62rem] font-semibold @(_activeFilter == "all" ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
                     @TotalVideosCount
                 </span>
             </button>
 
             <button type="button"
-                    @onclick='() => _activeFilter = "quick"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "quick" ? "bg-amber-500 text-black shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
-                <Icon Name="zap" Size="13" />
-                <span>Cómo Funciona</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "quick" ? "bg-black/20 text-black" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
-                    @(MediaHub?.QuickOverviews.Count ?? 0)
-                </span>
-            </button>
-
-            <button type="button"
                     @onclick='() => _activeFilter = "tutorials"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                    role="tab"
+                    aria-selected="@(_activeFilter == "tutorials")"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap @(_activeFilter == "tutorials" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]")">
                 <Icon Name="clapperboard" Size="13" />
                 <span>Tutoriales</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "tutorials" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                <span class="px-1.5 py-0.5 rounded-full text-[0.62rem] font-semibold @(_activeFilter == "tutorials" ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
                     @(MediaHub?.Tutorials.Count ?? 0)
                 </span>
             </button>
 
             <button type="button"
+                    @onclick='() => _activeFilter = "quick"'
+                    role="tab"
+                    aria-selected="@(_activeFilter == "quick")"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap @(_activeFilter == "quick" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]")">
+                <Icon Name="zap" Size="13" />
+                <span>Cómo Funciona</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[0.62rem] font-semibold @(_activeFilter == "quick" ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                    @(MediaHub?.QuickOverviews.Count ?? 0)
+                </span>
+            </button>
+
+            <button type="button"
                     @onclick='() => _activeFilter = "playthroughs"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "playthroughs" ? "bg-emerald-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                    role="tab"
+                    aria-selected="@(_activeFilter == "playthroughs")"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap @(_activeFilter == "playthroughs" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]")">
                 <Icon Name="dices" Size="13" />
-                <span>Partidas Completas</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "playthroughs" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                <span>Partidas</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[0.62rem] font-semibold @(_activeFilter == "playthroughs" ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
                     @(MediaHub?.Playthroughs.Count ?? 0)
                 </span>
             </button>
 
             <button type="button"
                     @onclick='() => _activeFilter = "social"'
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 @(_activeFilter == "social" ? "bg-purple-600 text-white shadow-sm" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]")">
+                    role="tab"
+                    aria-selected="@(_activeFilter == "social")"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap @(_activeFilter == "social" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]")">
                 <Icon Name="message-circle" Size="13" />
                 <span>Opiniones y Redes</span>
-                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] @(_activeFilter == "social" ? "bg-black/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
+                <span class="px-1.5 py-0.5 rounded-full text-[0.62rem] font-semibold @(_activeFilter == "social" ? "bg-white/20 text-white" : "bg-[var(--bg-card)] text-[var(--text-muted)]")">
                     @SocialCount
                 </span>
             </button>
         </div>
 
-        @* Botones de Acción para Administradores / Moderadores *@
-        @if (IsModeratorUser)
-        {
-            <div class="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
-                <button type="button"
-                        @onclick="OpenYouTubeSearchModal"
-                        title="Búsqueda quirúrgica en YouTube con el título pre-rellenado"
-                        class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-                    <Icon Name="search" Size="13" />
-                    <span>Buscar en YouTube</span>
-                </button>
+        @* Botones de Acción: Navegación y Moderación *@
+        <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+            @if (displayedVideos.Count > 2)
+            {
+                <div class="hidden sm:flex items-center gap-1">
+                    <button type="button"
+                            @onclick='() => ScrollMediaRailAsync(-320)'
+                            class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--border-subtle)] text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm"
+                            aria-label="Vídeos anteriores"
+                            title="Deslizar hacia la izquierda">
+                        <Icon Name="chevron-left" Size="16" />
+                    </button>
+                    <button type="button"
+                            @onclick='() => ScrollMediaRailAsync(320)'
+                            class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--border-subtle)] text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm"
+                            aria-label="Vídeos siguientes"
+                            title="Deslizar hacia la derecha">
+                        <Icon Name="chevron-right" Size="16" />
+                    </button>
+                </div>
+            }
 
-                <button type="button"
-                        @onclick="OpenFlashIngestModal"
-                        title="Añadir vídeo por URL al instante"
-                        class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-                    <Icon Name="zap" Size="13" />
-                    <span>Ingesta Flash</span>
-                </button>
-            </div>
-        }
+            @if (IsModeratorUser)
+            {
+                <div class="flex items-center gap-1.5 sm:pl-1.5 sm:border-l sm:border-[var(--border-subtle)]">
+                    <button type="button"
+                            @onclick="OpenYouTubeSearchModal"
+                            title="Búsqueda quirúrgica en YouTube con el título pre-rellenado"
+                            class="px-2.5 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                        <Icon Name="search" Size="12" />
+                        <span class="hidden md:inline">Buscar en YouTube</span>
+                        <span class="md:hidden">YouTube</span>
+                    </button>
+
+                    <button type="button"
+                            @onclick="OpenFlashIngestModal"
+                            title="Añadir vídeo por URL al instante"
+                            class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 hover:text-black text-amber-500 border border-amber-500/30 font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                        <Icon Name="zap" Size="12" />
+                        <span>Ingesta Flash</span>
+                    </button>
+                </div>
+            }
+        </div>
     </div>
 
     @* Notificación de Acción de Moderación *@
@@ -97,24 +131,25 @@
         </div>
     }
 
-    @* Cuadrícula de Vídeos Filtrados *@
-    @{
-        var displayedVideos = GetDisplayedItems();
-    }
-
+    @* Carrusel Horizontal de Vídeos Filtrados *@
     @if (displayedVideos.Count > 0)
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div id="media-carousel-rail"
+             class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-2 pt-1 scroll-smooth"
+             role="list"
+             tabindex="0"
+             aria-label="Carrusel de vídeos multimedia">
             @foreach (var video in displayedVideos)
             {
                 var (badgeIcon, badgeLabel, badgeClasses) = GetTypeBadge(video);
 
-                <div class="group cursor-pointer rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative"
+                <div class="w-[260px] sm:w-[290px] md:w-[310px] shrink-0 snap-start rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex flex-col justify-between shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] relative group cursor-pointer"
                      role="button"
                      tabindex="0"
                      aria-label="@($"Reproducir {badgeLabel}: {video.Title}")"
                      @onkeydown="(e) => HandleCardKeyDown(e, video)"
                      @onclick="() => OpenEmbedModal(video)">
+                    
                     <div class="aspect-video relative overflow-hidden bg-black">
                         <img src="@video.ThumbnailUrl"
                              alt="@video.Title"
@@ -126,7 +161,7 @@
 
                         @* Badge del Tipo de Vídeo *@
                         <div class="absolute top-2 left-2 flex items-center gap-1.5 flex-wrap z-10">
-                            <span class="px-2.5 py-0.5 rounded-full @badgeClasses text-[0.62rem] font-bold tracking-tight shadow-md inline-flex items-center gap-1 backdrop-blur-sm">
+                            <span class="px-2 py-0.5 rounded-full @badgeClasses text-[0.62rem] font-bold tracking-tight shadow-md inline-flex items-center gap-1 backdrop-blur-sm">
                                 @if (badgeIcon == "zap")
                                 {
                                     <Icon Name="zap" Size="10" />
@@ -160,7 +195,7 @@
 
                             @if (video.Category == MediaCategory.Gameplay && !string.IsNullOrWhiteSpace(video.PlayerCountBadge) && !badgeLabel.Equals(video.PlayerCountBadge, StringComparison.OrdinalIgnoreCase))
                             {
-                                <span class="px-2 py-0.5 rounded-full bg-black/70 text-white border border-white/20 text-[0.62rem] font-semibold inline-flex items-center gap-1 backdrop-blur-sm">
+                                <span class="px-1.5 py-0.5 rounded-full bg-black/70 text-white border border-white/20 text-[0.6rem] font-semibold inline-flex items-center gap-1 backdrop-blur-sm">
                                     <Icon Name="users" Size="10" />
                                     <span>@video.PlayerCountBadge</span>
                                 </span>
@@ -168,57 +203,57 @@
                         </div>
 
                         <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-12 h-12 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
-                                <Icon Name="play" Size="22" />
+                            <div class="w-10 h-10 rounded-full bg-[var(--brand-primary)]/90 text-white flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 group-hover:bg-[var(--brand-primary)] transition-all">
+                                <Icon Name="play" Size="18" />
                             </div>
                         </div>
 
                         @if (!string.IsNullOrWhiteSpace(video.FormattedDuration))
                         {
-                            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
+                            <div class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-white text-[0.65rem] font-mono font-bold tracking-tight inline-flex items-center gap-1">
                                 <Icon Name="timer" Size="10" /> @video.FormattedDuration
                             </div>
                         }
                         else if (video.LikesCount.HasValue && video.Type == MediaType.InstagramPost)
                         {
-                            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[0.68rem] font-bold tracking-tight inline-flex items-center gap-1">
+                            <div class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-white text-[0.65rem] font-bold tracking-tight inline-flex items-center gap-1">
                                 <Icon Name="heart" Size="10" /> @video.LikesCount
                             </div>
                         }
                     </div>
 
-                    <div class="p-3.5 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
+                    <div class="p-3 flex-1 flex flex-col justify-between bg-[var(--bg-card)]">
                         <div>
-                            <div class="flex items-center justify-between gap-2 mb-0.5">
-                                <span class="text-[0.7rem] font-bold text-[var(--brand-primary)] truncate">
+                            <div class="flex items-center justify-between gap-1.5 mb-1">
+                                <span class="text-[0.68rem] font-bold text-[var(--brand-primary)] truncate">
                                     @video.AuthorChannel
                                 </span>
                                 <LikeButton TargetType="LikeTargetType.MediaItem" TargetId="@video.Id" InitialLikesCount="@video.UserLikesCount" Compact="true" />
                             </div>
-                            <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
+                            <h3 class="text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug" title="@video.Title">
                                 @video.Title
                             </h3>
                         </div>
 
                         @if (IsModeratorUser)
                         {
-                            <div class="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between"
+                            <div class="mt-2.5 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-1"
                                  @onclick:stopPropagation="true">
-                                <span class="text-[0.65rem] font-bold text-amber-500 flex items-center gap-1">
-                                    <Icon Name="settings" Size="11" /> Moderación
+                                <span class="text-[0.62rem] font-bold text-amber-500 flex items-center gap-1">
+                                    <Icon Name="settings" Size="10" /> Mod
                                 </span>
-                                <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1">
                                     <button type="button"
                                             @onclick="() => OpenModerateModal(video)"
                                             title="Cambiar categoría o reasignar"
-                                            class="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
-                                        <Icon Name="tag" Size="11" /> Cambiar Categoría
+                                            class="px-2 py-0.5 rounded bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-secondary)] text-[0.62rem] font-bold transition-colors flex items-center gap-1 border border-[var(--border-subtle)]">
+                                        <Icon Name="tag" Size="10" /> Cambiar Categoría
                                     </button>
                                     <button type="button"
                                             @onclick="() => PromptDeleteDirect(video)"
                                             title="Eliminar vídeo de la ficha"
-                                            class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.65rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
-                                        <Icon Name="x" Size="11" /> Eliminar
+                                            class="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 text-[0.62rem] font-bold transition-colors flex items-center gap-1 border border-rose-500/20">
+                                        <Icon Name="x" Size="10" /> Eliminar
                                     </button>
                                 </div>
                             </div>
@@ -232,9 +267,9 @@
     {
         @if (_activeFilter == "all")
         {
-            <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-3">
-                <span class="inline-block p-3 rounded-2xl bg-[var(--bg-card)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shadow-sm">
-                    <Icon Name="tv" Size="32" />
+            <div class="p-6 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-2.5">
+                <span class="inline-block p-2.5 rounded-xl bg-[var(--bg-card)] text-[var(--brand-primary)] border border-[var(--border-subtle)] shadow-sm">
+                    <Icon Name="tv" Size="26" />
                 </span>
                 <h3 class="text-sm font-bold text-[var(--text-primary)]">
                     Aún no hay tutoriales ni vídeos en español
@@ -244,16 +279,16 @@
                 </p>
                 @if (IsModeratorUser)
                 {
-                    <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
+                    <div class="pt-1.5 flex items-center justify-center gap-2 flex-wrap">
                         <button type="button"
                                 @onclick="OpenYouTubeSearchModal"
-                                class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                                class="px-3 py-1.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-primary)] font-bold text-xs border border-[var(--border-subtle)] shadow-sm transition-all flex items-center gap-1.5">
                             <Icon Name="search" Size="13" />
                             <span>Buscar en YouTube</span>
                         </button>
                         <button type="button"
                                 @onclick="OpenFlashIngestModal"
-                                class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                                class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
                             <Icon Name="zap" Size="13" />
                             <span>Ingesta Flash</span>
                         </button>
@@ -269,13 +304,13 @@
         }
         else
         {
-            <div class="p-8 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-2">
-                <span class="inline-block text-[var(--text-muted)]"><Icon Name="tv" Size="28" /></span>
+            <div class="p-6 text-center rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] max-w-md mx-auto space-y-2">
+                <span class="inline-block text-[var(--text-muted)]"><Icon Name="tv" Size="24" /></span>
                 <h3 class="text-sm font-bold text-[var(--text-primary)]">Sin contenidos en este formato todavía</h3>
                 <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
                     Aún no se han indexado vídeos o publicaciones para este filtro en este juego.
                 </p>
-                <div class="pt-2">
+                <div class="pt-1.5">
                     <button type="button"
                             @onclick='() => _activeFilter = "all"'
                             class="px-3 py-1.5 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--brand-primary)] text-xs font-bold border border-[var(--border-subtle)] transition-colors">
@@ -528,11 +563,11 @@
                             Número de jugadores (opcional)
                         </label>
                         <input id="flash-player-badge"
-                               type="text"
-                               placeholder="Ej. A 2 Jugadores, Solitario, A 4..."
-                               @bind="_flashPlayerBadge"
-                               disabled="@_isFlashIngesting"
-                               class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
+                                type="text"
+                                placeholder="Ej. A 2 Jugadores, Solitario, A 4..."
+                                @bind="_flashPlayerBadge"
+                                disabled="@_isFlashIngesting"
+                                class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
                         <p class="text-[0.65rem] text-[var(--text-muted)] mt-1">
                             Si lo dejas vacío, se intentará detectar automáticamente del título.
                         </p>
@@ -656,6 +691,18 @@
             MediaCategory.ReviewOpinion => ("message-circle", "Reseña / Opinión", "bg-purple-600 text-white"),
             _ => ("play", item.CategoryDisplayName, "bg-slate-700 text-white")
         };
+    }
+
+    private async Task ScrollMediaRailAsync(int distance)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("ludekaScrollRail", "media-carousel-rail", distance);
+        }
+        catch
+        {
+            // Interop defensivo
+        }
     }
 
     private void OpenYouTubeSearchModal()
