@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
@@ -26,6 +27,18 @@ public class SimulatedBggClient : IBggClient
     {
         ct.ThrowIfCancellationRequested();
         var xml = BggSimulationDataset.GetRawThingXml(bggId);
+        return Task.FromResult<string?>(xml);
+    }
+
+    public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (bggIds == null) return Task.FromResult<string?>(null);
+
+        var validIds = bggIds.Where(id => id > 0).Distinct().Take(20).ToList();
+        if (validIds.Count == 0) return Task.FromResult<string?>(null);
+
+        var xml = BggSimulationDataset.GetRawThingsXml(validIds);
         return Task.FromResult<string?>(xml);
     }
 

@@ -221,4 +221,42 @@ public class BggXmlApiClientResilienceTests
         var respWithoutHeader = new HttpResponseMessage((HttpStatusCode)429);
         Assert.Null(BggResilienceAndAuthHandler.ExtractRetryAfterSeconds(respWithoutHeader));
     }
+
+    [Fact]
+    public async Task FetchRawThingsXmlAsync_ConstructsCommaSeparatedIdsUrl_AndReturnsXml()
+    {
+        var mockHandler = new MockHttpMessageHandler();
+        string sampleXml = "<items><item id=\"13\" /><item id=\"42\" /></items>";
+        mockHandler.EnqueueResponse(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(sampleXml)
+        });
+
+        var client = new HttpClient(mockHandler);
+        using var bggClient = new BggXmlApiClient(client);
+
+        var result = await bggClient.FetchRawThingsXmlAsync([13, 42, 13, -5, 0]);
+
+        Assert.Equal(sampleXml, result);
+        Assert.Single(mockHandler.SentRequests);
+        var sentUrl = mockHandler.SentRequests[0].RequestUri?.ToString();
+        Assert.Contains("id=13,42&stats=1", sentUrl);
+    }
+
+    [Fact]
+    public async Task FetchRawThingsXmlAsync_WhenIdsNullOrEmpty_ReturnsNull()
+    {
+        var mockHandler = new MockHttpMessageHandler();
+        var client = new HttpClient(mockHandler);
+        using var bggClient = new BggXmlApiClient(client);
+
+        var nullResult = await bggClient.FetchRawThingsXmlAsync(null!);
+        var emptyResult = await bggClient.FetchRawThingsXmlAsync([]);
+        var invalidResult = await bggClient.FetchRawThingsXmlAsync([-1, 0]);
+
+        Assert.Null(nullResult);
+        Assert.Null(emptyResult);
+        Assert.Null(invalidResult);
+        Assert.Empty(mockHandler.SentRequests);
+    }
 }

@@ -50,11 +50,21 @@ public class BggXmlApiClient : IBggClient, IDisposable
         });
     }
 
-    public async Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+    public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
     {
-        if (bggId <= 0) return null;
+        if (bggId <= 0) return Task.FromResult<string?>(null);
+        return FetchRawThingsXmlAsync([bggId], ct);
+    }
 
-        string url = $"https://boardgamegeek.com/xmlapi2/thing?id={bggId}&stats=1";
+    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    {
+        if (bggIds == null) return null;
+
+        var validIds = bggIds.Where(id => id > 0).Distinct().Take(20).ToList();
+        if (validIds.Count == 0) return null;
+
+        string idsParam = string.Join(",", validIds);
+        string url = $"https://boardgamegeek.com/xmlapi2/thing?id={idsParam}&stats=1";
 
         int maxRetries = 3;
         int delayMs = 1500;

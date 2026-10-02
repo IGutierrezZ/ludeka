@@ -101,85 +101,113 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         var syncedTitles = new List<string>();
         var linkedExpansions = new List<string>();
 
-        for (int i = 0; i < missingIds.Count; i++)
+        // Particionar en bloques de hasta 20 identificadores para consultar a BGG en lote
+        var chunks = missingIds.Chunk(20).ToList();
+
+        for (int c = 0; c < chunks.Count; c++)
         {
-            int bggId = missingIds[i];
+            var chunk = chunks[c];
 
             try
             {
-                var xml = await _bggClient.FetchRawThingXmlAsync(bggId, ct);
+                var xml = await _bggClient.FetchRawThingsXmlAsync(chunk, ct);
                 if (string.IsNullOrWhiteSpace(xml))
                 {
-                    _logger.LogWarning("BGG no devolvió XML válido para BggId {BggId}", bggId);
-                    failedCount++;
+                    _logger.LogWarning("BGG no devolvió XML válido para el bloque de {Count} títulos", chunk.Length);
+                    failedCount += chunk.Length;
                     continue;
                 }
 
                 var doc = XDocument.Parse(xml);
-                var item = doc.Root?.Element("item");
-                if (item == null)
+                var items = doc.Root?.Elements("item")?.ToList() ?? new List<XElement>();
+                var returnedIds = new HashSet<int>();
+
+                foreach (var item in items)
                 {
-                    _logger.LogWarning("No se encontró elemento <item> en el XML para BggId {BggId}", bggId);
-                    failedCount++;
-                    continue;
-                }
-
-                string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
-                var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
-                await _snapshotRepo.UpsertAsync(snapshot, ct);
-
-                string title = item.Elements("name").FirstOrDefault(n => n.Attribute("type")?.Value == "primary")?.Attribute("value")?.Value
-                    ?? $"Juego #{bggId}";
-                syncedTitles.Add(title);
-                successCount++;
-
-                // Auto-vinculación defensiva de expansiones
-                bool isExpansion = string.Equals(item.Attribute("type")?.Value, "boardgameexpansion", StringComparison.OrdinalIgnoreCase);
-                if (isExpansion)
-                {
-                    int? baseBggId = BggXmlParser.ExtractInboundBaseGameBggId(item);
-                    if (baseBggId.HasValue)
+                    if (!int.TryParse(item.Attribute("id")?.Value, out int bggId) || bggId <= 0)
                     {
-                        var expGame = await _gameRepo.GetByBggIdAsync(bggId, ct);
-                        var baseGame = await _gameRepo.GetByBggIdAsync(baseBggId.Value, ct);
-
-                        if (expGame != null && baseGame != null && expGame.BaseGameId != baseGame.Id)
-                        {
-                            expGame.SetBaseGameId(baseGame.Id);
-                            await _gameRepo.UpdateAsync(expGame, ct);
-                            linkedExpansions.Add($"{expGame.SpanishTitle} → {baseGame.SpanishTitle}");
-                        }
+                        continue;
                     }
-                }
-                else
-                {
-                    var outboundExpIds = BggXmlParser.ExtractOutboundExpansionBggIds(item);
-                    if (outboundExpIds.Count > 0)
+
+                    returnedIds.Add(bggId);
+
+                    try
                     {
-                        var baseGame = await _gameRepo.GetByBggIdAsync(bggId, ct);
-                        if (baseGame != null)
+                        string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                        var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                        await _snapshotRepo.UpsertAsync(snapshot, ct);
+
+                        string title = item.Elements("name").FirstOrDefault(n => n.Attribute("type")?.Value == "primary")?.Attribute("value")?.Value
+                            ?? $"Juego #{bggId}";
+                        syncedTitles.Add(title);
+                        successCount++;
+
+                        // Auto-vinculación defensiva de expansiones
+                        bool isExpansion = string.Equals(item.Attribute("type")?.Value, "boardgameexpansion", StringComparison.OrdinalIgnoreCase);
+                        if (isExpansion)
                         {
-                            var expGames = await _gameRepo.GetByBggIdsAsync(outboundExpIds, ct);
-                            foreach (var eg in expGames.Where(g => g.BaseGameId == null))
+                            int? baseBggId = BggXmlParser.ExtractInboundBaseGameBggId(item);
+                            if (baseBggId.HasValue)
                             {
-                                eg.SetBaseGameId(baseGame.Id);
-                                await _gameRepo.UpdateAsync(eg, ct);
-                                linkedExpansions.Add($"{eg.SpanishTitle} → {baseGame.SpanishTitle}");
+                                var expGame = await _gameRepo.GetByBggIdAsync(bggId, ct);
+                                var baseGame = await _gameRepo.GetByBggIdAsync(baseBggId.Value, ct);
+
+                                if (expGame != null && baseGame != null && expGame.BaseGameId != baseGame.Id)
+                                {
+                                    expGame.SetBaseGameId(baseGame.Id);
+                                    await _gameRepo.UpdateAsync(expGame, ct);
+                                    linkedExpansions.Add($"{expGame.SpanishTitle} → {baseGame.SpanishTitle}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var outboundExpIds = BggXmlParser.ExtractOutboundExpansionBggIds(item);
+                            if (outboundExpIds.Count > 0)
+                            {
+                                var baseGame = await _gameRepo.GetByBggIdAsync(bggId, ct);
+                                if (baseGame != null)
+                                {
+                                    var expGames = await _gameRepo.GetByBggIdsAsync(outboundExpIds, ct);
+                                    foreach (var eg in expGames.Where(g => g.BaseGameId == null))
+                                    {
+                                        eg.SetBaseGameId(baseGame.Id);
+                                        await _gameRepo.UpdateAsync(eg, ct);
+                                        linkedExpansions.Add($"{eg.SpanishTitle} → {baseGame.SpanishTitle}");
+                                    }
+                                }
                             }
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error al procesar snapshot para BggId {BggId}", bggId);
+                        failedCount++;
+                    }
                 }
 
-                // Pausa de cortesía hacia los servidores de BGG
-                if (delayMs > 0 && i < missingIds.Count - 1)
+                // Identificar IDs solicitados que no fueron devueltos en el documento de BGG
+                foreach (int requestedId in chunk)
                 {
-                    await Task.Delay(delayMs, ct);
+                    if (!returnedIds.Contains(requestedId))
+                    {
+                        _logger.LogWarning("BGG no devolvió elemento <item> para BggId {BggId} (posiblemente eliminado o retirado en BGG). Registrando snapshot de control.", requestedId);
+                        var placeholderSnapshot = new BggRawSnapshot(requestedId, "{\"notFound\":true}", apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                        await _snapshotRepo.UpsertAsync(placeholderSnapshot, ct);
+                        failedCount++;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al sincronizar snapshot para BggId {BggId}", bggId);
-                failedCount++;
+                _logger.LogError(ex, "Error al sincronizar bloque de snapshots");
+                failedCount += chunk.Length;
+            }
+
+            // Pausa de cortesía hacia los servidores de BGG entre bloques
+            if (delayMs > 0 && c < chunks.Count - 1)
+            {
+                await Task.Delay(delayMs, ct);
             }
         }
 

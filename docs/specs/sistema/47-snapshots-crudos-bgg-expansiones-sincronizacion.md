@@ -1,9 +1,9 @@
 # 47. Snapshots Crudos BGG, Extracción de Expansiones y Sincronización Defensiva con Respeto de Límites
 
 > **Estado:** Implementado y Verificado  
-> **Fecha:** 2026-10-01  
-> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`) e INC-91 (`inc/bgg-raw-runner`)  
-> **Pruebas Verificadas:** 2.185 unitarias en verde  
+> **Fecha:** 2026-10-02  
+> **Incremento Asociado:** INC-90 (`inc/bgg-raw-snapshots`), INC-91 (`inc/bgg-raw-runner`) e INC-97 (`inc/bgg-batch-fetch`)  
+> **Pruebas Verificadas:** 2.264 unitarias en verde  
 
 ---
 
@@ -126,3 +126,13 @@ Para abordar el volcado de los ~13.853 títulos de catálogo respetando los ~1.2
 - Control reactivo con `CancellationTokenSource`, ejecución encadenada en bucle con telemetría en tiempo real (lotes procesados, éxitos, fallos y títulos restantes).
 - Liberación garantizada de recursos con `IDisposable`.
 
+### 7.4 Peticiones en Bloque Multi-ID y Snapshot de Control Defensivo (INC-97)
+Para optimizar el rendimiento del backfill masivo y reducir el tiempo de volcado de 7 horas a ~18 minutos:
+1. **Consultas Agrupadas a BGG XMLAPI2 (`/xmlapi2/thing?id={csv}&stats=1`):**
+   - La interfaz `IBggClient` incorpora `FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct)`.
+   - `BggXmlApiClient` empaqueta hasta 20 identificadores en una sola llamada HTTP con rate limiting (1.200 ms entre llamadas) y reintentos exponenciales con jitter.
+   - `BggRawSnapshotSyncService` procesa los identificadores faltantes en fragmentos (`.Chunk(20)`), reduciendo el número de llamadas a BGG en un 95%.
+2. **Snapshot de Control para IDs Inexistentes (`{"notFound":true}`):**
+   - Si un identificador en catálogo ha sido retirado o marcado como privado en BGG (por lo que la API no devuelve elemento `<item>` para él), se persiste un snapshot de control con `{"notFound":true}` para evitar que entre en un bucle infinito de reintentos en sucesivos lotes.
+3. **Ampliación de Timeout de Tarea en `Ludeka.Jobs`:**
+   - La configuración por defecto `Workers:JobTimeoutMinutes` se eleva de 30 a 120 minutos en `src/Ludeka.Jobs/Program.cs`, evitando cancelaciones prematuras en ejecuciones masivas en Cloud Run.

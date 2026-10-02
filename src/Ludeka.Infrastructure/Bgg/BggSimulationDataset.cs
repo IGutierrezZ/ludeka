@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
@@ -75,6 +76,27 @@ public static class BggSimulationDataset
     }
 
     public static IReadOnlyList<int> GetAllBggIds() => Blueprints.Select(b => b.BggId).ToList();
+
+    public static string GetRawThingsXml(IEnumerable<int> bggIds)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        sb.AppendLine("<items termsofuse=\"https://boardgamegeek.com/xmlapi/termsofuse\">");
+
+        foreach (var id in bggIds)
+        {
+            var singleXml = GetRawThingXml(id);
+            var doc = XDocument.Parse(singleXml);
+            var item = doc.Root?.Element("item");
+            if (item != null)
+            {
+                sb.AppendLine(item.ToString());
+            }
+        }
+
+        sb.AppendLine("</items>");
+        return sb.ToString();
+    }
 
     public static string GetRawThingXml(int bggId)
     {

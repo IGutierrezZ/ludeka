@@ -26,4 +26,7 @@ public interface IBggClient
 
     Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
         => Task.FromResult<string?>(null);
+
+    Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => Task.FromResult<string?>(null);
 }
