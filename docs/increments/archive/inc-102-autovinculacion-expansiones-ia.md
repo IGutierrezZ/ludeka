@@ -1,7 +1,8 @@
 # INC-102: Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA
 
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Fecha:** 2026-10-02  
+> **Pruebas:** 2.300 unitarias (100% pasando) + 10 integración  
 > **Rama:** `inc/autovinculacion-expansiones-ia`  
 > **Worktree:** `F:\repos\ludeka-wt\autovinculacion-expansiones-ia`  
 

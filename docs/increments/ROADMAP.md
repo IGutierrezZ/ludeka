@@ -114,7 +114,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-99** | Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia | ✅ Archivado | [inc-99-carrusel-expansiones-multimedia.md](archive/inc-99-carrusel-expansiones-multimedia.md) |
 | **INC-100** | Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging | ✅ Archivado | [inc-100-vinculacion-expansiones-snapshots.md](archive/inc-100-vinculacion-expansiones-snapshots.md) |
 | **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ✅ Archivado | [inc-101-hotfix-reconciliacion-minplayers.md](archive/inc-101-hotfix-reconciliacion-minplayers.md) |
-| **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ⏳ En progreso | [inc-102-autovinculacion-expansiones-ia.md](inc-102-autovinculacion-expansiones-ia.md) |
+| **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ✅ Archivado | [inc-102-autovinculacion-expansiones-ia.md](archive/inc-102-autovinculacion-expansiones-ia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -142,9 +142,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-| Incremento | Rama | Worktree | Estado | Propósito |
-|---|---|---|---|---|
-| **INC-102** | `inc/autovinculacion-expansiones-ia` | `F:\repos\ludeka-wt\autovinculacion-expansiones-ia` | ⏳ En progreso | Auto-vinculación inmediata bidireccional de expansiones en búsqueda asistida y síntesis asistida de aporte con IA |
+*(Ningún incremento en curso actualmente en este worktree).*
+
+*(INC-102 entregó su verificación con 2.300 pruebas unitarias en verde al 100% [2.310 totales con integración], y quedó archivado el 2026-10-02. Implementa la auto-vinculación inmediata bidireccional de expansiones en búsqueda asistida de BGG en `/mi-ludoteca` mediante `BggSearchAssistedService` y `IBggRawSnapshotRepository`, la síntesis asistida de aporte lúdico con Google Gemini Flash y el generador determinista `HeuristicExpansionAporteGenerator`, y el estado vacío interactivo con botón de generación asistida en `ExpansionAporteCard.razor`).*
 
 *(INC-101 entregó su PR #182, verificada con 2.291 pruebas unitarias en verde al 100%, y quedó archivado el 2026-10-02. Implementa el saneamiento defensivo de `minPlayers` en `Game.cs`, `BggXmlParser.cs`, `SqliteGameRepository.cs` y servicios auxiliares, filtrando comensales `<= 0` y aislando con try-catch por entidad la reconciliación masiva de expansiones desde snapshots satélite).*
 

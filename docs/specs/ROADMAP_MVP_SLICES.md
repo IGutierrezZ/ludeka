@@ -996,8 +996,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Síntesis Asistida de Aporte con IA:** Integrar `GenerateExpansionAporteAsync` y `EnsureExpansionAporteAsync` en `IAiGameSummaryService` y `GeminiGameSummaryService` con salida JSON estructurada y fallback heurístico determinista.
   3. **Generación Automática en Ingesta:** Autogenerar el aporte de la expansión al añadirla a la ludoteca.
   4. **Estado Vacío y Acción Interactiva en Ficha:** Rediseñar `ExpansionAporteCard.razor` para eliminar la tarjeta en blanco, incorporando estado vacío pedagógico y botón interactivo para generar la síntesis bajo demanda.
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`inc-102-autovinculacion-expansiones-ia.md`](../increments/inc-102-autovinculacion-expansiones-ia.md).
+- **Estado:** ✅ **Completado y Archivado** (2.300 pruebas unitarias pasando al 100%).
+- **Documento:** [`archive/inc-102-autovinculacion-expansiones-ia.md`](../increments/archive/inc-102-autovinculacion-expansiones-ia.md).
 
 ---
 
