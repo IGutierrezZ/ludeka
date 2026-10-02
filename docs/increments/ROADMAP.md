@@ -111,6 +111,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-96** | Optimización Visual Móvil de Portada y Catálogo, Acciones Rápidas de Colección y Procesamiento Continuo de IA en Lotes | ✅ Archivado | [inc-96-opt-movil-portada-catalogo.md](archive/inc-96-opt-movil-portada-catalogo.md) |
 | **INC-97** | Peticiones en Bloque Multi-ID a BGG (Batch Fetch) y Ampliación de Timeout en Runner de Snapshots Crudos | ✅ Archivado | [inc-97-peticiones-en-bloque-bgg-batch-fetch.md](archive/inc-97-peticiones-en-bloque-bgg-batch-fetch.md) |
 | **INC-98** | Persistencia Automática de Snapshots Satélite en Llamadas BGG XMLAPI2 y Métrica de Fallidos en Staging | ✅ Archivado | [inc-98-persistencia-automatica-snapshots.md](archive/inc-98-persistencia-automatica-snapshots.md) |
+| **INC-99** | Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia | ⏳ En progreso | [inc-99-carrusel-expansiones-multimedia.md](inc-99-carrusel-expansiones-multimedia.md) |
 
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
@@ -141,7 +142,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 | Incremento | Rama | Worktree | Estado | Propósito |
 |---|---|---|---|---|
-| *(Ninguno)* | — | — | — | No hay incrementos activos en curso |
+| **INC-99** | `inc/carrusel-expansiones-multimedia` | `F:\repos\ludeka-wt\carrusel-expansiones-multimedia` | ⏳ En progreso | Carruseles horizontales de expansiones y vídeos, barra segmentada profesional y reducción de altura vertical en ficha |
 
 
 *(INC-98 entregó su PR #177, verificada con 2.257 pruebas unitarias [2.267 totales con integración] en verde al 100%, y quedó archivado el 2026-10-02. Implementa la auto-persistencia idempotente de snapshots en `BggRawSnapshots` a nivel de cliente HTTP (`BggXmlApiClient` y `SimulatedBggClient`) en cada petición a la XMLAPI2 de BoardGameGeek (`FetchRawThingsXmlAsync` y `FetchGameByBggIdAsync`), el registro de snapshots vacíos de control (`{"notFound":true}`) para IDs ausentes o privados, el desacople no bloqueante ante fallos de persistencia y la nueva tarjeta de telemetría de «Fallidos» en la cuadrícula de Staging en `/admin/cola-catalogacion`).*

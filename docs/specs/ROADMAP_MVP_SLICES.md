@@ -953,6 +953,17 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 99: Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia
+- **Identificador SDD:** `inc-99-carrusel-expansiones-multimedia`
+- **Objetivo Principal:**
+  1. **Carrusel de Expansiones y Mezclador Compacto:** Sustituir la cuadrícula vertical de expansiones por un carril horizontal táctil fluido con tarjetas compactas (2 o 3 visibles a la vez), y rediseñar el Mezclador de Mesa en 2 columnas (`lg:grid-cols-12`) con lista interna compacta a la izquierda y diagnóstico en tiempo real a la derecha sin generar scroll excesivo.
+  2. **Barra Segmentada Profesional y Carrusel de Vídeos en Multimedia:** Sustituir las píldoras de filtrado amontonadas por un selector segmentado limpio y unificado en una sola fila, reubicar los accesos de moderador de forma no invasiva, y convertir la cuadrícula de vídeos a carrusel horizontal con miniaturas 16:9 compactas y controles de desplazamiento.
+  3. **Desplazamiento por Botón en Carriles:** Soporte JS en `rail-scroll.js` para botones de navegación prev/next en carruseles.
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`inc-99-carrusel-expansiones-multimedia.md`](../increments/inc-99-carrusel-expansiones-multimedia.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:
