@@ -666,8 +666,8 @@
             _yearPublished = Game.YearPublished;
             _description = Game.Description;
 
-            _minPlayers = Game.Scalability.Count > 0 ? Game.Scalability.Min(s => s.PlayerCount) : 1;
-            _maxPlayers = Game.Scalability.Count > 0 ? Game.Scalability.Max(s => s.PlayerCount) : 4;
+            _minPlayers = Math.Max(1, Game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min());
+            _maxPlayers = Math.Max(_minPlayers, Game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max());
             _isOfficialSolo = Game.IsOfficialSolo;
 
             _minDurationMinutes = Game.Duration.MinMinutes;

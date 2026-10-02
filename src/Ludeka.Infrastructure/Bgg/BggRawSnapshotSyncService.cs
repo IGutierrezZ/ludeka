@@ -460,7 +460,14 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
 
             foreach (var g in gamesToUpdate)
             {
-                await _gameRepo.UpdateAsync(g, ct);
+                try
+                {
+                    await _gameRepo.UpdateAsync(g, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al actualizar juego ID {GameId} ({SpanishTitle}) durante la reconciliación de expansiones. Omitiendo este juego para continuar el proceso.", g.Id, g.SpanishTitle);
+                }
             }
         }
 

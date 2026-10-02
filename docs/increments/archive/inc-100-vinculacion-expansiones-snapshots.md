@@ -1,6 +1,6 @@
 # INC-100: Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging
 
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Fecha:** 2026-10-02  
 > **Rama:** `inc/vinculacion-expansiones-snapshots`  
 > **Worktree:** `F:\repos\ludeka-wt\vinculacion-expansiones-snapshots`  

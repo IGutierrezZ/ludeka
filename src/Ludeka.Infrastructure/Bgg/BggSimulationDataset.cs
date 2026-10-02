@@ -105,8 +105,8 @@ public static class BggSimulationDataset
         string title = b?.OriginalTitle ?? $"Juego Simulado #{bggId}";
         int year = b?.YearPublished ?? 2020;
         string desc = b?.Description ?? "Descripción simulada para pruebas.";
-        int minP = b != null && b.Scalability.Count > 0 ? b.Scalability.Min(s => s.PlayerCount) : 1;
-        int maxP = b != null && b.Scalability.Count > 0 ? b.Scalability.Max(s => s.PlayerCount) : 4;
+        int minP = b != null && b.Scalability.Count > 0 ? Math.Max(1, b.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min()) : 1;
+        int maxP = b != null && b.Scalability.Count > 0 ? Math.Max(minP, b.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max()) : 4;
         int playTime = b?.EstimatedPerPlayerMinutes != null ? b.EstimatedPerPlayerMinutes * maxP : 60;
         double rating = b?.BggRating ?? 7.5;
         int? rank = b?.BggRank ?? 100;

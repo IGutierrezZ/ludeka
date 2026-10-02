@@ -390,8 +390,9 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     existing.SetAiSummary(game.AiSummary);
                 }
 
-                int minPlayers = game.Scalability.Count > 0 ? game.Scalability.Min(s => s.PlayerCount) : 1;
-                int maxPlayers = game.Scalability.Count > 0 ? game.Scalability.Max(s => s.PlayerCount) : 4;
+                var validPlayerCounts = game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).ToList();
+                int minPlayers = validPlayerCounts.Count > 0 ? Math.Max(1, validPlayerCounts.Min()) : 1;
+                int maxPlayers = validPlayerCounts.Count > 0 ? Math.Max(minPlayers, validPlayerCounts.Max()) : Math.Max(minPlayers, 4);
 
                 existing.UpdateCatalogInformation(
                     game.SpanishTitle,
@@ -411,8 +412,8 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     maxPlayers
                 );
 
-                // INC-77: Sincronización incondicional de colecciones complejas y metadatos enriquecidos
-                existing.UpdateScalability(game.Scalability);
+                // INC-77 & INC-101: Sincronización incondicional de colecciones complejas y metadatos enriquecidos
+                existing.UpdateScalability(game.Scalability.Where(s => s.PlayerCount > 0));
                 existing.UpdateSleeves(game.Sleeves);
                 if (!string.IsNullOrWhiteSpace(game.SpanishPublisher))
                 {

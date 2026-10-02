@@ -311,7 +311,7 @@ public static class BggXmlParser
 
                 bool isPlus = numPlayersRaw.EndsWith("+");
                 string cleanNum = numPlayersRaw.TrimEnd('+');
-                if (!int.TryParse(cleanNum, out int playerCount)) continue;
+                if (!int.TryParse(cleanNum, out int playerCount) || playerCount <= 0) continue;
 
                 int best = 0;
                 int recommended = 0;
