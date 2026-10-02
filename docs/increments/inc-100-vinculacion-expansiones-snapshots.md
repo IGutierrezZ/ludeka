@@ -1,4 +1,4 @@
-# INC-99: Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging
+# INC-100: Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging
 
 > **Estado:** ⏳ En progreso  
 > **Fecha:** 2026-10-02  

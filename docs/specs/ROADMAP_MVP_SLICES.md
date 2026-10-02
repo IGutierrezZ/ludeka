@@ -953,6 +953,29 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 99: Rediseño Compacto y Carruseles Horizontales en Expansiones y Hub Multimedia
+- **Identificador SDD:** `inc-99-carrusel-expansiones-multimedia`
+- **Objetivo Principal:**
+  1. **Carrusel de Expansiones y Mezclador Compacto:** Sustituir la cuadrícula vertical de expansiones por un carril horizontal táctil fluido con tarjetas compactas (2 o 3 visibles a la vez), y rediseñar el Mezclador de Mesa en 2 columnas (`lg:grid-cols-12`) con lista interna compacta a la izquierda y diagnóstico en tiempo real a la derecha sin generar scroll excesivo.
+  2. **Barra Segmentada Profesional y Carrusel de Vídeos en Multimedia:** Sustituir las píldoras de filtrado amontonadas por un selector segmentado limpio y unificado en una sola fila, reubicar los accesos de moderador de forma no invasiva, y convertir la cuadrícula de vídeos a carrusel horizontal con miniaturas 16:9 compactas y controles de desplazamiento.
+  3. **Desplazamiento por Botón en Carriles:** Soporte JS en `rail-scroll.js` para botones de navegación prev/next en carruseles.
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`inc-99-carrusel-expansiones-multimedia.md`](../increments/inc-99-carrusel-expansiones-multimedia.md).
+
+---
+
+## Incremento 100: Reclasificación y Vinculación Masiva de Expansiones desde Snapshots BGG y Saneamiento de Fallidos en Staging
+- **Identificador SDD:** `inc-100-vinculacion-expansiones-snapshots`
+- **Objetivo Principal:**
+  1. **Reconciliación y Reclasificación Masiva:** Recorrer los 17.464 snapshots locales de `BggRawSnapshots` para reclasificar deterministamente las expansiones falsamente categorizadas como `GameType.BaseGame` a `GameType.Expansion` y vincularlas bidireccionalmente con su juego base (`BaseGameId`).
+  2. **Promoción Nativa en Staging:** Asignar `GameType.Expansion` y `BaseGameId` en `BggMassIngestionService.PromoteReadyToCatalogBatchAsync` para evitar la creación de expansiones huérfanas en futuras importaciones.
+  3. **Acción Administrativa y Runner CLI:** Nuevo botón interactivo en `/admin/cola-catalogacion` y runner desatendido CLI `JobNames.BggReconcileExpansions` (`bgg-reconcile-expansions`) en `Ludeka.Jobs`.
+  4. **Desglose de Fallidos en Staging:** Desagregar la métrica `FailedCount` en `UnpromotedFailedCount` (~210 bloqueados) frente a títulos ya en catálogo con advertencias accesorias (~1.810).
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`inc-100-vinculacion-expansiones-snapshots.md`](../increments/inc-100-vinculacion-expansiones-snapshots.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

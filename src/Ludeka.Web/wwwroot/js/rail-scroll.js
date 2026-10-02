@@ -77,4 +77,14 @@
             e.stopPropagation();
         }
     }, true); // Fase de captura para interceptar antes del listener del elemento <a>
+
+    /**
+     * Desplazamiento programático suave para botones de navegación de carruseles
+     */
+    window.ludekaScrollRail = function (elementId, distance) {
+        var el = document.getElementById(elementId);
+        if (el) {
+            el.scrollBy({ left: distance, behavior: 'smooth' });
+        }
+    };
 })();
