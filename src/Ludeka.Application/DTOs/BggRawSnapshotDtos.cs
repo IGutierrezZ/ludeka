@@ -44,3 +44,16 @@ public record BggExpansionDiscoveryResultDto(
     int EnqueuedCount,
     IReadOnlyList<string> EnqueuedTitles
 );
+
+/// <summary>
+/// Resultado tras reconciliar y vincular masivamente expansiones desde los snapshots satélite de BGG.
+/// </summary>
+public record BggExpansionReconciliationResultDto(
+    int TotalEvaluated,
+    int ReclassifiedExpansionsCount,
+    int LinkedExpansionsCount,
+    IReadOnlyList<string> ReclassifiedTitles,
+    IReadOnlyList<string> LinkedExpansions,
+    string? Message = null
+);
+

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Data;
@@ -328,106 +329,160 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         return linkedCount;
     }
 
-    public static int? ExtractInboundBaseGameBggIdFromJson(string rawJson)
+    public async Task<BggExpansionReconciliationResultDto> ReconcileAndLinkExpansionsFromSnapshotsAsync(
+        int batchSize = 200,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(rawJson)) return null;
+        await RequirePermissionAsync(ct);
+        return await ReconcileAndLinkExpansionsFromSnapshotsCoreAsync(batchSize, ct);
+    }
 
-        try
+    public Task<BggExpansionReconciliationResultDto> RunScheduledReconcileAndLinkExpansionsFromSnapshotsAsync(
+        int batchSize = 200,
+        CancellationToken ct = default)
+    {
+        return ReconcileAndLinkExpansionsFromSnapshotsCoreAsync(batchSize, ct);
+    }
+
+    private async Task<BggExpansionReconciliationResultDto> ReconcileAndLinkExpansionsFromSnapshotsCoreAsync(
+        int batchSize,
+        CancellationToken ct)
+    {
+        if (batchSize <= 0) batchSize = 200;
+
+        int totalEvaluated = 0;
+        int reclassifiedCount = 0;
+        int linkedCount = 0;
+        var reclassifiedTitles = new List<string>();
+        var linkedTitles = new List<string>();
+
+        int lastBggId = 0;
+
+        while (!ct.IsCancellationRequested)
         {
-            using var doc = JsonDocument.Parse(rawJson);
-            if (!doc.RootElement.TryGetProperty("link", out var linkProp)) return null;
+            var snapshots = await _snapshotRepo.GetSnapshotsAfterBggIdAsync(lastBggId, batchSize, ct);
+            if (snapshots.Count == 0) break;
 
-            if (linkProp.ValueKind == JsonValueKind.Array)
+            lastBggId = snapshots[^1].BggId;
+            totalEvaluated += snapshots.Count;
+
+            var neededBggIds = new HashSet<int>();
+            foreach (var s in snapshots)
             {
-                foreach (var item in linkProp.EnumerateArray())
+                neededBggIds.Add(s.BggId);
+
+                int? inboundBase = ExtractInboundBaseGameBggIdFromJson(s.RawJson);
+                if (inboundBase.HasValue && inboundBase.Value > 0)
                 {
-                    if (CheckInboundExpansionLink(item, out int baseId))
-                        return baseId;
+                    neededBggIds.Add(inboundBase.Value);
+                }
+
+                var outbound = ExtractOutboundExpansionLinksFromJson(s.RawJson);
+                foreach (var link in outbound)
+                {
+                    if (link.BggId > 0) neededBggIds.Add(link.BggId);
                 }
             }
-            else if (linkProp.ValueKind == JsonValueKind.Object)
+
+            var games = await _gameRepo.GetByBggIdsAsync(neededBggIds, ct);
+            var gamesMap = games.ToDictionary(g => g.BggId);
+            var gamesToUpdate = new HashSet<Game>();
+
+            foreach (var s in snapshots)
             {
-                if (CheckInboundExpansionLink(linkProp, out int baseId))
-                    return baseId;
+                bool isExpansion = IsExpansionTypeFromJson(s.RawJson);
+                int? inboundBase = ExtractInboundBaseGameBggIdFromJson(s.RawJson);
+
+                if (isExpansion || inboundBase.HasValue)
+                {
+                    if (gamesMap.TryGetValue(s.BggId, out var expGame))
+                    {
+                        bool mutated = false;
+                        if (expGame.Type != GameType.Expansion)
+                        {
+                            expGame.SetGameType(GameType.Expansion);
+                            reclassifiedCount++;
+                            reclassifiedTitles.Add(expGame.SpanishTitle);
+                            mutated = true;
+                        }
+
+                        if (inboundBase.HasValue && gamesMap.TryGetValue(inboundBase.Value, out var baseGame))
+                        {
+                            if (expGame.BaseGameId != baseGame.Id)
+                            {
+                                expGame.SetBaseGameId(baseGame.Id);
+                                linkedCount++;
+                                linkedTitles.Add($"{expGame.SpanishTitle} → {baseGame.SpanishTitle}");
+                                mutated = true;
+                            }
+                        }
+
+                        if (mutated)
+                        {
+                            gamesToUpdate.Add(expGame);
+                        }
+                    }
+                }
+
+                var outboundLinks = ExtractOutboundExpansionLinksFromJson(s.RawJson);
+                if (outboundLinks.Count > 0 && gamesMap.TryGetValue(s.BggId, out var parentGame))
+                {
+                    foreach (var link in outboundLinks)
+                    {
+                        if (gamesMap.TryGetValue(link.BggId, out var childGame))
+                        {
+                            bool childMutated = false;
+
+                            if (childGame.Type != GameType.Expansion)
+                            {
+                                childGame.SetGameType(GameType.Expansion);
+                                reclassifiedCount++;
+                                reclassifiedTitles.Add(childGame.SpanishTitle);
+                                childMutated = true;
+                            }
+
+                            if (childGame.BaseGameId != parentGame.Id)
+                            {
+                                childGame.SetBaseGameId(parentGame.Id);
+                                linkedCount++;
+                                linkedTitles.Add($"{childGame.SpanishTitle} → {parentGame.SpanishTitle}");
+                                childMutated = true;
+                            }
+
+                            if (childMutated)
+                            {
+                                gamesToUpdate.Add(childGame);
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var g in gamesToUpdate)
+            {
+                await _gameRepo.UpdateAsync(g, ct);
             }
         }
-        catch
-        {
-            return null;
-        }
 
-        return null;
+        return new BggExpansionReconciliationResultDto(
+            TotalEvaluated: totalEvaluated,
+            ReclassifiedExpansionsCount: reclassifiedCount,
+            LinkedExpansionsCount: linkedCount,
+            ReclassifiedTitles: reclassifiedTitles,
+            LinkedExpansions: linkedTitles,
+            Message: $"Reconciliación completada: {totalEvaluated} snapshots evaluados, {reclassifiedCount} expansiones reclasificadas, {linkedCount} vinculadas a su juego base."
+        );
     }
 
-    private static bool CheckInboundExpansionLink(JsonElement elem, out int baseId)
-    {
-        baseId = 0;
-        if (elem.TryGetProperty("@type", out var typeProp) &&
-            typeProp.GetString() == "boardgameexpansion" &&
-            elem.TryGetProperty("@inbound", out var inProp) &&
-            inProp.GetString() == "true" &&
-            elem.TryGetProperty("@id", out var idProp) &&
-            int.TryParse(idProp.GetString(), out int parsedId) &&
-            parsedId > 0)
-        {
-            baseId = parsedId;
-            return true;
-        }
-        return false;
-    }
+
+    public static bool IsExpansionTypeFromJson(string rawJson)
+        => BggRawSnapshotParser.IsExpansionTypeFromJson(rawJson);
+
+    public static int? ExtractInboundBaseGameBggIdFromJson(string rawJson)
+        => BggRawSnapshotParser.ExtractInboundBaseGameBggIdFromJson(rawJson);
 
     public static List<(int BggId, string Title)> ExtractOutboundExpansionLinksFromJson(string rawJson)
-    {
-        var results = new List<(int, string)>();
-        if (string.IsNullOrWhiteSpace(rawJson)) return results;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(rawJson);
-            if (!doc.RootElement.TryGetProperty("link", out var linkProp)) return results;
-
-            if (linkProp.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in linkProp.EnumerateArray())
-                {
-                    if (CheckOutboundExpansionLink(item, out int expId, out string title))
-                        results.Add((expId, title));
-                }
-            }
-            else if (linkProp.ValueKind == JsonValueKind.Object)
-            {
-                if (CheckOutboundExpansionLink(linkProp, out int expId, out string title))
-                    results.Add((expId, title));
-            }
-        }
-        catch
-        {
-            // Salida silenciosa si el JSON es atípico
-        }
-
-        return results;
-    }
-
-    private static bool CheckOutboundExpansionLink(JsonElement elem, out int expId, out string title)
-    {
-        expId = 0;
-        title = string.Empty;
-        if (elem.TryGetProperty("@type", out var typeProp) &&
-            typeProp.GetString() == "boardgameexpansion")
-        {
-            bool isInbound = elem.TryGetProperty("@inbound", out var inProp) && inProp.GetString() == "true";
-            if (!isInbound &&
-                elem.TryGetProperty("@id", out var idProp) &&
-                int.TryParse(idProp.GetString(), out int parsedId) &&
-                parsedId > 0)
-            {
-                expId = parsedId;
-                title = elem.TryGetProperty("@value", out var valProp) ? valProp.GetString() ?? $"Expansión #{expId}" : $"Expansión #{expId}";
-                return true;
-            }
-        }
-        return false;
-    }
+        => BggRawSnapshotParser.ExtractOutboundExpansionLinksFromJson(rawJson);
 
     /// <inheritdoc />
     public async Task<bool> EnsureSnapshotAsync(int bggId, CancellationToken ct = default)
