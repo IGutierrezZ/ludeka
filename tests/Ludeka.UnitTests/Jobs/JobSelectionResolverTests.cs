@@ -30,6 +30,7 @@ public class JobSelectionResolverTests
     [InlineData(JobNames.SeedDirectory)]
     [InlineData(JobNames.BackfillQuality)]
     [InlineData(JobNames.BggRawBackfill)]
+    [InlineData(JobNames.BggReconcileExpansions)]
     public void Resolve_ConArgumentoPosicionalValido_DevuelveEseTrabajo(string jobName)
     {
         var result = JobSelectionResolver.Resolve([jobName], EmptyConfiguration());

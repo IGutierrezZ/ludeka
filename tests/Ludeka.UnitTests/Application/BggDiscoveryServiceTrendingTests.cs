@@ -301,6 +301,12 @@ public class BggDiscoveryServiceTrendingTests
 
         public Task<int> RunScheduledAutoLinkExistingExpansionsAsync(CancellationToken ct = default)
             => Task.FromResult(0);
+
+        public Task<BggExpansionReconciliationResultDto> ReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default)
+            => Task.FromResult(new BggExpansionReconciliationResultDto(0, 0, 0, [], []));
+
+        public Task<BggExpansionReconciliationResultDto> RunScheduledReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default)
+            => Task.FromResult(new BggExpansionReconciliationResultDto(0, 0, 0, [], []));
     }
 
     private class FakeAiSummaryService : IAiGameSummaryService
