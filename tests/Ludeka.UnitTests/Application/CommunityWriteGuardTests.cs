@@ -9,6 +9,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Features.Community;
 using Ludeka.Application.Features.Instagram;
+using Ludeka.Application.Features.Media;
 using Ludeka.Application.Options;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
@@ -570,5 +571,53 @@ public class YouTubeSearchWriteGuardTests : AdministrativeWriteGuardTestBase
         Assert.Equal("Tutorial de prueba", created.Title);
         var stored = await Context.MediaItems.AsNoTracking().SingleAsync();
         Assert.Equal("https://youtube.com/watch?v=abc123", stored.Url);
+    }
+}
+
+/// <summary>Auto-ingesta de catálogo de YouTube: ejecución manual desde el panel de administración.</summary>
+public class YouTubeCatalogAutoIngestWriteGuardTests : AdministrativeWriteGuardTestBase
+{
+    private YouTubeCatalogAutoIngestService CreateService(ISessionPermissionGuard? guard = null)
+        => new(
+            new SqliteGameRepository(Context),
+            new YouTubeSearchService(
+                new HttpClient(),
+                Microsoft.Extensions.Options.Options.Create(new YouTubeOptions()),
+                new StubChannelFocusProvider(),
+                new SqliteGameRepository(Context),
+                new SqliteMediaRepository(Context),
+                NullLogger<YouTubeSearchService>.Instance,
+                guard),
+            Microsoft.Extensions.Options.Options.Create(new YouTubeAutoIngestOptions { DelayBetweenGamesMs = 0 }),
+            NullLogger<YouTubeCatalogAutoIngestService>.Instance,
+            guard);
+
+    [Fact]
+    public async Task ExecuteAutoIngestAsync_WithoutSession_Denies()
+    {
+        var service = CreateService(CreateGuard(Anonymous()));
+
+        await AssertDenied(() => service.ExecuteAutoIngestAsync());
+    }
+
+    [Fact]
+    public async Task ExecuteAutoIngestAsync_WithSuspendedAccount_DeniesEvenWithLiveCookie()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        await SuspendAsync(ModeratorId);
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        await AssertDenied(() => service.ExecuteAutoIngestAsync());
+    }
+
+    [Fact]
+    public async Task ExecuteAutoIngestAsync_WithThePermission_ExecutesSuccessfully()
+    {
+        SeedUser(ModeratorWith(ModeratorPermission.CanApproveMedia));
+        var service = CreateService(CreateGuard(LiveCookie()));
+
+        var result = await service.ExecuteAutoIngestAsync();
+
+        Assert.NotNull(result);
     }
 }

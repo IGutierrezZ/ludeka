@@ -165,6 +165,11 @@ public class YouTubeSearchService : IYouTubeSearchService
     public async Task<MediaItemDto> IngestVideoAsync(YouTubeIngestRequestDto request, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
+        return await IngestVideoInternalAsync(request, ct);
+    }
+
+    private async Task<MediaItemDto> IngestVideoInternalAsync(YouTubeIngestRequestDto request, CancellationToken ct = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
 
         var game = await _gameRepository.GetByIdAsync(request.GameId, ct);
@@ -396,8 +401,6 @@ public class YouTubeSearchService : IYouTubeSearchService
         bool autoApprove = false,
         CancellationToken ct = default)
     {
-        await RequirePermissionAsync(ct);
-
         var game = await _gameRepository.GetByIdAsync(gameId, ct);
         if (game == null) return Array.Empty<MediaItemDto>();
 
@@ -482,7 +485,7 @@ public class YouTubeSearchService : IYouTubeSearchService
                 AutoApprove: autoApprove
             );
 
-            return await IngestVideoAsync(request, ct);
+            return await IngestVideoInternalAsync(request, ct);
         }
         catch (Exception ex)
         {
