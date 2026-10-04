@@ -37,5 +37,6 @@
 - [x] Pruebas unitarias de contrato y renderizado en `Ludeka.UnitTests/Web/`.
 
 ## WU 07: Verificación Integral, CI/CD y Cierre
-- [ ] Ejecutar suite completa de pruebas unitarias y de integración en verde.
+- [x] Ejecutar suite completa de pruebas unitarias y de integración en verde (2.390 pruebas unitarias + 10 de integración en verde).
+- [x] Volcado a la Especificación Viva del Sistema (`docs/specs/sistema/`), actualización de `ROADMAP.md` y archivado del incremento.
 - [ ] Abrir PR contra `main`, esperar CI al 100%, fusionar a `main`, verificar despliegue en Google Cloud Run y limpiar worktree.

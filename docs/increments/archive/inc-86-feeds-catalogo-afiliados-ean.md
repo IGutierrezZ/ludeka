@@ -3,8 +3,8 @@
 > **ID:** INC-86  
 > **Slug:** `feeds-catalogo-afiliados-ean`  
 > **Rama:** `inc/ingesta-feeds-afiliados`  
-> **Estado:** ⏳ En progreso (Fase 2: Ingesta de Feeds, Auto-asignación EAN y Panel)  
-> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 20 (`docs/specs/sistema/20-verificacion-stock-tiempo-real-tiendas.md`), Módulo 25 (`docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md`), Módulo 14 (`docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md`), `src/Ludeka.Core/Entities/Game.cs`, `src/Ludeka.Application/Contracts/`, `src/Ludeka.Jobs/Jobs/`, `src/Ludeka.Web/Components/Pages/Admin/`  
+> **Estado:** ✅ Archivado (Fase 2 & 3: Ingesta de Feeds, Auto-asignación EAN, Job Nocturno y Panel Web)  
+> **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 20 (`docs/specs/sistema/20-verificacion-stock-tiempo-real-tiendas.md`), Módulo 25 (`docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md`), Módulo 14 (`docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md`), `src/Ludeka.Core/Entities/Game.cs`, `src/Ludeka.Application/Contracts/`, `src/Ludeka.Jobs/Jobs/`, `src/Ludeka.Web/Components/Pages/AffiliatesAdmin.razor`  
 > **Dependencias:** INC-85 (Ficha Editorial y Dónde Comprar), INC-27 (Verificación Stock Tiempo Real), INC-37 (Motor Afiliados)
 
 ---
@@ -28,12 +28,12 @@ Tras la resolución del falso stock en la ficha de juego (PR #154) y la adopció
      - `StoreName`, `FeedFormat` (GoogleShoppingXml, PrestaShopCsv, ShopifyJson, AwinApi), `FeedUrl`, `AffiliateTag`, `Country`, `IsEnabled`, `SyncIntervalHours`, `LastSyncUtc`, `LastSyncStatus`, `MatchedProductsCount`.
    - Persistencia dual SQLite y PostgreSQL mediante EF Core.
 3. **Panel de Gestión de Afiliados en Moderación (`/admin/afiliados`):**
-   - Interfaz en Blazor Web App integrada en el panel de administración bajo permiso RBAC `CanManageAffiliates` (o permiso de administración de catálogo).
+   - Interfaz en Blazor Web App integrada en el panel de administración bajo permiso RBAC `CanManageStoreLinks` (`PermisoGestionarTiendas`).
    - Formulario para dar de alta nuevas fuentes de feeds con prueba de conexión previa (descarga de cabeceras).
    - Listado interactivo con conmutador de estado (activar/pausar feed), estadísticas de la última sincronización y botón para forzar sincronización manual bajo demanda.
-4. **Runner Nocturno Desatendido (`CatalogFeedSyncJob` en `Ludeka.Jobs`):**
-   - Proceso batch programado en Cloud Run Jobs (ejecutado nocturnamente o cada 6 horas).
-   - Descarga en streaming con bajo consumo de memoria y procesamiento concurrente controlado.
+4. **Runner Nocturno Desatendido (`CatalogFeedSyncJobRunner` en `Ludeka.Jobs`):**
+   - Proceso batch programado en Cloud Run Jobs (`feed-sync`).
+   - Descarga en streaming con bajo consumo de memoria ($O(1)$) y procesamiento concurrente controlado.
    - Cruce determinista $O(1)$ por EAN-13 contra la base de datos de Ludeka.
    - Sincronización idempotente en `GamePurchaseLink`: actualización de precio actual, divisa, disponibilidad real (`InStock`) y generación de URL de producto enriquecida con el tag de afiliación de la tienda.
    - Registro en bitácora de auditoría y telemetría de sincronización (ofertas actualizadas, precios modificados, registros omitidos).
@@ -42,9 +42,9 @@ Tras la resolución del falso stock en la ficha de juego (PR #154) y la adopció
 
 ## 3. Criterios de Aceptación Previstos
 
-- [ ] La entidad `Game` expone y persiste el código de barras EAN-13 con validación de formato (13 dígitos numéricos).
-- [ ] La entidad `AffiliateFeedSource` permite configurar múltiples feeds comerciales con sus URLs y parámetros.
-- [ ] El panel `/admin/afiliados` permite listar, dar de alta, editar y probar fuentes de catálogo de tiendas.
-- [ ] El runner `CatalogFeedSyncJob` procesa feeds XML y CSV mapeando por EAN y actualizando `GamePurchaseLink` sin bloquear la aplicación web.
-- [ ] La ficha de juego muestra ofertas reales con precio y stock verificado cuando el juego coincide por EAN con un producto del feed.
-- [ ] Cobertura con pruebas unitarias para parsers de feeds (XML/CSV) y cruce por EAN.
+- [x] La entidad `Game` expone y persiste el código de barras EAN-13 con validación de formato (13 dígitos numéricos) y soporte de códigos adicionales.
+- [x] La entidad `AffiliateFeedSource` permite configurar múltiples feeds comerciales con sus URLs y parámetros.
+- [x] El panel `/admin/afiliados` permite listar, dar de alta, editar y probar fuentes de catálogo de tiendas y resolver discrepancias EAN.
+- [x] El runner `CatalogFeedSyncJobRunner` procesa feeds XML Google Shopping en streaming mapeando por EAN y actualizando `GamePurchaseLink` sin bloquear la aplicación web.
+- [x] La ficha de juego muestra ofertas reales con precio y stock verificado cuando el juego coincide por EAN con un producto del feed.
+- [x] Cobertura con pruebas unitarias completas para parsers de feeds (XML), cruce por EAN, runner desatendido y panel web (2.390 pruebas unitarias en verde).

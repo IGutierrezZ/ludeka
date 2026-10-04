@@ -1,8 +1,8 @@
 # 25. Motor de Afiliados, Atribución BGG, Comunidad y Modo Producción de APIs
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`) e INC-56 (`comunidad-mecenazgo`)  
-> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs` (1.646 pruebas unitarias + 10 de integración en verde en la suite global).
+> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`), INC-56 (`comunidad-mecenazgo`) e INC-86 (`feeds-catalogo-afiliados-ean`)  
+> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs`, `GoogleShoppingFeedParserTests.cs`, `CatalogFeedSyncServiceTests.cs`, `CatalogFeedSyncJobRunnerTests.cs`, `AffiliatesAdminWebTests.cs` (2.390 pruebas unitarias + 10 de integración en verde en la suite global).
 
 ---
 
@@ -97,3 +97,38 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
   var startOfWeek = today.AddDays(-diff);
   ```
   Esto garantiza que los envíos dominicales computen con exactitud el rango de la semana en curso sin arrojar discrepancias de fechas.
+
+---
+
+## 6. Ingesta de Feeds Comerciales, Mapeo EAN y Panel de Discrepancias (INC-86)
+
+### 6.1 Identificadores Comerciales en la Entidad `Game`
+- **Código de Barras Principal (`Ean`):** Normalizado a EAN-13 (con conversión de UPC-A de 12 dígitos anteponiendo `'0'`) y validado matemáticamente con cálculo del dígito de control módulo 10 (`BarcodeValidator.TryNormalizeEan13`).
+- **Códigos de Barras Secundarios (`AdditionalBarcodes`):** Colección persistida como JSON de códigos EAN alternativos correspondientes a reimpresiones o ediciones internacionales. Permite cruzar unívocamente productos comerciales sin sobreescribir el EAN principal de referencia en castellano.
+
+### 6.2 Entidades de Dominio y Persistencia Dual
+- **`AffiliateFeedSource`:**
+  - Modela los orígenes de datos de comercios: `StoreName`, `FeedUrl`, `Format` (`GoogleShoppingXml`, `GenericCsv`), `AffiliateTag`, `Country`, `IsEnabled`, `SyncIntervalHours`, `LastSyncUtc`, `LastSyncStatus`, `MatchedProductsCount`.
+  - Mapeado en EF Core con tabla `affiliate_feed_sources` y persistencia dual en `SqliteAffiliateFeedSourceRepository` y PostgreSQL Supabase.
+- **`AffiliateEanDiscrepancyLog`:**
+  - Registra colisiones cuando un feed comercial trae un EAN para un juego que difiere del registrado en Ludeka: `GameId`, `GameTitle`, `GameSlug`, `CurrentEan`, `FeedEan`, `StoreName`, `DetectedAtUtc`, `IsResolved`, `ResolutionNote`.
+  - Mapeado con tabla `affiliate_ean_discrepancy_logs` y repositorio `IAffiliateEanDiscrepancyRepository`.
+
+### 6.3 Parsers de Feeds en Streaming (`GoogleShoppingFeedParser`)
+- **Consumo de Memoria Constante ($O(1)$):** Procesa archivos XML pesados (Google Merchant / Shopping XML) mediante `XmlReader` con avance por subárboles `using var subtree = reader.ReadSubtree(); await XElement.LoadAsync(subtree, ...)` sin cargar el árbol completo en memoria.
+- **Extracción Estructurada:** Mapea identificadores comerciales `<g:gtin>`, `<g:id>`, título `<title>`, enlace `<link>`, disponibilidad `<g:availability>` (normalizada a `InStock` / `OutOfStock`), y precio `<g:price>`.
+
+### 6.4 Servicio de Sincronización y Cruce (`CatalogFeedSyncService`)
+- **Cruce Determinista:** Compara el GTIN/EAN del feed contra el índice de catálogo (`Ean` y `AdditionalBarcodes`).
+- **Auto-Asignación Segura:** Para juegos en catálogo que no poseen EAN asignado, si el título comercial coincide exactamente con `SpanishTitle` o `OriginalTitle`, auto-asigna el EAN tras validar su dígito de control.
+- **Detección y Manejo de Discrepancias:** Cuando el título coincide pero el EAN del feed difiere del `Ean` actual de Ludeka (frecuentemente proveniente de BGG), almacena de inmediato el código nuevo en `AdditionalBarcodes` para que la oferta comercial no se pierda, y levanta un registro de discrepancia pendiente para moderación editorial.
+- **Actualización Idempotente:** Sincroniza `Game.PurchaseLinks` actualizando precio, divisa y stock en tiempo real enriqueciendo el enlace con el tag de afiliación de la tienda.
+
+### 6.5 Runner en `Ludeka.Jobs` (`CatalogFeedSyncJobRunner`)
+- Runner de consola para Cloud Run Jobs registrado como `feed-sync` en `JobNames.All`.
+- Ejecuta secuencialmente la sincronización de todas las fuentes de catálogo habilitadas, coordinado con `IJobExecutionCoordinator` para idempotencia y registro estructurado en logs.
+
+### 6.6 Panel de Administración Web (`/admin/afiliados`)
+- Vista interactiva en Blazor Web App protegida con la política `AuthorizationPolicies.PermisoGestionarTiendas` (`ModeratorPermission.CanManageStoreLinks`).
+- **Pestaña 1 (Fuentes de Catálogo):** Listado de feeds, formulario de alta/edición, conmutador de estado (activar/pausar), métricas de última sincronización y botón para forzar sincronización manual individual o global.
+- **Pestaña 2 (Discrepancias EAN):** Cola de discrepancias pendientes con comparativa visual del código actual vs código del comercio, y botón de acción atómica **"Promover a EAN principal"** (que promueve el código del comercio a principal y traslada el anterior a `AdditionalBarcodes`) o **"Descartar"**.

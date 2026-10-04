@@ -10,7 +10,7 @@ El módulo de catálogo gestiona los juegos de mesa registrados en Ludeka, prove
 ### 2.1 Entidad Raíz: `Game`
 Ubicación: [`src/Ludeka.Core/Entities/Game.cs`](file:///c:/repos/Ludeka/src/Ludeka.Core/Entities/Game.cs)
 
-- **Identificadores:** `Id` (Guid), `BggId` (int), `Slug` (string único normalizado sin diacríticos ni caracteres especiales).
+- **Identificadores:** `Id` (Guid), `BggId` (int), `Slug` (string único normalizado sin diacríticos ni caracteres especiales), `Ean` (código de barras EAN-13 normalizado de la edición en español, validado matemáticamente con dígito de control módulo 10, INC-86), `AdditionalBarcodes` (colección JSON de códigos de barras EAN alternativos correspondientes a reimpresiones o ediciones internacionales para cruce comercial, INC-86).
 - **Títulos:** `OriginalTitle` (string), `SpanishTitle` (string comercial en España con fallback automático a `OriginalTitle`), `LocalizedTitles` (colección JSON de [`LocalizedTitleEntry`](file:///c:/repos/Ludeka/src/Ludeka.Core/ValueObjects/LocalizedTitleEntry.cs) por país, INC-73).
 - **Créditos y Publicación:** `Designer`, `Publisher` (sello editorial original internacional), `SpanishPublisher` (editorial licenciante en España, INC-73), `RegionalPublishers` (colección JSON de [`RegionalPublisherEntry`](file:///c:/repos/Ludeka/src/Ludeka.Core/ValueObjects/RegionalPublisherEntry.cs) clasificadas por país hispanohablante, INC-73), `YearPublished`.
 - **Imágenes:** `CoverImageUrl` (alta definición con `fetchpriority="high"`), `ThumbnailUrl`.
