@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.ValueObjects;
 
@@ -497,6 +498,102 @@ public static class BggRawSnapshotParser
         }
 
         return null;
+    }
+
+    private static readonly Regex PromoOrAccessoryRegex = new(
+        @"(?i)\b(promo|promos|promopack|promo-pack|bonus\s+card[s]?|bonus\s+tile[s]?|bonus\s+pack|upgrade\s+pack|upgrade\s+kit|deluxe\s+upgrade|metal\s+coins|dice\s+set|custom\s+dice|card\s+sleeves|playmat|neoprene\s+mat|miniatures?\s+pack|pin\s+set|sticker\s+pack|acrylic\s+tokens|wooden\s+tokens|resource\s+pack|coin\s+set|event\s+card[s]?|promo\s+box)\b",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Determina heurísticamente si el título de un ítem corresponde a una promo, pack promocional de cartas o accesorio de juego.
+    /// </summary>
+    public static bool IsProbablePromoOrAccessory(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return false;
+        return PromoOrAccessoryRegex.IsMatch(title);
+    }
+
+    /// <summary>
+    /// Comprueba si el snapshot JSON contiene el bloque de estadísticas comunitarias de BGG.
+    /// </summary>
+    public static bool HasStatisticsFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            return root.TryGetProperty("statistics", out _);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Extrae las métricas comunitarias de BGG (usersrated y owned) del snapshot JSON.
+    /// </summary>
+    public static (int UsersRated, int Owned) ExtractCommunityStatsFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return (0, 0);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            if (!root.TryGetProperty("statistics", out var statsProp)) return (0, 0);
+
+            if (!statsProp.TryGetProperty("ratings", out var ratingsProp)) return (0, 0);
+
+            int usersRated = 0;
+            int owned = 0;
+
+            if (ratingsProp.TryGetProperty("usersrated", out var usersRatedProp))
+            {
+                string? val = ExtractStringValue(usersRatedProp);
+                if (int.TryParse(val, out int ur)) usersRated = ur;
+            }
+
+            if (ratingsProp.TryGetProperty("owned", out var ownedProp))
+            {
+                string? val = ExtractStringValue(ownedProp);
+                if (int.TryParse(val, out int ow)) owned = ow;
+            }
+
+            return (usersRated, owned);
+        }
+        catch
+        {
+            return (0, 0);
+        }
+    }
+
+    /// <summary>
+    /// Determina si una expansión cumple el umbral comunitario mínimo o dispone de edición comercial en español.
+    /// Si el snapshot contiene estadísticas de BGG, exige al menos minUsersRated (30) o minOwned (100) salvo que
+    /// cuente con edición confirmada en español. Si el snapshot no contiene bloque de estadísticas, se admite condicionalmente.
+    /// </summary>
+    public static bool MeetsExpansionCommunityThresholdFromJson(string rawJson, int minUsersRated = 30, int minOwned = 100)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return false;
+
+        // Si dispone de edición comercial en español (con editorial, EAN o título específico), se admite
+        var spanishInfo = ExtractSpanishVersionInfoFromJson(rawJson);
+        if (spanishInfo != null && (!string.IsNullOrWhiteSpace(spanishInfo.Publisher) || !string.IsNullOrWhiteSpace(spanishInfo.Ean) || !string.IsNullOrWhiteSpace(spanishInfo.Title)))
+        {
+            return true;
+        }
+
+        // Si no tiene estadísticas en el snapshot, no se puede descartar por falta de métricas
+        if (!HasStatisticsFromJson(rawJson))
+        {
+            return true;
+        }
+
+        var (usersRated, owned) = ExtractCommunityStatsFromJson(rawJson);
+        return usersRated >= minUsersRated || owned >= minOwned;
     }
 }
 

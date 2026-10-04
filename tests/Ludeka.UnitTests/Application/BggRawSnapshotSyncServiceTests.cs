@@ -146,6 +146,65 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DiscoverAndEnqueueMissingExpansionsAsync_FiltersOutPromosAndLowTractionExpansions()
+    {
+        // Snapshot de juego base con 5 enlaces a expansiones
+        string baseGameJson = @"{
+            ""@id"": ""167791"",
+            ""@type"": ""boardgame"",
+            ""link"": [
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4001"", ""@value"": ""Terraforming Mars: Promo Cards"" },
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4002"", ""@value"": ""Terraforming Mars: Metal Coins"" },
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4003"", ""@value"": ""Terraforming Mars: Low Votes Minor"" },
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4004"", ""@value"": ""Terraforming Mars: Prelude"" },
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4005"", ""@value"": ""Terraforming Mars: Hellas & Elysium"" }
+            ]
+        }";
+
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(167791, baseGameJson));
+
+        // 4003 tiene estadísticas muy bajas y sin versión en español
+        _bggClient.SetupXml(4003, @"<items><item type=""boardgameexpansion"" id=""4003"">
+            <name type=""primary"" value=""Terraforming Mars: Low Votes Minor"" />
+            <statistics><ratings><usersrated value=""8"" /><owned value=""15"" /></ratings></statistics>
+        </item></items>");
+
+        // 4004 tiene alta tracción comunitaria (usersrated > 30 y owned > 100)
+        _bggClient.SetupXml(4004, @"<items><item type=""boardgameexpansion"" id=""4004"">
+            <name type=""primary"" value=""Terraforming Mars: Prelude"" />
+            <statistics><ratings><usersrated value=""450"" /><owned value=""1200"" /></ratings></statistics>
+        </item></items>");
+
+        // 4005 tiene bajas valoraciones pero cuenta con edición comercial en español
+        _bggClient.SetupXml(4005, @"<items><item type=""boardgameexpansion"" id=""4005"">
+            <name type=""primary"" value=""Terraforming Mars: Hellas &amp; Elysium"" />
+            <statistics><ratings><usersrated value=""5"" /><owned value=""10"" /></ratings></statistics>
+            <versions>
+                <item type=""boardgameversion"" id=""8888"">
+                    <name type=""primary"" value=""Terraforming Mars: Hellas y Elysium"" />
+                    <link type=""language"" value=""Spanish"" />
+                    <link type=""boardgamepublisher"" value=""Maldito Games"" />
+                </item>
+            </versions>
+        </item></items>");
+
+        var discovery = await _service.DiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 10);
+
+        // 4001 y 4002 se descartan en el pre-filtro léxico, restan 3 descubiertas
+        Assert.Equal(3, discovery.DiscoveredCount);
+        // De las 3, 4003 se descarta por umbral comunitario; se encolan 4004 y 4005
+        Assert.Equal(2, discovery.EnqueuedCount);
+        Assert.Contains("Terraforming Mars: Prelude", discovery.EnqueuedTitles);
+        Assert.Contains("Terraforming Mars: Hellas & Elysium", discovery.EnqueuedTitles);
+
+        Assert.NotNull(await _pendingRepo.GetByBggIdAsync(4004));
+        Assert.NotNull(await _pendingRepo.GetByBggIdAsync(4005));
+        Assert.Null(await _pendingRepo.GetByBggIdAsync(4001));
+        Assert.Null(await _pendingRepo.GetByBggIdAsync(4002));
+        Assert.Null(await _pendingRepo.GetByBggIdAsync(4003));
+    }
+
+    [Fact]
     public async Task AutoLinkExistingExpansionsAsync_ShouldLinkUnlinkedExpansions_UsingExistingSnapshots()
     {
         var baseGame = CreateGame(822, "Carcassonne", GameType.BaseGame);
