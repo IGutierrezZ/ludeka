@@ -174,6 +174,8 @@ public static class LudekaServiceCollectionExtensions
         // Incremento 37: Motor Privado y Centralizado de Enlaces de Afiliado para Tiendas Colaboradoras
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.SectionName));
         services.AddSingleton<IAffiliateUrlResolver, AffiliateUrlResolver>();
+        services.AddScoped<IAffiliateClickRepository, SqliteAffiliateClickRepository>();
+        services.AddScoped<IAffiliateClickService, AffiliateClickService>();
 
         // Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
         services.AddSingleton<ISleeveStoreUrlResolver, SleeveStoreUrlResolver>();

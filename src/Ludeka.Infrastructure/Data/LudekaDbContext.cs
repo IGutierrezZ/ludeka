@@ -46,6 +46,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserMilestone> UserMilestones => Set<UserMilestone>();
     public DbSet<BggRawSnapshot> BggRawSnapshots => Set<BggRawSnapshot>();
     public DbSet<DailyTrendingGame> DailyTrendingGames => Set<DailyTrendingGame>();
+    public DbSet<AffiliateClickLog> AffiliateClicks => Set<AffiliateClickLog>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -78,6 +79,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         game.OwnsMany(g => g.RegionalPublishers, b => b.ToJson());
         game.OwnsMany(g => g.LocalizedTitles, b => b.ToJson());
         game.PrimitiveCollection(g => g.ImpactTags);
+        game.Property(g => g.Ean).HasMaxLength(14);
+        game.HasIndex(g => g.Ean);
+        game.PrimitiveCollection(g => g.AdditionalBarcodes);
 
         game.Property(g => g.SpanishPublisher).HasMaxLength(200);
         game.HasIndex(g => g.SpanishPublisher);
@@ -617,5 +621,19 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
             .HasForeignKey(t => t.GameId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // --- Configuración de AffiliateClickLog (INC-86: Métricas de Afiliación) ---
+        var click = modelBuilder.Entity<AffiliateClickLog>();
+        click.ToTable("AffiliateClicks");
+        click.HasKey(c => c.Id);
+        click.HasIndex(c => c.GameId);
+        click.HasIndex(c => c.GameSlug);
+        click.HasIndex(c => c.StoreName);
+        click.HasIndex(c => c.ClickedAtUtc);
+        click.Property(c => c.GameTitle).HasMaxLength(250);
+        click.Property(c => c.GameSlug).HasMaxLength(250);
+        click.Property(c => c.StoreName).IsRequired().HasMaxLength(150);
+        click.Property(c => c.TargetUrl).IsRequired().HasMaxLength(1000);
+        click.Property(c => c.Country).HasMaxLength(100);
     }
 }

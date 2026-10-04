@@ -28,6 +28,7 @@ using Ludeka.Infrastructure.DependencyInjection;
 using Ludeka.Application.DTOs;
 using Ludeka.Application.Options;
 using Ludeka.Web;
+using Ludeka.Web.Endpoints;
 using Ludeka.Web.Components;
 using Ludeka.Web.Extensions;
 using Ludeka.Web.Authentication;
@@ -344,6 +345,9 @@ app.MapGet("/logout", async (HttpContext httpContext) =>
     await httpContext.SignOutAsync(ExternalAuthenticationSchemes.SessionCookieScheme);
     return Results.Redirect("/");
 }).AllowAnonymous();
+
+// Incremento 86: Enrutador de Redirección y Registro de Clics de Afiliado
+app.MapAffiliateRedirectEndpoints();
 
 // Incremento 64: verificación y consumo de Magic Link.
 app.MapGet("/login/magic-link", async (
