@@ -33,24 +33,16 @@ else
                 aria-expanded="@_isOpen"
                 aria-haspopup="menu"
                 aria-label="@($"Menú de cuenta de {CurrentUserService.UserName}")"
-                class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 @(_isOpen ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-[var(--border-subtle)] hover:border-[var(--brand-primary)]")">
+                title="@CurrentUserService.UserName"
+                class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border transition-all flex items-center justify-center text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 relative @(_isOpen ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-[var(--border-subtle)] hover:border-[var(--brand-primary)]")">
 
-            @* Avatar sobrio con la inicial del usuario *@
-            <span class="w-4 h-4 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] font-bold text-[0.65rem] flex items-center justify-center leading-none select-none">
-                @UserInitial
-            </span>
-
-            <span class="sr-only sm:not-sr-only truncate max-w-[8rem]">@CurrentUserService.UserName</span>
+            <Icon Name="user" Size="16" />
 
             @* Indicador discreto de aviso si el correo no está verificado *@
             @if (_needsEmailNotice)
             {
-                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0" title="Correo pendiente de verificación"></span>
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-[var(--bg-surface-elevated)] shrink-0" title="Correo pendiente de verificación"></span>
             }
-
-            <span class="text-[0.65rem] transition-transform duration-200 @(_isOpen ? "rotate-180" : "")">
-                <Icon Name="chevron-down" Size="10" />
-            </span>
         </button>
 
         @if (_isOpen)
@@ -134,19 +126,6 @@ else
 
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 
-    private string UserInitial
-    {
-        get
-        {
-            var name = CurrentUserService.UserName;
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return "U";
-            }
-
-            return char.ToUpperInvariant(name.Trim()[0]).ToString();
-        }
-    }
 
     private string PublicProfileUrl => $"/u/{CurrentUserService.UserId}";
 
