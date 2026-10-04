@@ -31,8 +31,10 @@ public class BarcodeValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Domain")]
     public void TryNormalizeEan13_ShouldHandleHyphensAndSpaces()
     {
+        // 8436-0172-2010-0 with hyphens and spaces
         string raw = " 8436-0172 2010-0 ";
         bool ok = BarcodeValidator.TryNormalizeEan13(raw, out string normalized);
 
@@ -56,7 +58,7 @@ public class BarcodeValidatorTests
     [InlineData("978020137962", '4')]
     public void CalculateEan13CheckDigit_ShouldComputeCorrectChecksum(string first12Digits, char expectedCheckDigit)
     {
-        char result = BarcodeValidator.CalculateEan13CheckDigit(first12Digits);
-        Assert.Equal(expectedCheckDigit, result);
+        char calculated = BarcodeValidator.CalculateEan13CheckDigit(first12Digits);
+        Assert.Equal(expectedCheckDigit, calculated);
     }
 }

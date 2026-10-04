@@ -2,8 +2,8 @@
 
 > **ID:** INC-86  
 > **Slug:** `feeds-catalogo-afiliados-ean`  
-> **Rama:** `inc/feeds-catalogo-afiliados-ean`  
-> **Estado:** ⏳ Planificado  
+> **Rama:** `inc/ean-router-afiliados`  
+> **Estado:** ⏳ En progreso (Fases 0 y 1: EAN-13 y Router de Afiliados)  
 > **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 20 (`docs/specs/sistema/20-verificacion-stock-tiempo-real-tiendas.md`), Módulo 25 (`docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md`), Módulo 14 (`docs/specs/sistema/14-gestion-usuarios-permisos-y-auditoria.md`), `src/Ludeka.Core/Entities/Game.cs`, `src/Ludeka.Application/Contracts/`, `src/Ludeka.Jobs/Jobs/`, `src/Ludeka.Web/Components/Pages/Admin/`  
 > **Dependencias:** INC-85 (Ficha Editorial y Dónde Comprar), INC-27 (Verificación Stock Tiempo Real), INC-37 (Motor Afiliados)
 

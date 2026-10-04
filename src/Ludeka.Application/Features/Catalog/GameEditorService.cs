@@ -133,6 +133,16 @@ public class GameEditorService : IGameEditorService
             fieldChanges.Add(new FieldChangeDto("Sleeves", $"{game.Sleeves.Count} formatos", $"{command.Sleeves.Count} formatos"));
         }
 
+        if (command.Ean != null)
+        {
+            var normalizedEan = string.IsNullOrWhiteSpace(command.Ean) ? null : command.Ean.Trim();
+            if (!string.Equals(game.Ean, normalizedEan, StringComparison.Ordinal))
+            {
+                changes.Add($"Código de barras (EAN-13): '{game.Ean}' -> '{normalizedEan}'");
+                fieldChanges.Add(new FieldChangeDto("Ean", game.Ean, normalizedEan));
+            }
+        }
+
         string summary = changes.Count > 0 ? string.Join("; ", changes) : "Edición editorial de parámetros y metadatos";
 
         // 5. Aplicar modificaciones de dominio
@@ -167,6 +177,11 @@ public class GameEditorService : IGameEditorService
         if (command.Sleeves != null)
         {
             game.UpdateSleeves(command.Sleeves);
+        }
+
+        if (command.Ean != null)
+        {
+            game.UpdateEan(command.Ean);
         }
 
         // 6. Persistir en repositorio

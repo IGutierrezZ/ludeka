@@ -59,36 +59,46 @@ public static class BarcodeValidator
     /// </summary>
     public static char CalculateEan13CheckDigit(string first12Digits)
     {
-        if (string.IsNullOrWhiteSpace(first12Digits) || first12Digits.Length != 12)
-            throw new ArgumentException("Se requieren exactamente 12 dígitos para calcular el dígito de control EAN-13.", nameof(first12Digits));
+        ArgumentException.ThrowIfNullOrWhiteSpace(first12Digits);
+        string clean = CleanRegex.Replace(first12Digits.Trim(), string.Empty);
+
+        if (clean.Length != 12)
+            throw new ArgumentException("Deben proporcionarse exactamente 12 dígitos numéricos.", nameof(first12Digits));
 
         int sum = 0;
         for (int i = 0; i < 12; i++)
         {
-            char c = first12Digits[i];
+            char c = clean[i];
             if (c < '0' || c > '9')
-                throw new ArgumentException("Todos los caracteres deben ser dígitos numéricos.", nameof(first12Digits));
+                throw new ArgumentException($"El carácter '{c}' no es un dígito numérico válido.", nameof(first12Digits));
 
             int digit = c - '0';
-            // Índices pares (0, 2, 4...) peso 1; impares (1, 3, 5...) peso 3
-            sum += (i % 2 == 0) ? digit * 1 : digit * 3;
+            sum += (i % 2 == 0) ? digit : digit * 3;
         }
 
         int remainder = sum % 10;
-        int checkDigit = (remainder == 0) ? 0 : 10 - remainder;
-
+        int checkDigit = (10 - remainder) % 10;
         return (char)('0' + checkDigit);
     }
 
-    private static bool ValidateEan13Digits(string clean13)
+    private static bool ValidateEan13Digits(string clean)
     {
-        for (int i = 0; i < 13; i++)
+        int sum = 0;
+        for (int i = 0; i < 12; i++)
         {
-            if (clean13[i] < '0' || clean13[i] > '9')
+            char c = clean[i];
+            if (c < '0' || c > '9')
                 return false;
+
+            int digit = c - '0';
+            sum += (i % 2 == 0) ? digit : digit * 3;
         }
 
-        char expected = CalculateEan13CheckDigit(clean13.Substring(0, 12));
-        return clean13[12] == expected;
+        char lastChar = clean[12];
+        if (lastChar < '0' || lastChar > '9')
+            return false;
+
+        int expectedCheckDigit = (10 - (sum % 10)) % 10;
+        return (lastChar - '0') == expectedCheckDigit;
     }
 }

@@ -1,6 +1,6 @@
-# Incremento 104: Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN
+# Incremento 105: Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN
 
-> **ID:** INC-104  
+> **ID:** INC-105  
 > **Slug:** `bgg-versiones-titulos-ean`  
 > **Rama:** `inc/bgg-versiones-titulos-ean`  
 > **Estado:** ⏳ En progreso  

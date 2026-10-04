@@ -1013,7 +1013,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 - **Documento:** [`archive/inc-103-barrido-calidad-snapshots-locales.md`](../increments/archive/inc-103-barrido-calidad-snapshots-locales.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
-## Incremento 104: Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN
+---
+
+## Incremento 105: Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN
 - **Identificador SDD:** `bgg-versiones-titulos-ean`
 - **Objetivo Principal:**
   1. **Soporte de Versiones en Cliente BGG:** Ampliar `IBggClient`, `BggXmlApiClient` y `SimulatedBggClient` para solicitar el nodo de versiones (`&versions=1`) por lotes de hasta 20 IDs.
@@ -1023,8 +1025,20 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   5. **Orquestador de Sincronización y Barrido:** `SyncVersionsBatchAsync` y `SweepCatalogFromVersionsAsync` en `BggRawSnapshotSyncService` para enriquecer el catálogo en memoria/CPU sin llamadas externas recurrentes.
   6. **Consola y Runner Autónomo:** Visualización de métricas en `CatalogQueueAdmin.razor` y runner CLI desatendido en `Ludeka.Jobs`.
 - **Estado:** ⏳ **En progreso**
-- **Documento:** [`../increments/inc-104-bgg-versiones-titulos-ean.md`](../increments/inc-104-bgg-versiones-titulos-ean.md).
+- **Documento:** [`../increments/inc-105-bgg-versiones-titulos-ean.md`](../increments/inc-105-bgg-versiones-titulos-ean.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
+---
+
+## Incremento 104: Simplificación del Menú de Usuario en Cabecera y Retirada de Submenú Redundante de Cuenta
+- **Identificador SDD:** `change-104-simplificacion-menu-cuenta`
+- **Objetivo Principal:**
+  1. **Disparador Compacto con Icono de Usuario:** Sustituir en `AccountMenu.razor` el botón con avatar inicial, nombre de usuario y flecha desplegable chevron por un botón circular compacto con solo el icono de usuario típico (`<Icon Name="user" Size="16" />`), atributos ARIA accesibles, `title` y preservación del aviso de correo no verificado.
+  2. **Menú Desplegable Enriquecido:** Mantener la información de usuario (nombre y rol) y todos los accesos canónicos dentro del desplegable al interactuar con el botón.
+  3. **Eliminación del Submenú Redundante:** Retirar el montaje de `<AccountSectionNav>` en todas las páginas del área de cuenta (`MyLibrary.razor`, `AccountAppearance.razor`, `AccountCountry.razor`, `AccountPrivacy.razor` y `AccountConnections.razor`), ya que todas las opciones están directamente disponibles en el menú de usuario de la cabecera.
+  4. **Retirada de Componente Obsoleto:** Eliminar `AccountSectionNav.razor` y actualizar la suite de pruebas de contrato en `AccountMenuContractTests.cs`, `AccountAreaContractTests.cs` y `AccountPreferencesContractTests.cs`.
+- **Estado:** ⏳ **En progreso** (2.340 pruebas unitarias pasando al 100%).
+- **Documento:** [`inc-104-simplificacion-menu-cuenta.md`](../increments/inc-104-simplificacion-menu-cuenta.md).
 
 ---
 

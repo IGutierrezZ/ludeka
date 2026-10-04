@@ -73,7 +73,8 @@ public static class SqliteSchemaMigrator
                 ("SpanishPublisher", "TEXT NULL"),
                 ("RegionalPublishers", "TEXT NOT NULL DEFAULT '[]'"),
                 ("LocalizedTitles", "TEXT NOT NULL DEFAULT '[]'"),
-                ("Ean", "TEXT NULL")
+                ("Ean", "TEXT NULL"),
+                ("AdditionalBarcodes", "TEXT NOT NULL DEFAULT '[]'")
             };
 
             foreach (var (colName, colDef) in columnsToAdd)
@@ -94,6 +95,7 @@ public static class SqliteSchemaMigrator
                     UPDATE "Games" SET "PurchaseLinks" = '[]' WHERE "PurchaseLinks" IS NULL;
                     UPDATE "Games" SET "RegionalPublishers" = '[]' WHERE "RegionalPublishers" IS NULL;
                     UPDATE "Games" SET "LocalizedTitles" = '[]' WHERE "LocalizedTitles" IS NULL;
+                    UPDATE "Games" SET "AdditionalBarcodes" = '[]' WHERE "AdditionalBarcodes" IS NULL;
                     UPDATE "Games" SET "Type" = 0 WHERE "Type" IS NULL;
                     """;
                 await fixCmd.ExecuteNonQueryAsync(ct);
@@ -105,6 +107,7 @@ public static class SqliteSchemaMigrator
                 idxCmd.CommandText = """
                     CREATE INDEX IF NOT EXISTS "IX_Games_BaseGameId" ON "Games" ("BaseGameId");
                     CREATE INDEX IF NOT EXISTS "IX_Games_Type" ON "Games" ("Type");
+                    CREATE INDEX IF NOT EXISTS "IX_Games_Ean" ON "Games" ("Ean");
                     """;
                 await idxCmd.ExecuteNonQueryAsync(ct);
             }
@@ -1152,6 +1155,30 @@ public static class SqliteSchemaMigrator
                     """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("UserMilestones");
+            }
+
+            // 32. Crear tabla AffiliateClicks si no existe (Fase 0/1: Afiliados y Router de Compras)
+            if (!existingTables.Contains("AffiliateClicks"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "AffiliateClicks" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_AffiliateClicks" PRIMARY KEY,
+                        "GameId" TEXT NULL,
+                        "GameTitle" TEXT NOT NULL,
+                        "GameSlug" TEXT NOT NULL,
+                        "StoreName" TEXT NOT NULL,
+                        "TargetUrl" TEXT NOT NULL,
+                        "Country" TEXT NULL,
+                        "ClickedAtUtc" TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateClicks_GameId" ON "AffiliateClicks" ("GameId");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateClicks_GameSlug" ON "AffiliateClicks" ("GameSlug");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateClicks_StoreName" ON "AffiliateClicks" ("StoreName");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateClicks_ClickedAtUtc" ON "AffiliateClicks" ("ClickedAtUtc");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("AffiliateClicks");
             }
         }
         finally

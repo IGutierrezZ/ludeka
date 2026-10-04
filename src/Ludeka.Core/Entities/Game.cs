@@ -41,6 +41,7 @@ public partial class Game
     public List<RegionalPublisherEntry> RegionalPublishers { get; private set; } = [];
     public List<LocalizedTitleEntry> LocalizedTitles { get; private set; } = [];
     public string? Ean { get; private set; }
+    public List<string> AdditionalBarcodes { get; private set; } = [];
 
     // --- Soporte de Expansiones y Ecosistema (Incremento 8) ---
     public GameType Type { get; private set; } = GameType.BaseGame;
@@ -96,7 +97,9 @@ public partial class Game
         string? tableImageUrl = null,
         string? spanishPublisher = null,
         IEnumerable<RegionalPublisherEntry>? regionalPublishers = null,
-        IEnumerable<LocalizedTitleEntry>? localizedTitles = null)
+        IEnumerable<LocalizedTitleEntry>? localizedTitles = null,
+        string? ean = null,
+        IEnumerable<string>? additionalBarcodes = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -129,6 +132,8 @@ public partial class Game
         SpanishPublisher = string.IsNullOrWhiteSpace(spanishPublisher) ? null : spanishPublisher.Trim();
         if (regionalPublishers != null) RegionalPublishers.AddRange(regionalPublishers);
         if (localizedTitles != null) LocalizedTitles.AddRange(localizedTitles);
+        UpdateEan(ean);
+        UpdateAdditionalBarcodes(additionalBarcodes);
 
         Slug = string.IsNullOrWhiteSpace(customSlug)
             ? GenerateSlug(SpanishTitle)
@@ -427,15 +432,12 @@ public partial class Game
             return;
         }
 
-        if (BarcodeValidator.TryNormalizeEan13(ean, out string normalized))
+        if (!BarcodeValidator.TryNormalizeEan13(ean, out var normalized))
         {
-            Ean = normalized;
+            throw new ArgumentException($"El código de barras '{ean}' no es un EAN-13 o UPC válido con dígito de control correcto.", nameof(ean));
         }
-        else
-        {
-            string clean = ean.Trim();
-            Ean = clean.Length <= 14 ? clean : clean.Substring(0, 14);
-        }
+
+        Ean = normalized;
     }
 
     public void UpdateSpanishTitle(string spanishTitle)
@@ -452,6 +454,31 @@ public partial class Game
             LocalizedTitles.Remove(existingEs);
         }
         LocalizedTitles.Insert(0, new LocalizedTitleEntry("ES", SpanishTitle));
+    }
+
+    public void UpdateAdditionalBarcodes(IEnumerable<string>? barcodes)
+    {
+        AdditionalBarcodes.Clear();
+        if (barcodes == null) return;
+
+        foreach (var raw in barcodes)
+        {
+            if (BarcodeValidator.TryNormalizeEan13(raw, out var normalized))
+            {
+                if (normalized != Ean && !AdditionalBarcodes.Contains(normalized))
+                {
+                    AdditionalBarcodes.Add(normalized);
+                }
+            }
+        }
+    }
+
+    public bool MatchesBarcode(string? barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode)) return false;
+        if (!BarcodeValidator.TryNormalizeEan13(barcode, out var normalized)) return false;
+
+        return normalized == Ean || AdditionalBarcodes.Contains(normalized);
     }
 
     public string GetPublisherForCountry(string? countryCode)

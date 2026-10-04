@@ -98,7 +98,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-83** | Integración de Favicon Oficial e Iconos de Marca para el Navegador, Dispositivos Móviles y PWA | ✅ Archivado | [inc-83-icono-navegador-favicon.md](archive/inc-83-icono-navegador-favicon.md) |
 | **INC-84** | Tema Madera Clara por Defecto y Selector Minimalista para Visitantes | ✅ Archivado | [inc-84-tema-madera-clara-selector-invitados.md](archive/inc-84-tema-madera-clara-selector-invitados.md) |
 | **INC-85** | Rediseño Editorial de Ficha de Juego: Carrusel Fotográfico, Maquetación a Dos Columnas, Dónde Comprar Permanente y Pestañas Secundarias | ✅ Archivado | [inc-85-ficha-editorial-carrusel-tiendas.md](archive/inc-85-ficha-editorial-carrusel-tiendas.md) |
-| **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ Planificado | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
+| **INC-86** | Ingesta de Feeds de Catálogo Comerciales, Gestión de Afiliados en Moderación y Mapeo EAN de Juegos | ⏳ En progreso | [inc-86-feeds-catalogo-afiliados-ean.md](inc-86-feeds-catalogo-afiliados-ean.md) |
 | **INC-87** | Fichas Inteligentes de Novedades y Eventos, Rediseño Compacto a Proporción de Catálogo y Edición Editorial | ✅ Archivado | [inc-87-novedades-eventos-fichas-y-tarjetas.md](archive/inc-87-novedades-eventos-fichas-y-tarjetas.md) |
 | **INC-88** | Optimización de Consultas SQL, Paginación Quirúrgica y Caché en Memoria para Reducción Drástica de Egress en Base de Datos | ✅ Archivado | [inc-88-opt-consultas-egress-cache.md](archive/inc-88-opt-consultas-egress-cache.md) |
 | **INC-89** | Saneamiento Integral de Consultas SQL Restantes, Eliminación de Egress O(N) y Blindaje de Caché de Fichas Públicas | ✅ Archivado | [inc-89-opt-consultas-egress-fase2.md](archive/inc-89-opt-consultas-egress-fase2.md) |
@@ -116,7 +116,8 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ✅ Archivado | [inc-101-hotfix-reconciliacion-minplayers.md](archive/inc-101-hotfix-reconciliacion-minplayers.md) |
 | **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ✅ Archivado | [inc-102-autovinculacion-expansiones-ia.md](archive/inc-102-autovinculacion-expansiones-ia.md) |
 | **INC-103** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ✅ Archivado | [inc-103-barrido-calidad-snapshots-locales.md](archive/inc-103-barrido-calidad-snapshots-locales.md) |
-| **INC-104** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ⏳ En progreso | [inc-104-bgg-versiones-titulos-ean.md](inc-104-bgg-versiones-titulos-ean.md) |
+| **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
+| **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ⏳ En progreso | [inc-105-bgg-versiones-titulos-ean.md](inc-105-bgg-versiones-titulos-ean.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -144,7 +145,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-104** (`inc/bgg-versiones-titulos-ean`) — Ingesta de versiones BGG (`versions=1`), persistencia satélite en `BggRawSnapshots` y barrido determinista de títulos en español y códigos de barras EAN. En desarrollo en worktree `F:\repos\ludeka-wt\bgg-versiones-titulos-ean`.
+- **INC-105** (`inc/bgg-versiones-titulos-ean`) — Ingesta de versiones BGG (`versions=1`), persistencia satélite en `BggRawSnapshots` y barrido determinista de títulos en español y códigos de barras EAN. En desarrollo en worktree `F:\repos\ludeka-wt\bgg-versiones-titulos-ean`.
 
 *(INC-103 entregó su verificación con 2.309 pruebas unitarias en verde al 100% [2.319 totales con integración], y quedó archivado el 2026-10-02. Implementa la reconstitución fiel e inversa JSON a XML con BggJsonToXmlConverter, la estrategia Snapshot-First en EnrichSingleGameQualityAsync para auditar y enriquecer el 100% del catálogo a velocidad de CPU/memoria sin llamadas externas a BGG, la paginación monotónica por cursor afterBggId que erradica bucles infinitos en pendientes sin votos comunitarios, la idempotencia semántica con ScalabilityNeedsUpdate y el soporte de latido en BackfillQualityJobRunner).*
 
