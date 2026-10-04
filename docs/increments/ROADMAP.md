@@ -116,6 +116,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-101** | Saneamiento Defensivo de Escalabilidad (minPlayers) y Blindaje de Reconciliación Masiva de Expansiones | ✅ Archivado | [inc-101-hotfix-reconciliacion-minplayers.md](archive/inc-101-hotfix-reconciliacion-minplayers.md) |
 | **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ✅ Archivado | [inc-102-autovinculacion-expansiones-ia.md](archive/inc-102-autovinculacion-expansiones-ia.md) |
 | **INC-103** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ✅ Archivado | [inc-103-barrido-calidad-snapshots-locales.md](archive/inc-103-barrido-calidad-snapshots-locales.md) |
+| **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -143,7 +144,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Ningún incremento en curso actualmente en este worktree).*
+- **INC-104** — `inc/simplificacion-menu-cuenta` (worktree `simplificacion-menu-cuenta`): Simplificación del Menú de Usuario en Cabecera a Icono Único y Retirada de Submenú Redundante en Pantallas de Cuenta. Documento: [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md).
 
 *(INC-103 entregó su verificación con 2.309 pruebas unitarias en verde al 100% [2.319 totales con integración], y quedó archivado el 2026-10-02. Implementa la reconstitución fiel e inversa JSON a XML con BggJsonToXmlConverter, la estrategia Snapshot-First en EnrichSingleGameQualityAsync para auditar y enriquecer el 100% del catálogo a velocidad de CPU/memoria sin llamadas externas a BGG, la paginación monotónica por cursor afterBggId que erradica bucles infinitos en pendientes sin votos comunitarios, la idempotencia semántica con ScalabilityNeedsUpdate y el soporte de latido en BackfillQualityJobRunner).*
 

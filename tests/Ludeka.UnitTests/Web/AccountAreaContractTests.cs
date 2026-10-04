@@ -13,7 +13,6 @@ public class AccountAreaContractTests
 {
     private const string HubPath = "src/Ludeka.Web/Components/Pages/Account.razor";
     private const string LayoutPath = "src/Ludeka.Web/Components/Layout/MainLayout.razor";
-    private const string SectionNavPath = "src/Ludeka.Web/Components/Shared/AccountSectionNav.razor";
     private const string MyLibraryPath = "src/Ludeka.Web/Components/Pages/MyLibrary.razor";
     private const string ConnectionsPath = "src/Ludeka.Web/Components/Pages/AccountConnections.razor";
     private const string AppearancePath = "src/Ludeka.Web/Components/Pages/AccountAppearance.razor";
@@ -82,18 +81,6 @@ public class AccountAreaContractTests
         Assert.Contains("min-w-[24px]", source, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void SectionNav_ShouldMarkTheActiveSectionWithAriaCurrent()
-    {
-        // INC-50, diseño §D3.1: cabecera de sección presentacional con vuelta al hub y
-        // aria-current="page" en la sección activa (patrón HeroEditorial.razor).
-        var source = ReadSource(SectionNavPath);
-
-        Assert.Contains("aria-current=", source, StringComparison.Ordinal);
-        Assert.Contains("\"page\"", source, StringComparison.Ordinal);
-        Assert.Contains("href=\"/cuenta\"", source, StringComparison.Ordinal);
-        Assert.Contains("Active", source, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void MyLibrary_ShouldDeclareCanonicalRouteAndAlias()
@@ -119,17 +106,18 @@ public class AccountAreaContractTests
     }
 
     [Theory]
-    [InlineData(MyLibraryPath, "AccountSectionNav Active=\"ludoteca\"")]
-    [InlineData(ConnectionsPath, "AccountSectionNav Active=\"conexiones\"")]
-    [InlineData(AppearancePath, "AccountSectionNav Active=\"apariencia\"")]
-    [InlineData(CountryPath, "AccountSectionNav Active=\"pais\"")]
-    [InlineData(PrivacyPath, "AccountSectionNav Active=\"privacidad\"")]
-    public void ChildPages_ShouldMountTheSharedSectionHeader(string relativePath, string marker)
+    [InlineData(MyLibraryPath)]
+    [InlineData(ConnectionsPath)]
+    [InlineData(AppearancePath)]
+    [InlineData(CountryPath)]
+    [InlineData(PrivacyPath)]
+    public void ChildPages_ShouldNotMountRedundantSectionHeader(string relativePath)
     {
-        // INC-50 e INC-62: las rutas hijas del área de cuenta montan la cabecera compartida con su sección.
+        // Las rutas hijas del área de cuenta no montan submenú redundante, ya que todas las opciones
+        // canónicas se encuentran en el menú de usuario de la cabecera.
         var source = ReadSource(relativePath);
 
-        Assert.Contains(marker, source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<AccountSectionNav", source, StringComparison.Ordinal);
     }
 
     [Theory]

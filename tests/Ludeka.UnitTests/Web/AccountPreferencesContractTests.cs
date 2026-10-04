@@ -16,37 +16,37 @@ public class AccountPreferencesContractTests
     private const string PublicProfilePath = "src/Ludeka.Web/Components/Pages/PublicProfile.razor";
 
     [Fact]
-    public void AccountAppearance_ShouldDeclareRouteAndAuthorizeAndMountSectionNav()
+    public void AccountAppearance_ShouldDeclareRouteAndAuthorizeAndNotMountRedundantSectionNav()
     {
         var source = ReadSource(AppearancePath);
 
         Assert.Contains("@page \"/cuenta/apariencia\"", source, StringComparison.Ordinal);
         Assert.Contains("@attribute [Authorize]", source, StringComparison.Ordinal);
-        Assert.Contains("<AccountSectionNav Active=\"apariencia\" />", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<AccountSectionNav", source, StringComparison.Ordinal);
         Assert.Contains("NormalizeTheme", source, StringComparison.Ordinal);
         Assert.Contains("setLudekaTheme", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AccountCountry_ShouldDeclareRouteAndAuthorizeAndMountSectionNav()
+    public void AccountCountry_ShouldDeclareRouteAndAuthorizeAndNotMountRedundantSectionNav()
     {
         var source = ReadSource(CountryPath);
 
         Assert.Contains("@page \"/cuenta/pais\"", source, StringComparison.Ordinal);
         Assert.Contains("@attribute [Authorize]", source, StringComparison.Ordinal);
-        Assert.Contains("<AccountSectionNav Active=\"pais\" />", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<AccountSectionNav", source, StringComparison.Ordinal);
         Assert.Contains("CountryCatalog", source, StringComparison.Ordinal);
         Assert.Contains("detectUserCountry", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AccountPrivacy_ShouldDeclareRouteAndAuthorizeAndMountSectionNav()
+    public void AccountPrivacy_ShouldDeclareRouteAndAuthorizeAndNotMountRedundantSectionNav()
     {
         var source = ReadSource(PrivacyPath);
 
         Assert.Contains("@page \"/cuenta/privacidad\"", source, StringComparison.Ordinal);
         Assert.Contains("@attribute [Authorize]", source, StringComparison.Ordinal);
-        Assert.Contains("<AccountSectionNav Active=\"privacidad\" />", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<AccountSectionNav", source, StringComparison.Ordinal);
         Assert.Contains("IsPublicProfileHiddenAsync", source, StringComparison.Ordinal);
         Assert.Contains("SetPublicProfileHiddenAsync", source, StringComparison.Ordinal);
     }
