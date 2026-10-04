@@ -119,6 +119,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
 | **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ✅ Archivado | [inc-105-bgg-versiones-titulos-ean.md](archive/inc-105-bgg-versiones-titulos-ean.md) |
 | **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
+| **INC-107** | Ingesta de Catálogos Shopify (/products.json), Captura de Precios y EANs en Comercios Españoles | ⏳ En progreso | [inc-107-ingesta-catalogo-shopify.md](inc-107-ingesta-catalogo-shopify.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
