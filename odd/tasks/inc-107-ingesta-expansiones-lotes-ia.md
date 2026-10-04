@@ -67,7 +67,7 @@ Optimizar el rendimiento y la calidad de la ingesta de juegos y expansiones en L
 - [x] **ODD-3 — Saneamiento de `CatalogQueueAdmin.razor`**
   - [x] 3.1 Purgar botones redundantes u obsoletos (sembrado de creadores, lote rápido manual, reconciliación INC-100 amortizada).
   - [x] 3.2 Actualizar textos, métricas y controles en la interfaz.
-- [ ] **ODD-4 — Verificación Integral y Cierre**
-  - [ ] 4.1 Ejecutar suite completa de tests unitarios y verificar cero regresiones.
-  - [ ] 4.2 Actualizar `docs/increments/ROADMAP.md` y `docs/increments/inc-107-ingesta-expansiones-lotes-ia.md`.
-  - [ ] 4.3 Actualizar especificaciones en `docs/specs/sistema/`.
+- [x] **ODD-4 — Verificación Integral y Cierre**
+  - [x] 4.1 Ejecutar suite completa de tests unitarios y verificar cero regresiones.
+  - [x] 4.2 Actualizar `docs/increments/ROADMAP.md` y `docs/increments/inc-107-ingesta-expansiones-lotes-ia.md`.
+  - [x] 4.3 Actualizar especificaciones en `docs/specs/sistema/`.
