@@ -118,7 +118,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-103** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ✅ Archivado | [inc-103-barrido-calidad-snapshots-locales.md](archive/inc-103-barrido-calidad-snapshots-locales.md) |
 | **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
 | **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ✅ Archivado | [inc-105-bgg-versiones-titulos-ean.md](archive/inc-105-bgg-versiones-titulos-ean.md) |
-| **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ⏳ En progreso | [inc-106-youtube-modal-cache-autoingesta.md](inc-106-youtube-modal-cache-autoingesta.md) |
+| **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -146,7 +146,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-106** (`inc/youtube-modal-cache-autoingesta`) — Optimización del modal de YouTube (permanencia, estado visual y caché `IMemoryCache`) e ingesta automática del top 4.000 con límite de 60 juegos/día. En desarrollo en worktree `F:\repos\ludeka-wt\youtube-modal-cache-autoingesta`.
+*(INC-106 entregó su verificación con 2.378 pruebas unitarias en verde al 100% [2.388 totales con integración], y quedó archivado el 2026-10-05. Optimiza la experiencia de curación en YouTubeSearchModal.razor y MultimediaHub.razor con permanencia del modal al moderar sin cierres intempestivos, preservación reactiva de resultados en memoria, señalización de estado visual por tarjeta con badges fijos [Aprobado/En Pendientes], capa de caché IMemoryCache [TTL 45m], búsqueda consolidada en 1 sola llamada [ahorro del 66% en cuota de YouTube], e incorpora IYouTubeCatalogAutoIngestService y el runner youtube-auto-ingest en Ludeka.Jobs para el top 4.000 de juegos con límite estricto de 60 juegos/día).*
+
 - **INC-105** (`inc/bgg-versiones-titulos-ean`) — Ingesta de versiones BGG (`versions=1`), persistencia satélite en `BggRawSnapshots` y barrido determinista de títulos en español y códigos de barras EAN. Archivado.
 
 *(INC-103 entregó su verificación con 2.309 pruebas unitarias en verde al 100% [2.319 totales con integración], y quedó archivado el 2026-10-02. Implementa la reconstitución fiel e inversa JSON a XML con BggJsonToXmlConverter, la estrategia Snapshot-First en EnrichSingleGameQualityAsync para auditar y enriquecer el 100% del catálogo a velocidad de CPU/memoria sin llamadas externas a BGG, la paginación monotónica por cursor afterBggId que erradica bucles infinitos en pendientes sin votos comunitarios, la idempotencia semántica con ScalabilityNeedsUpdate y el soporte de latido en BackfillQualityJobRunner).*

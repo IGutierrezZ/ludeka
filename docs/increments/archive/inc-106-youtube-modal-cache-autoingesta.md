@@ -3,8 +3,8 @@
 > **ID:** INC-106  
 > **Slug:** `youtube-modal-cache-autoingesta`  
 > **Rama:** `inc/youtube-modal-cache-autoingesta`  
-> **Estado:** ⏳ En progreso  
-> **Módulos Impactados:** Módulo 04 (`docs/specs/sistema/04-hub-multimedia-redes.md`), `src/Ludeka.Core/`, `src/Ludeka.Application/`, `src/Ludeka.Infrastructure/`, `src/Ludeka.Jobs/`, `src/Ludeka.Web/`  
+> **Estado:** ✅ Archivado (2.378 pruebas unitarias en verde)  
+> **Módulos Impactados:** Módulo 04 (`docs/specs/sistema/04-hub-multimedia.md`), `src/Ludeka.Core/`, `src/Ludeka.Application/`, `src/Ludeka.Infrastructure/`, `src/Ludeka.Jobs/`, `src/Ludeka.Web/`  
 > **Dependencias:** INC-14 (Búsqueda quirúrgica en YouTube), INC-23 (Categorización editorial de vídeos), INC-47 (Orquestador de trabajos desatendidos)
 
 ---
@@ -38,9 +38,17 @@
 
 ## 3. Plan de Trabajo (Work Units)
 
-- [ ] **WU 01: Caché en memoria y búsqueda consolidada en YouTubeSearchService:** Inyección de `IMemoryCache`, pruebas unitarias con mock de HTTP, método `SearchConsolidatedCandidatesAsync` con ahorro de cuota.
-- [ ] **WU 02: Repositorio y filtrado del top 4.000 sin vídeos:** Consulta en `IGameRepository` / `SqliteGameRepository` para obtener juegos del top 4.000 por `BggRank` que no dispongan de vídeos en `MediaItem`. Pruebas unitarias de repositorio.
-- [ ] **WU 03: Servicio de Auto-Ingesta y control de cuota:** `IYouTubeCatalogAutoIngestService` con límite de 60 juegos/día, auto-aprobación de hasta 3 vídeos y registro de auditoría. Pruebas unitarias de servicio.
-- [ ] **WU 04: Runner en Ludeka.Jobs y servicio en segundo plano:** Runner `YouTubeAutoIngestJobRunner` y opciones con ventana diaria de ejecución.
-- [ ] **WU 05: Refactorización UX del Modal de YouTube:** Permanencia del modal en `MultimediaHub.razor`, badges de estado por vídeo procesado en `YouTubeSearchModal.razor` y preservación de estado al reabrir. Pruebas de componentes y contratos.
-- [ ] **WU 06: Verificación integral, PR y cierre:** Ejecución de suite completa de pruebas, verificación de CI, merge a `main`, verificación de CD y archivado a especificación viva.
+- [x] **WU 01: Caché en memoria y búsqueda consolidada en YouTubeSearchService:** Inyección de `IMemoryCache`, pruebas unitarias con mock de HTTP, método `SearchConsolidatedCandidatesAsync` con ahorro de cuota.
+- [x] **WU 02: Repositorio y filtrado del top 4.000 sin vídeos:** Consulta en `IGameRepository` / `SqliteGameRepository` para obtener juegos del top 4.000 por `BggRank` que no dispongan de vídeos en `MediaItem`. Pruebas unitarias de repositorio.
+- [x] **WU 03: Servicio de Auto-Ingesta y control de cuota:** `IYouTubeCatalogAutoIngestService` con límite de 60 juegos/día, auto-aprobación de hasta 3 vídeos y registro de auditoría. Pruebas unitarias de servicio.
+- [x] **WU 04: Runner en Ludeka.Jobs y servicio en segundo plano:** Runner `YouTubeAutoIngestJobRunner` y opciones con ventana diaria de ejecución.
+- [x] **WU 05: Refactorización UX del Modal de YouTube:** Permanencia del modal en `MultimediaHub.razor`, badges de estado por vídeo procesado en `YouTubeSearchModal.razor` y preservación de estado al reabrir. Pruebas de componentes y contratos.
+- [x] **WU 06: Verificación integral, PR y cierre:** Ejecución de suite completa de pruebas (2.378 unitarias en verde), verificación de CI, merge a `main`, verificación de CD y archivado a especificación viva.
+
+---
+
+## 4. Verificación y Resultados
+
+- **Pruebas Unitarias:** 2.378 superadas, 0 con error, 0 omitidas.
+- **Pruebas de Integración:** 10 superadas (Total verificado: 2.388 pruebas).
+- **Especificación Viva:** Actualizado `docs/specs/sistema/04-hub-multimedia.md` y `docs/specs/sistema/README.md`.

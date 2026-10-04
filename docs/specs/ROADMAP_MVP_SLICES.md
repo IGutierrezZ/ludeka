@@ -1046,9 +1046,9 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   4. **Capa de Caché en Memoria (`IMemoryCache`):** Almacenar en `YouTubeSearchService` las respuestas de búsqueda durante 30-60 minutos por término y categoría normalizada, protegiendo la cuota de la API contra peticiones repetidas.
   5. **Búsqueda Consolidada de Ahorro de Cuota (100 unidades vs 300):** Implementar método de 1 sola búsqueda en YouTube (`SearchConsolidatedCandidatesAsync`) para auto-ingesta que obtenga candidatos y clasifique en memoria las categorías lúdicas.
   6. **Auto-Ingesta Desatendida con Control Estricto de Cuota (60 juegos/día):** Servicio y runner en segundo plano para procesar progresivamente los juegos del top 4.000 por `BggRank` que no disponen de vídeos, consumiendo un máximo de 6.000 unidades diarias y reservando 4.000 unidades para uso interactivo.
-- **Estado:** ⏳ **En progreso**.
-- **Documento:** [`../increments/inc-106-youtube-modal-cache-autoingesta.md`](../increments/inc-106-youtube-modal-cache-autoingesta.md).
-- **Módulos del Sistema:** [`04-hub-multimedia-redes.md`](sistema/04-hub-multimedia-redes.md).
+- **Estado:** ✅ **Archivado** (2.378 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-106-youtube-modal-cache-autoingesta.md`](../increments/archive/inc-106-youtube-modal-cache-autoingesta.md).
+- **Módulos del Sistema:** [`04-hub-multimedia.md`](sistema/04-hub-multimedia.md).
 
 ---
 
