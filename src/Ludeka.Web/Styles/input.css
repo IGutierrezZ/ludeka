@@ -452,12 +452,15 @@ a {
 /* Header & Nav */
 .header-nav {
     background-color: var(--bg-nav);
+    -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-subtle);
+    position: -webkit-sticky;
     position: sticky;
     top: 0;
     z-index: 50;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    padding-top: env(safe-area-inset-top, 0px);
 }
 
 .logo-badge {
@@ -701,6 +704,10 @@ a {
 }
 
 /* ===== Navegación Móvil y Safe-Area (INC-60) ===== */
+.mobile-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
 .mobile-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }

@@ -964,4 +964,25 @@ public class WebMarkupContractTests
         Assert.True(bloque.Contains("width: 100%", StringComparison.Ordinal),
             $"El bloque .hero-editorial debe fijar 'width: 100%'; contenido actual: {bloque}");
     }
+
+    [Fact]
+    public void HeaderNav_DeclaraPaddingTopConSafeAreaInsetTopYPrefijosWebKit()
+    {
+        // Corrección iOS: con viewport-fit=cover y status bar translucent,
+        // la cabecera sticky debe incluir padding-top: env(safe-area-inset-top, 0px)
+        // para no solaparse con el notch / Dynamic Island y los gestos del sistema en iOS Safari.
+        var fuenteCss = ReadSource("src/Ludeka.Web/Styles/input.css");
+
+        var inicio = fuenteCss.IndexOf(".header-nav {", StringComparison.Ordinal);
+        Assert.True(inicio >= 0, "input.css no declara el bloque .header-nav.");
+
+        var fin = fuenteCss.IndexOf('}', inicio);
+        Assert.True(fin > inicio, "El bloque .header-nav no cierra con '}'.");
+
+        var bloque = fuenteCss[inicio..fin];
+        Assert.True(bloque.Contains("padding-top: env(safe-area-inset-top, 0px)", StringComparison.Ordinal),
+            $"El bloque .header-nav debe incluir 'padding-top: env(safe-area-inset-top, 0px)'; contenido actual: {bloque}");
+        Assert.True(bloque.Contains("-webkit-backdrop-filter:", StringComparison.Ordinal),
+            $"El bloque .header-nav debe incluir '-webkit-backdrop-filter:'; contenido actual: {bloque}");
+    }
 }
