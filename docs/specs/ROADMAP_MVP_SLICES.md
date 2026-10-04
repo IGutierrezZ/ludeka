@@ -1013,6 +1013,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 - **Documento:** [`archive/inc-103-barrido-calidad-snapshots-locales.md`](../increments/archive/inc-103-barrido-calidad-snapshots-locales.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md), [`45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md`](sistema/45-saneamiento-calidad-ingesta-bgg-escalabilidad-adn.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
+## Incremento 104: Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN
+- **Identificador SDD:** `bgg-versiones-titulos-ean`
+- **Objetivo Principal:**
+  1. **Soporte de Versiones en Cliente BGG:** Ampliar `IBggClient`, `BggXmlApiClient` y `SimulatedBggClient` para solicitar el nodo de versiones (`&versions=1`) por lotes de hasta 20 IDs.
+  2. **Persistencia Satélite de Versiones:** Almacenar íntegramente las versiones dentro del payload `RawJson` de `BggRawSnapshots` mediante `BggXmlToJsonConverter` sin mutar el esquema de base de datos.
+  3. **Parser Analítico Puro (`BggRawSnapshotParser`):** Extracción determinista de la versión oficial en español (`<link type="language" value="Spanish" />`), su título comercial (`SpanishTitle`), editorial (`SpanishPublisher`) y código de barras (`Ean` / UPC) mediante `BarcodeValidator`.
+  4. **Dominio y Catálogo:** Incorporar `Ean` en `Game.cs`, métodos `UpdateEan` y `UpdateSpanishTitle`, con sincronización en `LocalizedTitles`.
+  5. **Orquestador de Sincronización y Barrido:** `SyncVersionsBatchAsync` y `SweepCatalogFromVersionsAsync` en `BggRawSnapshotSyncService` para enriquecer el catálogo en memoria/CPU sin llamadas externas recurrentes.
+  6. **Consola y Runner Autónomo:** Visualización de métricas en `CatalogQueueAdmin.razor` y runner CLI desatendido en `Ludeka.Jobs`.
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`../increments/inc-104-bgg-versiones-titulos-ean.md`](../increments/inc-104-bgg-versiones-titulos-ean.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
 ---
 
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
