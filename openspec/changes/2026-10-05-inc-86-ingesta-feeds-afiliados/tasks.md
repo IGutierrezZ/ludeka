@@ -17,12 +17,12 @@
 - [x] Pruebas unitarias con feeds XML reales y simulados (precios, stock, EAN válido, EAN ausente, caracteres especiales).
 
 ## WU 04: Servicio de Sincronización y Lógica de Cruce
-- [ ] Implementar `CatalogFeedSyncService` en `Ludeka.Application.Features.Affiliates`:
+- [x] Implementar `CatalogFeedSyncService` en `Ludeka.Application.Features.Affiliates`:
   - Cruce $O(1)$ por EAN contra catálogo (`game.Ean` y `game.AdditionalBarcodes`).
   - Auto-asignación de EAN a juegos sin código por coincidencia de título.
   - Registro de discrepancia y guardado en `game.AdditionalBarcodes` cuando el EAN del feed difiere del actual.
   - Actualización idempotente de `game.PurchaseLinks`.
-- [ ] Pruebas unitarias completas de la lógica de cruce y discrepancias en `Ludeka.UnitTests/Application/`.
+- [x] Pruebas unitarias completas de la lógica de cruce y discrepancias en `Ludeka.UnitTests/Application/`.
 
 ## WU 05: Runner en Ludeka.Jobs y Registro de Tarea
 - [ ] Crear `CatalogFeedSyncJobRunner` en `Ludeka.Jobs.Runners` asociado al identificador `feed-sync`.
