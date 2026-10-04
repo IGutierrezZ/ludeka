@@ -1180,6 +1180,58 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("AffiliateClicks");
             }
+
+            // 33. Crear tabla AffiliateFeedSources si no existe (Fase 2: Ingesta de Feeds Comerciales)
+            if (!existingTables.Contains("AffiliateFeedSources"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "AffiliateFeedSources" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_AffiliateFeedSources" PRIMARY KEY,
+                        "StoreName" TEXT NOT NULL,
+                        "FeedUrl" TEXT NOT NULL,
+                        "Format" INTEGER NOT NULL,
+                        "AffiliateTag" TEXT NULL,
+                        "Country" TEXT NOT NULL,
+                        "IsEnabled" INTEGER NOT NULL,
+                        "SyncIntervalHours" INTEGER NOT NULL,
+                        "LastSyncUtc" TEXT NULL,
+                        "LastSyncStatus" TEXT NULL,
+                        "MatchedProductsCount" INTEGER NOT NULL,
+                        "CreatedAtUtc" TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateFeedSources_StoreName" ON "AffiliateFeedSources" ("StoreName");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateFeedSources_IsEnabled" ON "AffiliateFeedSources" ("IsEnabled");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("AffiliateFeedSources");
+            }
+
+            // 34. Crear tabla AffiliateEanDiscrepancies si no existe (Fase 2: Discrepancias EAN de Afiliados)
+            if (!existingTables.Contains("AffiliateEanDiscrepancies"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "AffiliateEanDiscrepancies" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_AffiliateEanDiscrepancies" PRIMARY KEY,
+                        "GameId" TEXT NOT NULL,
+                        "GameTitle" TEXT NOT NULL,
+                        "GameSlug" TEXT NOT NULL,
+                        "CurrentEan" TEXT NULL,
+                        "FeedEan" TEXT NOT NULL,
+                        "StoreName" TEXT NOT NULL,
+                        "DetectedAtUtc" TEXT NOT NULL,
+                        "IsResolved" INTEGER NOT NULL,
+                        "ResolutionNote" TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateEanDiscrepancies_GameId" ON "AffiliateEanDiscrepancies" ("GameId");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateEanDiscrepancies_FeedEan" ON "AffiliateEanDiscrepancies" ("FeedEan");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateEanDiscrepancies_IsResolved" ON "AffiliateEanDiscrepancies" ("IsResolved");
+                    CREATE INDEX IF NOT EXISTS "IX_AffiliateEanDiscrepancies_DetectedAtUtc" ON "AffiliateEanDiscrepancies" ("DetectedAtUtc");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("AffiliateEanDiscrepancies");
+            }
         }
         finally
         {
