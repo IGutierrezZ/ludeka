@@ -64,9 +64,9 @@ Optimizar el rendimiento y la calidad de la ingesta de juegos y expansiones en L
   - [x] 2.1 Tests unitarios para el filtrado léxico y de tracción de expansiones en `BggRawSnapshotSyncServiceTests.cs`.
   - [x] 2.2 Implementar método de detección de promos/accesorios léxico y comprobación de umbral (`usersrated >= 30` o `owned >= 100` o versiones comerciales).
   - [x] 2.3 Conectar el cribado en `BggRawSnapshotSyncService.DiscoverAndEnqueueMissingExpansionsCoreAsync`.
-- [ ] **ODD-3 — Saneamiento de `CatalogQueueAdmin.razor`**
-  - [ ] 3.1 Purgar botones redundantes u obsoletos (sembrado de creadores, lote rápido manual, reconciliación INC-100 amortizada).
-  - [ ] 3.2 Actualizar textos, métricas y controles en la interfaz.
+- [x] **ODD-3 — Saneamiento de `CatalogQueueAdmin.razor`**
+  - [x] 3.1 Purgar botones redundantes u obsoletos (sembrado de creadores, lote rápido manual, reconciliación INC-100 amortizada).
+  - [x] 3.2 Actualizar textos, métricas y controles en la interfaz.
 - [ ] **ODD-4 — Verificación Integral y Cierre**
   - [ ] 4.1 Ejecutar suite completa de tests unitarios y verificar cero regresiones.
   - [ ] 4.2 Actualizar `docs/increments/ROADMAP.md` y `docs/increments/inc-107-ingesta-expansiones-lotes-ia.md`.
