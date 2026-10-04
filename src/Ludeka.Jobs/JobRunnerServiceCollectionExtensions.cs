@@ -26,6 +26,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, DataRetentionJobRunner>();
         services.AddScoped<IJobRunner, BggReconcileExpansionsJobRunner>();
         services.AddScoped<IJobRunner, BggVersionsSweepJobRunner>();
+        services.AddScoped<IJobRunner, CatalogFeedSyncJobRunner>();
         return services;
     }
 }

@@ -25,9 +25,9 @@
 - [x] Pruebas unitarias completas de la lógica de cruce y discrepancias en `Ludeka.UnitTests/Application/`.
 
 ## WU 05: Runner en Ludeka.Jobs y Registro de Tarea
-- [ ] Crear `CatalogFeedSyncJobRunner` en `Ludeka.Jobs.Runners` asociado al identificador `feed-sync`.
-- [ ] Registrar runner en `JobNames` y en la inyección de dependencias de `Ludeka.Jobs`.
-- [ ] Pruebas unitarias de composición y ejecución del runner en `Ludeka.UnitTests/Jobs/`.
+- [x] Crear `CatalogFeedSyncJobRunner` en `Ludeka.Jobs.Runners` asociado al identificador `feed-sync`.
+- [x] Registrar runner en `JobNames` y en la inyección de dependencias de `Ludeka.Jobs`.
+- [x] Pruebas unitarias de composición y ejecución del runner en `Ludeka.UnitTests/Jobs/`.
 
 ## WU 06: Panel de Administración Web (`/admin/afiliados`)
 - [ ] Crear componente Blazor `src/Ludeka.Web/Components/Pages/Admin/AffiliatesAdmin.razor`.
