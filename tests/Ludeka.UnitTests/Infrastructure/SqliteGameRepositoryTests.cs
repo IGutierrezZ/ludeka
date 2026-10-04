@@ -474,6 +474,42 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal(games[0].Id, results[1].Id);
     }
 
+    [Fact]
+    public async Task GetTopRankedGamesWithoutVideosAsync_FiltersOutGamesWithVideos_AndRespectsMaxRank()
+    {
+        // Arrange
+        var g1 = new Game(1001, "Top Game 1", "Top Game 1", "Autor", "Editorial", 2020, "", "", "", 8.0, 10, 8.0, ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None, TableFootprint.StandardTable, new GameDuration(30, 60, 20), []);
+        var g2WithVideo = new Game(1002, "Top Game 2", "Top Game 2", "Autor", "Editorial", 2020, "", "", "", 8.0, 20, 8.0, ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None, TableFootprint.StandardTable, new GameDuration(30, 60, 20), []);
+        var g3 = new Game(1003, "Top Game 3", "Top Game 3", "Autor", "Editorial", 2020, "", "", "", 8.0, 30, 8.0, ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None, TableFootprint.StandardTable, new GameDuration(30, 60, 20), []);
+        var g4TooLow = new Game(1004, "Low Rank Game", "Low Rank Game", "Autor", "Editorial", 2020, "", "", "", 8.0, 5000, 8.0, ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None, TableFootprint.StandardTable, new GameDuration(30, 60, 20), []);
+
+        await _context.Games.AddRangeAsync(g1, g2WithVideo, g3, g4TooLow);
+        await _context.SaveChangesAsync();
+
+        var video = new MediaItem(
+            MediaType.Tutorial,
+            MediaPlatform.YouTube,
+            "Tutorial G2",
+            "https://youtube.com/watch?v=g2vid",
+            "https://thumb.jpg",
+            "Canal",
+            gameId: g2WithVideo.Id,
+            status: ModerationStatus.Approved
+        );
+        await _context.MediaItems.AddAsync(video);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var results = await _repository.GetTopRankedGamesWithoutVideosAsync(maxRank: 4000, limit: 10);
+        var count = await _repository.GetTopRankedGamesWithoutVideosCountAsync(maxRank: 4000);
+
+        // Assert
+        Assert.Equal(2, count);
+        Assert.Equal(2, results.Count);
+        Assert.Equal(g1.Id, results[0].Id);
+        Assert.Equal(g3.Id, results[1].Id);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
