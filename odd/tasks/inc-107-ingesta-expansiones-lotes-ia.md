@@ -56,10 +56,10 @@ Optimizar el rendimiento y la calidad de la ingesta de juegos y expansiones en L
 
 ## 4. Checklist de Tareas
 
-- [ ] **ODD-1 — Motor de Ingesta Nocturna en Lotes BGG (x20) e IA (x10)**
-  - [ ] 1.1 Tests unitarios para procesamiento en lote en `NightlyCatalogingServiceTests.cs`.
-  - [ ] 1.2 Refactorizar `NightlyCatalogingService.cs` para consumir `pendingList` en bloques de 20 con `_bggClient.FetchRawThingsXmlAsync` y sintetizar con `_aiSummaryService.GenerateBatchSummariesAsync` en lotes de 10.
-  - [ ] 1.3 Elevar valor por defecto de `DailyCatalogingLimit` a 400 en `NightlyCatalogingDtos.cs` y `appsettings.json`.
+- [x] **ODD-1 — Motor de Ingesta Nocturna en Lotes BGG (x20) e IA (x10)**
+  - [x] 1.1 Tests unitarios para procesamiento en lote en `NightlyCatalogingServiceTests.cs`.
+  - [x] 1.2 Refactorizar `NightlyCatalogingService.cs` para consumir `pendingList` en bloques de 20 con `_bggClient.FetchRawThingsXmlAsync` y sintetizar con `_aiSummaryService.GenerateBatchSummariesAsync` en lotes de 10.
+  - [x] 1.3 Elevar valor por defecto de `DailyCatalogingLimit` a 400 en `NightlyCatalogingDtos.cs` y `appsettings.json`.
 - [ ] **ODD-2 — Filtro Inteligente Anti-Promos para Expansiones**
   - [ ] 2.1 Tests unitarios para el filtrado léxico y de tracción de expansiones en `BggRawSnapshotSyncServiceTests.cs`.
   - [ ] 2.2 Implementar método de detección de promos/accesorios léxico y comprobación de umbral (`usersrated >= 30` o `owned >= 100` o versiones comerciales).
