@@ -15,6 +15,7 @@ using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.YouTube;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -399,6 +400,100 @@ public class YouTubeSearchServiceTests : IAsyncLifetime
 
         Assert.NotEmpty(results);
         Assert.Equal(2, results.Count);
+    }
+
+    [Fact]
+    public async Task ExecuteSearchAsync_WithMemoryCache_ReusesCachedResultsWithoutCallingHttpTwice()
+    {
+        var callCount = 0;
+        var searchJson = """
+        {
+          "items": [
+            { "id": { "videoId": "cache-vid-1" }, "snippet": { "title": "Wingspan tutorial", "channelTitle": "Canal Test" } }
+          ]
+        }
+        """;
+        var videosJson = """
+        {
+          "items": [
+            { "id": "cache-vid-1", "snippet": { "title": "Wingspan tutorial", "channelTitle": "Canal Test" }, "contentDetails": { "duration": "PT12M" } }
+          ]
+        }
+        """;
+
+        var handler = new MockHttpMessageHandler((req) =>
+        {
+            var uri = req.RequestUri?.ToString() ?? string.Empty;
+            if (uri.Contains("search?"))
+            {
+                Interlocked.Increment(ref callCount);
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(searchJson, Encoding.UTF8, "application/json")
+                };
+            }
+            if (uri.Contains("videos?"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(videosJson, Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/") };
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var service = new YouTubeSearchService(
+            httpClient,
+            Options.Create(new YouTubeOptions { ApiKey = "fake-key", Simulate = false }),
+            _channelFocus,
+            _gameRepository,
+            _mediaRepository,
+            NullLogger<YouTubeSearchService>.Instance,
+            cache: memoryCache
+        );
+
+        // Primera llamada: debe llamar al handler HTTP
+        var res1 = await service.SearchTutorialsAsync("Wingspan");
+        Assert.Single(res1);
+        Assert.Equal(1, callCount);
+
+        // Segunda llamada con misma query: debe responder desde caché sin llamar de nuevo a search?
+        var res2 = await service.SearchTutorialsAsync("Wingspan");
+        Assert.Single(res2);
+        Assert.Equal(1, callCount);
+    }
+
+    [Fact]
+    public async Task SearchConsolidatedCandidatesAsync_InSimulatedMode_ReturnsMultiCategoryCandidates()
+    {
+        var game = await SeedGameAsync("Catan");
+        var service = CreateService(new YouTubeOptions { Simulate = true });
+
+        var results = await service.SearchConsolidatedCandidatesAsync("Catan", game.Id);
+
+        Assert.NotEmpty(results);
+        Assert.Contains(results, r => r.SuggestedType == MediaType.QuickOverview);
+        Assert.Contains(results, r => r.SuggestedType == MediaType.Tutorial);
+        Assert.Contains(results, r => r.SuggestedType == MediaType.Playthrough);
+    }
+
+    [Fact]
+    public async Task AutoSuggestAndIngestConsolidatedForGameAsync_IngestsUpToThreeCategories()
+    {
+        var game = await SeedGameAsync("Azul");
+        var service = CreateService(new YouTubeOptions { Simulate = true });
+
+        var ingested = await service.AutoSuggestAndIngestConsolidatedForGameAsync(game.Id, autoApprove: true);
+
+        Assert.NotEmpty(ingested);
+        Assert.True(ingested.Count <= 3);
+        Assert.All(ingested, i =>
+        {
+            Assert.Equal(game.Id, i.GameId);
+            Assert.Equal(ModerationStatus.Approved, i.Status);
+        });
     }
 
     private YouTubeSearchService CreateService(YouTubeOptions options)

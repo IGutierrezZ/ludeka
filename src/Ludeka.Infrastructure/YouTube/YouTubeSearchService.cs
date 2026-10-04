@@ -12,6 +12,7 @@ using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.Helpers;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,7 @@ public class YouTubeSearchService : IYouTubeSearchService
     private readonly IMediaRepository _mediaRepository;
     private readonly ILogger<YouTubeSearchService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IMemoryCache? _cache;
 
     public YouTubeSearchService(
         HttpClient httpClient,
@@ -37,7 +39,8 @@ public class YouTubeSearchService : IYouTubeSearchService
         IGameRepository gameRepository,
         IMediaRepository mediaRepository,
         ILogger<YouTubeSearchService> logger,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IMemoryCache? cache = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new YouTubeOptions();
@@ -46,6 +49,7 @@ public class YouTubeSearchService : IYouTubeSearchService
         _mediaRepository = mediaRepository ?? throw new ArgumentNullException(nameof(mediaRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
+        _cache = cache;
 
         if (_httpClient.BaseAddress == null && Uri.TryCreate(_options.BaseUrl, UriKind.Absolute, out var baseUri))
         {
@@ -245,6 +249,211 @@ public class YouTubeSearchService : IYouTubeSearchService
         return ingested;
     }
 
+    public async Task<IReadOnlyList<YouTubeSearchResultDto>> SearchConsolidatedCandidatesAsync(
+        string gameTitle,
+        Guid? gameId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(gameTitle)) return Array.Empty<YouTubeSearchResultDto>();
+
+        var cacheKey = $"yt:consolidated:{gameTitle.Trim().ToLowerInvariant()}";
+        if (_cache != null && _cache.TryGetValue<IReadOnlyList<YouTubeSearchResultDto>>(cacheKey, out var cached) && cached != null)
+        {
+            _logger.LogDebug("Resultados consolidados de YouTube recuperados de caché para '{GameTitle}'", gameTitle);
+            return cached;
+        }
+
+        Game? game = null;
+        if (gameId.HasValue)
+        {
+            try
+            {
+                game = await _gameRepository.GetByIdAsync(gameId.Value, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo cargar el juego '{GameId}' para inferir datos en búsqueda consolidada", gameId.Value);
+            }
+        }
+
+        if (_options.ShouldSimulate)
+        {
+            var simulated = YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game);
+            _cache?.Set(cacheKey, (IReadOnlyList<YouTubeSearchResultDto>)simulated, TimeSpan.FromMinutes(45));
+            return simulated;
+        }
+
+        try
+        {
+            // 1. Una sola llamada de búsqueda a YouTube con maxResults = 10 (100 unidades de cuota)
+            var query = $"{gameTitle} juego de mesa tutorial partida";
+            var searchUrl = $"search?part=snippet&q={Uri.EscapeDataString(query)}&type=video&relevanceLanguage=es&maxResults=10&key={Uri.EscapeDataString(_options.ApiKey!)}";
+            var searchResponse = await _httpClient.GetFromJsonAsync<YouTubeSearchListResponse>(searchUrl, ct).ConfigureAwait(false);
+
+            if (searchResponse?.Items == null || searchResponse.Items.Count == 0)
+            {
+                return Array.Empty<YouTubeSearchResultDto>();
+            }
+
+            var videoIds = searchResponse.Items
+                .Where(i => i.Id?.VideoId != null)
+                .Select(i => i.Id!.VideoId!)
+                .Distinct()
+                .ToList();
+
+            if (videoIds.Count == 0) return Array.Empty<YouTubeSearchResultDto>();
+
+            // 2. Una sola llamada a videos para obtener duración y metadatos (1 unidad)
+            var idsJoined = string.Join(",", videoIds);
+            var videosUrl = $"videos?part=snippet,contentDetails&id={idsJoined}&key={Uri.EscapeDataString(_options.ApiKey!)}";
+            var videosResponse = await _httpClient.GetFromJsonAsync<YouTubeVideoListResponse>(videosUrl, ct).ConfigureAwait(false);
+
+            var videoDetailsMap = (videosResponse?.Items ?? [])
+                .Where(v => !string.IsNullOrWhiteSpace(v.Id))
+                .GroupBy(v => v.Id!)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var results = new List<YouTubeSearchResultDto>();
+            var distinctSearchItems = searchResponse.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.Id?.VideoId))
+                .GroupBy(i => i.Id!.VideoId!)
+                .Select(g => g.First());
+
+            foreach (var item in distinctSearchItems)
+            {
+                var vId = item.Id?.VideoId;
+                if (string.IsNullOrWhiteSpace(vId)) continue;
+
+                videoDetailsMap.TryGetValue(vId, out var detail);
+
+                var title = detail?.Snippet?.Title ?? item.Snippet?.Title ?? gameTitle;
+                var desc = detail?.Snippet?.Description ?? item.Snippet?.Description ?? string.Empty;
+                var channel = detail?.Snippet?.ChannelTitle ?? item.Snippet?.ChannelTitle ?? string.Empty;
+                var thumb = detail?.Snippet?.Thumbnails?.High?.Url
+                    ?? detail?.Snippet?.Thumbnails?.Medium?.Url
+                    ?? item.Snippet?.Thumbnails?.High?.Url
+                    ?? item.Snippet?.Thumbnails?.Medium?.Url
+                    ?? "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=640&q=80";
+
+                int? durationSeconds = null;
+                string formattedDuration = string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(detail?.ContentDetails?.Duration))
+                {
+                    try
+                    {
+                        var ts = XmlConvert.ToTimeSpan(detail.ContentDetails.Duration);
+                        durationSeconds = (int)ts.TotalSeconds;
+                        formattedDuration = MediaItem.FormatDuration(durationSeconds);
+                    }
+                    catch { }
+                }
+
+                var isRef = _channelFocus.IsReferenceChannel(channel, out var category, out var bonus);
+                var score = 50 + (isRef ? bonus : 0);
+                if (title.Contains(gameTitle, StringComparison.OrdinalIgnoreCase)) score += 15;
+
+                var (suggestedType, playerBadge) = ClassifyVideoCandidate(title, desc, durationSeconds, game);
+
+                var resultDto = new YouTubeSearchResultDto(
+                    VideoId: vId,
+                    Title: title,
+                    Description: desc,
+                    Url: $"https://www.youtube.com/watch?v={vId}",
+                    EmbedUrl: $"https://www.youtube-nocookie.com/embed/{vId}",
+                    ThumbnailUrl: thumb,
+                    ChannelTitle: channel,
+                    DurationSeconds: durationSeconds,
+                    FormattedDuration: formattedDuration,
+                    SuggestedType: suggestedType,
+                    ExtractedPlayerBadge: playerBadge,
+                    RelevanceScore: score,
+                    IsReferenceChannel: isRef,
+                    ChannelCategory: isRef ? category.ToString() : null,
+                    PublishedAt: detail?.Snippet?.PublishedAt ?? item.Snippet?.PublishedAt
+                );
+
+                results.Add(resultDto);
+            }
+
+            var ordered = results.OrderByDescending(r => r.RelevanceScore).ToList();
+            _cache?.Set(cacheKey, (IReadOnlyList<YouTubeSearchResultDto>)ordered, TimeSpan.FromMinutes(45));
+            return ordered;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new InvalidOperationException("Cuota diaria de YouTube API excedida o clave de API no válida (HTTP 403).", ex);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not InvalidOperationException)
+        {
+            _logger.LogError(ex, "Error en búsqueda consolidada de YouTube para '{GameTitle}'", gameTitle);
+            return Array.Empty<YouTubeSearchResultDto>();
+        }
+    }
+
+    public async Task<IReadOnlyList<MediaItemDto>> AutoSuggestAndIngestConsolidatedForGameAsync(
+        Guid gameId,
+        bool autoApprove = false,
+        CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var game = await _gameRepository.GetByIdAsync(gameId, ct);
+        if (game == null) return Array.Empty<MediaItemDto>();
+
+        var searchTitle = !string.IsNullOrWhiteSpace(game.SpanishTitle) ? game.SpanishTitle : game.OriginalTitle;
+        var candidates = await SearchConsolidatedCandidatesAsync(searchTitle, gameId, ct);
+        var ingested = new List<MediaItemDto>();
+
+        // 1. Mejor QuickOverview
+        var topQuick = candidates.FirstOrDefault(c => c.SuggestedType == MediaType.QuickOverview);
+        if (topQuick != null)
+        {
+            var item = await TryIngestCandidateAsync(game.Id, topQuick, MediaType.QuickOverview, null, autoApprove, ct);
+            if (item != null) ingested.Add(item);
+        }
+
+        // 2. Mejor Tutorial
+        var topTut = candidates.FirstOrDefault(c => c.SuggestedType == MediaType.Tutorial);
+        if (topTut != null)
+        {
+            var item = await TryIngestCandidateAsync(game.Id, topTut, MediaType.Tutorial, null, autoApprove, ct);
+            if (item != null) ingested.Add(item);
+        }
+
+        // 3. Mejor Playthrough
+        var topPlay = candidates.FirstOrDefault(c => c.SuggestedType == MediaType.Playthrough);
+        if (topPlay != null)
+        {
+            var item = await TryIngestCandidateAsync(game.Id, topPlay, MediaType.Playthrough, topPlay.ExtractedPlayerBadge, autoApprove, ct);
+            if (item != null) ingested.Add(item);
+        }
+
+        return ingested;
+    }
+
+    private static (MediaType Type, string? Badge) ClassifyVideoCandidate(
+        string title,
+        string description,
+        int? durationSeconds,
+        Game? game)
+    {
+        var lowerTitle = title.ToLowerInvariant();
+
+        if (lowerTitle.Contains("partida") || lowerTitle.Contains("gameplay") || lowerTitle.Contains("jugando") || lowerTitle.Contains("let's play"))
+        {
+            var badge = PlayerCountExtractor.ExtractPlayerBadge(title, description, game);
+            return (MediaType.Playthrough, badge);
+        }
+
+        if (durationSeconds is <= 240 || lowerTitle.Contains("cómo funciona") || lowerTitle.Contains("en 1 minuto") || lowerTitle.Contains("en 2 minutos") || lowerTitle.Contains("vistazo") || lowerTitle.Contains("explicación rápida"))
+        {
+            return (MediaType.QuickOverview, null);
+        }
+
+        return (MediaType.Tutorial, null);
+    }
+
     private async Task<MediaItemDto?> TryIngestCandidateAsync(
         Guid gameId,
         YouTubeSearchResultDto candidate,
@@ -289,9 +498,18 @@ public class YouTubeSearchService : IYouTubeSearchService
         Game? game,
         CancellationToken ct)
     {
+        var cacheKey = $"yt:search:{targetType}:{(query ?? string.Empty).Trim().ToLowerInvariant()}";
+        if (_cache != null && _cache.TryGetValue<List<YouTubeSearchResultDto>>(cacheKey, out var cached) && cached != null)
+        {
+            _logger.LogDebug("Resultados de búsqueda en YouTube recuperados de caché para clave '{CacheKey}'", cacheKey);
+            return cached;
+        }
+
         if (_options.ShouldSimulate)
         {
-            return FilterSimulated(YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game), targetType);
+            var simulated = FilterSimulated(YouTubeSimulationDataset.GetCuratedOrGeneratedVideos(gameTitle, game), targetType);
+            _cache?.Set(cacheKey, simulated, TimeSpan.FromMinutes(45));
+            return simulated;
         }
 
         try
@@ -398,7 +616,9 @@ public class YouTubeSearchService : IYouTubeSearchService
                 results.Add(resultDto);
             }
 
-            return results.OrderByDescending(r => r.RelevanceScore).ToList();
+            var ordered = results.OrderByDescending(r => r.RelevanceScore).ToList();
+            _cache?.Set(cacheKey, ordered, TimeSpan.FromMinutes(45));
+            return ordered;
         }
         catch (OperationCanceledException)
         {
