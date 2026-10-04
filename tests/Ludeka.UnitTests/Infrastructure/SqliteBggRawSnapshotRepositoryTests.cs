@@ -118,6 +118,32 @@ public class SqliteBggRawSnapshotRepositoryTests : IDisposable
         Assert.Equal(2, all.Count);
     }
 
+    [Fact]
+    public async Task GetBggIdsMissingVersionsAsync_ShouldReturnOnlySnapshotsLackingVersionsAndExcludeNotFound()
+    {
+        await _repository.UpsertAsync(new BggRawSnapshot(401, "{\"name\":\"Catan\"}"));
+        await _repository.UpsertAsync(new BggRawSnapshot(402, "{\"name\":\"Power Grid\",\"versions\":[]}"));
+        await _repository.UpsertAsync(new BggRawSnapshot(403, "{\"notFound\":true}"));
+
+        var missing = await _repository.GetBggIdsMissingVersionsAsync(limit: 10);
+
+        Assert.Single(missing);
+        Assert.Equal(401, missing[0]);
+    }
+
+    [Fact]
+    public async Task GetCountWithVersionsAsync_ShouldReturnCountOfSnapshotsContainingVersionsKey()
+    {
+        await _repository.UpsertAsync(new BggRawSnapshot(501, "{\"name\":\"Catan\"}"));
+        await _repository.UpsertAsync(new BggRawSnapshot(502, "{\"name\":\"Power Grid\",\"versions\":[{\"id\":1}]}"));
+        await _repository.UpsertAsync(new BggRawSnapshot(503, "{\"name\":\"Ticket to Ride\",\"versions\":[{\"id\":2}]}"));
+        await _repository.UpsertAsync(new BggRawSnapshot(504, "{\"notFound\":true}"));
+
+        int count = await _repository.GetCountWithVersionsAsync();
+
+        Assert.Equal(2, count);
+    }
+
     private static Game CreateTestGame(int bggId, string title, int? rank = null)
     {
         return new Game(
