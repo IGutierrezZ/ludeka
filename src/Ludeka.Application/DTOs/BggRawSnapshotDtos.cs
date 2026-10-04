@@ -21,7 +21,9 @@ public record BggRawSnapshotStatusDto(
     int PendingSnapshots,
     int TotalExpansions,
     int LinkedExpansions,
-    int UnlinkedExpansions
+    int UnlinkedExpansions,
+    int SnapshotsWithVersions = 0,
+    int SnapshotsPendingVersions = 0
 );
 
 /// <summary>

@@ -196,6 +196,111 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         Assert.NotNull(snapshot25);
     }
 
+    [Fact]
+    public async Task GetStatusAsync_ShouldIncludeVersionMetrics()
+    {
+        var game1 = CreateGame(1, "Game 1");
+        var game2 = CreateGame(2, "Game 2");
+        _context.Games.AddRange(game1, game2);
+        await _context.SaveChangesAsync();
+
+        // 1 snapshot con versiones, 1 snapshot sin versiones
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(1, "{\"item\":{\"@id\":\"1\",\"versions\":{\"item\":{}}}}"));
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(2, "{\"item\":{\"@id\":\"2\"}}"));
+
+        var status = await _service.GetStatusAsync();
+
+        Assert.Equal(2, status.TotalGamesWithBggId);
+        Assert.Equal(2, status.TotalSnapshots);
+        Assert.Equal(1, status.SnapshotsWithVersions);
+        Assert.Equal(1, status.SnapshotsPendingVersions);
+    }
+
+    [Fact]
+    public async Task SyncVersionsBatchAsync_ShouldFetchVersionsAndHotUpdateGameTitleAndEan()
+    {
+        // Arrange
+        var game = CreateGame(2651, "Power Grid");
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Snapshot inicial sin versiones
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(2651, "{\"item\":{\"@id\":\"2651\"}}"));
+
+        const string xmlWithVersions = @"
+<items>
+  <item type=""boardgame"" id=""2651"">
+    <name type=""primary"" value=""Power Grid"" />
+    <versions>
+      <item type=""boardgameversion"" id=""21950"">
+        <name type=""primary"" value=""Alta Tensión"" />
+        <link type=""language"" id=""2195"" value=""Spanish"" />
+        <link type=""boardgamepublisher"" id=""2222"" value=""Edge Entertainment"" />
+        <barcode value=""8435407626515"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        _bggClient.SetupXml(2651, xmlWithVersions);
+
+        // Act
+        var result = await _service.SyncVersionsBatchAsync(batchSize: 10, delayMs: 0);
+
+        // Assert
+        Assert.Equal(1, result.ProcessedCount);
+        Assert.Equal(1, result.SuccessCount);
+
+        // Verificar juego en caliente
+        var updatedGame = await _gameRepo.GetByBggIdAsync(2651);
+        Assert.NotNull(updatedGame);
+        Assert.Equal("Alta Tensión", updatedGame.SpanishTitle);
+        Assert.Equal("Edge Entertainment", updatedGame.SpanishPublisher);
+        Assert.Equal("8435407626515", updatedGame.Ean);
+        Assert.Equal("Alta Tensión", updatedGame.LocalizedTitles[0].Title);
+    }
+
+    [Fact]
+    public async Task SweepCatalogFromVersionsAsync_ShouldReadLocalSnapshotsAndHotUpdateCatalog_WithoutNetwork()
+    {
+        // Arrange: Juego en base de datos con título en inglés y sin EAN
+        var game = CreateGame(2651, "Power Grid");
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Snapshot ya guardado localmente con versiones
+        const string xmlWithVersions = @"
+<items>
+  <item type=""boardgame"" id=""2651"">
+    <name type=""primary"" value=""Power Grid"" />
+    <versions>
+      <item type=""boardgameversion"" id=""21950"">
+        <name type=""primary"" value=""Alta Tensión"" />
+        <link type=""language"" id=""2195"" value=""Spanish"" />
+        <link type=""boardgamepublisher"" id=""2222"" value=""Edge Entertainment"" />
+        <barcode value=""8435407626515"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xmlWithVersions);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(2651, json));
+
+        // Act: Barrido 100% offline
+        var result = await _service.SweepCatalogFromVersionsAsync(batchSize: 50, lastBggId: 0);
+
+        // Assert
+        Assert.Equal(1, result.EvaluatedCount);
+        Assert.Equal(1, result.UpdatedTitlesCount);
+        Assert.Equal(1, result.UpdatedEansCount);
+        Assert.Equal(0, result.SkippedCount);
+
+        var updatedGame = await _gameRepo.GetByBggIdAsync(2651);
+        Assert.NotNull(updatedGame);
+        Assert.Equal("Alta Tensión", updatedGame.SpanishTitle);
+        Assert.Equal("Edge Entertainment", updatedGame.SpanishPublisher);
+        Assert.Equal("8435407626515", updatedGame.Ean);
+    }
+
     private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null)
     {
         return new Game(
@@ -233,11 +338,17 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         }
 
         public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+            => FetchRawThingXmlAsync(bggId, false, ct);
+
+        public Task<string?> FetchRawThingXmlAsync(int bggId, bool includeVersions, CancellationToken ct = default)
         {
             return Task.FromResult<string?>(_xmlPayloads.GetValueOrDefault(bggId, $"<items><item type=\"boardgame\" id=\"{bggId}\"><name type=\"primary\" value=\"Juego {bggId}\" /></item></items>"));
         }
 
         public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+            => FetchRawThingsXmlAsync(bggIds, false, ct);
+
+        public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
         {
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("<items>");

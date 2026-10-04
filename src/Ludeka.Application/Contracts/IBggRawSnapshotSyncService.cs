@@ -63,4 +63,30 @@ public interface IBggRawSnapshotSyncService
     /// Versión de sistema para reconciliación y vinculación de expansiones sin guarda interactiva.
     /// </summary>
     Task<BggExpansionReconciliationResultDto> RunScheduledReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sincroniza versiones (&amp;versions=1) desde BGG para los snapshots existentes que carecen de ellas,
+    /// actualizando en caliente el título en español, editorial y EAN de los juegos correspondientes.
+    /// </summary>
+    Task<BggRawSnapshotSyncResultDto> SyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+        => Task.FromResult(new BggRawSnapshotSyncResultDto(0, 0, 0, [], []));
+
+    /// <summary>
+    /// Versión de sistema para sincronización de versiones sin guarda interactiva.
+    /// </summary>
+    Task<BggRawSnapshotSyncResultDto> RunScheduledSyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+        => Task.FromResult(new BggRawSnapshotSyncResultDto(0, 0, 0, [], []));
+
+    /// <summary>
+    /// Barrido local (100% offline) de snapshots que contienen versiones para extraer y actualizar en catálogo
+    /// títulos en español, editoriales y códigos de barras EAN-13 normalizados.
+    /// </summary>
+    Task<BggVersionCatalogSweepResultDto> SweepCatalogFromVersionsAsync(int batchSize = 200, int lastBggId = 0, CancellationToken ct = default)
+        => Task.FromResult(new BggVersionCatalogSweepResultDto(0, 0, 0, 0, 0, lastBggId, false, string.Empty));
+
+    /// <summary>
+    /// Versión de sistema para barrido local de versiones sin guarda interactiva.
+    /// </summary>
+    Task<BggVersionCatalogSweepResultDto> RunScheduledSweepCatalogFromVersionsAsync(int batchSize = 200, int lastBggId = 0, CancellationToken ct = default)
+        => Task.FromResult(new BggVersionCatalogSweepResultDto(0, 0, 0, 0, 0, lastBggId, false, string.Empty));
 }

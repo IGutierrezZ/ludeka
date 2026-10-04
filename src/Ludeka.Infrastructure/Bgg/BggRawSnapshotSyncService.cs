@@ -63,6 +63,9 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         int totalSnapshots = await _snapshotRepo.GetCountAsync(ct);
         int pendingSnapshots = Math.Max(0, totalGamesWithBgg - totalSnapshots);
 
+        int snapshotsWithVersions = await _snapshotRepo.GetCountWithVersionsAsync(ct);
+        int snapshotsPendingVersions = Math.Max(0, totalSnapshots - snapshotsWithVersions);
+
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         int totalExpansions = await context.Games.CountAsync(g => g.Type == GameType.Expansion, ct);
         int linkedExpansions = await context.Games.CountAsync(g => g.Type == GameType.Expansion && g.BaseGameId != null, ct);
@@ -74,7 +77,9 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
             PendingSnapshots: pendingSnapshots,
             TotalExpansions: totalExpansions,
             LinkedExpansions: linkedExpansions,
-            UnlinkedExpansions: unlinkedExpansions
+            UnlinkedExpansions: unlinkedExpansions,
+            SnapshotsWithVersions: snapshotsWithVersions,
+            SnapshotsPendingVersions: snapshotsPendingVersions
         );
     }
 
@@ -111,7 +116,7 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
 
             try
             {
-                var xml = await _bggClient.FetchRawThingsXmlAsync(chunk, ct);
+                var xml = await _bggClient.FetchRawThingsXmlAsync(chunk, includeVersions: true, ct);
                 if (string.IsNullOrWhiteSpace(xml))
                 {
                     _logger.LogWarning("BGG no devolvió XML válido para el bloque de {Count} títulos", chunk.Length);
@@ -501,7 +506,7 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
 
         try
         {
-            var xml = await _bggClient.FetchRawThingXmlAsync(bggId, ct);
+            var xml = await _bggClient.FetchRawThingXmlAsync(bggId, includeVersions: true, ct);
             if (string.IsNullOrWhiteSpace(xml)) return false;
 
             var doc = XDocument.Parse(xml);
@@ -518,5 +523,213 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
             _logger.LogWarning(ex, "Error al asegurar snapshot para BggId {BggId}: {Message}", bggId, ex.Message);
             return false;
         }
+    }
+
+    public async Task<BggRawSnapshotSyncResultDto> SyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await SyncVersionsBatchCoreAsync(batchSize, delayMs, ct);
+    }
+
+    public Task<BggRawSnapshotSyncResultDto> RunScheduledSyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+    {
+        return SyncVersionsBatchCoreAsync(batchSize, delayMs, ct);
+    }
+
+    private async Task<BggRawSnapshotSyncResultDto> SyncVersionsBatchCoreAsync(int batchSize, int delayMs, CancellationToken ct)
+    {
+        var targetIds = await _snapshotRepo.GetBggIdsMissingVersionsAsync(batchSize, ct);
+        if (targetIds.Count == 0)
+        {
+            return new BggRawSnapshotSyncResultDto(0, 0, 0, [], [], "Todos los snapshots almacenados ya cuentan con datos de versiones.");
+        }
+
+        int successCount = 0;
+        int failedCount = 0;
+        var syncedTitles = new List<string>();
+        var updatedGames = new List<string>();
+
+        var chunks = targetIds
+            .Select((id, index) => new { id, index })
+            .GroupBy(x => x.index / 20)
+            .Select(g => g.Select(x => x.id).ToList())
+            .ToList();
+
+        for (int i = 0; i < chunks.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var chunk = chunks[i];
+
+            try
+            {
+                string? xmlContent = await _bggClient.FetchRawThingsXmlAsync(chunk, includeVersions: true, ct);
+                if (string.IsNullOrWhiteSpace(xmlContent))
+                {
+                    failedCount += chunk.Count;
+                }
+                else
+                {
+                    successCount += chunk.Count;
+
+                    var doc = XDocument.Parse(xmlContent);
+                    var items = doc.Root?.Elements("item")?.ToList() ?? new List<XElement>();
+
+                    await using var context = await _contextFactory.CreateDbContextAsync(ct);
+                    var games = await context.Games.Where(g => chunk.Contains(g.BggId)).ToListAsync(ct);
+                    var gamesMap = games.ToDictionary(g => g.BggId);
+
+                    foreach (var item in items)
+                    {
+                        if (int.TryParse(item.Attribute("id")?.Value, out int bggId) && bggId > 0)
+                        {
+                            string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                            var snapshot = new BggRawSnapshot(bggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                            await _snapshotRepo.UpsertAsync(snapshot, ct);
+
+                            if (gamesMap.TryGetValue(bggId, out var game))
+                            {
+                                var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
+                                if (vInfo != null)
+                                {
+                                    bool modified = false;
+                                    if (!string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
+                                    {
+                                        game.UpdateSpanishTitle(vInfo.Title);
+                                        modified = true;
+                                    }
+                                    if (!string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                                    {
+                                        game.UpdateSpanishPublisher(vInfo.Publisher);
+                                        modified = true;
+                                    }
+                                    if (!string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
+                                    {
+                                        game.UpdateEan(vInfo.Ean);
+                                        modified = true;
+                                    }
+                                    if (modified)
+                                    {
+                                        updatedGames.Add($"{game.OriginalTitle} -> {game.SpanishTitle}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    await context.SaveChangesAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al sincronizar versiones para lote de BGG: {Message}", ex.Message);
+                failedCount += chunk.Count;
+            }
+
+            if (i < chunks.Count - 1 && delayMs > 0)
+            {
+                await Task.Delay(delayMs, ct);
+            }
+        }
+
+        string msg = $"Sincronización de versiones finalizada: {successCount} snapshots actualizados, {updatedGames.Count} juegos actualizados en catálogo.";
+        return new BggRawSnapshotSyncResultDto(targetIds.Count, successCount, failedCount, syncedTitles, updatedGames, msg);
+    }
+
+    public async Task<BggVersionCatalogSweepResultDto> SweepCatalogFromVersionsAsync(int batchSize = 200, int lastBggId = 0, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        return await SweepCatalogFromVersionsCoreAsync(batchSize, lastBggId, ct);
+    }
+
+    public Task<BggVersionCatalogSweepResultDto> RunScheduledSweepCatalogFromVersionsAsync(int batchSize = 200, int lastBggId = 0, CancellationToken ct = default)
+    {
+        return SweepCatalogFromVersionsCoreAsync(batchSize, lastBggId, ct);
+    }
+
+    private async Task<BggVersionCatalogSweepResultDto> SweepCatalogFromVersionsCoreAsync(int batchSize, int lastBggId, CancellationToken ct)
+    {
+        var snapshots = await _snapshotRepo.GetSnapshotsAfterBggIdAsync(lastBggId, batchSize, ct);
+        if (snapshots.Count == 0)
+        {
+            return new BggVersionCatalogSweepResultDto(0, 0, 0, 0, 0, lastBggId, false, "No hay más snapshots pendientes de barrido.");
+        }
+
+        int evaluated = 0;
+        int updatedTitles = 0;
+        int updatedEans = 0;
+        int skipped = 0;
+        int failed = 0;
+        int newLastBggId = lastBggId;
+
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var bggIds = snapshots.Select(s => s.BggId).ToList();
+        var gamesMap = await context.Games
+            .Where(g => bggIds.Contains(g.BggId))
+            .ToDictionaryAsync(g => g.BggId, ct);
+
+        foreach (var s in snapshots)
+        {
+            newLastBggId = Math.Max(newLastBggId, s.BggId);
+            evaluated++;
+
+            try
+            {
+                if (!BggRawSnapshotParser.HasVersionsFromJson(s.RawJson))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(s.RawJson);
+                if (vInfo == null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!gamesMap.TryGetValue(s.BggId, out var game))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                bool modified = false;
+
+                if (!string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
+                {
+                    game.UpdateSpanishTitle(vInfo.Title);
+                    updatedTitles++;
+                    modified = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                {
+                    game.UpdateSpanishPublisher(vInfo.Publisher);
+                    modified = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
+                {
+                    game.UpdateEan(vInfo.Ean);
+                    updatedEans++;
+                    modified = true;
+                }
+
+                if (!modified)
+                {
+                    skipped++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al evaluar versiones locales para BggId {BggId}: {Message}", s.BggId, ex.Message);
+                failed++;
+            }
+        }
+
+        await context.SaveChangesAsync(ct);
+
+        bool hasMore = snapshots.Count >= batchSize;
+        string msg = $"Barrido de versiones completado: {evaluated} evaluados, {updatedTitles} títulos actualizados, {updatedEans} EANs asignados.";
+        return new BggVersionCatalogSweepResultDto(evaluated, updatedTitles, updatedEans, skipped, failed, newLastBggId, hasMore, msg);
     }
 }
