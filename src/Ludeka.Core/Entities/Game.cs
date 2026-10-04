@@ -40,6 +40,7 @@ public partial class Game
     public string? SpanishPublisher { get; private set; }
     public List<RegionalPublisherEntry> RegionalPublishers { get; private set; } = [];
     public List<LocalizedTitleEntry> LocalizedTitles { get; private set; } = [];
+    public string? Ean { get; private set; }
 
     // --- Soporte de Expansiones y Ecosistema (Incremento 8) ---
     public GameType Type { get; private set; } = GameType.BaseGame;
@@ -416,6 +417,41 @@ public partial class Game
         {
             LocalizedTitles.AddRange(localizedTitles);
         }
+    }
+
+    public void UpdateEan(string? ean)
+    {
+        if (string.IsNullOrWhiteSpace(ean))
+        {
+            Ean = null;
+            return;
+        }
+
+        if (BarcodeValidator.TryNormalizeEan13(ean, out string normalized))
+        {
+            Ean = normalized;
+        }
+        else
+        {
+            string clean = ean.Trim();
+            Ean = clean.Length <= 14 ? clean : clean.Substring(0, 14);
+        }
+    }
+
+    public void UpdateSpanishTitle(string spanishTitle)
+    {
+        if (string.IsNullOrWhiteSpace(spanishTitle))
+            throw new ArgumentException("El título en español no puede estar vacío.", nameof(spanishTitle));
+
+        SpanishTitle = spanishTitle.Trim();
+
+        // Sincronizar o insertar la entrada en LocalizedTitles para ES
+        var existingEs = LocalizedTitles.FirstOrDefault(l => string.Equals(l.CountryCode, "ES", StringComparison.OrdinalIgnoreCase));
+        if (existingEs != null)
+        {
+            LocalizedTitles.Remove(existingEs);
+        }
+        LocalizedTitles.Insert(0, new LocalizedTitleEntry("ES", SpanishTitle));
     }
 
     public string GetPublisherForCountry(string? countryCode)
