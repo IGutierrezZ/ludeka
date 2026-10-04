@@ -870,5 +870,47 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .Where(g => g.Type == GameType.Expansion && g.BaseGameId == null && g.BggId > 0)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Game>> GetTopRankedGamesWithoutVideosAsync(
+        int maxRank = 4000,
+        int limit = 60,
+        int afterRank = 0,
+        CancellationToken ct = default)
+    {
+        if (limit <= 0) limit = 60;
+        await using var scope = await CreateScopeAsync(ct);
+
+        var gamesWithVideos = scope.Context.MediaItems
+            .Where(m => m.GameId.HasValue && m.Platform == MediaPlatform.YouTube)
+            .Select(m => m.GameId!.Value)
+            .Distinct();
+
+        var query = scope.Context.Games
+            .AsNoTracking()
+            .Where(g => g.BggRank.HasValue && g.BggRank.Value > afterRank && g.BggRank.Value <= maxRank)
+            .Where(g => !gamesWithVideos.Contains(g.Id))
+            .OrderBy(g => g.BggRank!.Value)
+            .Take(limit);
+
+        return await query.ToListAsync(ct);
+    }
+
+    public async Task<int> GetTopRankedGamesWithoutVideosCountAsync(
+        int maxRank = 4000,
+        CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+
+        var gamesWithVideos = scope.Context.MediaItems
+            .Where(m => m.GameId.HasValue && m.Platform == MediaPlatform.YouTube)
+            .Select(m => m.GameId!.Value)
+            .Distinct();
+
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => g.BggRank.HasValue && g.BggRank.Value > 0 && g.BggRank.Value <= maxRank)
+            .Where(g => !gamesWithVideos.Contains(g.Id))
+            .CountAsync(ct);
+    }
 }
 

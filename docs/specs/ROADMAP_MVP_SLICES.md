@@ -1037,8 +1037,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Menú Desplegable Enriquecido:** Mantener la información de usuario (nombre y rol) y todos los accesos canónicos dentro del desplegable al interactuar con el botón.
   3. **Eliminación del Submenú Redundante:** Retirar el montaje de `<AccountSectionNav>` en todas las páginas del área de cuenta (`MyLibrary.razor`, `AccountAppearance.razor`, `AccountCountry.razor`, `AccountPrivacy.razor` y `AccountConnections.razor`), ya que todas las opciones están directamente disponibles en el menú de usuario de la cabecera.
   4. **Retirada de Componente Obsoleto:** Eliminar `AccountSectionNav.razor` y actualizar la suite de pruebas de contrato en `AccountMenuContractTests.cs`, `AccountAreaContractTests.cs` y `AccountPreferencesContractTests.cs`.
-- **Estado:** ⏳ **En progreso** (2.340 pruebas unitarias pasando al 100%).
-- **Documento:** [`inc-104-simplificacion-menu-cuenta.md`](../increments/inc-104-simplificacion-menu-cuenta.md).
+## Incremento 106: Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000
+- **Identificador SDD:** `youtube-modal-cache-autoingesta`
+- **Objetivo Principal:**
+  1. **Permanencia del Modal al Incorporar Vídeos:** Evitar el cierre forzado del modal en `MultimediaHub.razor` tras aprobar o enviar un vídeo a pendientes, manteniendo la ventana abierta y actualizando el Hub en segundo plano.
+  2. **Estado Visual Reactivo en Resultados:** Señalizar en `YouTubeSearchModal.razor` qué vídeos ya han sido procesados en la sesión (badges e indicadores "Aprobado" y "En Pendientes" con botones deshabilitados), previniendo clics redundantes.
+  3. **Preservación de Resultados al Reabrir:** Evitar la purga destructiva de resultados cargados en `OnParametersSetAsync` cuando el juego o término no ha cambiado.
+  4. **Capa de Caché en Memoria (`IMemoryCache`):** Almacenar en `YouTubeSearchService` las respuestas de búsqueda durante 30-60 minutos por término y categoría normalizada, protegiendo la cuota de la API contra peticiones repetidas.
+  5. **Búsqueda Consolidada de Ahorro de Cuota (100 unidades vs 300):** Implementar método de 1 sola búsqueda en YouTube (`SearchConsolidatedCandidatesAsync`) para auto-ingesta que obtenga candidatos y clasifique en memoria las categorías lúdicas.
+  6. **Auto-Ingesta Desatendida con Control Estricto de Cuota (60 juegos/día):** Servicio y runner en segundo plano para procesar progresivamente los juegos del top 4.000 por `BggRank` que no disponen de vídeos, consumiendo un máximo de 6.000 unidades diarias y reservando 4.000 unidades para uso interactivo.
+- **Estado:** ✅ **Archivado** (2.378 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-106-youtube-modal-cache-autoingesta.md`](../increments/archive/inc-106-youtube-modal-cache-autoingesta.md).
+- **Módulos del Sistema:** [`04-hub-multimedia.md`](sistema/04-hub-multimedia.md).
 
 ---
 

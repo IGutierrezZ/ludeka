@@ -136,6 +136,18 @@ public class LudekaPersistenceAndDomainServicesTests
             throw new NotImplementedException();
     }
 
+    private sealed class FakeYouTubeSearchService : IYouTubeSearchService
+    {
+        public Task<IReadOnlyList<YouTubeSearchResultDto>> SearchVideosForGameAsync(Guid gameId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<YouTubeSearchResultDto>> SearchQuickOverviewsAsync(string gameTitle, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<YouTubeSearchResultDto>> SearchTutorialsAsync(string gameTitle, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<YouTubeSearchResultDto>> SearchPlaythroughsAsync(string gameTitle, Guid? gameId = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<YouTubeSearchResultDto>> SearchConsolidatedCandidatesAsync(string gameTitle, Guid? gameId = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<MediaItemDto> IngestVideoAsync(YouTubeIngestRequestDto request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<MediaItemDto>> AutoSuggestAndIngestForGameAsync(Guid gameId, bool autoApprove = false, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<MediaItemDto>> AutoSuggestAndIngestConsolidatedForGameAsync(Guid gameId, bool autoApprove = false, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Registra dobles mínimos de los límites de <c>AddLudekaExternalIntegrations</c> (R2b) que los
     /// servicios de dominio de R2a exigen como dependencia dura de constructor. Ninguno se invoca:
@@ -158,7 +170,8 @@ public class LudekaPersistenceAndDomainServicesTests
             .AddSingleton<IInstagramApiClient, FakeInstagramApiClient>()
             .AddSingleton<ISocialMetadataExtractor, FakeSocialMetadataExtractor>()
             .AddSingleton<ISocialAiAnalysisService, FakeSocialAiAnalysisService>()
-            .AddSingleton<IImageStorageService, FakeImageStorageService>();
+            .AddSingleton<IImageStorageService, FakeImageStorageService>()
+            .AddSingleton<IYouTubeSearchService, FakeYouTubeSearchService>();
 
     [Fact]
     public void AddLudekaPersistenceAndAddLudekaDomainServices_ResolveExpectedDomainServices()
@@ -189,6 +202,7 @@ public class LudekaPersistenceAndDomainServicesTests
         Assert.IsAssignableFrom<ICommunityNotificationService>(sp.GetRequiredService<ICommunityNotificationService>());
         Assert.IsAssignableFrom<IGiveawayService>(sp.GetRequiredService<IGiveawayService>());
         Assert.IsAssignableFrom<IUserLibraryService>(sp.GetRequiredService<IUserLibraryService>());
+        Assert.IsAssignableFrom<IYouTubeCatalogAutoIngestService>(sp.GetRequiredService<IYouTubeCatalogAutoIngestService>());
     }
 
     // Nota de alcance (tasks.md 2.5, cerrada por R2b): el riesgo 2 de la propuesta (orden de registro

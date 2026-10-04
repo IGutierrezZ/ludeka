@@ -144,6 +144,10 @@ public static class LudekaServiceCollectionExtensions
         services.AddHttpClient<IBrokenLinkCheckerService, BrokenLinkCheckerService>();
         services.AddScoped<IMediaService, MediaService>();
 
+        // Incremento 106: Auto-ingesta gradual de vídeos para el top 4.000 sin cobertura audiovisual
+        services.Configure<YouTubeAutoIngestOptions>(configuration.GetSection(YouTubeAutoIngestOptions.SectionName));
+        services.AddScoped<IYouTubeCatalogAutoIngestService, YouTubeCatalogAutoIngestService>();
+
         services.AddScoped<IPendingBggImportRepository, SqlitePendingBggImportRepository>();
         services.AddScoped<IBggImportService, BggImportService>();
         services.AddScoped<IBggCatalogQueueService, BggCatalogQueueService>();

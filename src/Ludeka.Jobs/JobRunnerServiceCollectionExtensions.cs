@@ -27,6 +27,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, BggReconcileExpansionsJobRunner>();
         services.AddScoped<IJobRunner, BggVersionsSweepJobRunner>();
         services.AddScoped<IJobRunner, CatalogFeedSyncJobRunner>();
+        services.AddScoped<IJobRunner, YouTubeAutoIngestJobRunner>();
         return services;
     }
 }

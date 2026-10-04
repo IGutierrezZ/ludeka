@@ -712,7 +712,6 @@
 
     private async Task HandleYouTubeVideoIngestedAsync()
     {
-        _isYouTubeSearchOpen = false;
         _bannerSuccess = true;
         _bannerMessage = "Vídeo incorporado con éxito al Hub Multimedia.";
         await OnMediaChanged.InvokeAsync();

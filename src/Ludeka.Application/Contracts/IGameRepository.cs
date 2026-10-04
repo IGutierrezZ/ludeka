@@ -63,5 +63,17 @@ public interface IGameRepository
 
     Task<IReadOnlyList<Game>> GetUnlinkedExpansionsAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<IReadOnlyList<Game>> GetTopRankedGamesWithoutVideosAsync(
+        int maxRank = 4000,
+        int limit = 60,
+        int afterRank = 0,
+        CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Game>>([]);
+
+    Task<int> GetTopRankedGamesWithoutVideosCountAsync(
+        int maxRank = 4000,
+        CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 

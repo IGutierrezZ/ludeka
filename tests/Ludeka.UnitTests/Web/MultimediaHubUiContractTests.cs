@@ -94,6 +94,26 @@ public class MultimediaHubUiContractTests
         Assert.Contains("public string? InitialGameTitle { get; set; }", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MultimediaHub_ShouldKeepYouTubeSearchModalOpen_AfterIngestion()
+    {
+        var source = ReadSource(MultimediaHubPath);
+
+        Assert.Contains("HandleYouTubeVideoIngestedAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("_isYouTubeSearchOpen = false;", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void YouTubeSearchModal_ShouldDeclareProcessedVideosStateAndBadges()
+    {
+        var source = ReadSource("src/Ludeka.Web/Components/Shared/YouTubeSearchModal.razor");
+
+        Assert.Contains("_processedVideos", source, StringComparison.Ordinal);
+        Assert.Contains("Aprobado", source, StringComparison.Ordinal);
+        Assert.Contains("En Pendientes", source, StringComparison.Ordinal);
+        Assert.Contains("_loadedForGameId", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

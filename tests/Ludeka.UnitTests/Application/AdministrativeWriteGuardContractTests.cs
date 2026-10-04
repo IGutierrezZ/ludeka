@@ -39,6 +39,7 @@ public class AdministrativeWriteGuardContractTests
         typeof(GeminiGameSummaryService),
         typeof(InstagramPublisherService),
         typeof(MediaService),
+        typeof(YouTubeCatalogAutoIngestService),
     };
 
     [Theory]
