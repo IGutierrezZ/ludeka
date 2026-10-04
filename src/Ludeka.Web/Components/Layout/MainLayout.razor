@@ -136,6 +136,16 @@
                                             </div>
                                         </a>
                                     }
+                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
+                                    {
+                                        <a href="/admin/afiliados" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
+                                            <span class="text-emerald-400"><Icon Name="shopping-bag" Size="14" /></span>
+                                            <div>
+                                                <div class="font-bold text-[var(--text-primary)]">Feeds & Afiliados</div>
+                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Catálogos comerciales y discrepancias EAN</div>
+                                            </div>
+                                        </a>
+                                    }
                                     @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
                                     {
                                         <a href="/admin/ingesta-social" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">

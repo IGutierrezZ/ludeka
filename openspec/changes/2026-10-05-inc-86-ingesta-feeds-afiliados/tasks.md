@@ -30,11 +30,11 @@
 - [x] Pruebas unitarias de composición y ejecución del runner en `Ludeka.UnitTests/Jobs/`.
 
 ## WU 06: Panel de Administración Web (`/admin/afiliados`)
-- [ ] Crear componente Blazor `src/Ludeka.Web/Components/Pages/Admin/AffiliatesAdmin.razor`.
-- [ ] Pestaña 1: Listado y edición de fuentes de feeds (URL, tienda, conmutador de estado, botón "Sincronizar ahora").
-- [ ] Pestaña 2: Cola de discrepancias EAN con comparativa y botón "Promover EAN a principal".
-- [ ] Añadir enlace al panel en la navegación de administración/moderación.
-- [ ] Pruebas unitarias de contrato y renderizado en `Ludeka.UnitTests/Web/`.
+- [x] Crear componente Blazor `src/Ludeka.Web/Components/Pages/AffiliatesAdmin.razor`.
+- [x] Pestaña 1: Listado y edición de fuentes de feeds (URL, tienda, conmutador de estado, botón "Sincronizar ahora").
+- [x] Pestaña 2: Cola de discrepancias EAN con comparativa y botón "Promover EAN a principal".
+- [x] Añadir enlace al panel en la navegación de administración/moderación.
+- [x] Pruebas unitarias de contrato y renderizado en `Ludeka.UnitTests/Web/`.
 
 ## WU 07: Verificación Integral, CI/CD y Cierre
 - [ ] Ejecutar suite completa de pruebas unitarias y de integración en verde.

@@ -24,6 +24,7 @@ public class AuthorizationPipelineContractTests
         { "GameReportsModeration.razor", "/moderacion/reportes", AuthorizationPolicies.PermisoResolverReportes },
         { "AdminNotifications.razor", "/admin/notificaciones", AuthorizationPolicies.PermisoGestionarNotificaciones },
         { "EventsManagement.razor", "/admin/eventos", AuthorizationPolicies.PermisoGestionarEventos },
+        { "AffiliatesAdmin.razor", "/admin/afiliados", AuthorizationPolicies.PermisoGestionarTiendas },
     };
 
     [Fact]
