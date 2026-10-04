@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using Ludeka.Application.DTOs;
+using Ludeka.Core.ValueObjects;
 
 namespace Ludeka.Application.Features.Bgg;
 
@@ -229,4 +230,273 @@ public static class BggRawSnapshotParser
         }
         return false;
     }
+
+    /// <summary>
+    /// Comprueba si el payload JSON del snapshot incluye información del subárbol de versiones de BGG (&lt;versions&gt;).
+    /// </summary>
+    public static bool HasVersionsFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            if (!root.TryGetProperty("versions", out var versionsProp)) return false;
+
+            if (versionsProp.ValueKind == JsonValueKind.Object)
+            {
+                if (versionsProp.TryGetProperty("item", out var itemProp))
+                {
+                    if (itemProp.ValueKind == JsonValueKind.Array)
+                        return itemProp.GetArrayLength() > 0;
+                    return itemProp.ValueKind == JsonValueKind.Object;
+                }
+                return false;
+            }
+            if (versionsProp.ValueKind == JsonValueKind.Array)
+            {
+                return versionsProp.GetArrayLength() > 0;
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Analiza el subárbol de versiones en el snapshot JSON y extrae metadatos de la edición en español (título, editorial, año, EAN, product code).
+    /// Si existen múltiples versiones en español, prioriza la versión con código de barras (EAN-13) válido.
+    /// </summary>
+    public static BggSpanishVersionInfoDto? ExtractSpanishVersionInfoFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            if (!root.TryGetProperty("versions", out var versionsProp)) return null;
+
+            var versionElements = new List<JsonElement>();
+            if (versionsProp.ValueKind == JsonValueKind.Object && versionsProp.TryGetProperty("item", out var itemProp))
+            {
+                if (itemProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var v in itemProp.EnumerateArray())
+                        versionElements.Add(v);
+                }
+                else if (itemProp.ValueKind == JsonValueKind.Object)
+                {
+                    versionElements.Add(itemProp);
+                }
+            }
+            else if (versionsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var v in versionsProp.EnumerateArray())
+                    versionElements.Add(v);
+            }
+
+            var spanishCandidates = new List<BggSpanishVersionInfoDto>();
+
+            foreach (var vElem in versionElements)
+            {
+                if (IsSpanishVersion(vElem))
+                {
+                    var info = ParseVersionInfo(vElem);
+                    if (info != null)
+                    {
+                        spanishCandidates.Add(info);
+                    }
+                }
+            }
+
+            if (spanishCandidates.Count == 0) return null;
+
+            // Priorizar candidata que tenga EAN normalizado válido
+            var withEan = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Ean));
+            if (withEan != null) return withEan;
+
+            // De lo contrario, devolver la primera encontrada
+            return spanishCandidates[0];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsSpanishVersion(JsonElement versionElem)
+    {
+        if (!versionElem.TryGetProperty("link", out var linkProp)) return false;
+
+        if (linkProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var link in linkProp.EnumerateArray())
+            {
+                if (IsSpanishLanguageLink(link)) return true;
+            }
+        }
+        else if (linkProp.ValueKind == JsonValueKind.Object)
+        {
+            if (IsSpanishLanguageLink(linkProp)) return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSpanishLanguageLink(JsonElement link)
+    {
+        if (link.TryGetProperty("@type", out var typeProp) &&
+            string.Equals(typeProp.GetString(), "language", StringComparison.OrdinalIgnoreCase))
+        {
+            if (link.TryGetProperty("@id", out var idProp) && idProp.GetString() == "2195")
+                return true;
+
+            if (link.TryGetProperty("@value", out var valProp))
+            {
+                string? val = valProp.GetString();
+                if (!string.IsNullOrWhiteSpace(val) &&
+                    (val.IndexOf("Spanish", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     val.IndexOf("Español", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static BggSpanishVersionInfoDto? ParseVersionInfo(JsonElement versionElem)
+    {
+        string? title = ExtractVersionTitle(versionElem);
+        if (string.IsNullOrWhiteSpace(title)) return null;
+
+        string? publisher = ExtractVersionPublisher(versionElem);
+        int? year = ExtractVersionYear(versionElem);
+        string? productCode = ExtractStringValue(versionElem, "productcode");
+        string? rawBarcode = ExtractStringValue(versionElem, "barcode");
+
+        string? normalizedEan = null;
+        if (!string.IsNullOrWhiteSpace(rawBarcode) && BarcodeValidator.TryNormalizeEan13(rawBarcode, out var norm1))
+        {
+            normalizedEan = norm1;
+        }
+        else if (!string.IsNullOrWhiteSpace(productCode) && BarcodeValidator.TryNormalizeEan13(productCode, out var norm2))
+        {
+            normalizedEan = norm2;
+        }
+
+        return new BggSpanishVersionInfoDto(
+            Title: title,
+            Publisher: publisher,
+            YearPublished: year,
+            Ean: normalizedEan,
+            ProductCode: productCode
+        );
+    }
+
+    private static string? ExtractVersionTitle(JsonElement versionElem)
+    {
+        if (!versionElem.TryGetProperty("name", out var nameProp)) return null;
+
+        if (nameProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var n in nameProp.EnumerateArray())
+            {
+                if (n.TryGetProperty("@type", out var typeProp) &&
+                    string.Equals(typeProp.GetString(), "primary", StringComparison.OrdinalIgnoreCase))
+                {
+                    var val = ExtractStringValue(n);
+                    if (!string.IsNullOrWhiteSpace(val)) return val;
+                }
+            }
+
+            // Fallback al primer nombre del array
+            foreach (var n in nameProp.EnumerateArray())
+            {
+                var val = ExtractStringValue(n);
+                if (!string.IsNullOrWhiteSpace(val)) return val;
+            }
+        }
+        else if (nameProp.ValueKind == JsonValueKind.Object)
+        {
+            return ExtractStringValue(nameProp);
+        }
+        else if (nameProp.ValueKind == JsonValueKind.String)
+        {
+            return nameProp.GetString();
+        }
+
+        return null;
+    }
+
+    private static string? ExtractVersionPublisher(JsonElement versionElem)
+    {
+        if (!versionElem.TryGetProperty("link", out var linkProp)) return null;
+
+        if (linkProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var link in linkProp.EnumerateArray())
+            {
+                if (link.TryGetProperty("@type", out var typeProp) &&
+                    string.Equals(typeProp.GetString(), "boardgamepublisher", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (link.TryGetProperty("@value", out var valProp))
+                        return valProp.GetString();
+                }
+            }
+        }
+        else if (linkProp.ValueKind == JsonValueKind.Object)
+        {
+            if (linkProp.TryGetProperty("@type", out var typeProp) &&
+                string.Equals(typeProp.GetString(), "boardgamepublisher", StringComparison.OrdinalIgnoreCase))
+            {
+                if (linkProp.TryGetProperty("@value", out var valProp))
+                    return valProp.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static int? ExtractVersionYear(JsonElement versionElem)
+    {
+        string? val = ExtractStringValue(versionElem, "yearpublished");
+        if (!string.IsNullOrWhiteSpace(val) && int.TryParse(val, out int y) && y > 0)
+        {
+            return y;
+        }
+        return null;
+    }
+
+    private static string? ExtractStringValue(JsonElement parent, string propName)
+    {
+        if (!parent.TryGetProperty(propName, out var prop)) return null;
+        return ExtractStringValue(prop);
+    }
+
+    private static string? ExtractStringValue(JsonElement elem)
+    {
+        if (elem.ValueKind == JsonValueKind.String)
+            return elem.GetString();
+
+        if (elem.ValueKind == JsonValueKind.Number)
+            return elem.GetRawText();
+
+        if (elem.ValueKind == JsonValueKind.Object)
+        {
+            if (elem.TryGetProperty("@value", out var v1) && v1.ValueKind == JsonValueKind.String)
+                return v1.GetString();
+            if (elem.TryGetProperty("#text", out var v2) && v2.ValueKind == JsonValueKind.String)
+                return v2.GetString();
+            if (elem.TryGetProperty("value", out var v3) && v3.ValueKind == JsonValueKind.String)
+                return v3.GetString();
+        }
+
+        return null;
+    }
 }
+

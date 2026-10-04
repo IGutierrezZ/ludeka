@@ -440,6 +440,22 @@ public partial class Game
         Ean = normalized;
     }
 
+    public void UpdateSpanishTitle(string spanishTitle)
+    {
+        if (string.IsNullOrWhiteSpace(spanishTitle))
+            throw new ArgumentException("El título en español no puede estar vacío.", nameof(spanishTitle));
+
+        SpanishTitle = spanishTitle.Trim();
+
+        // Sincronizar o insertar la entrada en LocalizedTitles para ES
+        var existingEs = LocalizedTitles.FirstOrDefault(l => string.Equals(l.CountryCode, "ES", StringComparison.OrdinalIgnoreCase));
+        if (existingEs != null)
+        {
+            LocalizedTitles.Remove(existingEs);
+        }
+        LocalizedTitles.Insert(0, new LocalizedTitleEntry("ES", SpanishTitle));
+    }
+
     public void UpdateAdditionalBarcodes(IEnumerable<string>? barcodes)
     {
         AdditionalBarcodes.Clear();

@@ -44,4 +44,17 @@ public interface IBggRawSnapshotRepository
     /// Obtiene un bloque de snapshots con BggId estrictamente superior a lastBggId, ordenados por BggId asc.
     /// </summary>
     Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsAfterBggIdAsync(int lastBggId, int limit = 200, CancellationToken ct = default);
+
+    /// <summary>
+    /// Obtiene los identificadores de BGG cuyos snapshots existentes carecen del nodo 'versions'.
+    /// </summary>
+    Task<IReadOnlyList<int>> GetBggIdsMissingVersionsAsync(int limit = 50, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<int>>([]);
+
+    /// <summary>
+    /// Cuenta cuántos snapshots almacenados contienen información de versiones.
+    /// </summary>
+    Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }
+

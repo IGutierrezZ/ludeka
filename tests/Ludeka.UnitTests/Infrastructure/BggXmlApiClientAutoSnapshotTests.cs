@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Infrastructure.Bgg;
 using Xunit;
@@ -67,6 +68,18 @@ public class BggXmlApiClientAutoSnapshotTests
                     .OrderBy(s => s.BggId)
                     .Take(limit)
                     .ToList());
+
+        public Task<IReadOnlyList<int>> GetBggIdsMissingVersionsAsync(int limit = 50, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<int>>(
+                Snapshots.Values
+                    .Where(s => !s.RawJson.Contains("\"versions\""))
+                    .OrderBy(s => s.BggId)
+                    .Select(s => s.BggId)
+                    .Take(limit)
+                    .ToList());
+
+        public Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
+            => Task.FromResult(Snapshots.Values.Count(s => s.RawJson.Contains("\"versions\"")));
     }
 
     private const string SampleThingXml = """
@@ -186,5 +199,111 @@ public class BggXmlApiClientAutoSnapshotTests
         Assert.Equal(13, game.BggId);
         Assert.True(fakeRepo.Snapshots.ContainsKey(13));
         Assert.Contains("\"@id\":\"13\"", fakeRepo.Snapshots[13].RawJson);
+    }
+
+    [Fact]
+    public async Task FetchRawThingsXmlAsync_WithIncludeVersionsTrue_BuildsUrlWithVersionsParam()
+    {
+        // Arrange
+        var mockHandler = new MockHttpMessageHandler();
+        mockHandler.EnqueueResponse(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(SampleThingXml)
+        });
+
+        var client = new HttpClient(mockHandler);
+        using var bggClient = new BggXmlApiClient(client, null, null);
+
+        // Act
+        await bggClient.FetchRawThingsXmlAsync([2651], includeVersions: true);
+
+        // Assert
+        Assert.Single(mockHandler.SentRequests);
+        string requestUrl = mockHandler.SentRequests[0].RequestUri?.ToString() ?? string.Empty;
+        Assert.Contains("id=2651", requestUrl);
+        Assert.Contains("versions=1", requestUrl);
+    }
+
+    [Fact]
+    public async Task FetchRawThingsXmlAsync_WithIncludeVersionsFalse_BuildsUrlWithoutVersionsParam()
+    {
+        // Arrange
+        var mockHandler = new MockHttpMessageHandler();
+        mockHandler.EnqueueResponse(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(SampleThingXml)
+        });
+
+        var client = new HttpClient(mockHandler);
+        using var bggClient = new BggXmlApiClient(client, null, null);
+
+        // Act
+        await bggClient.FetchRawThingsXmlAsync([2651], includeVersions: false);
+
+        // Assert
+        Assert.Single(mockHandler.SentRequests);
+        string requestUrl = mockHandler.SentRequests[0].RequestUri?.ToString() ?? string.Empty;
+        Assert.Contains("id=2651", requestUrl);
+        Assert.DoesNotContain("versions=1", requestUrl);
+    }
+
+    [Fact]
+    public async Task FetchRawThingsXmlAsync_WithVersionsXml_AutoPersistsVersionsInRawJson()
+    {
+        // Arrange: XML que incluye el subárbol <versions>
+        const string xmlWithVersions = """
+            <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+              <item type="boardgame" id="2651">
+                <name type="primary" sortindex="1" value="Power Grid" />
+                <versions>
+                  <item type="boardgameversion" id="21950">
+                    <name type="primary" sortindex="1" value="Alta Tensión" />
+                    <link type="language" id="2195" value="Spanish" />
+                    <barcode value="8435407626515" />
+                  </item>
+                </versions>
+              </item>
+            </items>
+            """;
+
+        var mockHandler = new MockHttpMessageHandler();
+        mockHandler.EnqueueResponse(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(xmlWithVersions)
+        });
+
+        var fakeRepo = new FakeBggRawSnapshotRepository();
+        var client = new HttpClient(mockHandler);
+        using var bggClient = new BggXmlApiClient(client, null, fakeRepo);
+
+        // Act
+        await bggClient.FetchRawThingsXmlAsync([2651], includeVersions: true);
+
+        // Assert: Auto-persiste el snapshot y contiene el subárbol de versiones
+        Assert.True(fakeRepo.Snapshots.ContainsKey(2651));
+        var snapshot = fakeRepo.Snapshots[2651];
+        Assert.True(BggRawSnapshotParser.HasVersionsFromJson(snapshot.RawJson));
+
+        var spanishInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(snapshot.RawJson);
+        Assert.NotNull(spanishInfo);
+        Assert.Equal("Alta Tensión", spanishInfo.Title);
+        Assert.Equal("8435407626515", spanishInfo.Ean);
+    }
+
+    [Fact]
+    public async Task GetBggIdsMissingVersionsAsync_And_GetCountWithVersionsAsync_ReturnAccurateMetrics()
+    {
+        // Arrange
+        var fakeRepo = new FakeBggRawSnapshotRepository();
+        await fakeRepo.UpsertAsync(new BggRawSnapshot(1, "{\"item\":{\"@id\":\"1\",\"name\":\"Game 1\"}}", 2));
+        await fakeRepo.UpsertAsync(new BggRawSnapshot(2, "{\"item\":{\"@id\":\"2\",\"versions\":{\"item\":{}}}}", 2));
+
+        // Act
+        var missingIds = await fakeRepo.GetBggIdsMissingVersionsAsync(10);
+        int countWithVersions = await fakeRepo.GetCountWithVersionsAsync();
+
+        // Assert
+        Assert.Equal([1], missingIds);
+        Assert.Equal(1, countWithVersions);
     }
 }

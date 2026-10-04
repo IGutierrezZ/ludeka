@@ -45,12 +45,18 @@ public class SimulatedBggClient : IBggClient
     }
 
     public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+        => FetchRawThingXmlAsync(bggId, false, ct);
+
+    public Task<string?> FetchRawThingXmlAsync(int bggId, bool includeVersions, CancellationToken ct = default)
     {
         if (bggId <= 0) return Task.FromResult<string?>(null);
-        return FetchRawThingsXmlAsync([bggId], ct);
+        return FetchRawThingsXmlAsync([bggId], includeVersions, ct);
     }
 
-    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => FetchRawThingsXmlAsync(bggIds, false, ct);
+
+    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         if (bggIds == null) return null;
@@ -58,7 +64,7 @@ public class SimulatedBggClient : IBggClient
         var validIds = bggIds.Where(id => id > 0).Distinct().Take(20).ToList();
         if (validIds.Count == 0) return null;
 
-        var xml = BggSimulationDataset.GetRawThingsXml(validIds);
+        var xml = BggSimulationDataset.GetRawThingsXml(validIds, includeVersions);
         await TryPersistSimulatedSnapshotsAsync(validIds, xml, ct);
         return xml;
     }

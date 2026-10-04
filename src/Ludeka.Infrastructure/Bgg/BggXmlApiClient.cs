@@ -60,12 +60,18 @@ public class BggXmlApiClient : IBggClient, IDisposable
     }
 
     public Task<string?> FetchRawThingXmlAsync(int bggId, CancellationToken ct = default)
+        => FetchRawThingXmlAsync(bggId, false, ct);
+
+    public Task<string?> FetchRawThingXmlAsync(int bggId, bool includeVersions, CancellationToken ct = default)
     {
         if (bggId <= 0) return Task.FromResult<string?>(null);
-        return FetchRawThingsXmlAsync([bggId], ct);
+        return FetchRawThingsXmlAsync([bggId], includeVersions, ct);
     }
 
-    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => FetchRawThingsXmlAsync(bggIds, false, ct);
+
+    public async Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
     {
         if (bggIds == null) return null;
 
@@ -73,7 +79,8 @@ public class BggXmlApiClient : IBggClient, IDisposable
         if (validIds.Count == 0) return null;
 
         string idsParam = string.Join(",", validIds);
-        string url = $"https://boardgamegeek.com/xmlapi2/thing?id={idsParam}&stats=1";
+        string versionsParam = includeVersions ? "&versions=1" : "";
+        string url = $"https://boardgamegeek.com/xmlapi2/thing?id={idsParam}&stats=1{versionsParam}";
 
         int maxRetries = 3;
         int delayMs = 1500;

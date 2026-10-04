@@ -20,6 +20,7 @@ public static class JobNames
     public const string BggRawBackfill = "bgg-raw-backfill";
     public const string DataRetention = "data-retention";
     public const string BggReconcileExpansions = "bgg-reconcile-expansions";
+    public const string BggVersionsSweep = "bgg-versions-sweep";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -35,6 +36,7 @@ public static class JobNames
         BackfillQuality,
         BggRawBackfill,
         DataRetention,
-        BggReconcileExpansions
+        BggReconcileExpansions,
+        BggVersionsSweep
     ];
 }

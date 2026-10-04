@@ -226,4 +226,45 @@ public class GameEditorDomainTests
         Assert.Throws<ArgumentException>(() => new GameEditLog(Guid.Empty, "user", "name", "summary"));
         Assert.Throws<ArgumentException>(() => new GameEditLog(Guid.NewGuid(), "", "name", "summary"));
     }
+
+    [Fact]
+    public void UpdateEan_WithValidEan13OrUpc_NormalizesAndPersists()
+    {
+        // Arrange
+        var game = CreateSampleGame();
+        Assert.Null(game.Ean);
+
+        // Act & Assert 1: EAN-13 válido
+        game.UpdateEan(" 8436-0172-2010-0 ");
+        Assert.Equal("8436017220100", game.Ean);
+
+        // Act & Assert 2: UPC-A 12 dígitos normalizado a GTIN-13
+        game.UpdateEan("012345678905");
+        Assert.Equal("0012345678905", game.Ean);
+
+        // Act & Assert 3: null o vacío limpia el EAN
+        game.UpdateEan("   ");
+        Assert.Null(game.Ean);
+    }
+
+    [Fact]
+    public void UpdateSpanishTitle_WithValidTitle_UpdatesTitleAndSynchronizesLocalizedTitles()
+    {
+        // Arrange
+        var game = CreateSampleGame();
+
+        // Act
+        game.UpdateSpanishTitle("Alta Tensión");
+
+        // Assert
+        Assert.Equal("Alta Tensión", game.SpanishTitle);
+        Assert.Contains(game.LocalizedTitles, l => l.CountryCode == "ES" && l.Title == "Alta Tensión");
+    }
+
+    [Fact]
+    public void UpdateSpanishTitle_WithEmptyTitle_ThrowsArgumentException()
+    {
+        var game = CreateSampleGame();
+        Assert.Throws<ArgumentException>(() => game.UpdateSpanishTitle("  "));
+    }
 }

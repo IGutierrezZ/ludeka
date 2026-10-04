@@ -829,6 +829,24 @@ public static class SqliteSchemaMigrator
                 }
             }
 
+            // Crear tabla BggRawSnapshots si no existe (Incremento 90)
+            if (!existingTables.Contains("BggRawSnapshots"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "BggRawSnapshots" (
+                        "BggId" INTEGER NOT NULL CONSTRAINT "PK_BggRawSnapshots" PRIMARY KEY,
+                        "RawJson" TEXT NOT NULL,
+                        "ApiVersion" INTEGER NOT NULL DEFAULT 2,
+                        "FetchedAtUtc" TEXT NOT NULL,
+                        "UpdatedAtUtc" TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_BggRawSnapshots_FetchedAtUtc" ON "BggRawSnapshots" ("FetchedAtUtc");
+                """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("BggRawSnapshots");
+            }
+
             // 17. Reconciliar tabla SocialInboxItems (Incremento 42)
             if (!existingTables.Contains("SocialInboxItems"))
             {

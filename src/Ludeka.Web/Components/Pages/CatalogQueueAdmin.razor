@@ -754,11 +754,45 @@
                             <span>Reconciliar Expansiones desde Snapshots</span>
                         }
                     </button>
+
+                    <button type="button"
+                            @onclick="ExecuteSyncVersionsBatchAsync"
+                            disabled="@(_isSyncingVersions || _isSyncingSnapshots || _isSweepingVersions || _isContinuousSnapshotsSyncActive)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-purple-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                            title="Consulta BGG con versions=1 para obtener títulos en español y códigos EAN de juegos en snapshots existentes">
+                        @if (_isSyncingVersions)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Sincronizando Versiones...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="barcode" Size="14" class="text-purple-400" />
+                            <span>Sincronizar Versiones (2x1)</span>
+                        }
+                    </button>
+
+                    <button type="button"
+                            @onclick="ExecuteSweepVersionsCatalogAsync"
+                            disabled="@(_isSweepingVersions || _isSyncingVersions || _isSyncingSnapshots)"
+                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-emerald-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                            title="Barrido 100% offline sobre snapshots locales para actualizar títulos en español, editoriales y códigos EAN-13">
+                        @if (_isSweepingVersions)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
+                            <span>Barriendo...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="sparkles" Size="14" class="text-emerald-400" />
+                            <span>Barrer Títulos ES y EAN</span>
+                        }
+                    </button>
                 </div>
             </div>
 
             @* Cuadrícula de Métricas de Snapshots *@
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
                     <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
                         <Icon Name="gamepad-2" Size="12" /> Juegos con BGG ID
@@ -797,6 +831,18 @@
 
                 <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
                     <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
+                        <Icon Name="barcode" Size="12" /> Versiones BGG (EAN / ES)
+                    </span>
+                    <div class="text-xl font-black text-purple-400">
+                        @(_snapshotStatus?.SnapshotsWithVersions ?? 0)
+                    </div>
+                    <div class="text-[0.7rem] text-[var(--text-secondary)]">
+                        <span class="text-purple-400 font-medium">@(_snapshotStatus?.SnapshotsWithVersions ?? 0) con versiones</span> / <span class="text-amber-400 font-medium">@(_snapshotStatus?.SnapshotsPendingVersions ?? 0) pendientes</span>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                    <span class="text-[0.7rem] text-[var(--text-muted)] font-semibold flex items-center gap-1">
                         <Icon Name="layers" Size="12" /> Expansiones en Catálogo
                     </span>
                     <div class="text-xl font-black text-[var(--text-primary)]">
@@ -826,6 +872,7 @@
             <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span><Icon Name="terminal" Size="12" class="inline mr-1 text-cyan-400" /> <strong>Backfill de snapshots:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill</code></span>
                 <span><Icon Name="terminal" Size="12" class="inline mr-1 text-emerald-400" /> <strong>Reconciliador masivo:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-emerald-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-reconcile-expansions</code></span>
+                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-purple-400" /> <strong>Barrido versiones &amp; EAN:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-versions-sweep</code></span>
             </div>
 
             @* Alertas de Resultado *@
@@ -899,6 +946,39 @@
                             <strong>Vinculadas con juego base (@_expansionReconciliationResult.LinkedExpansions.Count):</strong> @string.Join(", ", _expansionReconciliationResult.LinkedExpansions.Take(15))@(_expansionReconciliationResult.LinkedExpansions.Count > 15 ? "..." : "")
                         </div>
                     }
+                </div>
+            }
+
+            @if (_versionsSyncResult != null)
+            {
+                <div class="p-4 rounded-xl @(_versionsSyncResult.FailedCount == 0 ? "bg-purple-500/10 border-purple-500/30 text-purple-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300") border text-xs space-y-1">
+                    <div class="flex items-center justify-between font-bold">
+                        <span>@_versionsSyncResult.Message</span>
+                        <button type="button" @onclick="() => _versionsSyncResult = null" class="text-base font-bold">&times;</button>
+                    </div>
+                    @if (_versionsSyncResult.SyncedTitles.Count > 0)
+                    {
+                        <div class="text-[var(--text-secondary)] text-[0.75rem]">
+                            <strong>Juegos con versiones sincronizadas:</strong> @string.Join(", ", _versionsSyncResult.SyncedTitles)
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_versionsSweepResult != null)
+            {
+                var isError = _versionsSweepResult.Message?.StartsWith("Error", StringComparison.OrdinalIgnoreCase) ?? false;
+                <div class="p-4 rounded-xl @(!isError ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-rose-500/10 border-rose-500/30 text-rose-300") border text-xs space-y-2">
+                    <div class="flex items-center justify-between font-bold text-sm @(!isError ? "text-emerald-400" : "text-rose-400")">
+                        <span class="flex items-center gap-2">
+                            <Icon Name="@(!isError ? "circle-check" : "triangle-alert")" Size="16" />
+                            <span>Barrido de Versiones y EAN Finalizado</span>
+                        </span>
+                        <button type="button" @onclick="() => _versionsSweepResult = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-base font-bold">&times;</button>
+                    </div>
+                    <p class="text-[var(--text-secondary)]">
+                        @_versionsSweepResult.Message
+                    </p>
                 </div>
             }
         </div>
@@ -1253,6 +1333,12 @@
     // Incremento 99: Reconciliación y Vinculación Masiva de Expansiones desde Snapshots
     private BggExpansionReconciliationResultDto? _expansionReconciliationResult;
     private bool _isReconcilingExpansions = false;
+
+    // Incremento 104: Versiones BGG, Títulos en Español y EAN (2x1)
+    private BggRawSnapshotSyncResultDto? _versionsSyncResult;
+    private BggVersionCatalogSweepResultDto? _versionsSweepResult;
+    private bool _isSyncingVersions = false;
+    private bool _isSweepingVersions = false;
 
     // Incremento 91: Sincronización continua de snapshots en segundo plano
     private CancellationTokenSource? _continuousSnapshotsSyncCts;
@@ -1809,6 +1895,48 @@
         finally
         {
             _isReconcilingExpansions = false;
+        }
+    }
+
+    private async Task ExecuteSyncVersionsBatchAsync()
+    {
+        if (_isSyncingVersions || _isSyncingSnapshots) return;
+        _isSyncingVersions = true;
+        _versionsSyncResult = null;
+        try
+        {
+            _versionsSyncResult = await SnapshotSyncService.SyncVersionsBatchAsync(batchSize: 20, delayMs: 1200);
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _versionsSyncResult = new BggRawSnapshotSyncResultDto(0, 0, 1, [], [], $"Error al sincronizar versiones: {ex.Message}");
+        }
+        finally
+        {
+            _isSyncingVersions = false;
+        }
+    }
+
+    private async Task ExecuteSweepVersionsCatalogAsync()
+    {
+        if (_isSweepingVersions) return;
+        _isSweepingVersions = true;
+        _versionsSweepResult = null;
+        try
+        {
+            _versionsSweepResult = await SnapshotSyncService.SweepCatalogFromVersionsAsync(batchSize: 200);
+            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _versionsSweepResult = new BggVersionCatalogSweepResultDto(0, 0, 0, 0, 0, 0, false, $"Error al realizar barrido de versiones: {ex.Message}");
+        }
+        finally
+        {
+            _isSweepingVersions = false;
         }
     }
 
