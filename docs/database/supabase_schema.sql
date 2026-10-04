@@ -2067,3 +2067,96 @@ BEGIN
 END $EF$;
 COMMIT;
 
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE TABLE "AffiliateEanDiscrepancies" (
+        "Id" uuid NOT NULL,
+        "GameId" uuid NOT NULL,
+        "GameTitle" character varying(250) NOT NULL,
+        "GameSlug" character varying(250) NOT NULL,
+        "CurrentEan" character varying(14),
+        "FeedEan" character varying(14) NOT NULL,
+        "StoreName" character varying(150) NOT NULL,
+        "DetectedAtUtc" timestamp with time zone NOT NULL,
+        "IsResolved" boolean NOT NULL,
+        "ResolutionNote" character varying(500),
+        CONSTRAINT "PK_AffiliateEanDiscrepancies" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE TABLE "AffiliateFeedSources" (
+        "Id" uuid NOT NULL,
+        "StoreName" character varying(150) NOT NULL,
+        "FeedUrl" character varying(1000) NOT NULL,
+        "Format" integer NOT NULL,
+        "AffiliateTag" character varying(100),
+        "Country" character varying(100) NOT NULL,
+        "IsEnabled" boolean NOT NULL,
+        "SyncIntervalHours" integer NOT NULL,
+        "LastSyncUtc" timestamp with time zone,
+        "LastSyncStatus" character varying(250),
+        "MatchedProductsCount" integer NOT NULL,
+        "CreatedAtUtc" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_AffiliateFeedSources" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateEanDiscrepancies_DetectedAtUtc" ON "AffiliateEanDiscrepancies" ("DetectedAtUtc");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateEanDiscrepancies_FeedEan" ON "AffiliateEanDiscrepancies" ("FeedEan");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateEanDiscrepancies_GameId" ON "AffiliateEanDiscrepancies" ("GameId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateEanDiscrepancies_IsResolved" ON "AffiliateEanDiscrepancies" ("IsResolved");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateFeedSources_IsEnabled" ON "AffiliateFeedSources" ("IsEnabled");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    CREATE INDEX "IX_AffiliateFeedSources_StoreName" ON "AffiliateFeedSources" ("StoreName");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004222808_AddAffiliateFeedSourcesAndDiscrepancies') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261004222808_AddAffiliateFeedSourcesAndDiscrepancies', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;

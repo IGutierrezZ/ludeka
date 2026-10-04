@@ -176,6 +176,10 @@ public static class LudekaServiceCollectionExtensions
         services.AddSingleton<IAffiliateUrlResolver, AffiliateUrlResolver>();
         services.AddScoped<IAffiliateClickRepository, SqliteAffiliateClickRepository>();
         services.AddScoped<IAffiliateClickService, AffiliateClickService>();
+        services.AddScoped<IAffiliateFeedSourceRepository, SqliteAffiliateFeedSourceRepository>();
+        services.AddScoped<IAffiliateEanDiscrepancyRepository, SqliteAffiliateEanDiscrepancyRepository>();
+        services.AddSingleton<GoogleShoppingFeedParser>();
+        services.AddHttpClient<ICatalogFeedSyncService, CatalogFeedSyncService>();
 
         // Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
         services.AddSingleton<ISleeveStoreUrlResolver, SleeveStoreUrlResolver>();

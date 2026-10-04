@@ -437,6 +437,9 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                     existing.SetBaseGameId(game.BaseGameId.Value);
                 }
                 existing.SetGameType(game.Type);
+                existing.UpdateEan(game.Ean);
+                existing.UpdateAdditionalBarcodes(game.AdditionalBarcodes);
+                existing.UpdatePurchaseLinks(game.PurchaseLinks);
             }
 
             await scope.Context.SaveChangesAsync(ct);

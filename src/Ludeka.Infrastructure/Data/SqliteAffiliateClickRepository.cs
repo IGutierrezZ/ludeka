@@ -54,10 +54,13 @@ public class SqliteAffiliateClickRepository : DbContextRepositoryBase, IAffiliat
         if (limit <= 0) limit = 50;
 
         await using var scope = await CreateScopeAsync(ct);
-        return await scope.Context.AffiliateClicks
+        var list = await scope.Context.AffiliateClicks
             .AsNoTracking()
+            .ToListAsync(ct);
+
+        return list
             .OrderByDescending(c => c.ClickedAtUtc)
             .Take(limit)
-            .ToListAsync(ct);
+            .ToList();
     }
 }

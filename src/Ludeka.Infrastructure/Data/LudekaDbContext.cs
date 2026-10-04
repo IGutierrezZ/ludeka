@@ -47,6 +47,8 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<BggRawSnapshot> BggRawSnapshots => Set<BggRawSnapshot>();
     public DbSet<DailyTrendingGame> DailyTrendingGames => Set<DailyTrendingGame>();
     public DbSet<AffiliateClickLog> AffiliateClicks => Set<AffiliateClickLog>();
+    public DbSet<AffiliateFeedSource> AffiliateFeedSources => Set<AffiliateFeedSource>();
+    public DbSet<AffiliateEanDiscrepancyLog> AffiliateEanDiscrepancies => Set<AffiliateEanDiscrepancyLog>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -639,5 +641,32 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         click.Property(c => c.StoreName).IsRequired().HasMaxLength(150);
         click.Property(c => c.TargetUrl).IsRequired().HasMaxLength(1000);
         click.Property(c => c.Country).HasMaxLength(100);
+
+        // --- Configuración de Fuentes de Feeds de Afiliados (INC-86) ---
+        var feedSource = modelBuilder.Entity<AffiliateFeedSource>();
+        feedSource.ToTable("AffiliateFeedSources");
+        feedSource.HasKey(f => f.Id);
+        feedSource.Property(f => f.StoreName).HasMaxLength(150).IsRequired();
+        feedSource.Property(f => f.FeedUrl).HasMaxLength(1000).IsRequired();
+        feedSource.Property(f => f.AffiliateTag).HasMaxLength(100);
+        feedSource.Property(f => f.Country).HasMaxLength(100);
+        feedSource.Property(f => f.LastSyncStatus).HasMaxLength(250);
+        feedSource.HasIndex(f => f.StoreName);
+        feedSource.HasIndex(f => f.IsEnabled);
+
+        // --- Configuración de Discrepancias EAN de Afiliados (INC-86) ---
+        var discrepancy = modelBuilder.Entity<AffiliateEanDiscrepancyLog>();
+        discrepancy.ToTable("AffiliateEanDiscrepancies");
+        discrepancy.HasKey(d => d.Id);
+        discrepancy.Property(d => d.GameTitle).HasMaxLength(250).IsRequired();
+        discrepancy.Property(d => d.GameSlug).HasMaxLength(250).IsRequired();
+        discrepancy.Property(d => d.CurrentEan).HasMaxLength(14);
+        discrepancy.Property(d => d.FeedEan).HasMaxLength(14).IsRequired();
+        discrepancy.Property(d => d.StoreName).HasMaxLength(150).IsRequired();
+        discrepancy.Property(d => d.ResolutionNote).HasMaxLength(500);
+        discrepancy.HasIndex(d => d.GameId);
+        discrepancy.HasIndex(d => d.FeedEan);
+        discrepancy.HasIndex(d => d.IsResolved);
+        discrepancy.HasIndex(d => d.DetectedAtUtc);
     }
 }

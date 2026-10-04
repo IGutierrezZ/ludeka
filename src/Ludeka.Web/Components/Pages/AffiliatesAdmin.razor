@@ -1,0 +1,754 @@
+@page "/admin/afiliados"
+@attribute [Authorize(Policy = AuthorizationPolicies.PermisoGestionarTiendas)]
+@rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.Entities
+@using Ludeka.Core.Enums
+@using Ludeka.Web.Authentication
+@inject IAffiliateFeedSourceRepository FeedSourceRepository
+@inject IAffiliateEanDiscrepancyRepository DiscrepancyRepository
+@inject ICatalogFeedSyncService FeedSyncService
+@inject IGameRepository GameRepository
+@inject ICurrentUserService CurrentUserService
+
+<PageTitle>Gestión de Feeds Comerciales & Afiliados | Ludeka</PageTitle>
+
+<div class="container-ludeka py-8 space-y-6">
+    @if (!CanManageAffiliates)
+    {
+        <div class="max-w-md mx-auto py-16 text-center space-y-4">
+            <span class="inline-block text-amber-400"><Icon Name="shopping-bag" Size="48" /></span>
+            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Restringido a Gestión de Tiendas</h1>
+            <p class="text-sm text-[var(--text-secondary)]">
+                La configuración de feeds comerciales y resolución de discrepancias EAN requiere el permiso de gestión de tiendas y afiliados.
+            </p>
+            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
+                <p>
+                    <Icon Name="info" Size="14" /> El permiso se asigna granularmente a moderadores o al equipo fundador.
+                </p>
+            </div>
+            <a href="/" class="inline-block text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline">
+                &larr; Volver al Catálogo
+            </a>
+        </div>
+    }
+    else
+    {
+        @* Cabecera Editorial *@
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-2 py-0.5 rounded text-[0.65rem] font-black uppercase tracking-wider bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30">
+                        Catálogo Comercial
+                    </span>
+                    <span class="text-xs text-[var(--text-muted)]">Fases 2 & 3: Ingesta & Mapeo EAN</span>
+                </div>
+                <h1 class="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
+                    Feeds de Tiendas & Discrepancias EAN
+                </h1>
+                <p class="text-xs text-[var(--text-muted)]">
+                    Ingesta desatendida en streaming de catálogos comerciales (Google Shopping XML), cruce determinista por código de barras y moderación de códigos.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button type="button"
+                        @onclick="SyncAllActiveAsync"
+                        disabled="@_isSyncingAll"
+                        class="px-3.5 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-white text-xs font-semibold transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (_isSyncingAll)
+                    {
+                        <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="14" /></span>
+                        <span>Sincronizando Todo...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="refresh-cw" Size="14" />
+                        <span>Sincronizar Feeds Activos</span>
+                    }
+                </button>
+
+                <button type="button"
+                        @onclick="() => _isFormVisible = !_isFormVisible"
+                        class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] text-xs font-semibold transition-colors flex items-center gap-2 border border-[var(--border-subtle)] shadow-sm">
+                    <Icon Name="plus" Size="14" />
+                    <span>@(_isFormVisible ? "Cerrar Formulario" : "Nuevo Feed")</span>
+                </button>
+
+                <button type="button"
+                        @onclick="LoadDataAsync"
+                        title="Refrescar datos"
+                        class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
+                    <Icon Name="refresh-cw" Size="14" />
+                </button>
+            </div>
+        </div>
+
+        @* Notificación de Feedback *@
+        @if (!string.IsNullOrEmpty(_feedbackMessage))
+        {
+            <div class="p-4 rounded-xl text-xs font-semibold flex items-center justify-between transition-all @(_isFeedbackError ? "bg-rose-500/15 text-rose-400 border border-rose-500/30" : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30")">
+                <div class="flex items-center gap-2">
+                    @if (_isFeedbackError)
+                    {
+                        <Icon Name="info" Size="14" />
+                    }
+                    else
+                    {
+                        <Icon Name="check" Size="14" />
+                    }
+                    <span>@_feedbackMessage</span>
+                </div>
+                <button type="button" @onclick="() => _feedbackMessage = null" class="opacity-60 hover:opacity-100 text-sm">
+                    &times;
+                </button>
+            </div>
+        }
+
+        @* Pestañas de Navegación *@
+        <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-1">
+            <button type="button"
+                    @onclick="() => _activeTab = TabFeeds"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 @(_activeTab == TabFeeds ? "bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                <Icon Name="shopping-bag" Size="14" />
+                <span>Fuentes de Catálogo</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
+                    @_sources.Count
+                </span>
+            </button>
+
+            <button type="button"
+                    @onclick="() => _activeTab = TabDiscrepancies"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 @(_activeTab == TabDiscrepancies ? "bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
+                <Icon Name="tag" Size="14" />
+                <span>Discrepancias EAN</span>
+                @if (_discrepancies.Count > 0)
+                {
+                    <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-amber-500/20 text-amber-400 font-extrabold border border-amber-500/30">
+                        @_discrepancies.Count
+                    </span>
+                }
+                else
+                {
+                    <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]">
+                        0
+                    </span>
+                }
+            </button>
+        </div>
+
+        @* Contenido de Pestaña: Fuentes de Catálogo *@
+        @if (_activeTab == TabFeeds)
+        {
+            @* Formulario de Alta / Edición *@
+            @if (_isFormVisible)
+            {
+                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-md space-y-4 animate-fade-in">
+                    <div class="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                        <h2 class="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                            <Icon Name="shopping-bag" Size="16" />
+                            <span>@(_editingSourceId.HasValue ? "Editar Fuente de Feed" : "Registrar Nueva Fuente de Feed")</span>
+                        </h2>
+                        <button type="button" @onclick="ResetForm" class="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                            Cancelar
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <label class="font-bold text-[var(--text-secondary)]">Nombre de la Tienda *</label>
+                            <input type="text"
+                                   @bind="_formStoreName"
+                                   placeholder="Ej: Zacatrus, Jugamos Otra, Dungeon Marvels"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                        </div>
+
+                        <div class="space-y-1 md:col-span-2">
+                            <label class="font-bold text-[var(--text-secondary)]">URL del Feed Comercial *</label>
+                            <input type="url"
+                                   @bind="_formFeedUrl"
+                                   placeholder="https://tienda.es/feeds/google-shopping.xml"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] font-mono text-[0.75rem]" />
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="font-bold text-[var(--text-secondary)]">Formato del Feed</label>
+                            <select @bind="_formFormat"
+                                    class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                                <option value="@FeedFormat.GoogleShoppingXml">Google Shopping XML (Merchant)</option>
+                                <option value="@FeedFormat.GenericCsv">CSV Genérico (Delimitado)</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="font-bold text-[var(--text-secondary)]">Tag / Parámetro de Afiliado</label>
+                            <input type="text"
+                                   @bind="_formAffiliateTag"
+                                   placeholder="Ej: tag=ludeka-21 o ref=ludeka"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="font-bold text-[var(--text-secondary)]">País / Región</label>
+                            <input type="text"
+                                   @bind="_formCountry"
+                                   placeholder="España"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="font-bold text-[var(--text-secondary)]">Intervalo de Sincronización (horas)</label>
+                            <input type="number"
+                                   min="1"
+                                   max="168"
+                                   @bind="_formSyncIntervalHours"
+                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-5">
+                            <input type="checkbox"
+                                   id="feedIsEnabled"
+                                   @bind="_formIsEnabled"
+                                   class="rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--brand-primary)]" />
+                            <label for="feedIsEnabled" class="font-bold text-[var(--text-primary)] cursor-pointer">
+                                Habilitar ingesta automática
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                        <button type="button"
+                                @onclick="ResetForm"
+                                class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] text-xs font-semibold transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                @onclick="SaveSourceAsync"
+                                disabled="@_isSaving"
+                                class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-white text-xs font-bold transition-opacity disabled:opacity-50">
+                            @(_isSaving ? "Guardando..." : (_editingSourceId.HasValue ? "Actualizar Fuente" : "Guardar Fuente"))
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* Listado de Fuentes *@
+            @if (_isLoading)
+            {
+                <div class="p-12 text-center text-xs text-[var(--text-muted)] space-y-2">
+                    <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="20" /></span>
+                    <p>Cargando fuentes de catálogo...</p>
+                </div>
+            }
+            else if (_sources.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                    <span class="text-[var(--text-muted)] inline-block"><Icon Name="shopping-bag" Size="36" /></span>
+                    <h3 class="text-sm font-bold text-[var(--text-primary)]">No hay fuentes de catálogo configuradas</h3>
+                    <p class="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+                        Registra la URL del feed Google Shopping XML o CSV provisto por una tienda asociada para comenzar la sincronización de ofertas comerciales.
+                    </p>
+                    <button type="button"
+                            @onclick="() => _isFormVisible = true"
+                            class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity">
+                        Registrar Primer Feed
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 gap-4">
+                    @foreach (var source in _sources)
+                    {
+                        <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm @(source.IsEnabled ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]")">
+                                        <Icon Name="shopping-bag" Size="18" />
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-sm font-extrabold text-[var(--text-primary)]">@source.StoreName</h3>
+                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-bold @(source.IsEnabled ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]")">
+                                                @(source.IsEnabled ? "Activo" : "Pausado")
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
+                                                @source.Format
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
+                                                @source.Country
+                                            </span>
+                                        </div>
+                                        <div class="text-xs font-mono text-[var(--text-muted)] truncate max-w-xl mt-0.5" title="@source.FeedUrl">
+                                            @source.FeedUrl
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 flex-wrap self-end sm:self-auto">
+                                    <button type="button"
+                                            @onclick="() => SyncFeedAsync(source.Id)"
+                                            disabled="@(_syncingSourceId == source.Id)"
+                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--brand-primary)] text-xs font-semibold transition-colors flex items-center gap-1.5 border border-[var(--border-subtle)] disabled:opacity-50">
+                                        @if (_syncingSourceId == source.Id)
+                                        {
+                                            <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="12" /></span>
+                                            <span>Sincronizando...</span>
+                                        }
+                                        else
+                                        {
+                                            <Icon Name="refresh-cw" Size="12" />
+                                            <span>Sincronizar</span>
+                                        }
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick="() => ToggleSourceEnabledAsync(source)"
+                                            title="@(source.IsEnabled ? "Pausar ingesta" : "Activar ingesta")"
+                                            class="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] text-xs font-medium border border-[var(--border-subtle)]">
+                                        @(source.IsEnabled ? "Pausar" : "Activar")
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick="() => StartEditSource(source)"
+                                            class="p-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]"
+                                            title="Editar fuente">
+                                        <Icon Name="pencil" Size="14" />
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick="() => DeleteSourceAsync(source.Id)"
+                                            class="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20"
+                                            title="Eliminar fuente">
+                                        <Icon Name="trash-2" Size="14" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-4 text-xs text-[var(--text-secondary)] pt-2 border-t border-[var(--border-subtle)]/60">
+                                <div>
+                                    <span class="text-[var(--text-muted)]">Última sinc:</span>
+                                    <span class="font-semibold text-[var(--text-primary)]">
+                                        @(source.LastSyncUtc.HasValue ? source.LastSyncUtc.Value.LocalDateTime.ToString("dd/MM/yyyy HH:mm") : "Nunca")
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-[var(--text-muted)]">Resultado:</span>
+                                    <span class="font-semibold @(source.LastSyncStatus == "Success" ? "text-emerald-400" : (source.LastSyncStatus != null ? "text-rose-400" : "text-[var(--text-muted)]"))">
+                                        @(source.LastSyncStatus ?? "Pendiente")
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-[var(--text-muted)]">Juegos enlazados:</span>
+                                    <span class="font-bold text-[var(--text-primary)]">@source.MatchedProductsCount</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(source.AffiliateTag))
+                                {
+                                    <div>
+                                        <span class="text-[var(--text-muted)]">Tag:</span>
+                                        <span class="font-mono text-[var(--text-secondary)]">@source.AffiliateTag</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (_activeTab == TabDiscrepancies)
+        {
+            @* Explicación de la Cola de Discrepancias *@
+            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex items-start gap-3">
+                <span class="text-amber-400 mt-0.5"><Icon Name="info" Size="16" /></span>
+                <div class="space-y-1">
+                    <p class="font-bold text-[var(--text-primary)]">
+                        ¿Cómo funciona la detección de discrepancias de códigos de barras?
+                    </p>
+                    <p class="text-[var(--text-muted)]">
+                        Cuando un feed de una tienda física o nacional reporta un juego cuyo título coincide con nuestro catálogo pero tiene un código EAN distinto al que Ludeka tiene registrado (frecuentemente proveniente de ediciones internacionales de BGG), el sistema almacena el nuevo EAN en los códigos adicionales del juego para no perder la oferta comercial y levanta esta alerta.
+                    </p>
+                    <p class="text-[var(--text-muted)]">
+                        Pulsa <strong>"Promover a EAN principal"</strong> si el código provisto por la tienda nacional corresponde a la edición oficial en castellano. El EAN previo se conservará como código adicional.
+                    </p>
+                </div>
+            </div>
+
+            @* Listado de Discrepancias Pendientes *@
+            @if (_isLoading)
+            {
+                <div class="p-12 text-center text-xs text-[var(--text-muted)] space-y-2">
+                    <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="20" /></span>
+                    <p>Consultando discrepancias pendientes...</p>
+                </div>
+            }
+            else if (_discrepancies.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
+                    <span class="text-emerald-400 inline-block"><Icon Name="check" Size="36" /></span>
+                    <h3 class="text-sm font-bold text-[var(--text-primary)]">No hay discrepancias EAN pendientes</h3>
+                    <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+                        Todos los juegos cruzados desde los feeds comerciales coinciden con los códigos principales o secundarios del catálogo de Ludeka.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 gap-3">
+                    @foreach (var item in _discrepancies)
+                    {
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-3">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-sm font-bold text-[var(--text-primary)]">@item.GameTitle</h3>
+                                        <a href="/juegos/@item.GameSlug"
+                                           target="_blank"
+                                           class="text-[0.7rem] text-[var(--brand-primary)] hover:underline flex items-center gap-1">
+                                            <span>Ver ficha</span>
+                                            <Icon Name="arrow-up-right" Size="12" />
+                                        </a>
+                                    </div>
+                                    <div class="text-xs text-[var(--text-muted)] mt-0.5">
+                                        Reportado por la tienda <span class="font-semibold text-[var(--text-secondary)]">@item.StoreName</span> el @item.DetectedAtUtc.LocalDateTime.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 self-end md:self-auto">
+                                    <button type="button"
+                                            @onclick="() => PromoteDiscrepancyAsync(item)"
+                                            disabled="@_isProcessingDiscrepancy"
+                                            class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold transition-colors border border-emerald-500/30 flex items-center gap-1.5 disabled:opacity-50">
+                                        <Icon Name="check" Size="13" />
+                                        <span>Promover a EAN principal</span>
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick="() => DismissDiscrepancyAsync(item)"
+                                            disabled="@_isProcessingDiscrepancy"
+                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium border border-[var(--border-subtle)] disabled:opacity-50">
+                                        <span>Descartar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            @* Comparativa de Códigos *@
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-[var(--border-subtle)]/60">
+                                <div class="p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+                                    <div class="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                                        EAN Actual en Ludeka (BGG / Ficha)
+                                    </div>
+                                    <div class="font-mono font-bold text-[var(--text-primary)] text-sm">
+                                        @(string.IsNullOrEmpty(item.CurrentEan) ? "(Sin EAN asignado)" : item.CurrentEan)
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                                    <div class="text-[0.65rem] font-bold text-amber-400 uppercase tracking-wider">
+                                        EAN Detectado en Feed Comercial (@item.StoreName)
+                                    </div>
+                                    <div class="font-mono font-bold text-amber-300 text-sm">
+                                        @item.FeedEan
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    private const string TabFeeds = "feeds";
+    private const string TabDiscrepancies = "discrepancies";
+
+    private string _activeTab = TabFeeds;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _isSyncingAll;
+    private Guid? _syncingSourceId;
+    private bool _isProcessingDiscrepancy;
+    private string? _feedbackMessage;
+    private bool _isFeedbackError;
+
+    // Fuentes
+    private List<AffiliateFeedSource> _sources = new();
+    private List<AffiliateEanDiscrepancyLog> _discrepancies = new();
+
+    // Estado del formulario
+    private bool _isFormVisible;
+    private Guid? _editingSourceId;
+    private string _formStoreName = string.Empty;
+    private string _formFeedUrl = string.Empty;
+    private FeedFormat _formFormat = FeedFormat.GoogleShoppingXml;
+    private string? _formAffiliateTag;
+    private string _formCountry = "España";
+    private int _formSyncIntervalHours = 6;
+    private bool _formIsEnabled = true;
+
+    private bool CanManageAffiliates =>
+        CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _sources = await FeedSourceRepository.GetAllAsync();
+            _discrepancies = await DiscrepancyRepository.GetPendingDiscrepanciesAsync(50);
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al cargar datos: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void StartEditSource(AffiliateFeedSource source)
+    {
+        _editingSourceId = source.Id;
+        _formStoreName = source.StoreName;
+        _formFeedUrl = source.FeedUrl;
+        _formFormat = source.Format;
+        _formAffiliateTag = source.AffiliateTag;
+        _formCountry = source.Country;
+        _formSyncIntervalHours = source.SyncIntervalHours;
+        _formIsEnabled = source.IsEnabled;
+        _isFormVisible = true;
+    }
+
+    private void ResetForm()
+    {
+        _editingSourceId = null;
+        _formStoreName = string.Empty;
+        _formFeedUrl = string.Empty;
+        _formFormat = FeedFormat.GoogleShoppingXml;
+        _formAffiliateTag = null;
+        _formCountry = "España";
+        _formSyncIntervalHours = 6;
+        _formIsEnabled = true;
+        _isFormVisible = false;
+    }
+
+    private async Task SaveSourceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_formStoreName))
+        {
+            SetFeedback("El nombre de la tienda es obligatorio.", isError: true);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_formFeedUrl) || !Uri.TryCreate(_formFeedUrl, UriKind.Absolute, out _))
+        {
+            SetFeedback("Introduce una URL de feed válida (ej: https://tienda.es/feed.xml).", isError: true);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            if (_editingSourceId.HasValue)
+            {
+                var existing = await FeedSourceRepository.GetByIdAsync(_editingSourceId.Value);
+                if (existing != null)
+                {
+                    existing.StoreName = _formStoreName.Trim();
+                    existing.FeedUrl = _formFeedUrl.Trim();
+                    existing.Format = _formFormat;
+                    existing.AffiliateTag = string.IsNullOrWhiteSpace(_formAffiliateTag) ? null : _formAffiliateTag.Trim();
+                    existing.Country = string.IsNullOrWhiteSpace(_formCountry) ? "España" : _formCountry.Trim();
+                    existing.SyncIntervalHours = _formSyncIntervalHours > 0 ? _formSyncIntervalHours : 6;
+                    existing.IsEnabled = _formIsEnabled;
+
+                    await FeedSourceRepository.UpdateAsync(existing);
+                    SetFeedback($"Fuente '{existing.StoreName}' actualizada con éxito.");
+                }
+            }
+            else
+            {
+                var newSource = new AffiliateFeedSource(
+                    _formStoreName,
+                    _formFeedUrl,
+                    _formFormat,
+                    _formAffiliateTag,
+                    _formCountry,
+                    _formSyncIntervalHours)
+                {
+                    IsEnabled = _formIsEnabled
+                };
+
+                await FeedSourceRepository.AddAsync(newSource);
+                SetFeedback($"Fuente '{newSource.StoreName}' registrada con éxito.");
+            }
+
+            ResetForm();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al guardar la fuente: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ToggleSourceEnabledAsync(AffiliateFeedSource source)
+    {
+        try
+        {
+            source.IsEnabled = !source.IsEnabled;
+            await FeedSourceRepository.UpdateAsync(source);
+            SetFeedback($"Fuente '{source.StoreName}' {(source.IsEnabled ? "activada" : "pausada")}.");
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al alternar estado: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task DeleteSourceAsync(Guid id)
+    {
+        try
+        {
+            await FeedSourceRepository.DeleteAsync(id);
+            SetFeedback("Fuente de catálogo eliminada.");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al eliminar fuente: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task SyncFeedAsync(Guid feedId)
+    {
+        _syncingSourceId = feedId;
+        try
+        {
+            var result = await FeedSyncService.SyncFeedSourceByIdAsync(feedId);
+            if (result.Success)
+            {
+                SetFeedback($"Sincronización de '{result.StoreName}' completada: {result.ItemsRead} productos leídos, {result.MatchedCount} ofertas enlazadas.");
+            }
+            else
+            {
+                SetFeedback($"Fallo en sincronización de '{result.StoreName}': {result.ErrorMessage}", isError: true);
+            }
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error en sincronización: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _syncingSourceId = null;
+        }
+    }
+
+    private async Task SyncAllActiveAsync()
+    {
+        _isSyncingAll = true;
+        try
+        {
+            var results = await FeedSyncService.SyncAllActiveFeedsAsync();
+            var successCount = results.Count(r => r.Success);
+            var totalMatched = results.Sum(r => r.MatchedCount);
+            SetFeedback($"Sincronización global finalizada: {successCount}/{results.Count} feeds exitosos, {totalMatched} ofertas totales enlazadas.");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error en sincronización masiva: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _isSyncingAll = false;
+        }
+    }
+
+    private async Task PromoteDiscrepancyAsync(AffiliateEanDiscrepancyLog discrepancy)
+    {
+        _isProcessingDiscrepancy = true;
+        try
+        {
+            var game = await GameRepository.GetByIdAsync(discrepancy.GameId);
+            if (game != null)
+            {
+                var oldEan = game.Ean;
+                var currentBarcodes = game.AdditionalBarcodes.ToList();
+
+                if (!string.IsNullOrEmpty(oldEan) && !currentBarcodes.Contains(oldEan))
+                {
+                    currentBarcodes.Add(oldEan);
+                }
+
+                game.UpdateEan(discrepancy.FeedEan);
+                game.UpdateAdditionalBarcodes(currentBarcodes);
+                await GameRepository.UpdateAsync(game);
+
+                var userName = !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+                    ? CurrentUserService.UserName
+                    : (!string.IsNullOrWhiteSpace(CurrentUserService.UserId) ? CurrentUserService.UserId : "Moderador");
+                discrepancy.MarkResolved($"Promovido a EAN principal por {userName}");
+                await DiscrepancyRepository.UpdateAsync(discrepancy);
+
+                SetFeedback($"Código EAN '{discrepancy.FeedEan}' promovido a principal para '{game.SpanishTitle}'. El EAN previo se conservó en códigos adicionales.");
+                await LoadDataAsync();
+            }
+            else
+            {
+                SetFeedback("No se encontró el juego en catálogo.", isError: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al promover EAN: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _isProcessingDiscrepancy = false;
+        }
+    }
+
+    private async Task DismissDiscrepancyAsync(AffiliateEanDiscrepancyLog discrepancy)
+    {
+        _isProcessingDiscrepancy = true;
+        try
+        {
+            var userName = !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+                ? CurrentUserService.UserName
+                : (!string.IsNullOrWhiteSpace(CurrentUserService.UserId) ? CurrentUserService.UserId : "Moderador");
+            discrepancy.MarkResolved($"Descartado por {userName}");
+            await DiscrepancyRepository.UpdateAsync(discrepancy);
+
+            SetFeedback("Discrepancia descartada.");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetFeedback($"Error al descartar discrepancia: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _isProcessingDiscrepancy = false;
+        }
+    }
+
+    private void SetFeedback(string message, bool isError = false)
+    {
+        _feedbackMessage = message;
+        _isFeedbackError = isError;
+    }
+}
