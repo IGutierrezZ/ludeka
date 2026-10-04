@@ -44,7 +44,9 @@ public record GameDetailDto(
     string? TableImageUrl = null,
     string? SpanishPublisher = null,
     IReadOnlyList<RegionalPublisherEntry>? RegionalPublishers = null,
-    IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null
+    IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null,
+    string? Ean = null,
+    IReadOnlyList<string>? AdditionalBarcodes = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
@@ -125,6 +127,8 @@ public record GameDetailDto(
         g.TableImageUrl,
         g.SpanishPublisher,
         (g.RegionalPublishers ?? new List<RegionalPublisherEntry>()).AsReadOnly(),
-        (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly()
+        (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly(),
+        g.Ean,
+        (g.AdditionalBarcodes ?? new List<string>()).AsReadOnly()
     );
 }

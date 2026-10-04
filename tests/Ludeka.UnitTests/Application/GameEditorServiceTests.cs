@@ -320,4 +320,54 @@ public class GameEditorServiceTests
         Assert.Single(logRepo.Logs);
         Assert.Contains("Fundas de cartas actualizadas (2 formatos)", logRepo.Logs[0].SummaryOfChanges);
     }
+
+    [Fact]
+    public async Task UpdateGameAsync_ShouldUpdateEan_AndRecordAuditLog()
+    {
+        // Arrange
+        var game = CreateGame();
+        var gameRepo = new FakeGameRepository();
+        await gameRepo.UpdateAsync(game);
+
+        var user = new FakeCurrentUserService { Roles = ["Moderator"] };
+        var logRepo = new FakeEditLogRepository();
+        var catalog = new FakeCatalogService();
+        var service = new GameEditorService(gameRepo, user, logRepo, catalog);
+
+        var cmd = new UpdateGameDetailsCommand(
+            GameId: game.Id,
+            SpanishTitle: game.SpanishTitle,
+            OriginalTitle: game.OriginalTitle,
+            Designer: game.Designer,
+            Publisher: game.Publisher,
+            YearPublished: game.YearPublished,
+            Description: game.Description,
+            MinPlayers: 1,
+            MaxPlayers: 4,
+            MinDurationMinutes: game.Duration.MinMinutes,
+            MaxDurationMinutes: game.Duration.MaxMinutes,
+            EstimatedPerPlayerMinutes: game.Duration.EstimatedPerPlayerMinutes,
+            BoxAge: game.Age.BoxAge,
+            CommunityAge: game.Age.CommunityAge,
+            Confrontation: game.Confrontation,
+            Style: game.Style,
+            IsOfficialSolo: game.IsOfficialSolo,
+            Language: game.Language,
+            Footprint: game.Footprint,
+            CoverImageUrl: game.CoverImageUrl,
+            Ean: "8436017220100"
+        );
+
+        // Act
+        var result = await service.UpdateGameAsync(cmd);
+
+        // Assert
+        var savedGame = await gameRepo.GetByIdAsync(game.Id);
+        Assert.NotNull(savedGame);
+        Assert.Equal("8436017220100", savedGame.Ean);
+        Assert.Equal("8436017220100", result.Ean);
+
+        Assert.Single(logRepo.Logs);
+        Assert.Contains("Código de barras (EAN-13)", logRepo.Logs[0].SummaryOfChanges);
+    }
 }

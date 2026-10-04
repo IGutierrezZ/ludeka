@@ -159,6 +159,39 @@
                                    @bind="_yearPublished"
                                    class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm focus:border-[var(--brand-primary)] focus:outline-none" />
                         </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="input-ean" class="text-xs font-bold text-[var(--text-secondary)]">
+                                    Código de Barras (EAN-13 / UPC)
+                                </label>
+                                @if (!string.IsNullOrWhiteSpace(_ean))
+                                {
+                                    @if (BarcodeValidator.TryNormalizeEan13(_ean, out _))
+                                    {
+                                        <span class="text-[0.65rem] text-emerald-400 font-semibold flex items-center gap-1">
+                                            <Icon Name="circle-check" Size="12" /> Válido
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[0.65rem] text-rose-400 font-semibold flex items-center gap-1">
+                                            <Icon Name="triangle-alert" Size="12" /> Inválido
+                                        </span>
+                                    }
+                                }
+                            </div>
+                            <input id="input-ean"
+                                   type="text"
+                                   maxlength="14"
+                                   @bind="_ean"
+                                   @bind:event="oninput"
+                                   placeholder="Ej: 8435407629616"
+                                   class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm focus:border-[var(--brand-primary)] focus:outline-none font-mono" />
+                            <span class="text-[0.65rem] text-[var(--text-muted)] mt-1 block">
+                                Código comercial de la edición en español para matching de ofertas y precios.
+                            </span>
+                        </div>
                     </div>
                 }
 
@@ -627,6 +660,7 @@
     private string _publisher = string.Empty;
     private int _yearPublished = 2020;
     private string? _description;
+    private string _ean = string.Empty;
 
     private int _minPlayers = 1;
     private int _maxPlayers = 4;
@@ -665,6 +699,7 @@
             _publisher = Game.Publisher;
             _yearPublished = Game.YearPublished;
             _description = Game.Description;
+            _ean = Game.Ean ?? string.Empty;
 
             _minPlayers = Math.Max(1, Game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(1).Min());
             _maxPlayers = Math.Max(_minPlayers, Game.Scalability.Where(s => s.PlayerCount > 0).Select(s => s.PlayerCount).DefaultIfEmpty(4).Max());
@@ -873,6 +908,12 @@
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(_ean) && !BarcodeValidator.TryNormalizeEan13(_ean, out _))
+        {
+            _errorMessage = "El código de barras introducido no es un EAN-13 o UPC-A válido con dígito de control correcto.";
+            return;
+        }
+
         _isSaving = true;
 
         try
@@ -902,7 +943,8 @@
                 TableImageUrl: _tableImageUrl,
                 AssociatedReportId: AssociatedReportId,
                 ResolutionNotes: _resolutionNotes,
-                Sleeves: _sleeves
+                Sleeves: _sleeves,
+                Ean: string.IsNullOrWhiteSpace(_ean) ? null : _ean.Trim()
             );
 
             var updatedGame = await GameEditorService.UpdateGameAsync(cmd);

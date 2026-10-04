@@ -33,7 +33,8 @@ public record UpdateGameDetailsCommand(
     string? TableImageUrl = null,
     Guid? AssociatedReportId = null,
     string? ResolutionNotes = null,
-    IReadOnlyList<SleeveItem>? Sleeves = null
+    IReadOnlyList<SleeveItem>? Sleeves = null,
+    string? Ean = null
 );
 
 /// <summary>

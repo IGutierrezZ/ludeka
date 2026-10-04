@@ -1972,3 +1972,98 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001151945_MakeWeeklyReleaseDateNullable') THEN
+    ALTER TABLE "WeeklyReleases" ALTER COLUMN "ReleaseDate" DROP NOT NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261001151945_MakeWeeklyReleaseDateNullable') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261001151945_MakeWeeklyReleaseDateNullable', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    ALTER TABLE "Games" ADD "AdditionalBarcodes" text[] NOT NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    ALTER TABLE "Games" ADD "Ean" character varying(14);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE TABLE "AffiliateClicks" (
+        "Id" uuid NOT NULL,
+        "GameId" uuid,
+        "GameTitle" character varying(250) NOT NULL,
+        "GameSlug" character varying(250) NOT NULL,
+        "StoreName" character varying(150) NOT NULL,
+        "TargetUrl" character varying(1000) NOT NULL,
+        "Country" character varying(100),
+        "ClickedAtUtc" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_AffiliateClicks" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE INDEX "IX_Games_Ean" ON "Games" ("Ean");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE INDEX "IX_AffiliateClicks_ClickedAtUtc" ON "AffiliateClicks" ("ClickedAtUtc");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE INDEX "IX_AffiliateClicks_GameId" ON "AffiliateClicks" ("GameId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE INDEX "IX_AffiliateClicks_GameSlug" ON "AffiliateClicks" ("GameSlug");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    CREATE INDEX "IX_AffiliateClicks_StoreName" ON "AffiliateClicks" ("StoreName");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261004205804_AddGameEanAndAffiliateClicks', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

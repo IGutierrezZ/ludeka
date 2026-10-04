@@ -111,4 +111,40 @@ public class AffiliateUrlResolver : IAffiliateUrlResolver
 
         return $"{baseAndQuery}{fragment}";
     }
+
+    public bool IsAllowedStoreUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return false;
+        }
+
+        var cleanHost = uri.Host.ToLowerInvariant();
+        return _options.Stores.Values.Any(rule =>
+            !string.IsNullOrWhiteSpace(rule.DomainMatch) &&
+            cleanHost.Contains(rule.DomainMatch.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    public string BuildSearchUrl(string storeName, string searchQuery)
+    {
+        var cleanQuery = Uri.EscapeDataString(searchQuery.Trim());
+        var normStore = storeName?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        string rawUrl = normStore switch
+        {
+            "amazon" or "amazon.es" => $"https://www.amazon.es/s?k={cleanQuery}",
+            "zacatrus" or "zacatrus.es" => $"https://zacatrus.es/catalogsearch/result/?q={cleanQuery}",
+            "cuarto de juegos" or "cuartodejuegos" or "cuartodejuegos.es" => $"https://cuartodejuegos.es/buscar?controller=search&s={cleanQuery}",
+            "dungeon marvels" or "dungeonmarvels" or "dungeonmarvels.com" => $"https://dungeonmarvels.com/buscar?controller=search&s={cleanQuery}",
+            "tablerum" or "tablerum.es" => $"https://tablerum.es/buscar?controller=search&s={cleanQuery}",
+            "mathom" or "mathom.es" => $"https://mathom.es/es/buscar?controller=search&s={cleanQuery}",
+            "dracotienda" => $"https://www.dracotienda.com/buscar?controller=search&s={cleanQuery}",
+            "jugamos otra" or "jugamosotra" => $"https://jugamosotra.com/buscar?controller=search&s={cleanQuery}",
+            _ => $"https://www.google.com/search?q={Uri.EscapeDataString($"{storeName} {searchQuery}")}"
+        };
+
+        return ResolveAffiliateUrl(rawUrl, storeName);
+    }
 }
