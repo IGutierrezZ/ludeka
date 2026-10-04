@@ -3,7 +3,7 @@
 > **ID:** INC-105  
 > **Slug:** `bgg-versiones-titulos-ean`  
 > **Rama:** `inc/bgg-versiones-titulos-ean`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 47 (`docs/specs/sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`), `src/Ludeka.Core/`, `src/Ludeka.Application/`, `src/Ludeka.Infrastructure/`, `src/Ludeka.Jobs/`, `src/Ludeka.Web/`  
 > **Dependencias:** INC-90 (BGG Raw Snapshots), INC-97 (Peticiones en bloque BGG Batch Fetch), INC-98 (Persistencia automática de snapshots), INC-100 (Reconciliación de expansiones)
 
@@ -44,9 +44,9 @@
 
 ## 3. Plan de Trabajo (Work Units)
 
-- [ ] **WU 01: Dominio y ValueObjects:** `BarcodeValidator`, propiedad `Ean` en `Game.cs` y métodos de actualización de títulos/EAN. Pruebas unitarias de dominio.
-- [ ] **WU 02: Parser analítico de versiones:** `ExtractSpanishVersionInfo` y `HasVersions` en `BggRawSnapshotParser`. Pruebas con fixtures de BGG reales y simulados.
-- [ ] **WU 03: Infraestructura de cliente BGG:** Parámetro `includeVersions` en `BggXmlApiClient` y `SimulatedBggClient`, auto-persistencia en `BggRawSnapshots`. Pruebas de integración/cliente.
-- [ ] **WU 04: Orquestación de sincronización y barrido:** `SyncVersionsBatchAsync` y `SweepCatalogFromVersionsAsync` en `BggRawSnapshotSyncService`. Pruebas de aplicación.
-- [ ] **WU 05: Runner en Ludeka.Jobs y panel en CatalogQueueAdmin:** Exposición interactiva y telemetría de barrido. Pruebas de runner y UI.
-- [ ] **WU 06: Verificación integral y cierre:** Suite completa en verde, PR, monitorización de CI/CD y cierre.
+- [x] **WU 01: Dominio y ValueObjects:** `BarcodeValidator`, propiedad `Ean` en `Game.cs` y métodos de actualización de títulos/EAN. Pruebas unitarias de dominio.
+- [x] **WU 02: Parser analítico de versiones:** `ExtractSpanishVersionInfo` y `HasVersions` en `BggRawSnapshotParser`. Pruebas con fixtures de BGG reales y simulados.
+- [x] **WU 03: Infraestructura de cliente BGG:** Parámetro `includeVersions` en `BggXmlApiClient` y `SimulatedBggClient`, auto-persistencia en `BggRawSnapshots`. Pruebas de integración/cliente.
+- [x] **WU 04: Orquestación de sincronización y barrido:** `SyncVersionsBatchAsync` y `SweepCatalogFromVersionsAsync` en `BggRawSnapshotSyncService`. Pruebas de aplicación.
+- [x] **WU 05: Runner en Ludeka.Jobs y panel en CatalogQueueAdmin:** Exposición interactiva y telemetría de barrido. Pruebas de runner y UI.
+- [x] **WU 06: Verificación integral y cierre:** Suite completa en verde, PR, monitorización de CI/CD y cierre.

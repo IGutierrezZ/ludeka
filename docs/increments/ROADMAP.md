@@ -117,7 +117,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-102** | Auto-vinculación Inmediata de Expansiones en Búsqueda Asistida y Síntesis Asistida de Aporte con IA | ✅ Archivado | [inc-102-autovinculacion-expansiones-ia.md](archive/inc-102-autovinculacion-expansiones-ia.md) |
 | **INC-103** | Barrido y Auditoría Integral de Calidad de Catálogo desde Snapshots Locales de BGG | ✅ Archivado | [inc-103-barrido-calidad-snapshots-locales.md](archive/inc-103-barrido-calidad-snapshots-locales.md) |
 | **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
-| **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ⏳ En progreso | [inc-105-bgg-versiones-titulos-ean.md](inc-105-bgg-versiones-titulos-ean.md) |
+| **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ✅ Archivado | [inc-105-bgg-versiones-titulos-ean.md](archive/inc-105-bgg-versiones-titulos-ean.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

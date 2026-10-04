@@ -159,3 +159,20 @@ Para aprovechar el 100% de cobertura de snapshots locales (~17.505 registros) y 
 3. **Estrategia Snapshot-First en Enriquecimiento de Calidad:**
    - En `BggMassIngestionService.EnrichSingleGameQualityAsync`, se consulta `_snapshotRepo.GetByBggIdAsync(game.BggId, ct)` antes de cualquier llamada a red.
    - Si el snapshot local está presente, se reconstruye el `Game` y se actualizan escalabilidad, fundas, duraciones, huella y editoriales sin realizar tráfico de red externo.
+
+### 7.7 Ingesta 2x1 de Versiones BGG (versions=1), Títulos en Español y Códigos EAN-13 (INC-105)
+Para corregir sistemáticamente juegos registrados con nombres en inglés (ej. *Power Grid* en vez de *Alta Tensión*) y proveer de códigos de barras comerciales estándar (EAN-13 / GTIN-13 / UPC-A) para la integración con afiliados:
+1. **Soporte de Versiones en Cliente BGG (`&versions=1`):**
+   - Sobrecarga de métodos en `IBggClient`, `BggXmlApiClient` y `SimulatedBggClient` con parámetro booleano `includeVersions = false` (por defecto compatible hacia atrás).
+   - Consulta el endpoint `/xmlapi2/thing?id={csv}&stats=1&versions=1` de BGG en bloques de hasta 20 IDs.
+   - Los nodos `<versions>` recibidos se persisten automáticamente dentro del payload JSON en `BggRawSnapshots`.
+2. **Parser Analítico Puro (`BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson`):**
+   - Extrae deterministamente el nodo de versión española (`<link type="language" value="Spanish" />`).
+   - Resuelve el título comercial oficial en español (`SpanishTitle`), editorial (`SpanishPublisher`) y código de barras (`Ean`).
+   - Normalización y validación estricta de códigos de barras comerciales mediante `BarcodeValidator.TryNormalizeEan13` (módulo 10 con pesos alternos 1 y 3, soporte UPC-A de 12 dígitos normalizado a GTIN-13 con 0 inicial).
+3. **Orquestador de Sincronización y Barrido Local en `BggRawSnapshotSyncService`:**
+   - `SyncVersionsBatchAsync`: Obtiene juegos sin nodo de versiones en snapshot, invoca a BGG con `versions=1`, guarda el snapshot y actualiza la entidad `Game` en catálogo.
+   - `SweepCatalogFromVersionsAsync`: Proceso 100% offline que itera sobre snapshots locales con versiones mediante paginación ascendente por cursor, actualizando en memoria/CPU `SpanishTitle`, `SpanishPublisher`, `Ean` y `LocalizedTitles`.
+4. **Runner CLI Autónomo (`BggVersionsSweepJobRunner`) y Consola Web:**
+   - Runner `bgg-versions-sweep` registrado en `JobNames.cs` y expuesto en `Ludeka.Jobs`.
+   - Métricas y acciones en `CatalogQueueAdmin.razor`: tarjeta KPI de «Versiones BGG (EAN / ES)» y botones interactivos «Sincronizar Versiones (2x1)» y «Barrer Títulos ES y EAN».

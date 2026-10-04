@@ -1024,8 +1024,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   4. **Dominio y Catálogo:** Incorporar `Ean` en `Game.cs`, métodos `UpdateEan` y `UpdateSpanishTitle`, con sincronización en `LocalizedTitles`.
   5. **Orquestador de Sincronización y Barrido:** `SyncVersionsBatchAsync` y `SweepCatalogFromVersionsAsync` en `BggRawSnapshotSyncService` para enriquecer el catálogo en memoria/CPU sin llamadas externas recurrentes.
   6. **Consola y Runner Autónomo:** Visualización de métricas en `CatalogQueueAdmin.razor` y runner CLI desatendido en `Ludeka.Jobs`.
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`../increments/inc-105-bgg-versiones-titulos-ean.md`](../increments/inc-105-bgg-versiones-titulos-ean.md).
+- **Estado:** ✅ **Completado y Archivado** (2.358 pruebas unitarias pasando al 100% [2.368 totales con integración]).
+- **Documento:** [`../increments/archive/inc-105-bgg-versiones-titulos-ean.md`](../increments/archive/inc-105-bgg-versiones-titulos-ean.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
 ---
