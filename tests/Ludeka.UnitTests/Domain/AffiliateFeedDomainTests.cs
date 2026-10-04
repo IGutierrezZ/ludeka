@@ -28,6 +28,22 @@ public class AffiliateFeedDomainTests
         Assert.Null(source.LastSyncUtc);
     }
 
+    [Fact]
+    public void AffiliateFeedSource_ShopifyJsonFormat_InitializesCorrectly()
+    {
+        var source = new AffiliateFeedSource(
+            storeName: "Cuarto de Juegos",
+            feedUrl: "https://cuartodejuegos.es/products.json",
+            format: FeedFormat.ShopifyJson,
+            affiliateTag: "ludeka",
+            country: "España");
+
+        Assert.Equal("Cuarto de Juegos", source.StoreName);
+        Assert.Equal("https://cuartodejuegos.es/products.json", source.FeedUrl);
+        Assert.Equal(FeedFormat.ShopifyJson, source.Format);
+        Assert.Equal("ludeka", source.AffiliateTag);
+    }
+
     [Theory]
     [InlineData("", "https://valid.com")]
     [InlineData("   ", "https://valid.com")]
