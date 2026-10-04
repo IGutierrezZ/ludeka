@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -16,7 +16,8 @@ namespace Ludeka.Infrastructure.Migrations
                 name: "AdditionalBarcodes",
                 table: "Games",
                 type: "text[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'");
 
             migrationBuilder.AddColumn<string>(
                 name: "Ean",

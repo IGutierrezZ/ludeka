@@ -81,7 +81,8 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         game.PrimitiveCollection(g => g.ImpactTags);
         game.Property(g => g.Ean).HasMaxLength(14);
         game.HasIndex(g => g.Ean);
-        game.PrimitiveCollection(g => g.AdditionalBarcodes);
+        game.PrimitiveCollection(g => g.AdditionalBarcodes)
+            .HasDefaultValueSql("'{}'");
 
         game.Property(g => g.SpanishPublisher).HasMaxLength(200);
         game.HasIndex(g => g.SpanishPublisher);
