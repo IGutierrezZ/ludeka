@@ -518,7 +518,7 @@ public class YouTubeSearchService : IYouTubeSearchService
         try
         {
             // 1. Llamada a YouTube search
-            var searchUrl = $"search?part=snippet&q={Uri.EscapeDataString(query)}&type=video&relevanceLanguage=es&maxResults=5&key={Uri.EscapeDataString(_options.ApiKey!)}";
+            var searchUrl = $"search?part=snippet&q={Uri.EscapeDataString(query ?? string.Empty)}&type=video&relevanceLanguage=es&maxResults=5&key={Uri.EscapeDataString(_options.ApiKey ?? string.Empty)}";
             var searchResponse = await _httpClient.GetFromJsonAsync<YouTubeSearchListResponse>(searchUrl, ct).ConfigureAwait(false);
 
             if (searchResponse?.Items == null || searchResponse.Items.Count == 0)

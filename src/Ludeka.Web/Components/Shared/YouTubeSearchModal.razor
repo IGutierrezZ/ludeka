@@ -271,17 +271,40 @@
                                         </a>
 
                                         <div class="flex items-center gap-2">
-                                            <button type="button"
-                                                    @onclick="() => IngestCandidate(item, false)"
-                                                    class="px-3 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold text-xs border border-[var(--border-subtle)] transition-colors flex items-center gap-1">
-                                                <Icon Name="inbox" Size="12" /> A Pendientes
-                                            </button>
+                                            @if (_processedVideos.TryGetValue(item.VideoId, out var status))
+                                            {
+                                                @if (status == ModerationStatus.Approved)
+                                                {
+                                                    <span class="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+                                                        <Icon Name="circle-check" Size="14" />
+                                                        <span>Aprobado</span>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold text-xs flex items-center gap-1.5 shadow-sm">
+                                                        <Icon Name="inbox" Size="14" />
+                                                        <span>En Pendientes</span>
+                                                    </span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                var isThisProcessing = _processingVideoId == item.VideoId;
+                                                <button type="button"
+                                                        @onclick="() => IngestCandidate(item, false)"
+                                                        disabled="@(isThisProcessing || _processingVideoId != null)"
+                                                        class="px-3 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] disabled:opacity-50 text-[var(--text-primary)] font-semibold text-xs border border-[var(--border-subtle)] transition-colors flex items-center gap-1">
+                                                    <Icon Name="inbox" Size="12" /> A Pendientes
+                                                </button>
 
-                                            <button type="button"
-                                                    @onclick="() => IngestCandidate(item, true)"
-                                                    class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-sm">
-                                                <Icon Name="circle-check" Size="12" /> Aprobar Ya
-                                            </button>
+                                                <button type="button"
+                                                        @onclick="() => IngestCandidate(item, true)"
+                                                        disabled="@(isThisProcessing || _processingVideoId != null)"
+                                                        class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-sm">
+                                                    <Icon Name="circle-check" Size="12" /> Aprobar Ya
+                                                </button>
+                                            }
                                         </div>
                                     </div>
                                 </div>
@@ -328,6 +351,9 @@
     private bool _isNotificationError;
     private bool _isUserCancelled;
     private bool _previousIsOpen;
+    private Guid? _loadedForGameId;
+    private readonly Dictionary<string, ModerationStatus> _processedVideos = new();
+    private string? _processingVideoId;
 
     private GameSummaryDto? _selectedGame;
     private IReadOnlyList<GameSummaryDto> _matchingGames = [];
@@ -345,36 +371,44 @@
         if (IsOpen && !_previousIsOpen)
         {
             _previousIsOpen = true;
-            if (!string.IsNullOrWhiteSpace(InitialGameTitle))
+            bool isSameGame = InitialGameId.HasValue && InitialGameId == _loadedForGameId && _hasSearched;
+
+            if (!isSameGame)
             {
-                _searchQuery = InitialGameTitle;
-                _matchingGames = [];
-                _hasSearched = false;
-                _quickOverviews = [];
-                _tutorials = [];
-                _playthroughs = [];
+                _loadedForGameId = InitialGameId;
+                _processedVideos.Clear();
                 _notificationMessage = null;
 
-                if (InitialGameId.HasValue && InitialGameId.Value != Guid.Empty)
+                if (!string.IsNullOrWhiteSpace(InitialGameTitle))
                 {
-                    try
+                    _searchQuery = InitialGameTitle;
+                    _matchingGames = [];
+                    _hasSearched = false;
+                    _quickOverviews = [];
+                    _tutorials = [];
+                    _playthroughs = [];
+
+                    if (InitialGameId.HasValue && InitialGameId.Value != Guid.Empty)
                     {
-                        var matches = await CatalogService.GetQuickSearchAsync(InitialGameTitle, 5);
-                        _selectedGame = matches.FirstOrDefault(g => g.Id == InitialGameId.Value)
-                                        ?? matches.FirstOrDefault()
-                                        ?? new GameSummaryDto(
-                                            InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
-                                            "", "", 0, null, null, 0, null, 0, "",
-                                            ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
-                                            0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
-                    }
-                    catch
-                    {
-                        _selectedGame = new GameSummaryDto(
-                            InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
-                            "", "", 0, null, null, 0, null, 0, "",
-                            ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
-                            0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
+                        try
+                        {
+                            var matches = await CatalogService.GetQuickSearchAsync(InitialGameTitle, 5);
+                            _selectedGame = matches.FirstOrDefault(g => g.Id == InitialGameId.Value)
+                                            ?? matches.FirstOrDefault()
+                                            ?? new GameSummaryDto(
+                                                InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
+                                                "", "", 0, null, null, 0, null, 0, "",
+                                                ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
+                                                0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
+                        }
+                        catch
+                        {
+                            _selectedGame = new GameSummaryDto(
+                                InitialGameId.Value, 0, "", InitialGameTitle, InitialGameTitle,
+                                "", "", 0, null, null, 0, null, 0, "",
+                                ConfrontationType.Competitive, GameStyle.Eurogame, false, false,
+                                0, 0, LanguageDependence.Low, TableFootprint.StandardTable, 0);
+                        }
                     }
                 }
             }
@@ -447,8 +481,14 @@
         _debounceTimer?.Dispose();
         _searchCts?.Cancel();
         _selectedGame = game;
+        _loadedForGameId = game.Id;
+        _processedVideos.Clear();
         _searchQuery = game.SpanishTitle;
         _matchingGames = [];
+        _hasSearched = false;
+        _quickOverviews = [];
+        _tutorials = [];
+        _playthroughs = [];
         // No auto-disparar búsqueda: el usuario decide cuándo pulsar "Buscar en YouTube" o dar a Enter.
     }
 
@@ -491,6 +531,8 @@
         }
         catch {}
         _selectedGame = null;
+        _loadedForGameId = null;
+        _processedVideos.Clear();
         _searchQuery = string.Empty;
         _matchingGames = [];
         _hasSearched = false;
@@ -581,6 +623,7 @@
             return;
         }
 
+        _processingVideoId = candidate.VideoId;
         try
         {
             var request = new YouTubeIngestRequestDto(
@@ -597,6 +640,7 @@
             );
 
             await YouTubeSearchService.IngestVideoAsync(request);
+            _processedVideos[candidate.VideoId] = autoApprove ? ModerationStatus.Approved : ModerationStatus.PendingApproval;
             _isNotificationError = false;
             _notificationMessage = autoApprove
                 ? $"Vídeo de '{candidate.ChannelTitle}' aprobado y publicado en el Hub."
@@ -609,6 +653,10 @@
             _isNotificationError = true;
             _notificationMessage = $"Error al incorporar vídeo: {ex.Message}";
         }
+        finally
+        {
+            _processingVideoId = null;
+        }
     }
 
     private async Task AutoIngestTopVideos()
@@ -619,6 +667,14 @@
         try
         {
             var ingested = await YouTubeSearchService.AutoSuggestAndIngestForGameAsync(_selectedGame.Id, autoApprove: false);
+            foreach (var item in ingested)
+            {
+                var vId = item.Url.Contains("v=") ? item.Url.Split("v=").LastOrDefault() : null;
+                if (!string.IsNullOrWhiteSpace(vId))
+                {
+                    _processedVideos[vId] = item.Status;
+                }
+            }
             _isNotificationError = false;
             _notificationMessage = $"Se han incorporado {ingested.Count} vídeos sugeridos a la cola de moderación.";
             await OnVideoIngested.InvokeAsync();
