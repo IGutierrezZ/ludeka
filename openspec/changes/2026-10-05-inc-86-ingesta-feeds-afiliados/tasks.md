@@ -1,20 +1,20 @@
 # Tareas de Implementación (Work Units)
 
 ## WU 01: Entidades de Dominio y Contratos de Repositorio
-- [ ] Crear entidades `AffiliateFeedSource` y `AffiliateEanDiscrepancyLog` en `Ludeka.Core.Entities`.
-- [ ] Crear contratos `IAffiliateFeedSourceRepository` e `IAffiliateEanDiscrepancyRepository` en `Ludeka.Application.Contracts`.
-- [ ] Pruebas unitarias de las entidades en `Ludeka.UnitTests/Domain/`.
+- [x] Crear entidades `AffiliateFeedSource` y `AffiliateEanDiscrepancyLog` en `Ludeka.Core.Entities`.
+- [x] Crear contratos `IAffiliateFeedSourceRepository` e `IAffiliateEanDiscrepancyRepository` en `Ludeka.Application.Contracts`.
+- [x] Pruebas unitarias de las entidades en `Ludeka.UnitTests/Domain/`.
 
 ## WU 02: Infraestructura y Persistencia Dual
-- [ ] Configurar mapeo EF Core en `LudekaDbContext`.
-- [ ] Implementar `SqliteAffiliateFeedSourceRepository` y `SqliteAffiliateEanDiscrepancyRepository`.
-- [ ] Actualizar reconciliador `SqliteSchemaMigrator` para crear las tablas en SQLite local.
-- [ ] Generar migración EF Core para PostgreSQL y actualizar `supabase_schema.sql` y `PostgresSchemaVerificationTests`.
+- [x] Configurar mapeo EF Core en `LudekaDbContext`.
+- [x] Implementar `SqliteAffiliateFeedSourceRepository` y `SqliteAffiliateEanDiscrepancyRepository`.
+- [x] Actualizar reconciliador `SqliteSchemaMigrator` para crear las tablas en SQLite local.
+- [x] Generar migración EF Core para PostgreSQL y actualizar `supabase_schema.sql` y `PostgresSchemaVerificationTests`.
 
 ## WU 03: Parsers de Feeds en Streaming
-- [ ] Definir DTOs `FeedProductItem` e interfaz `IFeedParser`.
-- [ ] Implementar `GoogleShoppingFeedParser` con `XmlReader` para parsing eficiente de items `<item>`.
-- [ ] Pruebas unitarias con feeds XML reales y simulados (precios, stock, EAN válido, EAN ausente, caracteres especiales).
+- [x] Definir DTOs `FeedProductItem` e interfaz `IFeedParser`.
+- [x] Implementar `GoogleShoppingFeedParser` con `XmlReader` para parsing eficiente de items `<item>`.
+- [x] Pruebas unitarias con feeds XML reales y simulados (precios, stock, EAN válido, EAN ausente, caracteres especiales).
 
 ## WU 04: Servicio de Sincronización y Lógica de Cruce
 - [ ] Implementar `CatalogFeedSyncService` en `Ludeka.Application.Features.Affiliates`:
