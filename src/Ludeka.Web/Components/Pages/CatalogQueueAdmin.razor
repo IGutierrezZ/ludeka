@@ -755,26 +755,47 @@
                         }
                     </button>
 
+                    @if (_isContinuousVersionsSyncActive)
+                    {
+                        <button type="button"
+                                @onclick="CancelContinuousVersionsSync"
+                                class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm animate-pulse">
+                            <Icon Name="pause" Size="14" />
+                            <span>Pausar Sincronización Versiones</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                @onclick="ExecuteContinuousVersionsSync"
+                                disabled="@(_isSyncingVersions || _isSweepingVersions || _isSyncingSnapshots || _isContinuousSnapshotsSyncActive || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.SnapshotsPendingVersions == 0))"
+                                class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                                title="Descarga en segundo plano todas las versiones BGG pendientes (2x1) y al terminar ejecuta el barrido automático de títulos en español y EAN en todo el catálogo">
+                            <Icon Name="play" Size="14" />
+                            <span>Sincronización Continua (2x1 + Barrido)</span>
+                        </button>
+                    }
+
                     <button type="button"
                             @onclick="ExecuteSyncVersionsBatchAsync"
-                            disabled="@(_isSyncingVersions || _isSyncingSnapshots || _isSweepingVersions || _isContinuousSnapshotsSyncActive)"
+                            disabled="@(_isSyncingVersions || _isSyncingSnapshots || _isSweepingVersions || _isContinuousSnapshotsSyncActive || _isContinuousVersionsSyncActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-purple-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                            title="Consulta BGG con versions=1 para obtener títulos en español y códigos EAN de juegos en snapshots existentes">
+                            title="Consulta BGG con versions=1 para obtener títulos en español y códigos EAN de un lote de 20 juegos">
                         @if (_isSyncingVersions)
                         {
                             <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando Versiones...</span>
+                            <span>Sincronizando Lote...</span>
                         }
                         else
                         {
                             <Icon Name="barcode" Size="14" class="text-purple-400" />
-                            <span>Sincronizar Versiones (2x1)</span>
+                            <span>Lote Rápido (20)</span>
                         }
                     </button>
 
                     <button type="button"
                             @onclick="ExecuteSweepVersionsCatalogAsync"
-                            disabled="@(_isSweepingVersions || _isSyncingVersions || _isSyncingSnapshots)"
+                            disabled="@(_isSweepingVersions || _isSyncingVersions || _isSyncingSnapshots || _isContinuousVersionsSyncActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-emerald-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                             title="Barrido 100% offline sobre snapshots locales para actualizar títulos en español, editoriales y códigos EAN-13">
                         @if (_isSweepingVersions)
@@ -865,6 +886,21 @@
                     @if (!_isContinuousSnapshotsSyncActive)
                     {
                         <button type="button" @onclick="() => _continuousSnapshotsSyncMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
+                    }
+                </div>
+            }
+
+            @* Alerta de Sincronización Continua de Versiones en Segundo Plano *@
+            @if (!string.IsNullOrEmpty(_continuousVersionsSyncMessage))
+            {
+                <div class="p-4 rounded-xl @(_isContinuousVersionsSyncActive ? "bg-purple-500/10 border-purple-500/30 text-purple-300" : "bg-emerald-500/10 border-emerald-500/25 text-emerald-300") border text-xs flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <Icon Name="@(_isContinuousVersionsSyncActive ? "loader" : "circle-check")" Size="14" class="@(_isContinuousVersionsSyncActive ? "animate-spin text-purple-400" : "text-emerald-400")" />
+                        @_continuousVersionsSyncMessage
+                    </span>
+                    @if (!_isContinuousVersionsSyncActive)
+                    {
+                        <button type="button" @onclick="() => _continuousVersionsSyncMessage = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                     }
                 </div>
             }
@@ -1334,11 +1370,16 @@
     private BggExpansionReconciliationResultDto? _expansionReconciliationResult;
     private bool _isReconcilingExpansions = false;
 
-    // Incremento 104: Versiones BGG, Títulos en Español y EAN (2x1)
+    // Incremento 105: Versiones BGG, Títulos en Español y EAN (2x1)
     private BggRawSnapshotSyncResultDto? _versionsSyncResult;
     private BggVersionCatalogSweepResultDto? _versionsSweepResult;
     private bool _isSyncingVersions = false;
     private bool _isSweepingVersions = false;
+
+    // Sincronización continua de versiones (2x1 + barrido) en segundo plano
+    private CancellationTokenSource? _continuousVersionsSyncCts;
+    private string? _continuousVersionsSyncMessage;
+    private bool _isContinuousVersionsSyncActive => _continuousVersionsSyncCts != null;
 
     // Incremento 91: Sincronización continua de snapshots en segundo plano
     private CancellationTokenSource? _continuousSnapshotsSyncCts;
@@ -1357,7 +1398,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
-        if (_isContinuousDrainActive || _isContinuousAiDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive)
+        if (_isContinuousDrainActive || _isContinuousAiDrainActive || _isContinuousBackfillActive || _isContinuousSweepActive || _isContinuousSnapshotsSyncActive || _isContinuousVersionsSyncActive)
         {
             StartPollingTimer();
         }
@@ -1945,6 +1986,95 @@
         _continuousSnapshotsSyncCts?.Cancel();
     }
 
+    private void CancelContinuousVersionsSync()
+    {
+        _continuousVersionsSyncCts?.Cancel();
+    }
+
+    private void ExecuteContinuousVersionsSync()
+    {
+        if (_isContinuousVersionsSyncActive || !CanManageQueue) return;
+
+        _continuousVersionsSyncCts = new CancellationTokenSource();
+        _continuousVersionsSyncMessage = "Iniciando sincronización continua de versiones BGG (2x1) y barrido de catálogo...";
+        var token = _continuousVersionsSyncCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var syncService = scope.ServiceProvider.GetRequiredService<IBggRawSnapshotSyncService>();
+
+                int totalSynced = 0;
+                int totalErrors = 0;
+                int batchNumber = 0;
+
+                // Fase 1: Descarga y almacenamiento de versiones BGG (versions=1)
+                while (!token.IsCancellationRequested)
+                {
+                    batchNumber++;
+                    var res = await syncService.RunScheduledSyncVersionsBatchAsync(batchSize: 20, delayMs: 1200, token);
+                    if (res.ProcessedCount == 0)
+                    {
+                        break;
+                    }
+
+                    totalSynced += res.SuccessCount;
+                    totalErrors += res.FailedCount;
+
+                    var status = await syncService.GetStatusAsync(token);
+                    _continuousVersionsSyncMessage = $"[Fase 1/2: Descargando versiones BGG] Lote #{batchNumber}: {totalSynced} versiones sincronizadas, {totalErrors} incidencias. Quedan {status.SnapshotsPendingVersions} pendientes.";
+
+                    if (res.SuccessCount == 0 && res.FailedCount == 0)
+                    {
+                        break;
+                    }
+                }
+
+                if (token.IsCancellationRequested) return;
+
+                // Fase 2: Barrido automático del catálogo para actualizar títulos ES y EANs
+                int lastBggId = 0;
+                int totalEvaluated = 0;
+                int totalTitlesUpdated = 0;
+                int totalEansUpdated = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    _continuousVersionsSyncMessage = $"[Fase 2/2: Barrido de catálogo] Actualizando títulos ES y EANs en caliente... ({totalTitlesUpdated} títulos ES, {totalEansUpdated} EANs actualizados de {totalEvaluated} evaluados).";
+
+                    var sweepRes = await syncService.RunScheduledSweepCatalogFromVersionsAsync(batchSize: 200, lastBggId: lastBggId, ct: token);
+                    totalEvaluated += sweepRes.EvaluatedCount;
+                    totalTitlesUpdated += sweepRes.UpdatedTitlesCount;
+                    totalEansUpdated += sweepRes.UpdatedEansCount;
+                    lastBggId = sweepRes.LastBggIdProcessed;
+
+                    if (!sweepRes.HasMore || sweepRes.EvaluatedCount == 0)
+                    {
+                        _continuousVersionsSyncMessage = $"Sincronización continua y barrido completados: {totalSynced} versiones BGG sincronizadas. Catálogo actualizado con {totalTitlesUpdated} títulos en español y {totalEansUpdated} códigos EAN ({totalEvaluated} juegos evaluados).";
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _continuousVersionsSyncMessage = "Sincronización continua de versiones detenida por el usuario.";
+            }
+            catch (Exception ex)
+            {
+                _continuousVersionsSyncMessage = $"Error durante la sincronización continua de versiones: {ex.Message}";
+            }
+            finally
+            {
+                _continuousVersionsSyncCts?.Dispose();
+                _continuousVersionsSyncCts = null;
+            }
+        }, token);
+
+        StartPollingTimer();
+    }
+
     private void ExecuteContinuousSnapshotsSync()
     {
         if (_isContinuousSnapshotsSyncActive || !CanManageQueue) return;
@@ -2020,7 +2150,7 @@
                         StateHasChanged();
                     });
 
-                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive && !_isContinuousSweepActive && !_isContinuousSnapshotsSyncActive)
+                    if (!_isContinuousDrainActive && !_isContinuousBackfillActive && !_isContinuousSweepActive && !_isContinuousSnapshotsSyncActive && !_isContinuousVersionsSyncActive)
                     {
                         break;
                     }
@@ -2039,6 +2169,8 @@
         _pollTimer = null;
         _continuousSnapshotsSyncCts?.Cancel();
         _continuousSnapshotsSyncCts?.Dispose();
+        _continuousVersionsSyncCts?.Cancel();
+        _continuousVersionsSyncCts?.Dispose();
     }
 
     private static string GetStatusColor(string? status) => status switch

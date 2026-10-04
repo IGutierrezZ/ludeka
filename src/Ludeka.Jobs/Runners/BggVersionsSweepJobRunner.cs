@@ -40,7 +40,37 @@ public sealed class BggVersionsSweepJobRunner : IJobRunner
             windowKey,
             async (heartbeat, workCt) =>
             {
-                _logger.LogInformation("Iniciando barrido local de versiones BGG para títulos en español y códigos EAN...");
+                _logger.LogInformation("Fase 1/2: Sincronizando versiones BGG pendientes (&versions=1)...");
+                int totalVersionsSynced = 0;
+                int totalVersionsFailed = 0;
+                int batchNumber = 0;
+
+                while (!workCt.IsCancellationRequested)
+                {
+                    batchNumber++;
+                    await heartbeat.BeatAsync(workCt);
+
+                    var syncResult = await _service.RunScheduledSyncVersionsBatchAsync(batchSize: 20, delayMs: 1200, workCt);
+                    if (syncResult.ProcessedCount == 0)
+                    {
+                        _logger.LogInformation("No se detectan más snapshots pendientes de versiones BGG.");
+                        break;
+                    }
+
+                    totalVersionsSynced += syncResult.SuccessCount;
+                    totalVersionsFailed += syncResult.FailedCount;
+
+                    _logger.LogInformation(
+                        "[Versiones Lote #{Batch}] Éxito: {Success}, Fallos: {Failed}. Acumulado sincronizadas: {Total}.",
+                        batchNumber, syncResult.SuccessCount, syncResult.FailedCount, totalVersionsSynced);
+
+                    if (syncResult.SuccessCount == 0 && syncResult.FailedCount == 0)
+                    {
+                        break;
+                    }
+                }
+
+                _logger.LogInformation("Fase 2/2: Iniciando barrido local de versiones BGG para títulos en español y códigos EAN...");
                 await heartbeat.BeatAsync(workCt);
 
                 int totalEvaluated = 0;
@@ -49,7 +79,7 @@ public sealed class BggVersionsSweepJobRunner : IJobRunner
                 int lastBggId = 0;
                 bool hasMore = true;
 
-                while (hasMore)
+                while (hasMore && !workCt.IsCancellationRequested)
                 {
                     await heartbeat.BeatAsync(workCt);
                     var result = await _service.RunScheduledSweepCatalogFromVersionsAsync(batchSize: 200, lastBggId: lastBggId, ct: workCt);
@@ -61,11 +91,11 @@ public sealed class BggVersionsSweepJobRunner : IJobRunner
                 }
 
                 _logger.LogInformation(
-                    "Barrido de versiones BGG finalizado: {Total} evaluados, {Titles} títulos ES actualizados, {Eans} EANs asignados.",
-                    totalEvaluated, totalTitles, totalEans);
+                    "Sincronización y barrido de versiones BGG finalizado: {VersionsSynced} versiones sincronizadas, {Total} evaluados, {Titles} títulos ES actualizados, {Eans} EANs asignados.",
+                    totalVersionsSynced, totalEvaluated, totalTitles, totalEans);
 
-                string summary = $"Barrido completado: {totalEvaluated} evaluados, {totalTitles} títulos ES actualizados, {totalEans} EANs asignados.";
-                return new JobWorkResult(totalEvaluated, 0, summary);
+                string summary = $"Sincronización y barrido completados: {totalVersionsSynced} versiones sincronizadas ({totalVersionsFailed} errores), {totalEvaluated} evaluados, {totalTitles} títulos ES actualizados, {totalEans} EANs asignados.";
+                return new JobWorkResult(totalEvaluated + totalVersionsSynced, totalVersionsFailed, summary);
             },
             ct);
     }

@@ -70,6 +70,32 @@ public class BggVersionsSweepJobRunnerTests
         public Task<BggExpansionReconciliationResultDto> RunScheduledReconcileAndLinkExpansionsFromSnapshotsAsync(int batchSize = 200, CancellationToken ct = default)
             => Task.FromResult(new BggExpansionReconciliationResultDto(0, 0, 0, [], []));
 
+        public int SyncVersionsCallCount { get; private set; }
+
+        public Task<BggRawSnapshotSyncResultDto> SyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+            => Task.FromResult(new BggRawSnapshotSyncResultDto(0, 0, 0, [], []));
+
+        public Task<BggRawSnapshotSyncResultDto> RunScheduledSyncVersionsBatchAsync(int batchSize = 20, int delayMs = 1200, CancellationToken ct = default)
+        {
+            SyncVersionsCallCount++;
+            if (SyncVersionsCallCount == 1)
+            {
+                return Task.FromResult(new BggRawSnapshotSyncResultDto(
+                    ProcessedCount: 20,
+                    SuccessCount: 20,
+                    FailedCount: 0,
+                    SyncedTitles: ["Alta Tensión"],
+                    LinkedExpansions: [],
+                    Message: "Primer lote de versiones sincronizado."
+                ));
+            }
+
+            return Task.FromResult(new BggRawSnapshotSyncResultDto(0, 0, 0, [], []));
+        }
+
+        public Task<BggVersionCatalogSweepResultDto> SweepCatalogFromVersionsAsync(int batchSize = 500, int lastBggId = 0, CancellationToken ct = default)
+            => Task.FromResult(new BggVersionCatalogSweepResultDto(0, 0, 0, 0, 0, 0, false, string.Empty));
+
         public Task<BggVersionCatalogSweepResultDto> RunScheduledSweepCatalogFromVersionsAsync(int batchSize = 200, int lastBggId = 0, CancellationToken ct = default)
         {
             SweepCallCount++;
@@ -140,11 +166,13 @@ public class BggVersionsSweepJobRunnerTests
         Assert.Equal(JobLeaseOutcome.Completed, outcome);
         Assert.True(coordinator.ExecuteCalled);
         Assert.Equal(JobNames.BggVersionsSweep, coordinator.CapturedJobName);
+        Assert.Equal(2, syncService.SyncVersionsCallCount);
         Assert.Equal(2, syncService.SweepCallCount);
         Assert.Equal(500, syncService.LastRequestedBggId);
 
         Assert.NotNull(coordinator.CapturedResult);
-        Assert.Equal(250, coordinator.CapturedResult.Processed);
+        Assert.Equal(270, coordinator.CapturedResult.Processed);
+        Assert.Contains("20 versiones sincronizadas", coordinator.CapturedResult.Message);
         Assert.Contains("250 evaluados", coordinator.CapturedResult.Message);
         Assert.Contains("60 títulos ES actualizados", coordinator.CapturedResult.Message);
         Assert.Contains("50 EANs asignados", coordinator.CapturedResult.Message);
