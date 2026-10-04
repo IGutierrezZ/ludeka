@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,9 +101,52 @@ public class SqliteBggRawSnapshotRepository : DbContextRepositoryBase, IBggRawSn
     public async Task<IReadOnlyList<int>> GetBggIdsMissingVersionsAsync(int limit = 50, CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
+        if (scope.Context.Database.IsNpgsql())
+        {
+            var connection = scope.Context.Database.GetDbConnection();
+            bool shouldClose = false;
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync(ct);
+                shouldClose = true;
+            }
+
+            try
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = """
+                    SELECT "BggId"
+                      FROM "BggRawSnapshots"
+                     WHERE NOT jsonb_exists("RawJson", 'versions')
+                       AND NOT jsonb_exists("RawJson", 'notFound')
+                     ORDER BY "BggId"
+                     LIMIT @limit;
+                    """;
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "@limit";
+                parameter.Value = limit;
+                command.Parameters.Add(parameter);
+
+                var list = new List<int>();
+                using var reader = await command.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    list.Add(reader.GetInt32(0));
+                }
+                return list.AsReadOnly();
+            }
+            finally
+            {
+                if (shouldClose)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
         return await scope.Context.BggRawSnapshots
             .AsNoTracking()
-            .Where(s => !s.RawJson.Contains("\"versions\""))
+            .Where(s => !s.RawJson.Contains("\"versions\"") && !s.RawJson.Contains("\"notFound\":true"))
             .OrderBy(s => s.BggId)
             .Select(s => s.BggId)
             .Take(limit)
@@ -110,6 +156,32 @@ public class SqliteBggRawSnapshotRepository : DbContextRepositoryBase, IBggRawSn
     public async Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
+        if (scope.Context.Database.IsNpgsql())
+        {
+            var connection = scope.Context.Database.GetDbConnection();
+            bool shouldClose = false;
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync(ct);
+                shouldClose = true;
+            }
+
+            try
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*)::int FROM \"BggRawSnapshots\" WHERE jsonb_exists(\"RawJson\", 'versions');";
+                var result = await command.ExecuteScalarAsync(ct);
+                return result is int count ? count : Convert.ToInt32(result);
+            }
+            finally
+            {
+                if (shouldClose)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
         return await scope.Context.BggRawSnapshots
             .CountAsync(s => s.RawJson.Contains("\"versions\""), ct);
     }

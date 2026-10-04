@@ -176,3 +176,5 @@ Para corregir sistemáticamente juegos registrados con nombres en inglés (ej. *
 4. **Runner CLI Autónomo (`BggVersionsSweepJobRunner`) y Consola Web:**
    - Runner `bgg-versions-sweep` registrado en `JobNames.cs` y expuesto en `Ludeka.Jobs`.
    - Métricas y acciones en `CatalogQueueAdmin.razor`: tarjeta KPI de «Versiones BGG (EAN / ES)» y botones interactivos «Sincronizar Versiones (2x1)» y «Barrer Títulos ES y EAN».
+5. **Compatibilidad Dual SQLite y PostgreSQL (`jsonb`):**
+   - En PostgreSQL (Supabase), la columna `RawJson` (`jsonb`) se consulta mediante la función nativa `jsonb_exists("RawJson", 'versions')`, previniendo errores de operador `!~~` (`NOT LIKE`) inexistente sobre tipos JSONB y excluyendo snapshots marcados con `notFound`. En SQLite se consulta con `.Contains("\"versions\"")` y filtro defensivo anti-`notFound`.
