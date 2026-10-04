@@ -194,7 +194,10 @@
 
                     @* Botón de compra y acción contextual *@
                     @{
-                        var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
+                        var storeSlug = Ludeka.Core.Entities.Game.GenerateSlug(offer.StoreName);
+                        var targetPurchaseUrl = !string.IsNullOrWhiteSpace(GameSlug)
+                            ? $"/r/comprar/{GameSlug}/{storeSlug}"
+                            : AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
                     }
                     <div class="flex items-center gap-2 pt-1">
                         @if (_isReferenceFallback || !offer.Price.HasValue)
@@ -259,7 +262,10 @@
             <div class="@(IsSidebar ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-2 sm:grid-cols-4 gap-2")">
                 @foreach (var offer in _displayedOffers)
                 {
-                    var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
+                    var storeSlug = Ludeka.Core.Entities.Game.GenerateSlug(offer.StoreName);
+                    var targetPurchaseUrl = !string.IsNullOrWhiteSpace(GameSlug)
+                        ? $"/r/comprar/{GameSlug}/{storeSlug}"
+                        : AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
                     <a href="@targetPurchaseUrl"
                        target="_blank"
                        rel="noopener noreferrer sponsored"
@@ -315,6 +321,9 @@
     public string? GameTitle { get; set; }
 
     [Parameter]
+    public string? GameSlug { get; set; }
+
+    [Parameter]
     public Guid? GameId { get; set; }
 
     [Parameter]
@@ -324,7 +333,6 @@
     private IReadOnlyList<GamePurchaseLink> _displayedOffers = [];
     private readonly Dictionary<string, StoreStockInfo> _stockByUrl = new(StringComparer.OrdinalIgnoreCase);
     private bool _isCheckingStock;
-    private bool _hasLoadedInitialStock;
     private GamePriceMetrics? _priceMetrics;
     private bool _isReferenceFallback;
 
@@ -400,13 +408,12 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_hasLoadedInitialStock && _displayedOffers.Count > 0 && !_isReferenceFallback)
-        {
-            _hasLoadedInitialStock = true;
-            await LoadStockInBackgroundAsync();
-        }
+        // INC-86: Saneamiento de rendimiento — Toda lectura de disponibilidad y precios en la
+        // navegación web se sirve 100% desde snapshots en base de datos. Se erradican las peticiones
+        // HTTP en caliente hacia las tiendas para evitar latencias, bloqueos y consumo de egress.
+        return Task.CompletedTask;
     }
 
     private StoreStockInfo? GetOfferStock(GamePurchaseLink offer)
@@ -525,6 +532,15 @@
         var encoded = Uri.EscapeDataString(gameTitle.Trim());
         return
         [
+            new GamePurchaseLink(
+                storeName: "Amazon",
+                affiliateUrl: $"https://www.amazon.es/s?k={encoded}",
+                price: null,
+                currency: "€",
+                inStock: false,
+                badge: "Marketplace",
+                affiliateTag: "Direct",
+                country: "España"),
             new GamePurchaseLink(
                 storeName: "Zacatrus",
                 affiliateUrl: $"https://zacatrus.es/catalogsearch/result/?q={encoded}",
