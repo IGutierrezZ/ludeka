@@ -94,5 +94,24 @@ public class SqliteBggRawSnapshotRepository : DbContextRepositoryBase, IBggRawSn
             .Take(limit)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<int>> GetBggIdsMissingVersionsAsync(int limit = 50, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.BggRawSnapshots
+            .AsNoTracking()
+            .Where(s => !s.RawJson.Contains("\"versions\""))
+            .OrderBy(s => s.BggId)
+            .Select(s => s.BggId)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.BggRawSnapshots
+            .CountAsync(s => s.RawJson.Contains("\"versions\""), ct);
+    }
 }
 

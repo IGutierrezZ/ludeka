@@ -77,7 +77,7 @@ public static class BggSimulationDataset
 
     public static IReadOnlyList<int> GetAllBggIds() => Blueprints.Select(b => b.BggId).ToList();
 
-    public static string GetRawThingsXml(IEnumerable<int> bggIds)
+    public static string GetRawThingsXml(IEnumerable<int> bggIds, bool includeVersions = false)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -85,7 +85,7 @@ public static class BggSimulationDataset
 
         foreach (var id in bggIds)
         {
-            var singleXml = GetRawThingXml(id);
+            var singleXml = GetRawThingXml(id, includeVersions);
             var doc = XDocument.Parse(singleXml);
             var item = doc.Root?.Element("item");
             if (item != null)
@@ -98,7 +98,7 @@ public static class BggSimulationDataset
         return sb.ToString();
     }
 
-    public static string GetRawThingXml(int bggId)
+    public static string GetRawThingXml(int bggId, bool includeVersions = false)
     {
         var b = Blueprints.FirstOrDefault(x => x.BggId == bggId);
         string type = (b != null && b.Type == GameType.Expansion) ? "boardgameexpansion" : "boardgame";
@@ -162,6 +162,20 @@ public static class BggSimulationDataset
         sb.AppendLine("        </ranks>");
         sb.AppendLine("      </ratings>");
         sb.AppendLine("    </statistics>");
+
+        if (includeVersions && b != null && !string.IsNullOrWhiteSpace(b.SpanishTitle))
+        {
+            sb.AppendLine("    <versions>");
+            sb.AppendLine($"      <item type=\"boardgameversion\" id=\"{bggId + 100000}\">");
+            sb.AppendLine($"        <name type=\"primary\" sortindex=\"1\" value=\"{System.Security.SecurityElement.Escape(b.SpanishTitle)}\" />");
+            sb.AppendLine($"        <yearpublished value=\"{year}\" />");
+            if (!string.IsNullOrWhiteSpace(b.Publisher))
+                sb.AppendLine($"        <link type=\"boardgamepublisher\" id=\"201\" value=\"{System.Security.SecurityElement.Escape(b.Publisher)}\" />");
+            sb.AppendLine("        <link type=\"language\" id=\"2195\" value=\"Spanish\" />");
+            sb.AppendLine("      </item>");
+            sb.AppendLine("    </versions>");
+        }
+
         sb.AppendLine("  </item>");
         sb.AppendLine("</items>");
 
