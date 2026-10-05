@@ -12,7 +12,8 @@ namespace Ludeka.Infrastructure.Seeding;
 /// <summary>
 /// Saneador determinista de datos del catálogo que corrige anomalías históricas,
 /// como títulos contaminados con descriptores de versiones en coreano ("Korean edition", "Angry Lion")
-/// o descriptores genéricos de caja ("Spanish edition"), restaurándolos a su título original o localizado.
+/// restaurándolos a su título original o localizado, y limpiando editoriales y códigos de barras coreanos.
+/// Diseñado para ejecución ultraligera y segura en el arranque (O(1) memoria, batching defensivo).
 /// </summary>
 public static class CatalogDataSanitizer
 {
@@ -20,17 +21,14 @@ public static class CatalogDataSanitizer
     {
         try
         {
-            // Detectar juegos cuyo SpanishTitle contiene "korean", "angry lion", o termina en edition/version
+            // Detectar exclusivamente títulos contaminados por la anomalía de coreano ("korean", "angry lion")
+            // Usamos Take(200) para garantizar que nunca sature la memoria heap en Cloud Run
             var candidates = await db.Games
                 .Where(g => g.SpanishTitle != null && (
                     g.SpanishTitle.ToLower().Contains("korean") ||
-                    g.SpanishTitle.ToLower().Contains("angry lion") ||
-                    g.SpanishTitle.ToLower().EndsWith(" edition") ||
-                    g.SpanishTitle.ToLower().EndsWith(" edicion") ||
-                    g.SpanishTitle.ToLower().EndsWith(" edición") ||
-                    g.SpanishTitle.ToLower().EndsWith(" version") ||
-                    g.SpanishTitle.ToLower().EndsWith(" versión")
+                    g.SpanishTitle.ToLower().Contains("angry lion")
                 ))
+                .Take(200)
                 .ToListAsync(ct);
 
             if (candidates.Count == 0)
@@ -38,18 +36,22 @@ public static class CatalogDataSanitizer
                 return;
             }
 
-            var bggIds = candidates.Select(c => c.BggId).ToList();
+            var bggIds = candidates.Select(c => c.BggId).Distinct().ToList();
+
+            // Consultar snapshots sin tracking y en lotes acotados proyectando solo BggId y RawJson
             var snapshots = await db.BggRawSnapshots
+                .AsNoTracking()
                 .Where(s => bggIds.Contains(s.BggId))
-                .ToDictionaryAsync(s => s.BggId, ct);
+                .Select(s => new { s.BggId, s.RawJson })
+                .ToDictionaryAsync(s => s.BggId, s => s.RawJson, ct);
 
             int repairedCount = 0;
 
             foreach (var game in candidates)
             {
-                if (!BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle) &&
-                    game.SpanishTitle.IndexOf("korean", StringComparison.OrdinalIgnoreCase) < 0 &&
-                    game.SpanishTitle.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) < 0)
+                if (game.SpanishTitle == null ||
+                    (game.SpanishTitle.IndexOf("korean", StringComparison.OrdinalIgnoreCase) < 0 &&
+                     game.SpanishTitle.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) < 0))
                 {
                     continue;
                 }
@@ -58,9 +60,9 @@ public static class CatalogDataSanitizer
                 string? validSpanishPublisher = null;
                 string? validEan = null;
 
-                if (snapshots.TryGetValue(game.BggId, out var snapshot))
+                if (snapshots.TryGetValue(game.BggId, out var rawJson))
                 {
-                    var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(snapshot.RawJson);
+                    var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
                     if (vInfo != null)
                     {
                         validSpanishTitle = vInfo.Title;
