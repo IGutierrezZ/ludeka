@@ -24,33 +24,42 @@ public static class CatalogDataSanitizer
         {
             int totalRepaired = 0;
             const int batchSize = 100;
-            int maxBatches = 50; // Salvaguarda defensiva: máximo 5.000 juegos en una pasada
+            int maxBatches = 100; // Salvaguarda defensiva: hasta 10.000 juegos candidatos
+            int lastBggId = 0;
 
             while (!ct.IsCancellationRequested && maxBatches-- > 0)
             {
-                // Detectar juegos que requieren saneamiento:
-                // 1) Título español contaminado (diferente de OriginalTitle y con korean/angry lion/edition/version)
-                // 2) Editorial coreana atribuida a España
-                // 3) Código de barras coreano (880...)
+                // Keyset pagination determinista por BggId estrictamente creciente.
+                // Detecta títulos contaminados con coreano, descriptores genéricos, editoriales coreanas y EAN 880.
                 var candidates = await db.Games
-                    .Where(g => (g.SpanishTitle != null && g.SpanishTitle != g.OriginalTitle && (
-                                    g.SpanishTitle.ToLower().Contains("korean") ||
-                                    g.SpanishTitle.ToLower().Contains("angry lion") ||
-                                    g.SpanishTitle.ToLower().EndsWith(" edition") ||
-                                    g.SpanishTitle.ToLower().EndsWith(" edicion") ||
-                                    g.SpanishTitle.ToLower().EndsWith(" edición") ||
-                                    g.SpanishTitle.ToLower().EndsWith(" version") ||
-                                    g.SpanishTitle.ToLower().EndsWith(" versión")
-                                )) ||
-                                (g.SpanishPublisher != null && (
-                                    g.SpanishPublisher.ToLower().Contains("angry lion") ||
-                                    g.SpanishPublisher.ToLower().Contains("lotus frog") ||
-                                    g.SpanishPublisher.ToLower().Contains("board m") ||
-                                    g.SpanishPublisher.ToLower().Contains("popcorn games") ||
-                                    g.SpanishPublisher.ToLower().Contains("mandoo games")
-                                )) ||
-                                (g.Ean != null && g.Ean.StartsWith("880"))
-                    )
+                    .Where(g => g.BggId > lastBggId && (
+                        (g.SpanishTitle != null && (
+                            g.SpanishTitle.ToLower().Contains("korean") ||
+                            g.SpanishTitle.ToLower().Contains("angry lion") ||
+                            g.SpanishTitle.ToLower().Contains("lotus frog") ||
+                            g.SpanishTitle.ToLower().Contains("board m") ||
+                            g.SpanishTitle.ToLower().Contains("popcorn games") ||
+                            g.SpanishTitle.ToLower().Contains("mandoo games") ||
+                            g.SpanishTitle.ToLower() == "korean edition" ||
+                            g.SpanishTitle.ToLower() == "korean version" ||
+                            g.SpanishTitle.ToLower() == "spanish edition" ||
+                            g.SpanishTitle.ToLower() == "edicion en espanol" ||
+                            g.SpanishTitle.ToLower() == "edición en español" ||
+                            g.SpanishTitle.ToLower() == "edicion en castellano" ||
+                            g.SpanishTitle.ToLower() == "edición en castellano" ||
+                            g.SpanishTitle.ToLower() == "version en espanol" ||
+                            g.SpanishTitle.ToLower() == "versión en español"
+                        )) ||
+                        (g.SpanishPublisher != null && (
+                            g.SpanishPublisher.ToLower().Contains("angry lion") ||
+                            g.SpanishPublisher.ToLower().Contains("lotus frog") ||
+                            g.SpanishPublisher.ToLower().Contains("board m") ||
+                            g.SpanishPublisher.ToLower().Contains("popcorn games") ||
+                            g.SpanishPublisher.ToLower().Contains("mandoo games")
+                        )) ||
+                        (g.Ean != null && g.Ean.StartsWith("880"))
+                    ))
+                    .OrderBy(g => g.BggId)
                     .Take(batchSize)
                     .ToListAsync(ct);
 
@@ -58,6 +67,8 @@ public static class CatalogDataSanitizer
                 {
                     break;
                 }
+
+                lastBggId = candidates[^1].BggId;
 
                 var bggIds = candidates.Select(c => c.BggId).Distinct().ToList();
 
@@ -88,11 +99,15 @@ public static class CatalogDataSanitizer
                         }
                     }
 
-                    // Saneamiento de título si contiene coreano o descriptores genéricos de caja
+                    // Saneamiento de título si contiene coreano, descriptores genéricos o editoriales coreanas en el título
                     bool hasCorruptedTitle = game.SpanishTitle != null && (
                         BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle) ||
                         game.SpanishTitle.IndexOf("korean", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        game.SpanishTitle.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) >= 0
+                        game.SpanishTitle.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        game.SpanishTitle.IndexOf("lotus frog", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        game.SpanishTitle.IndexOf("board m", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        game.SpanishTitle.IndexOf("popcorn games", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        game.SpanishTitle.IndexOf("mandoo games", StringComparison.OrdinalIgnoreCase) >= 0
                     );
 
                     if (hasCorruptedTitle)
@@ -152,11 +167,6 @@ public static class CatalogDataSanitizer
                 {
                     await db.SaveChangesAsync(ct);
                     totalRepaired += batchRepaired;
-                }
-                else
-                {
-                    // Si en este lote ninguna entidad requirió modificación, salimos para evitar bucle
-                    break;
                 }
             }
 
