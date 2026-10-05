@@ -42,6 +42,7 @@ public partial class Game
     public List<LocalizedTitleEntry> LocalizedTitles { get; private set; } = [];
     public string? Ean { get; private set; }
     public List<string> AdditionalBarcodes { get; private set; } = [];
+    public string? Asin { get; private set; }
 
     // --- Soporte de Expansiones y Ecosistema (Incremento 8) ---
     public GameType Type { get; private set; } = GameType.BaseGame;
@@ -99,7 +100,8 @@ public partial class Game
         IEnumerable<RegionalPublisherEntry>? regionalPublishers = null,
         IEnumerable<LocalizedTitleEntry>? localizedTitles = null,
         string? ean = null,
-        IEnumerable<string>? additionalBarcodes = null)
+        IEnumerable<string>? additionalBarcodes = null,
+        string? asin = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -134,6 +136,7 @@ public partial class Game
         if (localizedTitles != null) LocalizedTitles.AddRange(localizedTitles);
         UpdateEan(ean);
         UpdateAdditionalBarcodes(additionalBarcodes);
+        SetAsin(asin);
 
         Slug = string.IsNullOrWhiteSpace(customSlug)
             ? GenerateSlug(SpanishTitle)
@@ -438,6 +441,23 @@ public partial class Game
         }
 
         Ean = normalized;
+    }
+
+    public void SetAsin(string? asin)
+    {
+        if (string.IsNullOrWhiteSpace(asin))
+        {
+            Asin = null;
+            return;
+        }
+
+        var normalized = asin.Trim().ToUpperInvariant();
+        if (normalized.Length > 20)
+        {
+            normalized = normalized[..20];
+        }
+
+        Asin = normalized;
     }
 
     public void UpdateSpanishTitle(string spanishTitle)

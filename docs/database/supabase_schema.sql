@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
     "ProductVersion" character varying(32) NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
@@ -1995,7 +1995,7 @@ START TRANSACTION;
 DO $EF$
 BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261004205804_AddGameEanAndAffiliateClicks') THEN
-    ALTER TABLE "Games" ADD "AdditionalBarcodes" text[] NOT NULL DEFAULT '{}';
+    ALTER TABLE "Games" ADD "AdditionalBarcodes" text[] NOT NULL DEFAULT ('{}');
     END IF;
 END $EF$;
 
@@ -2066,7 +2066,6 @@ BEGIN
     END IF;
 END $EF$;
 COMMIT;
-
 
 START TRANSACTION;
 
@@ -2160,3 +2159,29 @@ BEGIN
     END IF;
 END $EF$;
 COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261005094040_AddGameAsin') THEN
+    ALTER TABLE "Games" ADD "Asin" character varying(20);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261005094040_AddGameAsin') THEN
+    CREATE INDEX "IX_Games_Asin" ON "Games" ("Asin");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261005094040_AddGameAsin') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261005094040_AddGameAsin', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

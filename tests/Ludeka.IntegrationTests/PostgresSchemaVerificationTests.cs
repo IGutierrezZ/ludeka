@@ -29,7 +29,7 @@ public class PostgresSchemaVerificationTests
     private const int TablasEsperadas = 43;
 
     /// <summary>Canario literal (diseño §D5): un fichero de migración real bajo Migrations/.</summary>
-    private const int MigracionesEsperadas = 20;
+    private const int MigracionesEsperadas = 21;
 
     private readonly PostgresFixture _fixture;
 

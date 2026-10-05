@@ -1122,4 +1122,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-111-correccion-idioma-coreano-versiones-bgg.md`](../increments/archive/inc-111-correccion-idioma-coreano-versiones-bgg.md).
 - **Módulos del Sistema:** [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
+---
+
+## Incremento 112: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h)
+- **Identificador SDD:** `amazon-pricing-bridge-asin-cache`
+- **Objetivo Principal:**
+  1. **Contrato Desacoplado de Precios (`IAmazonProductProvider`):** Abstracción limpia para resolver EAN a ASIN y consultar precios y disponibilidad en Amazon.
+  2. **Implementación Dual e Intercambiable:** Proveedor puente (`RainforestAmazonProductProvider`) con API Key para disponibilidad inmediata previa a la aprobación de Amazon, y proveedor oficial (`OfficialAmazonPaApiProvider`) implementando la firma AWS SigV4 (HMAC-SHA256) contra la PA-API 5.0 oficial para activación inmediata al introducir credenciales.
+  3. **Persistencia de ASIN en `Game`:** Inclusión de propiedad `Asin` en entidad de dominio con validación/truncado seguro a 20 caracteres, migraciones SQLite y PostgreSQL (`IX_Games_Asin`), y persistencia en repositorio.
+  4. **Servicio Orquestador y Caché Estricta (< 24h) (`AmazonPriceSyncService`):** Cumplimiento riguroso de las políticas de afiliados de Amazon (<24 horas de validez de precios), minimizando peticiones salientes mediante snapshots y persistencia del ASIN para consultas directas recurrentes.
+- **Estado:** ⏳ **En progreso** (Verificado localmente, listo para PR y Archivo).
+- **Documento:** [`../increments/inc-112-amazon-pricing-bridge-asin-cache.md`](../increments/inc-112-amazon-pricing-bridge-asin-cache.md).
+- **Módulos del Sistema:** [`48-precios-stock-afiliados-amazon.md`](sistema/48-precios-stock-afiliados-amazon.md).
+
+
 

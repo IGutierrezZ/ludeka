@@ -25,6 +25,7 @@ using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Trending;
 using Ludeka.Application.Options;
+using Ludeka.Infrastructure.Affiliates.Amazon;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Notifications;
@@ -185,6 +186,23 @@ public static class LudekaServiceCollectionExtensions
         services.AddSingleton<GoogleShoppingFeedParser>();
         services.AddSingleton<IShopifyJsonCatalogParser, ShopifyJsonCatalogParser>();
         services.AddHttpClient<ICatalogFeedSyncService, CatalogFeedSyncService>();
+
+        // Incremento 111: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché (< 24h)
+        services.Configure<AmazonOptions>(configuration.GetSection(AmazonOptions.SectionName));
+        services.AddHttpClient<RainforestAmazonProductProvider>();
+        services.AddHttpClient<OfficialAmazonPaApiProvider>();
+        services.AddSingleton<NullAmazonProductProvider>();
+        services.AddScoped<IAmazonProductProvider>(sp =>
+        {
+            var amazonOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AmazonOptions>>().Value;
+            return amazonOpts.Provider?.ToLowerInvariant() switch
+            {
+                "bridge" => sp.GetRequiredService<RainforestAmazonProductProvider>(),
+                "official" => sp.GetRequiredService<OfficialAmazonPaApiProvider>(),
+                _ => sp.GetRequiredService<NullAmazonProductProvider>()
+            };
+        });
+        services.AddScoped<IAmazonPriceSyncService, AmazonPriceSyncService>();
 
         // Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales
         services.AddSingleton<ISleeveStoreUrlResolver, SleeveStoreUrlResolver>();
