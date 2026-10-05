@@ -122,6 +122,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-107** | Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa | ✅ Archivado | [inc-107-ingesta-expansiones-lotes-ia.md](archive/inc-107-ingesta-expansiones-lotes-ia.md) |
 | **INC-109** | Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos | ✅ Archivado | [inc-109-expansiones-top-bgg-rank.md](archive/inc-109-expansiones-top-bgg-rank.md) |
 | **INC-110** | Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola | ✅ Archivado | [inc-110-desacoplo-batch-nocturno.md](archive/inc-110-desacoplo-batch-nocturno.md) |
+| **INC-111** | Corrección de Detección de Idioma (ID 2195 BGG), Filtrado de Descriptores de Edición y Saneamiento Automático de Títulos | ✅ Archivado | [inc-111-correccion-idioma-coreano-versiones-bgg.md](archive/inc-111-correccion-idioma-coreano-versiones-bgg.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -148,6 +149,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+*(INC-111 entregó su verificación con 2.481 pruebas unitarias en verde al 100% [2.491 totales con integración], y quedó archivado el 2026-10-05. Elimina la errónea comprobación por ID 2195 [Korean en BGG] en BggRawSnapshotParser, añade filtrado y limpieza de descriptores genéricos de edición de caja [IsGenericEditionTitle y CleanVersionTitle] haciendo que Title sea opcional en BggSpanishVersionInfoDto, consolida múltiples candidatas de versión en español, e implementa el saneador automático de base de datos CatalogDataSanitizer para restaurar títulos originales o en español y limpiar editoriales y códigos de barras coreanos 880...).*
+
 
 *(INC-108 entregó su verificación con 2.444 pruebas unitarias en verde al 100% [2.454 totales con integración], y quedó archivado el 2026-10-05. Implementa el soporte de FeedFormat.ShopifyJson en dominio, el parser resiliente ShopifyJsonCatalogParser con paginación /products.json?limit=250&page=N y extracción multinivel de EAN-13 desde barcode, sku y nombres de archivo de imágenes con BarcodeValidator.TryNormalizeEan13, integración en CatalogFeedSyncService y panel interactivo en /admin/afiliados).*
 

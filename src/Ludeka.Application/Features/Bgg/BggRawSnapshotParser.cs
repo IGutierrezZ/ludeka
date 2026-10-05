@@ -317,11 +317,29 @@ public static class BggRawSnapshotParser
             if (spanishCandidates.Count == 0) return null;
 
             // Priorizar candidata que tenga EAN normalizado válido
-            var withEan = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Ean));
-            if (withEan != null) return withEan;
+            var best = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Ean)) ?? spanishCandidates[0];
 
-            // De lo contrario, devolver la primera encontrada
-            return spanishCandidates[0];
+            // Si la candidata seleccionada carece de título pero otra candidata española dispone de uno no genérico, enriquecer
+            if (string.IsNullOrWhiteSpace(best.Title))
+            {
+                var withTitle = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Title));
+                if (withTitle != null)
+                {
+                    best = best with { Title = withTitle.Title };
+                }
+            }
+
+            // Si la candidata seleccionada carece de editorial pero otra candidata española dispone de ella, enriquecer
+            if (string.IsNullOrWhiteSpace(best.Publisher))
+            {
+                var withPub = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Publisher));
+                if (withPub != null)
+                {
+                    best = best with { Publisher = withPub.Publisher };
+                }
+            }
+
+            return best;
         }
         catch
         {
@@ -353,15 +371,13 @@ public static class BggRawSnapshotParser
         if (link.TryGetProperty("@type", out var typeProp) &&
             string.Equals(typeProp.GetString(), "language", StringComparison.OrdinalIgnoreCase))
         {
-            if (link.TryGetProperty("@id", out var idProp) && idProp.GetString() == "2195")
-                return true;
-
             if (link.TryGetProperty("@value", out var valProp))
             {
                 string? val = valProp.GetString();
                 if (!string.IsNullOrWhiteSpace(val) &&
                     (val.IndexOf("Spanish", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     val.IndexOf("Español", StringComparison.OrdinalIgnoreCase) >= 0))
+                     val.IndexOf("Español", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     val.IndexOf("Castellano", StringComparison.OrdinalIgnoreCase) >= 0))
                 {
                     return true;
                 }
@@ -370,10 +386,74 @@ public static class BggRawSnapshotParser
         return false;
     }
 
+    /// <summary>
+    /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "Korean edition", "Edición en español")
+    /// y no a un título comercial auténtico de juego o expansión.
+    /// </summary>
+    public static bool IsGenericEditionTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return true;
+
+        string t = title.Trim();
+
+        // 1. Descriptores puros de idioma
+        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|internacional)$", RegexOptions.IgnoreCase))
+            return true;
+
+        // 2. Títulos que consisten únicamente en [editorial/idioma/ordinal/adjetivo] + edition/edición/version/versión
+        if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version)\b", RegexOptions.IgnoreCase))
+        {
+            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|international|internacional|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|kickstarter|special|edition|edici[oó]n|versi[oó]n|version|en|de|la|el|los|las)\b", "", RegexOptions.IgnoreCase);
+            stripped = Regex.Replace(stripped, @"[-_–—/:(),.']", " ").Trim();
+
+            // Si no queda nada, era un descriptor genérico puro (ej. "Spanish edition", "Edición en español")
+            if (string.IsNullOrWhiteSpace(stripped)) return true;
+
+            // Si lo que queda coincide con nombres de editoriales conocidas o palabras breves que acompañan a edition (ej. "Angry Lion", "Devir", "Maldito Games")
+            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx)$", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            // Si no contiene separadores de subtítulo y es una frase corta de edición (ej. "Angry Lion Korean edition")
+            if (!t.Contains(':') && !t.Contains('-') && !t.Contains('—') && !t.Contains('–'))
+            {
+                var words = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length <= 4 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french)\b", RegexOptions.IgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Limpia sufijos o coletillas de edición de un título de versión (ej. "Alta Tensión (Edición en español)" -> "Alta Tensión").
+    /// Si el título resultante es un descriptor genérico (ej. "Spanish edition"), devuelve null para evitar sobreescribir el título canónico del juego.
+    /// </summary>
+    public static string? CleanVersionTitle(string? rawTitle)
+    {
+        if (string.IsNullOrWhiteSpace(rawTitle)) return null;
+
+        // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.)
+        string cleaned = Regex.Replace(rawTitle.Trim(),
+            @"\s*[\(\[\-:–—]\s*(?:(?:primera|segunda|tercera|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional)\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail))?[\)\]]?\s*$",
+            "", RegexOptions.IgnoreCase).Trim();
+
+        if (string.IsNullOrWhiteSpace(cleaned) || IsGenericEditionTitle(cleaned))
+        {
+            return null;
+        }
+
+        return cleaned;
+    }
+
     private static BggSpanishVersionInfoDto? ParseVersionInfo(JsonElement versionElem)
     {
-        string? title = ExtractVersionTitle(versionElem);
-        if (string.IsNullOrWhiteSpace(title)) return null;
+        string? rawTitle = ExtractVersionTitle(versionElem);
+        string? title = CleanVersionTitle(rawTitle);
 
         string? publisher = ExtractVersionPublisher(versionElem);
         int? year = ExtractVersionYear(versionElem);
@@ -388,6 +468,12 @@ public static class BggRawSnapshotParser
         else if (!string.IsNullOrWhiteSpace(productCode) && BarcodeValidator.TryNormalizeEan13(productCode, out var norm2))
         {
             normalizedEan = norm2;
+        }
+
+        // Si no contiene título válido, ni editorial, ni EAN, la versión no aporta datos útiles
+        if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(publisher) && string.IsNullOrWhiteSpace(normalizedEan))
+        {
+            return null;
         }
 
         return new BggSpanishVersionInfoDto(

@@ -1109,3 +1109,17 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Estado:** ✅ **Completado y Verificado** (2.451 tests unitarios en verde al 100%, pipeline CI/CD y despliegue a Cloud Run verificados).
 - **Documento:** [`../increments/archive/inc-110-desacoplo-batch-nocturno.md`](../increments/archive/inc-110-desacoplo-batch-nocturno.md).
 
+---
+
+## Incremento 111: Corrección de Detección de Idioma (ID 2195 BGG), Filtrado de Descriptores de Edición y Saneamiento Automático de Títulos
+- **Identificador SDD:** `fix-bgg-version-korean-titles`
+- **Objetivo Principal:**
+  1. **Eliminación de la Comprobación por ID 2195 en BGG:** Corregir `BggRawSnapshotParser.IsSpanishLanguageLink` retirando la comprobación `idProp.GetString() == "2195"` (que en BGG corresponde al idioma *Korean* y no *Spanish*), restringiendo la detección exclusivamente a la comprobación léxica de etiquetas (`Spanish`, `Español`, `Castellano` y formas flexivas).
+  2. **Filtrado y Limpieza de Descriptores Genéricos de Edición:** Incorporar `IsGenericEditionTitle` y `CleanVersionTitle` con patrones regex para discriminar entre descriptores de caja comercial (ej. «Spanish edition», «Angry Lion Korean edition», «Edición española») y nombres propios localizados (ej. «Alta Tensión»), haciendo nullable `BggSpanishVersionInfoDto.Title` para no suplantar el nombre del juego cuando la versión solo provee datos físicos (editorial y EAN).
+  3. **Fusión Inteligente de Candidatas en Español:** Consolidar armónicamente múltiples versiones para no perder ni el título localizado ni el código de barras comercial.
+  4. **Saneador Automático de Base de Datos (`CatalogDataSanitizer`):** Servicio que repara títulos contaminados restaurando el nombre original o del snapshot oficial, y purgando editoriales y códigos de barras coreanos (`880...`), ejecutado en el arranque de la aplicación web (`Program.cs`) y al inicio de barridos de catálogo.
+- **Estado:** ✅ **Completado y Archivado** (2.481 tests unitarios en verde al 100%, 2.491 totales).
+- **Documento:** [`../increments/archive/inc-111-correccion-idioma-coreano-versiones-bgg.md`](../increments/archive/inc-111-correccion-idioma-coreano-versiones-bgg.md).
+- **Módulos del Sistema:** [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
+

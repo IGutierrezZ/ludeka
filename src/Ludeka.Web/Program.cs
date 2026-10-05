@@ -215,6 +215,9 @@ using (var scope = app.Services.CreateScope())
     // Garantizar siempre la existencia del usuario Administrador Fundador inicial
     await AdminUserSeeder.EnsureAdminUserAsync(db, adminOptionsValue, logger);
 
+    // Saneamiento defensivo de anomalías históricas en títulos/editoriales/EANs del catálogo (ej. Korean edition)
+    await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(db, logger);
+
     // Semillado demostrativo: únicamente en desarrollo cuando SeedDemoData está activo
     if (dbOptionsValue.SeedDemoData && app.Environment.IsDevelopment())
     {

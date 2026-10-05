@@ -133,4 +133,126 @@ public class BggRawSnapshotParserVersionsTests
         Assert.Equal("Juego de Prueba", result.Title);
         Assert.Equal("8436017220100", result.Ean);
     }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldReturnNull_WhenKoreanVersionHasBggLanguageId2195()
+    {
+        // Caso de regresión crítico: en BGG XMLAPI2 el ID 2195 corresponde a Korean.
+        // Nunca debe ser identificado como versión en español.
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""342942"">
+    <name type=""primary"" value=""Ark Nova: Marine Worlds"" />
+    <versions>
+      <item type=""boardgameversion"" id=""654321"">
+        <name type=""primary"" value=""Angry Lion Korean edition"" />
+        <barcode value=""8809641480501"" />
+        <link type=""boardgamepublisher"" id=""9999"" value=""Angry Lion Games"" />
+        <link type=""language"" id=""2195"" value=""Korean"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData("Spanish edition", true)]
+    [InlineData("Spanish Edition", true)]
+    [InlineData("Korean edition", true)]
+    [InlineData("Angry Lion Korean edition", true)]
+    [InlineData("Edición en español", true)]
+    [InlineData("Edición española", true)]
+    [InlineData("Edición castellano", true)]
+    [InlineData("Devir Spanish edition", true)]
+    [InlineData("Maldito Games edition", true)]
+    [InlineData("First edition", true)]
+    [InlineData("Spanish", true)]
+    [InlineData("Español", true)]
+    [InlineData("Alta Tensión", false)]
+    [InlineData("Ciudadelas", false)]
+    [InlineData("Ark Nova: Mundos Marinos", false)]
+    [InlineData("Terraforming Mars: Preludio", false)]
+    public void IsGenericEditionTitle_ShouldClassifyCorrectly(string title, bool expectedGeneric)
+    {
+        bool isGeneric = BggRawSnapshotParser.IsGenericEditionTitle(title);
+        Assert.Equal(expectedGeneric, isGeneric);
+    }
+
+    [Theory]
+    [InlineData("Spanish edition", null)]
+    [InlineData("Edición en español", null)]
+    [InlineData("Angry Lion Korean edition", null)]
+    [InlineData("Alta Tensión", "Alta Tensión")]
+    [InlineData("Alta Tensión (Edición en español)", "Alta Tensión")]
+    [InlineData("Alta Tensión - Spanish edition", "Alta Tensión")]
+    [InlineData("Ciudadelas: Edición Deluxe", "Ciudadelas")]
+    public void CleanVersionTitle_ShouldStripSuffixOrReturnNull(string rawTitle, string? expectedCleaned)
+    {
+        string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
+        Assert.Equal(expectedCleaned, cleaned);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractEanAndPublisher_WithNullTitle_WhenVersionIsGenericSpanishEdition()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""400"">
+    <name type=""primary"" value=""Dune: Imperium"" />
+    <versions>
+      <item type=""boardgameversion"" id=""401"">
+        <name type=""primary"" value=""Spanish edition"" />
+        <barcode value=""8436017220209"" />
+        <link type=""boardgamepublisher"" id=""2222"" value=""Dire Wolf / Asmodee"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Null(result.Title); // Título no debe ser "Spanish edition"
+        Assert.Equal("Dire Wolf / Asmodee", result.Publisher);
+        Assert.Equal("8436017220209", result.Ean);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldMergeTitleFromLocalizedCandidate_WithEanFromGenericCandidate()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""500"">
+    <name type=""primary"" value=""Power Grid"" />
+    <versions>
+      <item type=""boardgameversion"" id=""501"">
+        <name type=""primary"" value=""Spanish edition"" />
+        <barcode value=""8435407626515"" />
+        <link type=""boardgamepublisher"" id=""2222"" value=""Edge Entertainment"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+      <item type=""boardgameversion"" id=""502"">
+        <name type=""primary"" value=""Alta Tensión"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Alta Tensión", result.Title); // Enriquecido desde la versión localizada
+        Assert.Equal("Edge Entertainment", result.Publisher);
+        Assert.Equal("8435407626515", result.Ean); // Enriquecido desde la versión con EAN
+    }
 }
+

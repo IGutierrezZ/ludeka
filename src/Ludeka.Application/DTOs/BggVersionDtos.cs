@@ -6,7 +6,7 @@ namespace Ludeka.Application.DTOs;
 /// Información de la edición en español extraída analíticamente desde las versiones de BGG XMLAPI2.
 /// </summary>
 public record BggSpanishVersionInfoDto(
-    string Title,
+    string? Title,
     string? Publisher,
     int? YearPublished,
     string? Ean,
