@@ -1,8 +1,8 @@
 # 25. Motor de Afiliados, Atribución BGG, Comunidad y Modo Producción de APIs
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`), INC-56 (`comunidad-mecenazgo`) e INC-86 (`feeds-catalogo-afiliados-ean`)  
-> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs`, `GoogleShoppingFeedParserTests.cs`, `CatalogFeedSyncServiceTests.cs`, `CatalogFeedSyncJobRunnerTests.cs`, `AffiliatesAdminWebTests.cs` (2.390 pruebas unitarias + 10 de integración en verde en la suite global).
+> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`), INC-56 (`comunidad-mecenazgo`), INC-86 (`feeds-catalogo-afiliados-ean`) e INC-108 (`ingesta-catalogo-shopify`)  
+> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs`, `GoogleShoppingFeedParserTests.cs`, `ShopifyJsonCatalogParserTests.cs`, `CatalogFeedSyncServiceTests.cs`, `CatalogFeedSyncJobRunnerTests.cs`, `AffiliatesAdminWebTests.cs` (2.444 pruebas unitarias + 10 de integración en verde en la suite global).
 
 ---
 
@@ -108,7 +108,7 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
 
 ### 6.2 Entidades de Dominio y Persistencia Dual
 - **`AffiliateFeedSource`:**
-  - Modela los orígenes de datos de comercios: `StoreName`, `FeedUrl`, `Format` (`GoogleShoppingXml`, `GenericCsv`), `AffiliateTag`, `Country`, `IsEnabled`, `SyncIntervalHours`, `LastSyncUtc`, `LastSyncStatus`, `MatchedProductsCount`.
+  - Modela los orígenes de datos de comercios: `StoreName`, `FeedUrl`, `Format` (`GoogleShoppingXml = 1`, `GenericCsv = 2`, `ShopifyJson = 3`), `AffiliateTag`, `Country`, `IsEnabled`, `SyncIntervalHours`, `LastSyncUtc`, `LastSyncStatus`, `MatchedProductsCount`.
   - Mapeado en EF Core con tabla `affiliate_feed_sources` y persistencia dual en `SqliteAffiliateFeedSourceRepository` y PostgreSQL Supabase.
 - **`AffiliateEanDiscrepancyLog`:**
   - Registra colisiones cuando un feed comercial trae un EAN para un juego que difiere del registrado en Ludeka: `GameId`, `GameTitle`, `GameSlug`, `CurrentEan`, `FeedEan`, `StoreName`, `DetectedAtUtc`, `IsResolved`, `ResolutionNote`.
@@ -123,6 +123,7 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
 - **Auto-Asignación Segura:** Para juegos en catálogo que no poseen EAN asignado, si el título comercial coincide exactamente con `SpanishTitle` o `OriginalTitle`, auto-asigna el EAN tras validar su dígito de control.
 - **Detección y Manejo de Discrepancias:** Cuando el título coincide pero el EAN del feed difiere del `Ean` actual de Ludeka (frecuentemente proveniente de BGG), almacena de inmediato el código nuevo en `AdditionalBarcodes` para que la oferta comercial no se pierda, y levanta un registro de discrepancia pendiente para moderación editorial.
 - **Actualización Idempotente:** Sincroniza `Game.PurchaseLinks` actualizando precio, divisa y stock en tiempo real enriqueciendo el enlace con el tag de afiliación de la tienda.
+- **Soporte Paginado:** Despacha feeds en streaming (`GoogleShoppingXml`, `GenericCsv`) o paginados por HTTP (`ShopifyJson`) con límites de salvaguarda (100 páginas máx.) e intervalo de cortesía (100 ms) entre páginas.
 
 ### 6.5 Runner en `Ludeka.Jobs` (`CatalogFeedSyncJobRunner`)
 - Runner de consola para Cloud Run Jobs registrado como `feed-sync` en `JobNames.All`.
@@ -130,5 +131,16 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
 
 ### 6.6 Panel de Administración Web (`/admin/afiliados`)
 - Vista interactiva en Blazor Web App protegida con la política `AuthorizationPolicies.PermisoGestionarTiendas` (`ModeratorPermission.CanManageStoreLinks`).
-- **Pestaña 1 (Fuentes de Catálogo):** Listado de feeds, formulario de alta/edición, conmutador de estado (activar/pausar), métricas de última sincronización y botón para forzar sincronización manual individual o global.
+- **Pestaña 1 (Fuentes de Catálogo):** Listado de feeds, selector de formato (`GoogleShoppingXml`, `ShopifyJson`, `GenericCsv`), formulario de alta/edición, conmutador de estado (activar/pausar), métricas de última sincronización y botón para forzar sincronización manual individual o global.
 - **Pestaña 2 (Discrepancias EAN):** Cola de discrepancias pendientes con comparativa visual del código actual vs código del comercio, y botón de acción atómica **"Promover a EAN principal"** (que promueve el código del comercio a principal y traslada el anterior a `AdditionalBarcodes`) o **"Descartar"**.
+
+### 6.7 Ingesta Paginada y Parser de Tiendas Shopify JSON (INC-108)
+- **Contrato:** `IShopifyJsonCatalogParser` en `Ludeka.Application.Contracts`.
+- **Implementación:** `ShopifyJsonCatalogParser` en `Ludeka.Application.Features.Affiliates`:
+  - **Paginación REST Pública:** Consume el endpoint `/products.json?limit=250&page=N` disponible de forma nativa en tiendas Shopify (ej. Cuarto de Juegos, Ludus Belli, Mi Juego Bonito) sin requerir claves de API privadas ni accesos autenticados.
+  - **Extracción Resiliente y Multinivel de EAN-13:**
+    1. Campo estándar `barcode` en cada variante de producto.
+    2. Campo `sku` de variantes (utilizado frecuentemente por tiendas especializadas como Ludus Belli para codificar el EAN del fabricante).
+    3. URLs y nombres de archivo de imágenes del producto (`product.images[*].src`), detectando prefijos EAN numéricos (utilizado por tiendas como Cuarto de Juegos, donde el SKU no se rellena pero las imágenes se nombran como `8436625611079-catan.jpg`).
+  - **Validación Matemática:** Todo código extraído se valida y normaliza mediante `BarcodeValidator.TryNormalizeEan13`, descartando SKUs internos alfanuméricos que no cumplan la suma de comprobación módulo 10.
+  - **Mapeo de Disponibilidad y Precios:** Mapea el precio mínimo de variantes disponibles (`available = true`), construyendo el enlace canónico hacia `/products/{handle}` e inyectando de forma desacoplada los parámetros de afiliado configurados.

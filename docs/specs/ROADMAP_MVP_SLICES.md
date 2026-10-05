@@ -1064,6 +1064,19 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 108: Ingesta de Catálogos de Tiendas Shopify (/products.json) y Captura de Precios y EANs
+- **Identificador SDD:** `change-108-ingesta-catalogo-shopify`
+- **Objetivo Principal:**
+  1. **Formato ShopifyJson en Modelo de Dominio:** Extender `FeedFormat` con `ShopifyJson = 3` en `AffiliateFeedSource.cs` y soporte en `/admin/afiliados`.
+  2. **Parser JSON de Catálogo Shopify:** Crear `ShopifyJsonCatalogParser` para consumir de forma paginada (`/products.json?limit=250&page=N`) extrayendo título, precio, stock (`available`), enlace directo (`/products/{handle}`) y EAN-13 (desde `sku`, `barcode` o URLs de imágenes).
+  3. **Integración con CatalogFeedSyncService:** Inyectar el parser en el motor de sincronización para alimentar el cruce de EANs y el radar de precios (`PriceRadarService`).
+  4. **Padrón Inicial de Tiendas Españolas:** Preconfigurar Cuarto de Juegos, Ludus Belli y Mi Juego Bonito.
+- **Estado:** ✅ **Archivado** (2.444 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-108-ingesta-catalogo-shopify.md`](../increments/archive/inc-108-ingesta-catalogo-shopify.md).
+- **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

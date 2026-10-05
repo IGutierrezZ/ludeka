@@ -41,6 +41,8 @@ public class AffiliatesAdminWebTests
         Assert.Contains("Promover a EAN principal", source, StringComparison.Ordinal);
         Assert.Contains("Sincronizar Feeds Activos", source, StringComparison.Ordinal);
         Assert.Contains("GoogleShoppingXml", source, StringComparison.Ordinal);
+        Assert.Contains("ShopifyJson", source, StringComparison.Ordinal);
+        Assert.Contains("Shopify Catálogo JSON", source, StringComparison.Ordinal);
     }
 
     [Fact]

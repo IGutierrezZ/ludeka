@@ -183,6 +183,7 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IAffiliateFeedSourceRepository, SqliteAffiliateFeedSourceRepository>();
         services.AddScoped<IAffiliateEanDiscrepancyRepository, SqliteAffiliateEanDiscrepancyRepository>();
         services.AddSingleton<GoogleShoppingFeedParser>();
+        services.AddSingleton<IShopifyJsonCatalogParser, ShopifyJsonCatalogParser>();
         services.AddHttpClient<ICatalogFeedSyncService, CatalogFeedSyncService>();
 
         // Incremento 26: Especificación de Fundas (Sleeves) por Juego y Enlaces de Compra Contextuales

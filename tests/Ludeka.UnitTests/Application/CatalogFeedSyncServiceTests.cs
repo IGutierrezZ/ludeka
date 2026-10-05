@@ -300,6 +300,108 @@ public class CatalogFeedSyncServiceTests
     // Fakes para aislamiento unitario
     // -------------------------------------------------------------
 
+    [Fact]
+    public async Task SyncFeedStreamAsync_ShopifyJsonFormat_MatchesByEanAndUpdatesOffers()
+    {
+        var game = CreateGame(5001, "Custodian Dreadnought", ean: "5011921285839");
+        _gameRepo.Add(game);
+
+        var source = new AffiliateFeedSource(
+            storeName: "Ludus Belli",
+            feedUrl: "https://ludusbelli.com/products.json",
+            format: FeedFormat.ShopifyJson,
+            country: "España");
+
+        const string json = """
+        {
+          "products": [
+            {
+              "id": 101,
+              "title": "Custodian Dreadnought",
+              "handle": "custodian-dreadnought",
+              "variants": [
+                {
+                  "id": 201,
+                  "sku": "5011921285839",
+                  "price": "57.60",
+                  "available": true
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var result = await _service.SyncFeedStreamAsync(source, stream);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ItemsRead);
+        Assert.Equal(1, result.MatchedCount);
+        Assert.Equal(0, result.AutoAssignedEanCount);
+
+        var updatedGame = await _gameRepo.GetByIdAsync(game.Id);
+        Assert.NotNull(updatedGame);
+        var offer = Assert.Single(updatedGame.PurchaseLinks);
+        Assert.Equal("Ludus Belli", offer.StoreName);
+        Assert.Equal("https://ludusbelli.com/products/custodian-dreadnought", offer.AffiliateUrl);
+        Assert.Equal(57.60m, offer.Price);
+        Assert.True(offer.InStock);
+    }
+
+    [Fact]
+    public async Task SyncFeedStreamAsync_ShopifyJsonFormat_AutoAssignsEanByUniqueTitle()
+    {
+        var game = CreateGame(5002, "Time Bomb Moriarty vs Sherlock", spanishTitle: "Time Bomb: Moriarty vs Sherlock", ean: null);
+        _gameRepo.Add(game);
+
+        var source = new AffiliateFeedSource(
+            storeName: "Cuarto de Juegos",
+            feedUrl: "https://cuartodejuegos.es/products.json",
+            format: FeedFormat.ShopifyJson,
+            country: "España");
+
+        const string json = """
+        {
+          "products": [
+            {
+              "id": 102,
+              "title": "Time Bomb: Moriarty vs Sherlock",
+              "handle": "time-bomb-moriarty-vs-sherlock",
+              "variants": [
+                {
+                  "id": 202,
+                  "sku": null,
+                  "price": "10.80",
+                  "available": true
+                }
+              ],
+              "images": [
+                {
+                  "src": "https://cdn.shopify.com/s/files/1/0900/files/8436625611079-1200-face3d.jpg?v=1790944759"
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var result = await _service.SyncFeedStreamAsync(source, stream);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.MatchedCount);
+        Assert.Equal(1, result.AutoAssignedEanCount);
+
+        var updatedGame = await _gameRepo.GetByIdAsync(game.Id);
+        Assert.NotNull(updatedGame);
+        Assert.Equal("8436625611079", updatedGame.Ean);
+        var offer = Assert.Single(updatedGame.PurchaseLinks);
+        Assert.Equal("Cuarto de Juegos", offer.StoreName);
+        Assert.Equal(10.80m, offer.Price);
+        Assert.True(offer.InStock);
+    }
+
     private class FakeGameRepository : IGameRepository
     {
         private readonly List<Game> _games = [];

@@ -5,7 +5,8 @@ namespace Ludeka.Core.Entities;
 public enum FeedFormat
 {
     GoogleShoppingXml = 1,
-    GenericCsv = 2
+    GenericCsv = 2,
+    ShopifyJson = 3
 }
 
 /// <summary>
