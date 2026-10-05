@@ -312,6 +312,75 @@ public class SqliteGameRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_WhenGameHasOutOfRangeYearPublished_ClampsOrPreservesValidYearWithoutThrowing()
+    {
+        // Arrange
+        var initialGame = new Game(
+            bggId: 54321,
+            originalTitle: "Future Game",
+            spanishTitle: "Juego Futuro",
+            designer: "Autor",
+            publisher: "Editorial",
+            yearPublished: 2024,
+            coverImageUrl: null,
+            thumbnailUrl: null,
+            description: "Juego con año anómalo",
+            bggRating: 7.0,
+            bggRank: 500,
+            ludistRating: 7.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(30, 60, 20),
+            scalability: [],
+            sleeves: []
+        );
+
+        await _repository.AddRangeAsync([initialGame]);
+
+        // Entidad desacoplada con año 9999 (habitual en BGG para títulos futuros o sin fecha confirmada)
+        var detachedWithAnomalousYear = new Game(
+            bggId: 54321,
+            originalTitle: "Future Game",
+            spanishTitle: "Juego Futuro",
+            designer: "Autor",
+            publisher: "Editorial",
+            yearPublished: 9999,
+            coverImageUrl: null,
+            thumbnailUrl: null,
+            description: "Juego con año anómalo",
+            bggRating: 7.0,
+            bggRank: 500,
+            ludistRating: 7.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(30, 60, 20),
+            scalability: [],
+            sleeves: [],
+            purchaseLinks: [
+                new GamePurchaseLink("Cuarto de Juegos", "https://cuartodejuegos.es/p/1", 39.99m, "€", true, "Oferta", "ludeka-21", country: "España")
+            ]
+        );
+
+        // Act & Assert: No debe lanzar ArgumentOutOfRangeException
+        await _repository.UpdateAsync(detachedWithAnomalousYear);
+
+        var persisted = await _repository.GetByIdAsync(initialGame.Id);
+        Assert.NotNull(persisted);
+        int maxAllowed = DateTime.UtcNow.Year + 10;
+        Assert.InRange(persisted.YearPublished, -5000, maxAllowed);
+        Assert.Single(persisted.PurchaseLinks);
+        Assert.Equal(39.99m, persisted.PurchaseLinks[0].Price);
+    }
+
+    [Fact]
     public async Task GetGamesPendingQualityBackfillAsync_IncludesGamesWithZeroCommunityVotes()
     {
         // Arrange
