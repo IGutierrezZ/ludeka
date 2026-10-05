@@ -1087,3 +1087,10 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 5. `sdd-tasks`: Checklist de tareas secuenciadas.
 6. `sdd-apply`: Implementación rigurosa con pruebas unitarias en verde.
 7. `sdd-verify`: Verificación independiente contra requerimientos antes de cerrar el ciclo.
+
+## Incremento 109: Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos
+- **Identificador SDD:** `expansiones-top-bgg-rank`
+- **Objetivo Principal:**
+  1. **Priorización por BggRank de Juegos Base:** Incorporar en `IGameRepository` y `SqliteGameRepository` la consulta `GetTopRankedBaseGameBggIdsAsync(int limit = 1500)` para obtener los identificadores BGG de los juegos base más populares y relevantes de Ludeka ordenados por `BggRank` ascendente.
+  2. **Carga y Enlace de Snapshots de Juegos Base Top:** Incorporar en `IBggRawSnapshotRepository` y `SqliteBggRawSnapshotRepository` el método `GetSnapshotsByBggIdsAsync(IEnumerable<int> bggIds)` y refactorizar `DiscoverAndEnqueueMissingExpansionsCoreAsync` en `BggRawSnapshotSyncService` para procesar los snapshots de los juegos base en estricto orden de popularidad (`BggRank` ASC) de Ludeka, con fallback a `GetAllSnapshotsAsync` cuando no existan juegos con ranking catalogados.
+  3. **Ampliación de Cupo de Descubrimiento a 1.200 Títulos:** Elevar el cupo interactivo a 1.200 títulos en `CatalogQueueAdmin.razor`, aplicando el filtrado inteligente de dos niveles de INC-107 (anti-promos léxico + umbral de tracción comunitaria o edición comercial en español) para incorporar las 1.200 mejores expansiones de Ludeka.

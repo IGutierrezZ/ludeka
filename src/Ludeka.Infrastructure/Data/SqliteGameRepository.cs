@@ -912,5 +912,21 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .Where(g => !gamesWithVideos.Contains(g.Id))
             .CountAsync(ct);
     }
+
+    public async Task<IReadOnlyList<int>> GetTopRankedBaseGameBggIdsAsync(
+        int limit = 1500,
+        CancellationToken ct = default)
+    {
+        if (limit <= 0) limit = 1500;
+        await using var scope = await CreateScopeAsync(ct);
+
+        return await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => g.BggRank.HasValue && g.BggRank.Value > 0 && g.Type == GameType.BaseGame && g.BggId > 0)
+            .OrderBy(g => g.BggRank!.Value)
+            .Select(g => g.BggId)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
 }
 

@@ -1,4 +1,4 @@
-# 47. Snapshots Crudos BGG, Extracción de Expansiones y Sincronización Defensiva con Respeto de Límites
+﻿# 47. Snapshots Crudos BGG, Extracción de Expansiones y Sincronización Defensiva con Respeto de Límites
 
 > **Estado:** Implementado y Verificado  
 > **Fecha:** 2026-10-02  
@@ -64,8 +64,10 @@ Para dotar al sistema de máxima flexibilidad analítica sin perder fidelidad:
 ### 4.2 Auto-vinculación en Catálogo y Descubrimiento con Filtrado Inteligente (INC-107)
 El servicio `BggRawSnapshotSyncService` implementa:
 1. **Auto-vinculación (`AutoLinkExistingExpansionsAsync`):** Recorre los snapshots crudos existentes. Si detecta una expansión que ya existe en el catálogo pero tiene `BaseGameId = null`, busca el juego base por su `BggId` y actualiza el juego asignándole `SetBaseGameId(baseGame.Id)`.
-2. **Descubrimiento y Encolado con Cribado Anti-Promos (`DiscoverAndEnqueueMissingExpansionsAsync` - INC-107):**
-   - **Pre-filtro Léxico:** Evalúa los títulos enlazados en snapshots locales mediante `BggRawSnapshotParser.IsProbablePromoOrAccessory`, descartando promos de eventos, paquetes de cartas o accesorios físicos (`promo`, `bonus`, `pack`, `miniature`, `playmat`, `dice`, etc.).
+2. **Descubrimiento y Encolado con Priorización por BggRank de Juegos Base y Cribado Anti-Promos (`DiscoverAndEnqueueMissingExpansionsAsync` - INC-107 e INC-109):**
+   - **Priorización Top BGG Rank (INC-109):** En lugar de iterar snapshots sin orden (que arrojaba títulos antiguos por ID asc de 1995-2001), consulta los juegos base de Ludeka por BggRank ascendente mediante `IGameRepository.GetTopRankedBaseGameBggIdsAsync(1500)`. Carga sus snapshots prioritarios con `IBggRawSnapshotRepository.GetSnapshotsByBggIdsAsync` para procesar primero las expansiones de los juegos más emblemáticos y populares del catálogo (*Terraforming Mars*, *Wingspan*, *Dune: Imperium*, *Catan*, *Ark Nova*, etc.), con complementación defensiva desde el resto de snapshots hasta completar el cupo.
+   - **Ampliación de Cupo (INC-109):** Permite encolar interactivamente hasta 1.200 títulos (`maxToEnqueue = 1200`), frente al cupo anterior de 50.
+   - **Pre-filtro Léxico:** Evalúa los títulos enlazados en snapshots locales mediante `BggRawSnapshotParser.IsProbablePromoOrAccessory`, descartando promos de eventos, paquetes de cartas o accesorios físicos (promo, onus, pack, miniature, playmat, dice, etc.).
    - **Umbral Comunitario y Comercial:** Consulta BGG en bloques de 20 IDs con `stats=1` y versiones. Solo se encolan expansiones con tracción real (`usersrated >= 30` o `owned >= 100`) o que cuenten con edición comercial registrada en español (título o editorial en español).
    - Añade los candidatos admitidos a `PendingBggImports` con origen `CatalogQueueOrigin.BggExpansionDiscovery` (5) para su importación controlada.
 

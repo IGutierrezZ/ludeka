@@ -75,5 +75,13 @@ public interface IGameRepository
         int maxRank = 4000,
         CancellationToken ct = default)
         => Task.FromResult(0);
+
+    /// <summary>
+    /// Obtiene los identificadores BGG de los juegos base ordenados por BggRank ascendente (Top BGG).
+    /// </summary>
+    Task<IReadOnlyList<int>> GetTopRankedBaseGameBggIdsAsync(
+        int limit = 1500,
+        CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<int>>([]);
 }
 

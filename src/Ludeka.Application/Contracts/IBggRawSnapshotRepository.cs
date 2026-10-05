@@ -56,5 +56,11 @@ public interface IBggRawSnapshotRepository
     /// </summary>
     Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    /// <summary>
+    /// Obtiene los snapshots correspondientes a un conjunto de identificadores BGG.
+    /// </summary>
+    Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<BggRawSnapshot>>([]);
 }
 

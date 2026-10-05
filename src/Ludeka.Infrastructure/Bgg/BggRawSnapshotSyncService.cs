@@ -227,31 +227,55 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         );
     }
 
-    public async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default)
+    public async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 1200, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
         return await DiscoverAndEnqueueMissingExpansionsCoreAsync(maxToEnqueue, ct);
     }
 
-    public Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default)
+    public Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 1200, CancellationToken ct = default)
     {
         return DiscoverAndEnqueueMissingExpansionsCoreAsync(maxToEnqueue, ct);
     }
 
     private async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsCoreAsync(int maxToEnqueue, CancellationToken ct)
     {
-        var snapshots = await _snapshotRepo.GetAllSnapshotsAsync(2000, ct);
         var candidates = new Dictionary<int, string>();
 
-        foreach (var s in snapshots)
+        // Prioridad 1 (Opción A): Juegos base de Ludeka ordenados por BggRank ascendente (Top BGG)
+        var topBaseGameBggIds = await _gameRepo.GetTopRankedBaseGameBggIdsAsync(1500, ct);
+        if (topBaseGameBggIds.Count > 0)
         {
-            var outboundLinks = ExtractOutboundExpansionLinksFromJson(s.RawJson);
-            foreach (var link in outboundLinks)
-            {
-                // Pre-filtro léxico para descartar promos, packs promocionales y accesorios
-                if (BggRawSnapshotParser.IsProbablePromoOrAccessory(link.Title)) continue;
+            var topSnapshots = await _snapshotRepo.GetSnapshotsByBggIdsAsync(topBaseGameBggIds, ct);
+            var snapshotMap = topSnapshots.ToDictionary(s => s.BggId);
 
-                candidates.TryAdd(link.BggId, link.Title);
+            foreach (var baseBggId in topBaseGameBggIds)
+            {
+                if (snapshotMap.TryGetValue(baseBggId, out var snapshot))
+                {
+                    var outboundLinks = ExtractOutboundExpansionLinksFromJson(snapshot.RawJson);
+                    foreach (var link in outboundLinks)
+                    {
+                        if (BggRawSnapshotParser.IsProbablePromoOrAccessory(link.Title)) continue;
+                        candidates.TryAdd(link.BggId, link.Title);
+                    }
+                }
+            }
+        }
+
+        // Prioridad 2: Si aún no se alcanza el cupo deseado de candidatas (o si el catálogo aún carece de juegos base clasificados),
+        // complementar con el resto de snapshots disponibles sin sobreescribir las priorizadas
+        if (candidates.Count < maxToEnqueue)
+        {
+            var snapshots = await _snapshotRepo.GetAllSnapshotsAsync(2000, ct);
+            foreach (var s in snapshots)
+            {
+                var outboundLinks = ExtractOutboundExpansionLinksFromJson(s.RawJson);
+                foreach (var link in outboundLinks)
+                {
+                    if (BggRawSnapshotParser.IsProbablePromoOrAccessory(link.Title)) continue;
+                    candidates.TryAdd(link.BggId, link.Title);
+                }
             }
         }
 
