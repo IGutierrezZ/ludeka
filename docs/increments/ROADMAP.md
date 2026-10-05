@@ -123,6 +123,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-109** | Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos | ✅ Archivado | [inc-109-expansiones-top-bgg-rank.md](archive/inc-109-expansiones-top-bgg-rank.md) |
 | **INC-110** | Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola | ✅ Archivado | [inc-110-desacoplo-batch-nocturno.md](archive/inc-110-desacoplo-batch-nocturno.md) |
 | **INC-111** | Corrección de Detección de Idioma (ID 2195 BGG), Filtrado de Descriptores de Edición y Saneamiento Automático de Títulos | ✅ Archivado | [inc-111-correccion-idioma-coreano-versiones-bgg.md](archive/inc-111-correccion-idioma-coreano-versiones-bgg.md) |
+| **INC-112** | Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h) | ⏳ En progreso | [inc-112-amazon-pricing-bridge-asin-cache.md](inc-112-amazon-pricing-bridge-asin-cache.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -152,6 +153,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 *(INC-111 entregó su verificación con 2.481 pruebas unitarias en verde al 100% [2.491 totales con integración], y quedó archivado el 2026-10-05. Elimina la errónea comprobación por ID 2195 [Korean en BGG] en BggRawSnapshotParser, añade filtrado y limpieza de descriptores genéricos de edición de caja [IsGenericEditionTitle y CleanVersionTitle] haciendo que Title sea opcional en BggSpanishVersionInfoDto, consolida múltiples candidatas de versión en español, e implementa el saneador automático de base de datos CatalogDataSanitizer para restaurar títulos originales o en español y limpiar editoriales y códigos de barras coreanos 880...).*
 
+- **INC-112** (`inc/amazon-pricing`) — Arquitectura de proveedores de precios de Amazon (API puente / PA-API oficial), mapeo EAN-ASIN y caché de precios (< 24h). En progreso en worktree `F:\repos\ludeka-wt\amazon-pricing`.
 
 *(INC-108 entregó su verificación con 2.444 pruebas unitarias en verde al 100% [2.454 totales con integración], y quedó archivado el 2026-10-05. Implementa el soporte de FeedFormat.ShopifyJson en dominio, el parser resiliente ShopifyJsonCatalogParser con paginación /products.json?limit=250&page=N y extracción multinivel de EAN-13 desde barcode, sku y nombres de archivo de imágenes con BarcodeValidator.TryNormalizeEan13, integración en CatalogFeedSyncService y panel interactivo en /admin/afiliados).*
 
