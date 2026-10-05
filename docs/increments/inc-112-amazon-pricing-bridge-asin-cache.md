@@ -1,11 +1,11 @@
-# Incremento 111: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h)
+# Incremento 112: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h)
 
 > **Estado:** ⏳ Verificado (Listo para PR y Archivo)  
 > **Fecha de Inicio:** 2026-10-05  
 > **Rama de Trabajo:** `inc/amazon-pricing`  
 > **Worktree:** `F:\repos\ludeka-wt\amazon-pricing`  
 > **Tipo:** Feature / Arquitectura e Integración  
-> **Pruebas Verificadas:** 2.477 unitarias (100% éxito, 0 fallos, 26 nuevas pruebas añadidas)  
+> **Pruebas Verificadas:** 2.507 unitarias (100% éxito, 0 fallos, 26 nuevas pruebas añadidas, 2.517 totales con integración)  
 
 ---
 

@@ -1,4 +1,4 @@
-# Propuesta INC-111: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios
+# Propuesta INC-112: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios
 
 ## 1. Motivación y Diagnóstico
 Actualmente en Ludeka:

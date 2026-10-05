@@ -1,4 +1,4 @@
-# Tareas INC-111: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
+# Tareas INC-112: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
 
 > **Metodología:** Strict TDD (Red -> Green -> Refactor)  
 > **Worktree:** `F:\repos\ludeka-wt\amazon-pricing`  

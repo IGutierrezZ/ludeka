@@ -1,4 +1,4 @@
-# Informe de Verificación INC-111: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
+# Informe de Verificación INC-112: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
 
 > **Fecha:** 2026-10-05  
 > **Resultado:** ✅ SUPERADO (PASS)  
@@ -28,11 +28,11 @@ Se ha implementado con éxito la arquitectura completa para la obtención y alma
 
 ## 2. Resultados de Pruebas Automáticas
 
-- **Total de pruebas en la suite unitaria:** 2.477 pruebas ejecutadas.
-- **Superadas:** 2.477 (100% de éxito).
+- **Total de pruebas en la suite unitaria:** 2.507 pruebas ejecutadas (2.517 totales con pruebas de integración).
+- **Superadas:** 2.507 (100% de éxito).
 - **Fallidas:** 0.
 - **Omitidas:** 0.
-- **Nuevas pruebas añadidas en INC-111:** 26 pruebas automáticas:
+- **Nuevas pruebas añadidas en INC-112:** 26 pruebas automáticas:
   - `GameAsinTests`: 8 pruebas (invariantes de dominio, normalización y truncado seguro).
   - `RainforestAmazonProductProviderTests`: 6 pruebas (mapeo EAN->ASIN, buybox, stock, resiliencia ante errores HTTP/API key ausente).
   - `OfficialAmazonPaApiProviderTests`: 6 pruebas (validación de configuración, firma AWS SigV4, cabeceras y parseo PA-API).

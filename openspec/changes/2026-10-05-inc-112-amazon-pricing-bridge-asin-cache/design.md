@@ -1,4 +1,4 @@
-# Diseño Técnico INC-111: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
+# Diseño Técnico INC-112: Arquitectura de Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
 
 ## 1. Diagrama de Arquitectura y Flujo de Interacción
 

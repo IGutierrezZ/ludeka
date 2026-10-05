@@ -1,4 +1,4 @@
-# Walkthrough Técnico INC-111: Arquitectura de Precios de Amazon
+# Walkthrough Técnico INC-112: Arquitectura de Precios de Amazon
 
 ## 1. Configuración del Proveedor en `appsettings.json`
 

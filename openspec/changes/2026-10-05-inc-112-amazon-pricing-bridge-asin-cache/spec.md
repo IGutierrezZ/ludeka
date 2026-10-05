@@ -1,4 +1,4 @@
-# Especificación INC-111: Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
+# Especificación INC-112: Proveedores de Precios de Amazon, Mapeo EAN-ASIN y Caché (< 24h)
 
 ## 1. Contexto y Objetivos del Sistema
 Ludeka integra enlaces de compra contextuales con afiliados de Amazon España (`ludeka-21`). Para enriquecer las fichas de catálogo con precios y disponibilidad real sin violar las políticas de Amazon ni depender inmediatamente de la aprobación de la PA-API 5.0 oficial, se requiere:
