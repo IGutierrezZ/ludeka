@@ -1,4 +1,4 @@
-﻿# 47. Snapshots Crudos BGG, Extracción de Expansiones y Sincronización Defensiva con Respeto de Límites
+# 47. Snapshots Crudos BGG, Extracción de Expansiones y Sincronización Defensiva con Respeto de Límites
 
 > **Estado:** Implementado y Verificado  
 > **Fecha:** 2026-10-02  
@@ -183,3 +183,21 @@ Para corregir sistemáticamente juegos registrados con nombres en inglés (ej. *
    - Métricas y acciones en `CatalogQueueAdmin.razor`: tarjeta KPI de «Versiones BGG (EAN / ES)» y botones interactivos «Sincronizar Versiones (2x1)» y «Barrer Títulos ES y EAN».
 5. **Compatibilidad Dual SQLite y PostgreSQL (`jsonb`):**
    - En PostgreSQL (Supabase), la columna `RawJson` (`jsonb`) se consulta mediante la función nativa `jsonb_exists("RawJson", 'versions')`, previniendo errores de operador `!~~` (`NOT LIKE`) inexistente sobre tipos JSONB y excluyendo snapshots marcados con `notFound`. En SQLite se consulta con `.Contains("\"versions\"")` y filtro defensivo anti-`notFound`.
+
+### 7.8 Corrección de Detección de Idioma (ID 2195 BGG), Filtrado de Descriptores de Edición y Saneamiento Automático (INC-111)
+Para corregir la corrupción de títulos en juegos de catálogo que adoptaban nombres como «Korean edition» o «Angry Lion Korean edition» y blindar el extractor de versiones frente a falsos positivos:
+1. **Causa Raíz y Eliminación de ID 2195 BGG:**
+   - En la API de BGG, el identificador `2195` corresponde a la etiqueta *Korean* (coreano) y no a *Spanish*. Su inclusión en la comprobación rápida de INC-105 provocaba que versiones coreanas fuesen catalogadas como españolas.
+   - Se eliminó la comprobación por ID numérico en `BggRawSnapshotParser.IsSpanishLanguageLink`, delegando la detección exclusivamente a la validación semántica del nombre del idioma (`Spanish`, `Español`, `Castellano` y variantes flexivas).
+2. **Filtrado Estricto de Descriptores Genéricos de Edición:**
+   - En BoardGameGeek, el campo `name` de `boardgameversion` habitualmente describe la edición física de la caja (ej. «Spanish edition», «Angry Lion Korean edition», «Edición en español») en lugar de un nombre propio de juego localizado.
+   - Implementación de `BggRawSnapshotParser.IsGenericEditionTitle` y `CleanVersionTitle` con expresiones regulares especializadas que detectan y descartan descriptores de edición de caja, evitando que sobreescriban `SpanishTitle` salvo que constituyan un título comercial propio y localizado (ej. «Alta Tensión»).
+   - `BggSpanishVersionInfoDto.Title` pasa a ser nullable (`string?`), permitiendo extraer la editorial y el EAN-13 de una edición física sin imponer un título de caja como nombre del juego.
+3. **Fusión Inteligente de Versiones Candidatas:**
+   - Cuando un juego dispone de múltiples entradas de versión en español (por ejemplo, una entrada con el título localizado «Alta Tensión» y otra con el código EAN oficial), el parser consolida armónicamente los datos para no perder ni el título localizado ni el código de barras comercial.
+4. **Saneador Automático de Base de Datos (`CatalogDataSanitizer`):**
+   - Servicio determinista en `Ludeka.Infrastructure.Seeding.CatalogDataSanitizer` que analiza la base de datos y repara anomalías:
+     - Detecta títulos contaminados con patrones de edición («korean», «angry lion», descriptores de edición).
+     - Restaura `SpanishTitle` con el título original (`OriginalTitle`) o con el título oficial en español obtenido del snapshot de BGG si está disponible.
+     - Limpia editoriales coreanas y códigos de barras con prefijo GS1 de Corea del Sur (`880...`) erróneamente atribuidos.
+   - Ejecutado proactivamente durante el arranque de la aplicación web (`Program.cs`) y al inicio de los barridos de catálogo (`BggRawSnapshotSyncService.SweepCatalogFromVersionsCoreAsync` y `ProcessBatchAsync`).

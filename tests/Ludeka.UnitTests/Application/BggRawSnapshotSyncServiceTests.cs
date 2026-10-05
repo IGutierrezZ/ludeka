@@ -450,6 +450,49 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         Assert.Equal("8435407626515", updatedGame.Ean);
     }
 
+    [Fact]
+    public async Task SweepCatalogFromVersionsAsync_ShouldRestoreOriginalTitle_WhenGameWasCorruptedWithKoreanEdition()
+    {
+        // Arrange: Juego en base de datos cuyo SpanishTitle fue contaminado con "Korean edition"
+        var game = CreateGame(342942, "Ark Nova: Marine Worlds");
+        game.UpdateSpanishTitle("Korean edition");
+        game.UpdateSpanishPublisher("Angry Lion Games");
+        game.UpdateEan("8809641480507");
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Snapshot local que solo tiene versiones en coreano (sin español)
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""342942"">
+    <name type=""primary"" value=""Ark Nova: Marine Worlds"" />
+    <versions>
+      <item type=""boardgameversion"" id=""9999"">
+        <name type=""primary"" value=""Angry Lion Korean edition"" />
+        <link type=""language"" id=""2195"" value=""Korean"" />
+        <link type=""boardgamepublisher"" value=""Angry Lion Games"" />
+        <barcode value=""8809641480507"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(342942, json));
+
+        // Act: Barrido local
+        var result = await _service.SweepCatalogFromVersionsAsync(batchSize: 50, lastBggId: 0);
+
+        // Assert
+        Assert.Equal(1, result.EvaluatedCount);
+        Assert.Equal(1, result.UpdatedTitlesCount);
+
+        var restoredGame = await _gameRepo.GetByBggIdAsync(342942);
+        Assert.NotNull(restoredGame);
+        Assert.Equal("Ark Nova: Marine Worlds", restoredGame.SpanishTitle);
+        Assert.Null(restoredGame.SpanishPublisher);
+        Assert.Null(restoredGame.Ean);
+    }
+
     private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null, int? bggRank = 100)
     {
         return new Game(

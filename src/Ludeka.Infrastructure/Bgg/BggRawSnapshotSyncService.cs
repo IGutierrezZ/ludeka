@@ -12,6 +12,7 @@ using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Infrastructure.Data;
+using Ludeka.Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -690,28 +691,54 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
                             if (gamesMap.TryGetValue(bggId, out var game))
                             {
                                 var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
-                                if (vInfo != null)
+                                bool modified = false;
+
+                                // Saneamiento proactivo si el juego tiene título corrupto por versión
+                                if (BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle) ||
+                                    game.SpanishTitle?.IndexOf("korean", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    game.SpanishTitle?.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
-                                    bool modified = false;
-                                    if (!string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
+                                    string targetTitle = (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Title))
+                                        ? vInfo.Title
+                                        : game.OriginalTitle;
+
+                                    if (game.SpanishTitle != targetTitle)
                                     {
-                                        game.UpdateSpanishTitle(vInfo.Title);
+                                        game.UpdateSpanishTitle(targetTitle);
                                         modified = true;
                                     }
-                                    if (!string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
-                                    {
-                                        game.UpdateSpanishPublisher(vInfo.Publisher);
-                                        modified = true;
-                                    }
-                                    if (!string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
-                                    {
-                                        game.UpdateEan(vInfo.Ean);
-                                        modified = true;
-                                    }
-                                    if (modified)
-                                    {
-                                        updatedGames.Add($"{game.OriginalTitle} -> {game.SpanishTitle}");
-                                    }
+                                }
+                                else if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
+                                {
+                                    game.UpdateSpanishTitle(vInfo.Title);
+                                    modified = true;
+                                }
+
+                                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                                {
+                                    game.UpdateSpanishPublisher(vInfo.Publisher);
+                                    modified = true;
+                                }
+                                else if (CatalogDataSanitizer.IsKoreanPublisher(game.SpanishPublisher))
+                                {
+                                    game.UpdateSpanishPublisher(vInfo?.Publisher);
+                                    modified = true;
+                                }
+
+                                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
+                                {
+                                    game.UpdateEan(vInfo.Ean);
+                                    modified = true;
+                                }
+                                else if (game.Ean != null && game.Ean.StartsWith("880") && (vInfo == null || vInfo.Ean != game.Ean))
+                                {
+                                    game.UpdateEan(vInfo?.Ean);
+                                    modified = true;
+                                }
+
+                                if (modified)
+                                {
+                                    updatedGames.Add($"{game.OriginalTitle} -> {game.SpanishTitle}");
                                 }
                             }
                         }
@@ -780,38 +807,58 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
                     continue;
                 }
 
-                var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(s.RawJson);
-                if (vInfo == null)
-                {
-                    skipped++;
-                    continue;
-                }
-
                 if (!gamesMap.TryGetValue(s.BggId, out var game))
                 {
                     skipped++;
                     continue;
                 }
 
+                var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(s.RawJson);
                 bool modified = false;
 
-                if (!string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
+                // Saneamiento proactivo si el juego tiene título corrupto (coreano o descriptor genérico de edición)
+                if (BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle) ||
+                    game.SpanishTitle?.IndexOf("korean", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    game.SpanishTitle?.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    string targetTitle = (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Title))
+                        ? vInfo.Title
+                        : game.OriginalTitle;
+
+                    if (game.SpanishTitle != targetTitle)
+                    {
+                        game.UpdateSpanishTitle(targetTitle);
+                        updatedTitles++;
+                        modified = true;
+                    }
+                }
+                else if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Title) && game.SpanishTitle != vInfo.Title)
                 {
                     game.UpdateSpanishTitle(vInfo.Title);
                     updatedTitles++;
                     modified = true;
                 }
 
-                if (!string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
                 {
                     game.UpdateSpanishPublisher(vInfo.Publisher);
                     modified = true;
                 }
+                else if (CatalogDataSanitizer.IsKoreanPublisher(game.SpanishPublisher))
+                {
+                    game.UpdateSpanishPublisher(vInfo?.Publisher);
+                    modified = true;
+                }
 
-                if (!string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
+                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Ean) && game.Ean != vInfo.Ean)
                 {
                     game.UpdateEan(vInfo.Ean);
                     updatedEans++;
+                    modified = true;
+                }
+                else if (game.Ean != null && game.Ean.StartsWith("880") && (vInfo == null || vInfo.Ean != game.Ean))
+                {
+                    game.UpdateEan(vInfo?.Ean);
                     modified = true;
                 }
 
