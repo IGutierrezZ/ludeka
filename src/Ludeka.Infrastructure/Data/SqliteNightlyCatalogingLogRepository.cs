@@ -68,9 +68,13 @@ public class SqliteNightlyCatalogingLogRepository : DbContextRepositoryBase, INi
     public async Task<int> FailStaleRunningLogsAsync(DateTimeOffset startedBefore, CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);
-        var staleLogs = await scope.Context.NightlyCatalogingExecutionLogs
-            .Where(l => l.Status == "Running" && l.StartedAt <= startedBefore)
+        var runningLogs = await scope.Context.NightlyCatalogingExecutionLogs
+            .Where(l => l.Status == "Running")
             .ToListAsync(ct);
+
+        var staleLogs = runningLogs
+            .Where(l => l.StartedAt <= startedBefore)
+            .ToList();
 
         if (staleLogs.Count == 0) return 0;
 
