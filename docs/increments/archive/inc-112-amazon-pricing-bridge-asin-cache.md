@@ -1,6 +1,6 @@
 # Incremento 112: Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h)
 
-> **Estado:** ⏳ Verificado (Listo para PR y Archivo)  
+> **Estado:** ✅ Archivado y Desplegado en Producción  
 > **Fecha de Inicio:** 2026-10-05  
 > **Rama de Trabajo:** `inc/amazon-pricing`  
 > **Worktree:** `F:\repos\ludeka-wt\amazon-pricing`  
@@ -30,5 +30,5 @@ Diseñar e implementar la infraestructura desacoplada para la obtención de prec
 - [x] **sdd-design:** Diseño detallado de interfaces, DTOs, persistencia y configuración en `design.md`.
 - [x] **sdd-tasks:** Desglose en 7 unidades de trabajo atómicas bajo Strict TDD en `tasks.md`.
 - [x] **sdd-apply:** Implementación guiada por pruebas (Red -> Green -> Refactor).
-- [x] **sdd-verify:** Verificación de la suite completa en verde (2.477 superadas, 0 fallos).
-- [ ] **sdd-archive:** Apertura de PR, custodia de CI/CD, merge a `main`, volcado a especificación viva y cleanup.
+- [x] **sdd-verify:** Verificación de la suite completa en verde (2.507 superadas, 0 fallos, 2.517 totales con integración).
+- [x] **sdd-archive:** Apertura de PR #203, custodia de CI/CD, merge a `main`, despliegue automático verificado en Google Cloud Run, volcado a especificación viva (módulo 51) y cleanup.

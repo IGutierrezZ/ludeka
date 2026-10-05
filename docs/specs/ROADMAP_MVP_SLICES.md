@@ -1131,9 +1131,9 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   2. **Implementación Dual e Intercambiable:** Proveedor puente (`RainforestAmazonProductProvider`) con API Key para disponibilidad inmediata previa a la aprobación de Amazon, y proveedor oficial (`OfficialAmazonPaApiProvider`) implementando la firma AWS SigV4 (HMAC-SHA256) contra la PA-API 5.0 oficial para activación inmediata al introducir credenciales.
   3. **Persistencia de ASIN en `Game`:** Inclusión de propiedad `Asin` en entidad de dominio con validación/truncado seguro a 20 caracteres, migraciones SQLite y PostgreSQL (`IX_Games_Asin`), y persistencia en repositorio.
   4. **Servicio Orquestador y Caché Estricta (< 24h) (`AmazonPriceSyncService`):** Cumplimiento riguroso de las políticas de afiliados de Amazon (<24 horas de validez de precios), minimizando peticiones salientes mediante snapshots y persistencia del ASIN para consultas directas recurrentes.
-- **Estado:** ⏳ **En progreso** (Verificado localmente, listo para PR y Archivo).
-- **Documento:** [`../increments/inc-112-amazon-pricing-bridge-asin-cache.md`](../increments/inc-112-amazon-pricing-bridge-asin-cache.md).
-- **Módulos del Sistema:** [`48-precios-stock-afiliados-amazon.md`](sistema/48-precios-stock-afiliados-amazon.md).
+- **Estado:** ✅ **Completado y Archivado** (2.507 tests unitarios en verde al 100%, 2.517 totales con integración).
+- **Documento:** [`../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md`](../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md).
+- **Módulos del Sistema:** [`51-precios-stock-afiliados-amazon.md`](sistema/51-precios-stock-afiliados-amazon.md).
 
 
 
