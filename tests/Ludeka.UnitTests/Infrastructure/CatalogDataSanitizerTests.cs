@@ -261,5 +261,44 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Null(refreshedCorrupt.SpanishPublisher);
         Assert.Null(refreshedCorrupt.Ean);
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldUpdateToValidSpanishTitle_WhenTitleMatchesOriginalTitleAndSpanishVersionExists()
+    {
+        // Arrange: juego donde SpanishTitle == OriginalTitle ("Ark Nova: Marine Worlds") pero el snapshot tiene versión en español con título traducido
+        var game = CreateTestGame(
+            bggId: 368966,
+            originalTitle: "Ark Nova: Marine Worlds",
+            spanishTitle: "Ark Nova: Marine Worlds",
+            spanishPublisher: "Maldito Games"
+        );
+        _context.Games.Add(game);
+
+        const string snapshotJson = @"{
+          ""item"": {
+            ""@id"": ""368966"",
+            ""versions"": {
+              ""item"": {
+                ""name"": { ""@value"": ""Ark Nova: Mundo Marino - Spanish edition (2024)"" },
+                ""link"": [
+                  { ""@type"": ""language"", ""@value"": ""Spanish"" },
+                  { ""@type"": ""boardgamepublisher"", ""@value"": ""Maldito Games"" }
+                ]
+              }
+            }
+          }
+        }";
+        var snapshot = new BggRawSnapshot(368966, snapshotJson, 2);
+        _context.BggRawSnapshots.Add(snapshot);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 368966);
+        Assert.Equal("Ark Nova: Mundo Marino", refreshed.SpanishTitle);
+        Assert.Equal("Maldito Games", refreshed.SpanishPublisher);
+    }
 }
 

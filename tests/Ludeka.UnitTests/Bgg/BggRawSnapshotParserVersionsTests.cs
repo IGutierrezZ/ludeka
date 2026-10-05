@@ -191,6 +191,8 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Alta Tensión (Edición en español)", "Alta Tensión")]
     [InlineData("Alta Tensión - Spanish edition", "Alta Tensión")]
     [InlineData("Ciudadelas: Edición Deluxe", "Ciudadelas")]
+    [InlineData("Ark Nova: Mundo Marino - Spanish edition (2024)", "Ark Nova: Mundo Marino")]
+    [InlineData("Spanish edition (2024)", null)]
     public void CleanVersionTitle_ShouldStripSuffixOrReturnNull(string rawTitle, string? expectedCleaned)
     {
         string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
@@ -253,6 +255,31 @@ public class BggRawSnapshotParserVersionsTests
         Assert.Equal("Alta Tensión", result.Title); // Enriquecido desde la versión localizada
         Assert.Equal("Edge Entertainment", result.Publisher);
         Assert.Equal("8435407626515", result.Ean); // Enriquecido desde la versión con EAN
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractMundoMarino_WhenVersionHasYearSuffix()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""368966"">
+    <name type=""primary"" value=""Ark Nova: Marine Worlds"" />
+    <versions>
+      <item type=""boardgameversion"" id=""711122"">
+        <name type=""primary"" value=""Ark Nova: Mundo Marino - Spanish edition (2024)"" />
+        <link type=""boardgamepublisher"" id=""34501"" value=""Maldito Games"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Ark Nova: Mundo Marino", result.Title);
+        Assert.Equal("Maldito Games", result.Publisher);
     }
 }
 
