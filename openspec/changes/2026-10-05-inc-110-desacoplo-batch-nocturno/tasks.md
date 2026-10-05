@@ -11,7 +11,7 @@
   - [x] 2.2: Añadir feedback reactivo en el panel con mensaje de progreso, estado activo y botón de detención segura.
   - [x] 2.3: Añadir selector de cupo personalizado (ej. 40, 50, 100, 200, 400 títulos) junto al botón de disparo.
 
-- [ ] **Unidad 3: Verificación, suite completa y cierre SDD**
-  - [ ] 3.1: Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`).
-  - [ ] 3.2: Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
+- [x] **Unidad 3: Verificación, suite completa y cierre SDD**
+  - [x] 3.1: Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`).
+  - [x] 3.2: Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
   - [ ] 3.3: Abrir PR mediante `scripts/sdd-worktree.ps1 pr desacoplo-batch-nocturno`.
