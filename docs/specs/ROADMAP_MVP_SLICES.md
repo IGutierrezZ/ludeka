@@ -1052,6 +1052,18 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
+## Incremento 107: Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa
+- **Identificador SDD:** `ingesta-expansiones-lotes-ia`
+- **Objetivo Principal:**
+  1. **Ingesta Masiva por Lotes (BGG x20 e IA x10):** Refactorizar `NightlyCatalogingService` para procesar la cola de catalogación en bloques de 20 IDs con `IBggClient.FetchGamesByBggIdsAsync` (`&stats=1&versions=1`) y síntesis estructurada de resúmenes con Google Gemini Flash en bloques de 10 juegos (`IAiGameSummaryService.GenerateBatchSummariesAsync`), elevando el cupo diario a 400 juegos por noche (`DailyCatalogingLimit = 400`).
+  2. **Cribado Inteligente de Expansiones Anti-Promos:** Filtro en dos fases para descubrimiento de expansiones: pre-filtro léxico sobre enlaces de snapshots locales (`BggRawSnapshotParser.IsProbablePromoOrAccessory`) y verificación de umbral comunitario (`usersrated >= 30` o `owned >= 100`) o comercial en español (título o editorial) antes de encolar en `PendingBggImports`.
+  3. **Saneamiento Editorial de `/admin/cola-catalogacion`:** Purgar más de 260 líneas de botones redundantes y flujos huérfanos amortizados (sembrado de creadores, lotes rápidos manuales de 20 para snapshots/versiones y reconciliación masiva de expansiones).
+- **Estado:** ✅ **Completado y Archivado** (2.436 pruebas unitarias pasando al 100% [2.446 totales con integración]).
+- **Documento:** [`../increments/archive/inc-107-ingesta-expansiones-lotes-ia.md`](../increments/archive/inc-107-ingesta-expansiones-lotes-ia.md).
+- **Módulos del Sistema:** [`18-deteccion-novedades-y-cola-nocturna.md`](sistema/18-deteccion-novedades-y-cola-nocturna.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
+---
+
 ## Convención de Trabajo para Cada Incremento (Ciclo SDD)
 
 Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven Development:

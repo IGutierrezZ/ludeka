@@ -1,6 +1,6 @@
 # INC-107: Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa
 
-> **Estado:** ⏳ Verificado (preparado para PR)  
+> **Estado:** ✅ Archivado  
 > **Fecha:** 2026-10-05  
 > **Rama:** `inc/ingesta-expansiones-lotes-ia`  
 > **Worktree:** `F:\repos\ludeka-wt\ingesta-expansiones-lotes-ia`  
