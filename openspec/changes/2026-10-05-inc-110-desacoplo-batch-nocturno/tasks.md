@@ -14,4 +14,4 @@
 - [x] **Unidad 3: Verificación, suite completa y cierre SDD**
   - [x] 3.1: Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`).
   - [x] 3.2: Actualizar `docs/increments/ROADMAP.md` y `docs/specs/ROADMAP_MVP_SLICES.md`.
-  - [ ] 3.3: Abrir PR mediante `scripts/sdd-worktree.ps1 pr desacoplo-batch-nocturno`.
+  - [x] 3.3: Abrir PR mediante `scripts/sdd-worktree.ps1 pr desacoplo-batch-nocturno`.

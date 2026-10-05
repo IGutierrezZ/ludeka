@@ -121,7 +121,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
 | **INC-107** | Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa | ✅ Archivado | [inc-107-ingesta-expansiones-lotes-ia.md](archive/inc-107-ingesta-expansiones-lotes-ia.md) |
 | **INC-109** | Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos | ✅ Archivado | [inc-109-expansiones-top-bgg-rank.md](archive/inc-109-expansiones-top-bgg-rank.md) |
-| **INC-110** | Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola | ⏳ En progreso | [inc-110-desacoplo-batch-nocturno.md](inc-110-desacoplo-batch-nocturno.md) |
+| **INC-110** | Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola | ✅ Archivado | [inc-110-desacoplo-batch-nocturno.md](archive/inc-110-desacoplo-batch-nocturno.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

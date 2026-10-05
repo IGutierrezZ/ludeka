@@ -1,8 +1,8 @@
 # 18. Detección Automática de Juegos en Novedades y Cola Nocturna Inteligente BGG/Gemini
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** [INC-24 (inc-24-nightly-game-discovery-cataloging.md)](file:///c:/repos/Ludeka/docs/increments/archive/inc-24-nightly-game-discovery-cataloging.md)  
-> **Pruebas Automatizadas:** 27 pruebas dedicadas (600 pruebas globales en verde)  
+> **Incrementos Asociados:** [INC-24](file:///c:/repos/Ludeka/docs/increments/archive/inc-24-nightly-game-discovery-cataloging.md), [INC-107](file:///c:/repos/Ludeka/docs/increments/archive/inc-107-ingesta-expansiones-lotes-ia.md), [INC-110](file:///c:/repos/Ludeka/docs/increments/archive/inc-110-desacoplo-batch-nocturno.md)  
+> **Pruebas Automatizadas:** 2.451 pruebas globales en verde (100% de la suite)  
 
 ---
 
@@ -60,6 +60,7 @@ public enum CatalogQueueOrigin
 - **Comprobación remota:** Si no existe en Ludeka, invoca `IBggClient.SearchGamesAsync`. Si BGG devuelve coincidencia, encola el juego en `PendingBggImports` con `Origin = CatalogQueueOrigin.NewsDiscovery` y su `ExtractedTitle`.
 
 ### 3.2 Orquestador Nocturno (`INightlyCatalogingService` y `NightlyCatalogingService`)
+- **Auto-recuperación y Saneamiento Pre-vuelo (INC-110):** Antes de iniciar la catalogación, el servicio invoca `IPendingBggImportRepository.RecoverStaleProcessingToPendingAsync` para devolver a `Pending` cualquier título retenido en `Processing` por caídas previas del proceso, y `INightlyCatalogingLogRepository.FailStaleRunningLogsAsync` para marcar como `Failed` los registros huérfanos con estado `Running`. Si ocurre una cancelación o error fatal, la persistencia del fallo y la recuperación de la cola se ejecutan de forma blindada mediante `CancellationToken.None`.
 - Ejecuta en 4 fases secuenciales:
   1. **Fase 1 (Detección en Novedades):** Escanea lanzamientos sin vincular (`GameId == null`) y encola títulos nuevos en BGG.
   2. **Fase 2 (Cola Prioritaria con Lotes x20 BGG y x10 IA - INC-107):** Extrae hasta `DailyCatalogingLimit` (400) elementos pendientes, consulta BGG en bloques de hasta 20 IDs mediante `FetchGamesByBggIdsAsync(chunk, includeVersions: true)`, genera resúmenes estructurados en bloques de 10 juegos con `IAiGameSummaryService.GenerateBatchSummariesAsync` (o fallback heurístico), los añade al catálogo y promueve colecciones de usuarios en espera.
@@ -91,9 +92,13 @@ public enum CatalogQueueOrigin
 
 - **Ruta de Administración:** `/admin/cola-catalogacion` (`CatalogQueueAdmin.razor`).
 - **Control de Acceso:** Exclusivo para la Mesa Fundadora o moderadores con permiso `ModeratorPermission.CanEditGames`.
+- **Desacoplo en Segundo Plano y Selector de Cupo (INC-110):**
+  - El botón de disparo manual se desacopla del circuito SignalR de Blazor Server mediante `Task.Run` con un ámbito efímero `IServiceScopeFactory` y `CancellationTokenSource`.
+  - El proceso de catalogación sobrevive a desconexiones de red, recargas de página o expiraciones del timeout de 300 segundos de Google Cloud Run.
+  - La interfaz dispone de un selector de tamaño de lote (40, 50, 100, 200 o 400 títulos), banner de estado activo con animación pulsante y botón de detención segura (`StopNightlyBatch`).
+  - La sincronización y actualización reactiva de métricas en el panel se realiza mediante un `PeriodicTimer` no bloqueante que refresca los datos cada 3 segundos mientras haya tareas en curso.
 - **Elementos UI:**
   - **Tarjetas KPI:** Cupo diario (400), Títulos pendientes en cola, Títulos descubiertos en novedades, Estado del último lote.
-  - **Botón de Acción:** `[ ⚡ Ejecutar Batch Nocturno Ahora ]` para disparar el ciclo manual con indicador visual de progreso.
   - **Filtros por Origen:** Botones de alternancia rápida para ver todos, solo procedentes de novedades (`📰`), de usuarios (`👤`) o de relleno Top BGG (`🏆`).
   - **Tabla de Historial:** Auditoría de cada ejecución nocturna con fecha, estado, detalle por orígenes y títulos incorporados.
   - **Saneamiento Editorial (INC-107):** Purgados botones de lote rápido de 20 redundantes y acciones amortizadas, manteniendo controles continuos y de descubrimiento.

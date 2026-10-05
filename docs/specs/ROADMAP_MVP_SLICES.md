@@ -1106,6 +1106,6 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   2. **Saneamiento de Bitácoras Huérfanas:** Marcar como `Failed` con mensaje explicativo cualquier log anterior en `NightlyCatalogingExecutionLogs` con `Status == "Running"` que haya quedado huérfano.
   3. **Desacoplo en Segundo Plano en Blazor Server:** Refactorizar `ExecuteNightlyBatchAsync` en `CatalogQueueAdmin.razor` para lanzar la ejecución en `Task.Run` con `IServiceScopeFactory`, provisto de `CancellationTokenSource`, telemetría periódica (`Timer`) y botón de cancelación segura, eliminando la vulnerabilidad al timeout de 300 segundos de Cloud Run / SignalR.
   4. **Selector Interactivo de Cupo:** Permitir al moderador elegir el número de títulos a procesar (40, 50, 100, 200, 400).
-- **Estado:** ⏳ **En progreso**
-- **Documento:** [`../increments/inc-110-desacoplo-batch-nocturno.md`](../increments/inc-110-desacoplo-batch-nocturno.md).
+- **Estado:** ✅ **Completado y Verificado** (2.451 tests unitarios en verde al 100%, pipeline CI/CD y despliegue a Cloud Run verificados).
+- **Documento:** [`../increments/archive/inc-110-desacoplo-batch-nocturno.md`](../increments/archive/inc-110-desacoplo-batch-nocturno.md).
 
