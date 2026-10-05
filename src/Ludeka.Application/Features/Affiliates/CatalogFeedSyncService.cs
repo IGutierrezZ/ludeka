@@ -27,6 +27,7 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
     private readonly IAffiliateEanDiscrepancyRepository _discrepancyRepository;
     private readonly IGameRepository _gameRepository;
     private readonly GoogleShoppingFeedParser _googleShoppingParser;
+    private readonly IShopifyJsonCatalogParser _shopifyParser;
     private readonly IAffiliateUrlResolver _affiliateUrlResolver;
     private readonly HttpClient _httpClient;
     private readonly ILogger<CatalogFeedSyncService> _logger;
@@ -38,7 +39,8 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
         GoogleShoppingFeedParser googleShoppingParser,
         IAffiliateUrlResolver affiliateUrlResolver,
         ILogger<CatalogFeedSyncService> logger,
-        HttpClient? httpClient = null)
+        HttpClient? httpClient = null,
+        IShopifyJsonCatalogParser? shopifyParser = null)
     {
         _feedSourceRepository = feedSourceRepository ?? throw new ArgumentNullException(nameof(feedSourceRepository));
         _discrepancyRepository = discrepancyRepository ?? throw new ArgumentNullException(nameof(discrepancyRepository));
@@ -47,6 +49,7 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
         _affiliateUrlResolver = affiliateUrlResolver ?? throw new ArgumentNullException(nameof(affiliateUrlResolver));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient ?? new HttpClient();
+        _shopifyParser = shopifyParser ?? new ShopifyJsonCatalogParser(affiliateUrlResolver);
     }
 
     /// <inheritdoc />
@@ -88,6 +91,12 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
 
         try
         {
+            if (source.Format == FeedFormat.ShopifyJson)
+            {
+                var paginatedItems = _shopifyParser.ParsePaginatedAsync(source.FeedUrl, _httpClient, ct: ct);
+                return await SyncFeedItemsAsync(source, paginatedItems, ct).ConfigureAwait(false);
+            }
+
             using var response = await _httpClient.GetAsync(source.FeedUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
@@ -112,6 +121,21 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(stream);
 
+        IAsyncEnumerable<FeedProductItem> items = source.Format switch
+        {
+            FeedFormat.ShopifyJson => _shopifyParser.ParseStreamAsync(stream, source.FeedUrl, ct),
+            FeedFormat.GoogleShoppingXml => _googleShoppingParser.ParseStreamAsync(stream, ct),
+            _ => _googleShoppingParser.ParseStreamAsync(stream, ct)
+        };
+
+        return await SyncFeedItemsAsync(source, items, ct).ConfigureAwait(false);
+    }
+
+    private async Task<FeedSyncResult> SyncFeedItemsAsync(
+        AffiliateFeedSource source,
+        IAsyncEnumerable<FeedProductItem> items,
+        CancellationToken ct = default)
+    {
         int itemsRead = 0;
         int matchedCount = 0;
         int autoAssignedEanCount = 0;
@@ -151,13 +175,7 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
                 StringComparer.OrdinalIgnoreCase);
 
             // 3. Procesar en streaming
-            IFeedParser parser = source.Format switch
-            {
-                FeedFormat.GoogleShoppingXml => _googleShoppingParser,
-                _ => _googleShoppingParser
-            };
-
-            await foreach (var item in parser.ParseStreamAsync(stream, ct).ConfigureAwait(false))
+            await foreach (var item in items.ConfigureAwait(false))
             {
                 itemsRead++;
                 Game? matchedGame = null;
