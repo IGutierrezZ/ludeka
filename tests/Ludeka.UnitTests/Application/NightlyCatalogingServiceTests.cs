@@ -280,6 +280,47 @@ public class NightlyCatalogingServiceTests
         Assert.All(gameRepo.Games, g => Assert.NotNull(g.AiSummary));
     }
 
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WhenStaleProcessingItemsExist_RecoversThemToPendingAndProcessesThem()
+    {
+        // Arrange
+        var service = CreateService(out var pendingRepo, out var bggClient, out var gameRepo, out _, out _, out _, out _, limit: 5);
+
+        var item = new PendingBggImport(999, "Juego Atascado", 2021);
+        item.MarkAsProcessing();
+        pendingRepo.Items.Add(item);
+
+        bggClient.Games[999] = CreateDummyGame(999, "Juego Atascado");
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal(1, result.QueueProcessedCount);
+        Assert.Equal(1, result.TotalCatalogedCount);
+        Assert.Equal(CatalogQueueStatus.Completed, item.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WhenStaleRunningLogsExist_MarksThemAsFailed()
+    {
+        // Arrange
+        var service = CreateService(out _, out _, out _, out _, out _, out _, out var logRepo, limit: 2);
+
+        var pastTime = DateTimeOffset.UtcNow.AddHours(-2);
+        var staleLog = new NightlyCatalogingExecutionLog(pastTime);
+        await logRepo.AddAsync(staleLog);
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal("Failed", staleLog.Status);
+        Assert.NotNull(staleLog.ErrorMessage);
+        Assert.Contains("interrumpida", staleLog.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, logRepo.Logs.Count);
+    }
+
     private static NightlyCatalogingService CreateService(
         out FakePendingRepo pendingRepo,
         out FakeBggClient bggClient,
@@ -373,6 +414,16 @@ public class NightlyCatalogingServiceTests
         public Task ResetFailedToPendingAsync(CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> GetTotalPendingCountAsync(CancellationToken ct = default) =>
             Task.FromResult(Items.Count(i => i.Status == CatalogQueueStatus.Pending));
+
+        public Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default)
+        {
+            var stale = Items.Where(i => i.Status == CatalogQueueStatus.Processing).ToList();
+            foreach (var item in stale)
+            {
+                item.ResetToPending();
+            }
+            return Task.FromResult(stale.Count);
+        }
     }
 
     private class FakeBggClient : IBggClient
@@ -496,6 +547,16 @@ public class NightlyCatalogingServiceTests
 
         public Task<NightlyCatalogingExecutionLog?> GetLatestLogAsync(CancellationToken ct = default) =>
             Task.FromResult(Logs.OrderByDescending(l => l.StartedAt).FirstOrDefault());
+
+        public Task<int> FailStaleRunningLogsAsync(DateTimeOffset startedBefore, CancellationToken ct = default)
+        {
+            var stale = Logs.Where(l => l.Status == "Running" && l.StartedAt <= startedBefore).ToList();
+            foreach (var log in stale)
+            {
+                log.Fail("Ejecución interrumpida (timeout o reinicio del host)");
+            }
+            return Task.FromResult(stale.Count);
+        }
     }
 
     private class FakeDiscoveryService : IBggDiscoveryService

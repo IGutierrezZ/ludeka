@@ -15,4 +15,5 @@ public interface IPendingBggImportRepository
     Task AddAsync(PendingBggImport item, CancellationToken ct = default);
     Task UpdateAsync(PendingBggImport item, CancellationToken ct = default);
     Task ResetFailedToPendingAsync(CancellationToken ct = default);
+    Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default);
 }

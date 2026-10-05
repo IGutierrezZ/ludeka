@@ -88,4 +88,22 @@ public class SqlitePendingBggImportRepository : DbContextRepositoryBase, IPendin
 
         await scope.Context.SaveChangesAsync(ct);
     }
+
+    public async Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var staleItems = await scope.Context.PendingBggImports
+            .Where(p => p.Status == CatalogQueueStatus.Processing)
+            .ToListAsync(ct);
+
+        if (staleItems.Count == 0) return 0;
+
+        foreach (var item in staleItems)
+        {
+            item.ResetToPending();
+        }
+
+        await scope.Context.SaveChangesAsync(ct);
+        return staleItems.Count;
+    }
 }

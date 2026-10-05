@@ -89,6 +89,21 @@ public class NightlyCatalogingService : INightlyCatalogingService
     {
         int limit = customLimit.HasValue && customLimit.Value > 0 ? customLimit.Value : _options.DailyCatalogingLimit;
         var startedAt = DateTimeOffset.UtcNow;
+
+        // INC-110: Auto-recuperación de títulos encolados atascados en 'Processing' por cortes o timeouts previos
+        var recoveredItemsCount = await _pendingRepo.RecoverStaleProcessingToPendingAsync(ct);
+        if (recoveredItemsCount > 0)
+        {
+            _logger.LogInformation("INC-110: Se recuperaron {Count} títulos de la cola de catalogación que estaban en estado 'Processing'.", recoveredItemsCount);
+        }
+
+        // INC-110: Saneamiento de bitácoras huérfanas en estado 'Running'
+        var cleanedLogsCount = await _logRepo.FailStaleRunningLogsAsync(startedAt, ct);
+        if (cleanedLogsCount > 0)
+        {
+            _logger.LogInformation("INC-110: Se sanearon {Count} registros de ejecución huérfanos en estado 'Running'.", cleanedLogsCount);
+        }
+
         var log = new NightlyCatalogingExecutionLog(startedAt);
         await _logRepo.AddAsync(log, ct);
 
@@ -394,7 +409,15 @@ public class NightlyCatalogingService : INightlyCatalogingService
         {
             _logger.LogError(fatalEx, "Error crítico durante la catalogación nocturna: {Message}", fatalEx.Message);
             log.Fail(fatalEx.Message);
-            await _logRepo.UpdateAsync(log, ct);
+            try
+            {
+                await _logRepo.UpdateAsync(log, CancellationToken.None);
+                await _pendingRepo.RecoverStaleProcessingToPendingAsync(CancellationToken.None);
+            }
+            catch (Exception updateEx)
+            {
+                _logger.LogWarning(updateEx, "No se pudo actualizar el estado de bitácora o recuperar la cola tras error fatal: {Message}", updateEx.Message);
+            }
 
             return new NightlyCatalogingResultDto(
                 LogId: log.Id,

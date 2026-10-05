@@ -1094,3 +1094,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   1. **Priorización por BggRank de Juegos Base:** Incorporar en `IGameRepository` y `SqliteGameRepository` la consulta `GetTopRankedBaseGameBggIdsAsync(int limit = 1500)` para obtener los identificadores BGG de los juegos base más populares y relevantes de Ludeka ordenados por `BggRank` ascendente.
   2. **Carga y Enlace de Snapshots de Juegos Base Top:** Incorporar en `IBggRawSnapshotRepository` y `SqliteBggRawSnapshotRepository` el método `GetSnapshotsByBggIdsAsync(IEnumerable<int> bggIds)` y refactorizar `DiscoverAndEnqueueMissingExpansionsCoreAsync` en `BggRawSnapshotSyncService` para procesar los snapshots de los juegos base en estricto orden de popularidad (`BggRank` ASC) de Ludeka, con fallback a `GetAllSnapshotsAsync` cuando no existan juegos con ranking catalogados.
   3. **Ampliación de Cupo de Descubrimiento a 1.200 Títulos:** Elevar el cupo interactivo a 1.200 títulos en `CatalogQueueAdmin.razor`, aplicando el filtrado inteligente de dos niveles de INC-107 (anti-promos léxico + umbral de tracción comunitaria o edición comercial en español) para incorporar las 1.200 mejores expansiones de Ludeka.
+- **Estado:** ✅ **Archivado** (2.447 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-109-expansiones-top-bgg-rank.md`](../increments/archive/inc-109-expansiones-top-bgg-rank.md).
+
+---
+
+## Incremento 110: Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola
+- **Identificador SDD:** `desacoplo-batch-nocturno`
+- **Objetivo Principal:**
+  1. **Auto-Recuperación de Bloqueos en `PendingBggImports`:** Incorporar `RecoverStaleProcessingToPendingAsync` en `IPendingBggImportRepository` y `SqlitePendingBggImportRepository` para devolver a `Pending` cualquier registro congelado en `Processing` tras un corte abrupto de ejecución.
+  2. **Saneamiento de Bitácoras Huérfanas:** Marcar como `Failed` con mensaje explicativo cualquier log anterior en `NightlyCatalogingExecutionLogs` con `Status == "Running"` que haya quedado huérfano.
+  3. **Desacoplo en Segundo Plano en Blazor Server:** Refactorizar `ExecuteNightlyBatchAsync` en `CatalogQueueAdmin.razor` para lanzar la ejecución en `Task.Run` con `IServiceScopeFactory`, provisto de `CancellationTokenSource`, telemetría periódica (`Timer`) y botón de cancelación segura, eliminando la vulnerabilidad al timeout de 300 segundos de Cloud Run / SignalR.
+  4. **Selector Interactivo de Cupo:** Permitir al moderador elegir el número de títulos a procesar (40, 50, 100, 200, 400).
+- **Estado:** ⏳ **En progreso**
+- **Documento:** [`../increments/inc-110-desacoplo-batch-nocturno.md`](../increments/inc-110-desacoplo-batch-nocturno.md).
+
