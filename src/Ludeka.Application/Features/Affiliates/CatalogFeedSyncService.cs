@@ -277,19 +277,29 @@ public class CatalogFeedSyncService : ICatalogFeedSyncService
             }
 
             // 4. Guardar todas las entidades de juegos modificadas
+            int savedCount = 0;
             foreach (var g in modifiedGames.Values)
             {
-                await _gameRepository.UpdateAsync(g, ct).ConfigureAwait(false);
+                try
+                {
+                    await _gameRepository.UpdateAsync(g, ct).ConfigureAwait(false);
+                    savedCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al actualizar el juego '{GameTitle}' (ID: {GameId}) durante la sincronización del feed '{StoreName}'. Se omite este juego.",
+                        g.SpanishTitle ?? g.OriginalTitle, g.Id, source.StoreName);
+                }
             }
 
-            source.RecordSyncResult(true, matchedCount);
+            source.RecordSyncResult(true, savedCount);
             await _feedSourceRepository.UpdateAsync(source, ct).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "Sincronización de '{StoreName}' finalizada con éxito. Leídos: {Read}, Cruzados: {Matched}, EANs Asignados: {Auto}, Discrepancias: {Disc}.",
-                source.StoreName, itemsRead, matchedCount, autoAssignedEanCount, discrepanciesCount);
+                "Sincronización de '{StoreName}' finalizada con éxito. Leídos: {Read}, Cruzados: {Matched}, Guardados: {Saved}, EANs Asignados: {Auto}, Discrepancias: {Disc}.",
+                source.StoreName, itemsRead, matchedCount, savedCount, autoAssignedEanCount, discrepanciesCount);
 
-            return new FeedSyncResult(source.Id, source.StoreName, true, itemsRead, matchedCount, autoAssignedEanCount, discrepanciesCount);
+            return new FeedSyncResult(source.Id, source.StoreName, true, itemsRead, savedCount, autoAssignedEanCount, discrepanciesCount);
         }
         catch (Exception ex)
         {

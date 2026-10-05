@@ -402,9 +402,65 @@ public class CatalogFeedSyncServiceTests
         Assert.True(offer.InStock);
     }
 
+    [Fact]
+    public async Task SyncFeedStreamAsync_WhenOneGameFailsToPersist_SavesOtherGamesAndCompletesSuccessfully()
+    {
+        // Arrange: Dos juegos que cruzan por EAN con el feed
+        var game1 = CreateGame(bggId: 101, title: "Game 1", spanishTitle: "Juego 1", ean: ValidEan1);
+        var game2 = CreateGame(bggId: 102, title: "Game 2", spanishTitle: "Juego 2", ean: ValidEan2);
+        _gameRepo.Add(game1);
+        _gameRepo.Add(game2);
+
+        // Simulamos que game1 falla al persistir (ej. excepción de validación o constraint)
+        _gameRepo.FailingGameIds.Add(game1.Id);
+
+        var source = new AffiliateFeedSource("Cuarto de Juegos", "https://cuartodejuegos.es/feed.xml");
+        _sourceRepo.Add(source);
+
+        string xml = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+              <channel>
+                <item>
+                  <g:id>CJ-1</g:id>
+                  <title>Juego 1</title>
+                  <link>https://cuartodejuegos.es/juego-1</link>
+                  <g:price>25.00 EUR</g:price>
+                  <g:availability>in_stock</g:availability>
+                  <g:gtin>{ValidEan1}</g:gtin>
+                </item>
+                <item>
+                  <g:id>CJ-2</g:id>
+                  <title>Juego 2</title>
+                  <link>https://cuartodejuegos.es/juego-2</link>
+                  <g:price>35.00 EUR</g:price>
+                  <g:availability>in_stock</g:availability>
+                  <g:gtin>{ValidEan2}</g:gtin>
+                </item>
+              </channel>
+            </rss>
+            """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+
+        // Act
+        var result = await _service.SyncFeedStreamAsync(source, stream);
+
+        // Assert: El proceso global concluye con éxito, guardando el juego sano y registrando el conteo real
+        Assert.True(result.Success);
+        Assert.Equal(2, result.ItemsRead);
+        Assert.Equal(1, result.MatchedCount); // Solo game2 se persistió correctamente
+
+        var updatedGame2 = await _gameRepo.GetByIdAsync(game2.Id);
+        Assert.NotNull(updatedGame2);
+        Assert.Single(updatedGame2.PurchaseLinks);
+        Assert.Equal(35.00m, updatedGame2.PurchaseLinks[0].Price);
+    }
+
     private class FakeGameRepository : IGameRepository
     {
         private readonly List<Game> _games = [];
+        public HashSet<Guid> FailingGameIds { get; } = [];
 
         public void Add(Game game) => _games.Add(game);
 
@@ -422,6 +478,11 @@ public class CatalogFeedSyncServiceTests
 
         public Task UpdateAsync(Game game, CancellationToken ct = default)
         {
+            if (FailingGameIds.Contains(game.Id))
+            {
+                throw new InvalidOperationException($"Fallo simulado al persistir el juego {game.Id}");
+            }
+
             int idx = _games.FindIndex(g => g.Id == game.Id);
             if (idx >= 0) _games[idx] = game;
             return Task.CompletedTask;

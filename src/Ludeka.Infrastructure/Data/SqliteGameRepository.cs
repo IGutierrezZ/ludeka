@@ -7,6 +7,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -394,20 +395,37 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 int minPlayers = validPlayerCounts.Count > 0 ? Math.Max(1, validPlayerCounts.Min()) : 1;
                 int maxPlayers = validPlayerCounts.Count > 0 ? Math.Max(minPlayers, validPlayerCounts.Max()) : Math.Max(minPlayers, 4);
 
+                int maxAllowedYear = DateTime.UtcNow.Year + 10;
+                int safeYearPublished = (game.YearPublished < -5000 || game.YearPublished > maxAllowedYear)
+                    ? (existing.YearPublished >= -5000 && existing.YearPublished <= maxAllowedYear
+                        ? existing.YearPublished
+                        : Math.Clamp(game.YearPublished, -5000, maxAllowedYear))
+                    : game.YearPublished;
+
+                string safeSpanishTitle = !string.IsNullOrWhiteSpace(game.SpanishTitle)
+                    ? game.SpanishTitle
+                    : (!string.IsNullOrWhiteSpace(existing.SpanishTitle) ? existing.SpanishTitle : (!string.IsNullOrWhiteSpace(game.OriginalTitle) ? game.OriginalTitle : existing.OriginalTitle));
+                string safeOriginalTitle = !string.IsNullOrWhiteSpace(game.OriginalTitle)
+                    ? game.OriginalTitle
+                    : (!string.IsNullOrWhiteSpace(existing.OriginalTitle) ? existing.OriginalTitle : safeSpanishTitle);
+
+                var safeAge = game.Age ?? existing.Age ?? new AgeRating(0, 0);
+                var safeDuration = game.Duration ?? existing.Duration ?? new GameDuration(0, 0, 0);
+
                 existing.UpdateCatalogInformation(
-                    game.SpanishTitle,
-                    game.OriginalTitle,
+                    safeSpanishTitle,
+                    safeOriginalTitle,
                     game.Designer,
                     game.Publisher,
-                    game.YearPublished,
+                    safeYearPublished,
                     game.Description,
                     game.Confrontation,
                     game.Style,
                     game.IsOfficialSolo,
-                    game.Age,
+                    safeAge,
                     game.Language,
                     game.Footprint,
-                    game.Duration,
+                    safeDuration,
                     minPlayers,
                     maxPlayers
                 );
