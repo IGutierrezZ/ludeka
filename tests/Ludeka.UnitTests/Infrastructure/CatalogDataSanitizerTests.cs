@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Ludeka.Application.Contracts;
+using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
@@ -68,6 +73,21 @@ public sealed class CatalogDataSanitizerTests : IDisposable
             game.UpdateEan(ean);
 
         return game;
+    }
+
+    private sealed class FakeBggClient : IBggClient
+    {
+        private readonly Func<int, bool, Task<string?>> _xmlProvider;
+
+        public FakeBggClient(Func<int, bool, Task<string?>> xmlProvider)
+        {
+            _xmlProvider = xmlProvider;
+        }
+
+        public Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default) => Task.FromResult<Game?>(null);
+        public Task<IReadOnlyList<BggSearchResultDto>> SearchGamesAsync(string query, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BggSearchResultDto>>(Array.Empty<BggSearchResultDto>());
+        public Task<IReadOnlyList<BggTopGameDto>> FetchTopGamesAsync(int limit = 50, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<BggTopGameDto>>(Array.Empty<BggTopGameDto>());
+        public Task<string?> FetchRawThingXmlAsync(int bggId, bool includeVersions, CancellationToken ct = default) => _xmlProvider(bggId, includeVersions);
     }
 
     [Fact]
@@ -208,7 +228,8 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         // Act
         await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
 
-        // Assert
+        // Assert: 342942 se limpia al título original al no haber versión en español;
+        // 368966 se asegura de forma prioritaria como Ark Nova: Mundo Marino (Maldito Games)
         var refreshedBase = await _context.Games.FirstAsync(g => g.BggId == 342942);
         var refreshedExp = await _context.Games.FirstAsync(g => g.BggId == 368966);
 
@@ -216,9 +237,8 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Null(refreshedBase.SpanishPublisher);
         Assert.Null(refreshedBase.Ean);
 
-        Assert.Equal("Ark Nova: Marine Worlds", refreshedExp.SpanishTitle);
-        Assert.Null(refreshedExp.SpanishPublisher);
-        Assert.Null(refreshedExp.Ean);
+        Assert.Equal("Ark Nova: Mundo Marino", refreshedExp.SpanishTitle);
+        Assert.Equal("Maldito Games", refreshedExp.SpanishPublisher);
     }
 
     [Fact]
@@ -242,8 +262,8 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         );
         // Juego posterior con BggId alto que SÍ requiere saneamiento
         var corruptHighId = CreateTestGame(
-            bggId: 368966,
-            originalTitle: "Ark Nova: Marine Worlds",
+            bggId: 400000,
+            originalTitle: "Game 400000",
             spanishTitle: "Korean edition",
             spanishPublisher: "Angry Lion Games",
             ean: "8809641480507"
@@ -256,8 +276,8 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
 
         // Assert: El juego con BggId alto debe ser reparado gracias a la paginación por BggId
-        var refreshedCorrupt = await _context.Games.FirstAsync(g => g.BggId == 368966);
-        Assert.Equal("Ark Nova: Marine Worlds", refreshedCorrupt.SpanishTitle);
+        var refreshedCorrupt = await _context.Games.FirstAsync(g => g.BggId == 400000);
+        Assert.Equal("Game 400000", refreshedCorrupt.SpanishTitle);
         Assert.Null(refreshedCorrupt.SpanishPublisher);
         Assert.Null(refreshedCorrupt.Ean);
     }
@@ -300,5 +320,76 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Equal("Ark Nova: Mundo Marino", refreshed.SpanishTitle);
         Assert.Equal("Maldito Games", refreshed.SpanishPublisher);
     }
-}
 
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldEnsureArkNovaMundoMarino_WhenSnapshotMissingAndNoBggClient()
+    {
+        // Arrange: 368966 existe en BD con título original pero SIN snapshot alguno en BggRawSnapshots
+        var game = CreateTestGame(
+            bggId: 368966,
+            originalTitle: "Ark Nova: Marine Worlds",
+            spanishTitle: "Ark Nova: Marine Worlds",
+            spanishPublisher: null
+        );
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert: Se debe reparar inmediatamente a "Ark Nova: Mundo Marino" y "Maldito Games",
+        // y generar el snapshot de respaldo con versiones para consistencia total en BD.
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 368966);
+        Assert.Equal("Ark Nova: Mundo Marino", refreshed.SpanishTitle);
+        Assert.Equal("Maldito Games", refreshed.SpanishPublisher);
+
+        var snapshot = await _context.BggRawSnapshots.FirstOrDefaultAsync(s => s.BggId == 368966);
+        Assert.NotNull(snapshot);
+        Assert.True(BggRawSnapshotParser.HasVersionsFromJson(snapshot.RawJson));
+        var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(snapshot.RawJson);
+        Assert.NotNull(vInfo);
+        Assert.Equal("Ark Nova: Mundo Marino", vInfo.Title);
+        Assert.Equal("Maldito Games", vInfo.Publisher);
+    }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldFetchFromBggClient_WhenSnapshotMissingVersions()
+    {
+        // Arrange: juego candidato con título genérico "Spanish edition" y snapshot inexistente,
+        // pero disponemos de IBggClient que devuelve XML con versión en español
+        var game = CreateTestGame(
+            bggId: 77777,
+            originalTitle: "Fantasy Realm",
+            spanishTitle: "Spanish edition"
+        );
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        const string sampleXml = @"<items>
+          <item type=""boardgame"" id=""77777"">
+            <name type=""primary"" value=""Fantasy Realm"" />
+            <versions>
+              <item type=""boardgameversion"" id=""88888"">
+                <name type=""primary"" value=""Reinos Fantásticos"" />
+                <link type=""language"" value=""Spanish"" />
+                <link type=""boardgamepublisher"" value=""Editorial Fantástica"" />
+              </item>
+            </versions>
+          </item>
+        </items>";
+
+        var fakeBgg = new FakeBggClient((id, includeVersions) => Task.FromResult<string?>(id == 77777 ? sampleXml : null));
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance, fakeBgg);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 77777);
+        Assert.Equal("Reinos Fantásticos", refreshed.SpanishTitle);
+        Assert.Equal("Editorial Fantástica", refreshed.SpanishPublisher);
+
+        var snap = await _context.BggRawSnapshots.FirstOrDefaultAsync(s => s.BggId == 77777);
+        Assert.NotNull(snap);
+        Assert.True(BggRawSnapshotParser.HasVersionsFromJson(snap.RawJson));
+    }
+}

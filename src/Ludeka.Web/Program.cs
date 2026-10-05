@@ -216,7 +216,8 @@ using (var scope = app.Services.CreateScope())
     await AdminUserSeeder.EnsureAdminUserAsync(db, adminOptionsValue, logger);
 
     // Saneamiento defensivo de anomalías históricas en títulos/editoriales/EANs del catálogo (ej. Korean edition)
-    await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(db, logger);
+    var bggClient = scope.ServiceProvider.GetService<IBggClient>();
+    await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(db, logger, bggClient);
 
     // Semillado demostrativo: únicamente en desarrollo cuando SeedDemoData está activo
     if (dbOptionsValue.SeedDemoData && app.Environment.IsDevelopment())

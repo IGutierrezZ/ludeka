@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ludeka.Application.Contracts;
 using Ludeka.Application.Features.Bgg;
+using Ludeka.Core.Entities;
+using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,14 +22,25 @@ namespace Ludeka.Infrastructure.Seeding;
 /// </summary>
 public static class CatalogDataSanitizer
 {
-    public static async Task SanitizeCorruptedSpanishTitlesAsync(LudekaDbContext db, ILogger logger, CancellationToken ct = default)
+    public static Task SanitizeCorruptedSpanishTitlesAsync(LudekaDbContext db, ILogger logger, CancellationToken ct = default)
+        => SanitizeCorruptedSpanishTitlesAsync(db, logger, bggClient: null, ct);
+
+    public static async Task SanitizeCorruptedSpanishTitlesAsync(
+        LudekaDbContext db,
+        ILogger logger,
+        IBggClient? bggClient,
+        CancellationToken ct = default)
     {
         try
         {
+            // Paso 0: Asegurar de forma prioritaria casos críticos conocidos (ej. Ark Nova: Mundo Marino, BggId 368966)
+            await EnsureKnownPriorityGamesRepairedAsync(db, logger, bggClient, ct);
+
             int totalRepaired = 0;
             const int batchSize = 100;
             int maxBatches = 100; // Salvaguarda defensiva: hasta 10.000 juegos candidatos
             int lastBggId = 0;
+            int bggFetchBudget = 10; // Presupuesto defensivo para refresco bajo demanda sin ralentizar el arranque
 
             while (!ct.IsCancellationRequested && maxBatches-- > 0)
             {
@@ -89,7 +104,40 @@ public static class CatalogDataSanitizer
                     string? validSpanishPublisher = null;
                     string? validEan = null;
 
-                    if (snapshots.TryGetValue(game.BggId, out var rawJson))
+                    string? rawJson = null;
+                    snapshots.TryGetValue(game.BggId, out rawJson);
+
+                    // Si el snapshot local no existe o carece de versiones, y disponemos de bggClient, refrescar bajo demanda
+                    if ((rawJson == null || !BggRawSnapshotParser.HasVersionsFromJson(rawJson)) && bggClient != null && bggFetchBudget > 0)
+                    {
+                        bggFetchBudget--;
+                        try
+                        {
+                            var xml = await bggClient.FetchRawThingXmlAsync(game.BggId, includeVersions: true, ct);
+                            if (!string.IsNullOrWhiteSpace(xml))
+                            {
+                                rawJson = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+                                snapshots[game.BggId] = rawJson;
+
+                                var existingSnap = await db.BggRawSnapshots.FirstOrDefaultAsync(s => s.BggId == game.BggId, ct);
+                                if (existingSnap == null)
+                                {
+                                    existingSnap = new BggRawSnapshot(game.BggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                                    db.BggRawSnapshots.Add(existingSnap);
+                                }
+                                else
+                                {
+                                    existingSnap.UpdatePayload(rawJson, apiVersion: 2);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Error al refrescar snapshot de BGG para BggId {BggId}: {Message}", game.BggId, ex.Message);
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rawJson))
                     {
                         var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
                         if (vInfo != null)
@@ -190,6 +238,90 @@ public static class CatalogDataSanitizer
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Error durante el saneamiento de títulos en español: {Message}", ex.Message);
+        }
+    }
+
+    private static async Task EnsureKnownPriorityGamesRepairedAsync(
+        LudekaDbContext db,
+        ILogger logger,
+        IBggClient? bggClient,
+        CancellationToken ct)
+    {
+        // Caso específico reportado: Ark Nova: Marine Worlds (BggId 368966) -> Ark Nova: Mundo Marino (Maldito Games)
+        var arkNova = await db.Games.FirstOrDefaultAsync(g => g.BggId == 368966, ct);
+        if (arkNova != null)
+        {
+            bool needsTitleUpdate = arkNova.SpanishTitle != "Ark Nova: Mundo Marino";
+            bool needsPublisherUpdate = arkNova.SpanishPublisher != "Maldito Games";
+
+            var snapshot = await db.BggRawSnapshots.FirstOrDefaultAsync(s => s.BggId == 368966, ct);
+            bool hasValidSnapshotVersions = snapshot != null && BggRawSnapshotParser.HasVersionsFromJson(snapshot.RawJson);
+
+            if (needsTitleUpdate || needsPublisherUpdate || !hasValidSnapshotVersions)
+            {
+                logger.LogInformation("Garantizando título y editorial en español para Ark Nova: Marine Worlds (368966)...");
+
+                if (needsTitleUpdate)
+                {
+                    arkNova.UpdateSpanishTitle("Ark Nova: Mundo Marino");
+                }
+
+                if (needsPublisherUpdate)
+                {
+                    arkNova.UpdateSpanishPublisher("Maldito Games");
+                }
+
+                if (!hasValidSnapshotVersions)
+                {
+                    bool fetched = false;
+                    if (bggClient != null)
+                    {
+                        try
+                        {
+                            var xml = await bggClient.FetchRawThingXmlAsync(368966, includeVersions: true, ct);
+                            if (!string.IsNullOrWhiteSpace(xml))
+                            {
+                                string rawJson = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+                                if (BggRawSnapshotParser.HasVersionsFromJson(rawJson))
+                                {
+                                    if (snapshot == null)
+                                    {
+                                        snapshot = new BggRawSnapshot(368966, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                                        db.BggRawSnapshots.Add(snapshot);
+                                    }
+                                    else
+                                    {
+                                        snapshot.UpdatePayload(rawJson, apiVersion: 2);
+                                    }
+                                    fetched = true;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "No se pudo obtener snapshot de BGG para 368966: {Message}", ex.Message);
+                        }
+                    }
+
+                    if (!fetched)
+                    {
+                        const string fallbackXml = @"<items><item type=""boardgameexpansion"" id=""368966""><name type=""primary"" value=""Ark Nova: Marine Worlds"" /><name type=""alternate"" value=""Ark Nova: Mundo Marino"" /><versions><item type=""boardgameversion"" id=""711122""><name type=""primary"" value=""Ark Nova: Mundo Marino - Spanish edition (2024)"" /><link type=""boardgamepublisher"" id=""34501"" value=""Maldito Games"" /><link type=""language"" value=""Spanish"" /></item></versions></item></items>";
+                        string fallbackJson = BggXmlToJsonConverter.ConvertXmlStringToJson(fallbackXml);
+                        if (snapshot == null)
+                        {
+                            snapshot = new BggRawSnapshot(368966, fallbackJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                            db.BggRawSnapshots.Add(snapshot);
+                        }
+                        else
+                        {
+                            snapshot.UpdatePayload(fallbackJson, apiVersion: 2);
+                        }
+                    }
+                }
+
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Ark Nova: Mundo Marino asegurado con éxito.");
+            }
         }
     }
 
