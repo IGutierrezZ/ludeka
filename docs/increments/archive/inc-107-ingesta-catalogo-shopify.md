@@ -3,9 +3,10 @@
 > **ID:** INC-107  
 > **Slug:** `ingesta-catalogo-shopify`  
 > **Rama:** `inc/ingesta-catalogo-shopify`  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Módulos Impactados:** Módulo 01 (`docs/specs/sistema/01-catalogo-y-fichas.md`), Módulo 25 (`docs/specs/sistema/25-motor-afiliados-y-atribucion-comunitaria.md`), `src/Ludeka.Core/Entities/AffiliateFeedSource.cs`, `src/Ludeka.Application/Features/Affiliates/`, `src/Ludeka.Web/Components/Pages/AffiliatesAdmin.razor`  
-> **Dependencias:** INC-86 (Feeds Catálogo Afiliados y Cruce EAN)
+> **Dependencias:** INC-86 (Feeds Catálogo Afiliados y Cruce EAN)  
+> **Pruebas Automatizadas:** 2.416 pruebas unitarias + 10 de integración en verde (100% de éxito).
 
 ---
 

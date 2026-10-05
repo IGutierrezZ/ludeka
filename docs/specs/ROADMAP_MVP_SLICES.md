@@ -1059,8 +1059,8 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
   2. **Parser JSON de Catálogo Shopify:** Crear `ShopifyJsonCatalogParser` para consumir de forma paginada (`/products.json?limit=250&page=N`) extrayendo título, precio, stock (`available`), enlace directo (`/products/{handle}`) y EAN-13 (desde `sku`, `barcode` o URLs de imágenes).
   3. **Integración con CatalogFeedSyncService:** Inyectar el parser en el motor de sincronización para alimentar el cruce de EANs y el radar de precios (`PriceRadarService`).
   4. **Padrón Inicial de Tiendas Españolas:** Preconfigurar Cuarto de Juegos, Ludus Belli y Mi Juego Bonito.
-- **Estado:** ⏳ **En progreso**.
-- **Documento:** [`../increments/inc-107-ingesta-catalogo-shopify.md`](../increments/inc-107-ingesta-catalogo-shopify.md).
+- **Estado:** ✅ **Archivado** (2.416 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-107-ingesta-catalogo-shopify.md`](../increments/archive/inc-107-ingesta-catalogo-shopify.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
 
 ---
