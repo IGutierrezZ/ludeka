@@ -205,6 +205,96 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DiscoverAndEnqueueMissingExpansionsAsync_PrioritizesTopRankedBaseGames_OverOldSnapshots()
+    {
+        // Juego 1: Die Macher (BggId 1, BggRank 500)
+        var oldGame = CreateGame(1, "Die Macher", GameType.BaseGame, bggRank: 500);
+        // Juego 2: Terraforming Mars (BggId 167791, BggRank 4 - Top de Ludeka)
+        var topGame = CreateGame(167791, "Terraforming Mars", GameType.BaseGame, bggRank: 4);
+
+        _context.Games.AddRange(oldGame, topGame);
+        await _context.SaveChangesAsync();
+
+        // Snapshot de Die Macher con expansión 1001 (BggId menor en tabla de snapshots)
+        string oldGameJson = @"{
+            ""@id"": ""1"",
+            ""@type"": ""boardgame"",
+            ""link"": [
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""1001"", ""@value"": ""Die Macher Expansion"" }
+            ]
+        }";
+
+        // Snapshot de Terraforming Mars con expansión 4004 (Prelude)
+        string topGameJson = @"{
+            ""@id"": ""167791"",
+            ""@type"": ""boardgame"",
+            ""link"": [
+                { ""@type"": ""boardgameexpansion"", ""@id"": ""4004"", ""@value"": ""Terraforming Mars: Prelude"" }
+            ]
+        }";
+
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(1, oldGameJson));
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(167791, topGameJson));
+
+        // Ambas cumplen umbral comunitario
+        _bggClient.SetupXml(1001, @"<items><item type=""boardgameexpansion"" id=""1001"">
+            <name type=""primary"" value=""Die Macher Expansion"" />
+            <statistics><ratings><usersrated value=""200"" /><owned value=""500"" /></ratings></statistics>
+        </item></items>");
+
+        _bggClient.SetupXml(4004, @"<items><item type=""boardgameexpansion"" id=""4004"">
+            <name type=""primary"" value=""Terraforming Mars: Prelude"" />
+            <statistics><ratings><usersrated value=""1500"" /><owned value=""3000"" /></ratings></statistics>
+        </item></items>");
+
+        // Solicitamos encolar solo 1 expansión (maxToEnqueue = 1)
+        var discovery = await _service.DiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 1);
+
+        // Debe priorizar la expansión del juego Top (Prelude), ignorando la de Die Macher a pesar de tener BggId = 1
+        Assert.Equal(2, discovery.DiscoveredCount);
+        Assert.Equal(1, discovery.EnqueuedCount);
+        Assert.Contains("Terraforming Mars: Prelude", discovery.EnqueuedTitles);
+        Assert.DoesNotContain("Die Macher Expansion", discovery.EnqueuedTitles);
+
+        var pendingPrelude = await _pendingRepo.GetByBggIdAsync(4004);
+        Assert.NotNull(pendingPrelude);
+        var pendingDieMacher = await _pendingRepo.GetByBggIdAsync(1001);
+        Assert.Null(pendingDieMacher);
+    }
+
+    [Fact]
+    public async Task GetTopRankedBaseGameBggIdsAsync_ShouldReturnBaseGamesOrderedByRank()
+    {
+        var gameRank10 = CreateGame(10, "Rank 10", GameType.BaseGame, bggRank: 10);
+        var gameRank2 = CreateGame(2, "Rank 2", GameType.BaseGame, bggRank: 2);
+        var gameRank5 = CreateGame(5, "Rank 5", GameType.BaseGame, bggRank: 5);
+        var expansionRank1 = CreateGame(99, "Exp Rank 1", GameType.Expansion, bggRank: 1); // ignorado por ser Expansion
+        var gameNoRank = CreateGame(100, "No Rank", GameType.BaseGame, bggRank: null); // ignorado por null rank
+
+        _context.Games.AddRange(gameRank10, gameRank2, gameRank5, expansionRank1, gameNoRank);
+        await _context.SaveChangesAsync();
+
+        var topIds = await _gameRepo.GetTopRankedBaseGameBggIdsAsync(limit: 10);
+
+        Assert.Equal(new[] { 2, 5, 10 }, topIds);
+    }
+
+    [Fact]
+    public async Task GetSnapshotsByBggIdsAsync_ShouldReturnRequestedSnapshots()
+    {
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(1, "{\"item\":1}"));
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(2, "{\"item\":2}"));
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(3, "{\"item\":3}"));
+
+        var snapshots = await _snapshotRepo.GetSnapshotsByBggIdsAsync(new[] { 1, 3 });
+
+        Assert.Equal(2, snapshots.Count);
+        Assert.Contains(snapshots, s => s.BggId == 1);
+        Assert.Contains(snapshots, s => s.BggId == 3);
+        Assert.DoesNotContain(snapshots, s => s.BggId == 2);
+    }
+
+    [Fact]
     public async Task AutoLinkExistingExpansionsAsync_ShouldLinkUnlinkedExpansions_UsingExistingSnapshots()
     {
         var baseGame = CreateGame(822, "Carcassonne", GameType.BaseGame);
@@ -360,7 +450,7 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         Assert.Equal("8435407626515", updatedGame.Ean);
     }
 
-    private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null)
+    private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null, int? bggRank = 100)
     {
         return new Game(
             bggId: bggId,
@@ -373,7 +463,7 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
             thumbnailUrl: null,
             description: "Desc",
             bggRating: 7.5,
-            bggRank: 100,
+            bggRank: bggRank,
             ludistRating: 7.5,
             confrontation: ConfrontationType.Competitive,
             style: GameStyle.Eurogame,

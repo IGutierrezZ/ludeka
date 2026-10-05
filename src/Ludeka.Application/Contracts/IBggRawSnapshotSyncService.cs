@@ -25,7 +25,7 @@ public interface IBggRawSnapshotSyncService
     /// Analiza los snapshots almacenados en la tabla satélite, identifica expansiones no catalogadas
     /// y las encola en la bandeja de importación pendiente para su procesamiento.
     /// </summary>
-    Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default);
+    Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 1200, CancellationToken ct = default);
 
     /// <summary>
     /// Re-escanea el catálogo buscando expansiones sin juego base asignado y las vincula deterministamente
@@ -41,7 +41,7 @@ public interface IBggRawSnapshotSyncService
     /// <summary>
     /// Versión de sistema para descubrimiento y encolado de expansiones sin guarda interactiva.
     /// </summary>
-    Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 50, CancellationToken ct = default);
+    Task<BggExpansionDiscoveryResultDto> RunScheduledDiscoverAndEnqueueMissingExpansionsAsync(int maxToEnqueue = 1200, CancellationToken ct = default);
 
     /// <summary>
     /// Versión de sistema para auto-vinculación de expansiones sin guarda interactiva.

@@ -1,4 +1,4 @@
-# 🗺️ Catálogo de Incrementos de Ludeka (Roadmap SDD)
+﻿# 🗺️ Catálogo de Incrementos de Ludeka (Roadmap SDD)
 
 Este documento es el índice central de los paquetes de trabajo e incrementos (*Vertical Slices*) de Ludeka bajo la metodología **Spec-Driven Development (SDD)**.
 
@@ -121,6 +121,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
 | **INC-107** | Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa | ✅ Archivado | [inc-107-ingesta-expansiones-lotes-ia.md](archive/inc-107-ingesta-expansiones-lotes-ia.md) |
 | **INC-108** | Ingesta de Catálogos Shopify (/products.json), Captura de Precios y EANs en Comercios Españoles | ✅ Archivado | [inc-108-ingesta-catalogo-shopify.md](archive/inc-108-ingesta-catalogo-shopify.md) |
+| **INC-109** | Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos | ⏳ En progreso | [inc-109-expansiones-top-bgg-rank.md](inc-109-expansiones-top-bgg-rank.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

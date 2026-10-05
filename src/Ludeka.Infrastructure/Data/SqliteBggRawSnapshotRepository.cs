@@ -185,5 +185,17 @@ public class SqliteBggRawSnapshotRepository : DbContextRepositoryBase, IBggRawSn
         return await scope.Context.BggRawSnapshots
             .CountAsync(s => s.RawJson.Contains("\"versions\""), ct);
     }
+
+    public async Task<IReadOnlyList<BggRawSnapshot>> GetSnapshotsByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+    {
+        var idList = bggIds.Distinct().ToList();
+        if (idList.Count == 0) return [];
+        await using var scope = await CreateScopeAsync(ct);
+
+        return await scope.Context.BggRawSnapshots
+            .AsNoTracking()
+            .Where(s => idList.Contains(s.BggId))
+            .ToListAsync(ct);
+    }
 }
 

@@ -701,7 +701,7 @@
                         else
                         {
                             <Icon Name="plus-circle" Size="14" />
-                            <span>Descubrir y Encolar Expansiones</span>
+                            <span>Descubrir Expansiones Top (1.200)</span>
                         }
                     </button>
 
@@ -1673,7 +1673,7 @@
         _expansionDiscoveryResult = null;
         try
         {
-            _expansionDiscoveryResult = await SnapshotSyncService.DiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 50);
+            _expansionDiscoveryResult = await SnapshotSyncService.DiscoverAndEnqueueMissingExpansionsAsync(maxToEnqueue: 1200);
             await LoadDataAsync();
         }
         catch (Exception)
