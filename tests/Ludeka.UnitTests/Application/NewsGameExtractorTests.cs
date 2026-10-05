@@ -272,6 +272,16 @@ public class NewsGameExtractorTests
         public Task UpdateAsync(PendingBggImport item, CancellationToken ct = default) => Task.CompletedTask;
         public Task ResetFailedToPendingAsync(CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> GetTotalPendingCountAsync(CancellationToken ct = default) => Task.FromResult(Items.Count(i => i.Status == CatalogQueueStatus.Pending));
+
+        public Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default)
+        {
+            var stale = Items.Where(i => i.Status == CatalogQueueStatus.Processing).ToList();
+            foreach (var item in stale)
+            {
+                item.ResetToPending();
+            }
+            return Task.FromResult(stale.Count);
+        }
     }
 
     private class FakeReleaseRepo : IWeeklyReleaseRepository

@@ -158,6 +158,16 @@ public class BggImportServiceTests
             }
             return Task.CompletedTask;
         }
+
+        public Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default)
+        {
+            var stale = Queue.Where(i => i.Status == CatalogQueueStatus.Processing).ToList();
+            foreach (var item in stale)
+            {
+                item.ResetToPending();
+            }
+            return Task.FromResult(stale.Count);
+        }
     }
 
     private static Game CreateGame(int bggId, string title)

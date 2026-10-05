@@ -64,4 +64,26 @@ public class SqliteNightlyCatalogingLogRepository : DbContextRepositoryBase, INi
             .ThenByDescending(l => l.Id)
             .FirstOrDefault();
     }
+
+    public async Task<int> FailStaleRunningLogsAsync(DateTimeOffset startedBefore, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var runningLogs = await scope.Context.NightlyCatalogingExecutionLogs
+            .Where(l => l.Status == "Running")
+            .ToListAsync(ct);
+
+        var staleLogs = runningLogs
+            .Where(l => l.StartedAt <= startedBefore)
+            .ToList();
+
+        if (staleLogs.Count == 0) return 0;
+
+        foreach (var log in staleLogs)
+        {
+            log.Fail("Ejecución interrumpida (timeout o reinicio del host)");
+        }
+
+        await scope.Context.SaveChangesAsync(ct);
+        return staleLogs.Count;
+    }
 }

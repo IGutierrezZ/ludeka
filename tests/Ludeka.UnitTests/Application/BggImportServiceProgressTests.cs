@@ -88,6 +88,7 @@ public class BggImportServiceProgressTests
         public Task AddAsync(PendingBggImport item, CancellationToken ct = default) { Queue.Add(item); return Task.CompletedTask; }
         public Task UpdateAsync(PendingBggImport item, CancellationToken ct = default) => Task.CompletedTask;
         public Task ResetFailedToPendingAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public Task<int> RecoverStaleProcessingToPendingAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 
     [Fact]
