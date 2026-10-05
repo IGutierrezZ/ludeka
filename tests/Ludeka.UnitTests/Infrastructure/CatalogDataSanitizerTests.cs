@@ -220,5 +220,46 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Null(refreshedExp.SpanishPublisher);
         Assert.Null(refreshedExp.Ean);
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldContinueAcrossBatches_EvenWhenIntermediateCandidatesAreUnmodified()
+    {
+        // Arrange: juego candidato con BggId menor que no requiere modificación porque ya está limpio
+        var cleanCandidate = CreateTestGame(
+            bggId: 50,
+            originalTitle: "Game 50",
+            spanishTitle: "Game 50",
+            spanishPublisher: null,
+            ean: null
+        );
+        // Forzar un juego que coincide con el filtro de editorial pero ya tiene el valor correcto en BD
+        var intermediate = CreateTestGame(
+            bggId: 100,
+            originalTitle: "Intermediate",
+            spanishTitle: "Spanish edition",
+            spanishPublisher: "Devir",
+            ean: "8435407620001"
+        );
+        // Juego posterior con BggId alto que SÍ requiere saneamiento
+        var corruptHighId = CreateTestGame(
+            bggId: 368966,
+            originalTitle: "Ark Nova: Marine Worlds",
+            spanishTitle: "Korean edition",
+            spanishPublisher: "Angry Lion Games",
+            ean: "8809641480507"
+        );
+
+        _context.Games.AddRange(cleanCandidate, intermediate, corruptHighId);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert: El juego con BggId alto debe ser reparado gracias a la paginación por BggId
+        var refreshedCorrupt = await _context.Games.FirstAsync(g => g.BggId == 368966);
+        Assert.Equal("Ark Nova: Marine Worlds", refreshedCorrupt.SpanishTitle);
+        Assert.Null(refreshedCorrupt.SpanishPublisher);
+        Assert.Null(refreshedCorrupt.Ean);
+    }
 }
 
