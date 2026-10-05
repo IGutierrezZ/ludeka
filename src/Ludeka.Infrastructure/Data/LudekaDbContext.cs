@@ -92,6 +92,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         game.Property(g => g.Ean).HasMaxLength(14).IsRequired(false);
         game.HasIndex(g => g.Ean);
 
+        game.Property(g => g.Asin).HasMaxLength(20).IsRequired(false);
+        game.HasIndex(g => g.Asin);
+
         // Mapeo de Síntesis Inteligente con IA (Incremento 13)
         game.OwnsOne(g => g.AiSummary, b => b.ToJson());
 

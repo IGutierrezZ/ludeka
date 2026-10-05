@@ -579,6 +579,30 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal(g3.Id, results[1].Id);
     }
 
+    [Fact]
+    public async Task InsertAndGetByIdAsync_ShouldPersistAndRetrieveAsin()
+    {
+        // Arrange
+        var game = new Game(99999, "Asin Test Game", "Juego Test Asin", "Autor", "Editorial", 2024, "", "", "", 7.5, null, 7.5, ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None, TableFootprint.StandardTable, new GameDuration(30, 60, 20), []);
+        game.SetAsin("B07MZT757D");
+
+        // Act
+        await _repository.AddRangeAsync([game]);
+        var retrieved = await _repository.GetByIdAsync(game.Id);
+
+        // Assert
+        Assert.NotNull(retrieved);
+        Assert.Equal("B07MZT757D", retrieved.Asin);
+
+        // Mutate and update
+        retrieved.SetAsin("B01G958V6U");
+        await _repository.UpdateAsync(retrieved);
+
+        var updated = await _repository.GetByIdAsync(game.Id);
+        Assert.NotNull(updated);
+        Assert.Equal("B01G958V6U", updated.Asin);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
