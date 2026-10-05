@@ -119,6 +119,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-104** | Menú de Usuario con Icono en Cabecera y Retirada de Submenú Redundante de Cuenta | ⏳ En progreso | [inc-104-simplificacion-menu-cuenta.md](inc-104-simplificacion-menu-cuenta.md) |
 | **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ✅ Archivado | [inc-105-bgg-versiones-titulos-ean.md](archive/inc-105-bgg-versiones-titulos-ean.md) |
 | **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
+| **INC-107** | Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa | ⏳ En progreso | [inc-107-ingesta-expansiones-lotes-ia.md](inc-107-ingesta-expansiones-lotes-ia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -145,6 +146,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+- **INC-107** (`inc/ingesta-expansiones-lotes-ia`) — Ingesta masiva en lotes BGG (x20) e IA (x10), filtrado inteligente de expansiones anti-promos y saneamiento de cola administrativa. En progreso en worktree.
 
 *(INC-106 entregó su verificación con 2.378 pruebas unitarias en verde al 100% [2.388 totales con integración], y quedó archivado el 2026-10-05. Optimiza la experiencia de curación en YouTubeSearchModal.razor y MultimediaHub.razor con permanencia del modal al moderar sin cierres intempestivos, preservación reactiva de resultados en memoria, señalización de estado visual por tarjeta con badges fijos [Aprobado/En Pendientes], capa de caché IMemoryCache [TTL 45m], búsqueda consolidada en 1 sola llamada [ahorro del 66% en cuota de YouTube], e incorpora IYouTubeCatalogAutoIngestService y el runner youtube-auto-ingest en Ludeka.Jobs para el top 4.000 de juegos con límite estricto de 60 juegos/día).*
 

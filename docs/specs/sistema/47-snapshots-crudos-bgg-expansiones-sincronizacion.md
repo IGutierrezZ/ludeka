@@ -61,10 +61,13 @@ Para dotar al sistema de máxima flexibilidad analítica sin perder fidelidad:
 - **Extracción de Expansiones (Outbound):** `ExtractOutboundExpansionBggIds(xml)` extrae la lista de identificadores BGG de expansiones hijas en `<link type="boardgameexpansion" id="..." />`.
 - **Extracción de Metadatos de Enlace:** `ExtractExpansionLinks(xml)` devuelve objetos `BggExpansionLinkDto` con `BggId`, `Name` e `IsInbound`.
 
-### 4.2 Auto-vinculación en Catálogo y Descubrimiento
+### 4.2 Auto-vinculación en Catálogo y Descubrimiento con Filtrado Inteligente (INC-107)
 El servicio `BggRawSnapshotSyncService` implementa:
 1. **Auto-vinculación (`AutoLinkExistingExpansionsAsync`):** Recorre los snapshots crudos existentes. Si detecta una expansión que ya existe en el catálogo pero tiene `BaseGameId = null`, busca el juego base por su `BggId` y actualiza el juego asignándole `SetBaseGameId(baseGame.Id)`.
-2. **Descubrimiento y Encolado (`DiscoverAndEnqueueMissingExpansionsAsync`):** Identifica expansiones referenciadas en los snapshots crudos que aún no existen en el catálogo de Ludeka ni en la cola pendiente, y las añade a `PendingBggImports` con origen `CatalogQueueOrigin.BggExpansionDiscovery` (5) para su importación controlada.
+2. **Descubrimiento y Encolado con Cribado Anti-Promos (`DiscoverAndEnqueueMissingExpansionsAsync` - INC-107):**
+   - **Pre-filtro Léxico:** Evalúa los títulos enlazados en snapshots locales mediante `BggRawSnapshotParser.IsProbablePromoOrAccessory`, descartando promos de eventos, paquetes de cartas o accesorios físicos (`promo`, `bonus`, `pack`, `miniature`, `playmat`, `dice`, etc.).
+   - **Umbral Comunitario y Comercial:** Consulta BGG en bloques de 20 IDs con `stats=1` y versiones. Solo se encolan expansiones con tracción real (`usersrated >= 30` o `owned >= 100`) o que cuenten con edición comercial registrada en español (título o editorial en español).
+   - Añade los candidatos admitidos a `PendingBggImports` con origen `CatalogQueueOrigin.BggExpansionDiscovery` (5) para su importación controlada.
 
 ---
 

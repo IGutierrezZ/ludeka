@@ -37,6 +37,27 @@ public interface IBggClient
         => Task.FromResult<string?>(null);
 
     /// <summary>
+    /// Obtiene una lista de entidades Game a partir de una colección de identificadores BGG en una o varias llamadas agrupadas.
+    /// </summary>
+    Task<IReadOnlyList<Game>> FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+        => FetchGamesByBggIdsAsync(bggIds, true, ct);
+
+    /// <summary>
+    /// Obtiene una lista de entidades Game a partir de una colección de identificadores BGG con control de subárbol de versiones.
+    /// </summary>
+    async Task<IReadOnlyList<Game>> FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
+    {
+        var list = new List<Game>();
+        if (bggIds == null) return list;
+        foreach (var id in bggIds)
+        {
+            var game = await FetchGameByBggIdAsync(id, ct);
+            if (game != null) list.Add(game);
+        }
+        return list;
+    }
+
+    /// <summary>
     /// Parsea una entidad Game completa desde el payload JSON de un snapshot satélite de BGG en memoria (sin llamadas HTTP).
     /// </summary>
     Game? ParseGameFromRawJson(string rawJson)

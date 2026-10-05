@@ -9,7 +9,6 @@
 @inject IBggCatalogQueueService QueueService
 @inject IBggMassIngestionService MassIngestionService
 @inject IBggDiscoveryService DiscoveryService
-@inject IDirectorySeederService DirectorySeederService
 @inject IBggRawSnapshotSyncService SnapshotSyncService
 @inject ICurrentUserService CurrentUserService
 @inject IServiceScopeFactory ScopeFactory
@@ -97,7 +96,7 @@
                     <Icon Name="target" Size="12" /> Cupo Diario Configurado
                 </span>
                 <div class="text-2xl font-black text-[var(--text-primary)]">
-                    @(_options?.DailyCatalogingLimit ?? 20) <span class="text-xs font-normal text-[var(--text-muted)]">juegos / día</span>
+                    @(_options?.DailyCatalogingLimit ?? 400) <span class="text-xs font-normal text-[var(--text-muted)]">juegos / día</span>
                 </div>
                 <div class="text-[0.7rem] text-emerald-600 dark:text-emerald-400 font-medium">
                     Pausa de cortesía: @(_options?.MinDelaySecondsBetweenCalls ?? 2.5)s activa
@@ -683,7 +682,7 @@
                     {
                         <button type="button"
                                 @onclick="ExecuteContinuousSnapshotsSync"
-                                disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.PendingSnapshots == 0))"
+                                disabled="@(_isDiscoveringExpansions || _isAutoLinkingExpansions || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.PendingSnapshots == 0))"
                                 class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
                             <Icon Name="play" Size="14" />
                             <span>Sincronización Total en Segundo Plano</span>
@@ -691,24 +690,8 @@
                     }
 
                     <button type="button"
-                            @onclick="ExecuteSyncSnapshotsBatchAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isContinuousSnapshotsSyncActive)"
-                            class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-[var(--text-primary)] text-xs font-bold transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
-                        @if (_isSyncingSnapshots)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando Lote...</span>
-                        }
-                        else
-                        {
-                            <Icon Name="refresh-cw" Size="14" />
-                            <span>Lote Rápido (20)</span>
-                        }
-                    </button>
-
-                    <button type="button"
                             @onclick="ExecuteDiscoverExpansionsAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions)"
+                            disabled="@(_isDiscoveringExpansions || _isAutoLinkingExpansions)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isDiscoveringExpansions)
                         {
@@ -724,7 +707,7 @@
 
                     <button type="button"
                             @onclick="ExecuteAutoLinkExpansionsAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isReconcilingExpansions)"
+                            disabled="@(_isDiscoveringExpansions || _isAutoLinkingExpansions)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-cyan-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
                         @if (_isAutoLinkingExpansions)
                         {
@@ -735,23 +718,6 @@
                         {
                             <Icon Name="link" Size="14" />
                             <span>Auto-vincular Huérfanas</span>
-                        }
-                    </button>
-
-                    <button type="button"
-                            @onclick="ExecuteReconcileExpansionsAsync"
-                            disabled="@(_isSyncingSnapshots || _isDiscoveringExpansions || _isAutoLinkingExpansions || _isReconcilingExpansions)"
-                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-emerald-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                            title="Reclasifica expansiones falsas registradas como BaseGame y vincula bidireccionalmente con sus juegos base usando los snapshots locales">
-                        @if (_isReconcilingExpansions)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Reconciliando...</span>
-                        }
-                        else
-                        {
-                            <Icon Name="check-check" Size="14" class="text-emerald-400" />
-                            <span>Reconciliar Expansiones desde Snapshots</span>
                         }
                     </button>
 
@@ -768,7 +734,7 @@
                     {
                         <button type="button"
                                 @onclick="ExecuteContinuousVersionsSync"
-                                disabled="@(_isSyncingVersions || _isSweepingVersions || _isSyncingSnapshots || _isContinuousSnapshotsSyncActive || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.SnapshotsPendingVersions == 0))"
+                                disabled="@(_isSweepingVersions || _isContinuousSnapshotsSyncActive || !CanManageQueue || (_snapshotStatus != null && _snapshotStatus.SnapshotsPendingVersions == 0))"
                                 class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                                 title="Descarga en segundo plano todas las versiones BGG pendientes (2x1) y al terminar ejecuta el barrido automático de títulos en español y EAN en todo el catálogo">
                             <Icon Name="play" Size="14" />
@@ -777,25 +743,8 @@
                     }
 
                     <button type="button"
-                            @onclick="ExecuteSyncVersionsBatchAsync"
-                            disabled="@(_isSyncingVersions || _isSyncingSnapshots || _isSweepingVersions || _isContinuousSnapshotsSyncActive || _isContinuousVersionsSyncActive)"
-                            class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-purple-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                            title="Consulta BGG con versions=1 para obtener títulos en español y códigos EAN de un lote de 20 juegos">
-                        @if (_isSyncingVersions)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando Lote...</span>
-                        }
-                        else
-                        {
-                            <Icon Name="barcode" Size="14" class="text-purple-400" />
-                            <span>Lote Rápido (20)</span>
-                        }
-                    </button>
-
-                    <button type="button"
                             @onclick="ExecuteSweepVersionsCatalogAsync"
-                            disabled="@(_isSweepingVersions || _isSyncingVersions || _isSyncingSnapshots || _isContinuousVersionsSyncActive)"
+                            disabled="@(_isSweepingVersions || _isContinuousVersionsSyncActive)"
                             class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-emerald-500 text-xs font-bold text-[var(--text-primary)] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                             title="Barrido 100% offline sobre snapshots locales para actualizar títulos en español, editoriales y códigos EAN-13">
                         @if (_isSweepingVersions)
@@ -907,32 +856,11 @@
 
             <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span><Icon Name="terminal" Size="12" class="inline mr-1 text-cyan-400" /> <strong>Backfill de snapshots:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-raw-backfill</code></span>
-                <span><Icon Name="terminal" Size="12" class="inline mr-1 text-emerald-400" /> <strong>Reconciliador masivo:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-emerald-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-reconcile-expansions</code></span>
                 <span><Icon Name="terminal" Size="12" class="inline mr-1 text-purple-400" /> <strong>Barrido versiones &amp; EAN:</strong> <code class="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono">dotnet run --project src/Ludeka.Jobs -- bgg-versions-sweep</code></span>
             </div>
 
             @* Alertas de Resultado *@
-            @if (_snapshotSyncResult != null)
-            {
-                <div class="p-4 rounded-xl @(_snapshotSyncResult.FailedCount == 0 ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300") border text-xs space-y-1">
-                    <div class="flex items-center justify-between font-bold">
-                        <span>@_snapshotSyncResult.Message</span>
-                        <button type="button" @onclick="() => _snapshotSyncResult = null" class="text-base font-bold">&times;</button>
-                    </div>
-                    @if (_snapshotSyncResult.SyncedTitles.Count > 0)
-                    {
-                        <div class="text-[var(--text-secondary)] text-[0.75rem]">
-                            <strong>Juegos sincronizados:</strong> @string.Join(", ", _snapshotSyncResult.SyncedTitles)
-                        </div>
-                    }
-                    @if (_snapshotSyncResult.LinkedExpansions.Count > 0)
-                    {
-                        <div class="text-emerald-400 text-[0.75rem]">
-                            <strong>Expansiones auto-vinculadas:</strong> @string.Join(", ", _snapshotSyncResult.LinkedExpansions)
-                        </div>
-                    }
-                </div>
-            }
+
 
             @if (_expansionDiscoveryResult != null)
             {
@@ -956,50 +884,7 @@
                 </div>
             }
 
-            @if (_expansionReconciliationResult != null)
-            {
-                var isError = _expansionReconciliationResult.Message?.StartsWith("Error", StringComparison.OrdinalIgnoreCase) ?? false;
-                <div class="p-4 rounded-xl @(!isError ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-rose-500/10 border-rose-500/30 text-rose-300") border text-xs space-y-2">
-                    <div class="flex items-center justify-between font-bold text-sm @(!isError ? "text-emerald-400" : "text-rose-400")">
-                        <span class="flex items-center gap-2">
-                            <Icon Name="@(!isError ? "circle-check" : "triangle-alert")" Size="16" />
-                            <span>Reconciliación de Expansiones Finalizada</span>
-                        </span>
-                        <button type="button" @onclick="() => _expansionReconciliationResult = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-base font-bold">&times;</button>
-                    </div>
-                    <p class="text-[var(--text-secondary)]">
-                        @(_expansionReconciliationResult.Message ?? $"Se evaluaron {_expansionReconciliationResult.TotalEvaluated} snapshots: {_expansionReconciliationResult.ReclassifiedExpansionsCount} reclasificadas a Expansión, {_expansionReconciliationResult.LinkedExpansionsCount} vinculadas a su juego base.")
-                    </p>
-                    @if (_expansionReconciliationResult.ReclassifiedTitles.Count > 0)
-                    {
-                        <div class="text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
-                            <strong>Reclasificadas a Expansión (@_expansionReconciliationResult.ReclassifiedTitles.Count):</strong> @string.Join(", ", _expansionReconciliationResult.ReclassifiedTitles.Take(15))@(_expansionReconciliationResult.ReclassifiedTitles.Count > 15 ? "..." : "")
-                        </div>
-                    }
-                    @if (_expansionReconciliationResult.LinkedExpansions.Count > 0)
-                    {
-                        <div class="text-emerald-400/90 pt-1 border-t border-[var(--border-subtle)]">
-                            <strong>Vinculadas con juego base (@_expansionReconciliationResult.LinkedExpansions.Count):</strong> @string.Join(", ", _expansionReconciliationResult.LinkedExpansions.Take(15))@(_expansionReconciliationResult.LinkedExpansions.Count > 15 ? "..." : "")
-                        </div>
-                    }
-                </div>
-            }
 
-            @if (_versionsSyncResult != null)
-            {
-                <div class="p-4 rounded-xl @(_versionsSyncResult.FailedCount == 0 ? "bg-purple-500/10 border-purple-500/30 text-purple-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300") border text-xs space-y-1">
-                    <div class="flex items-center justify-between font-bold">
-                        <span>@_versionsSyncResult.Message</span>
-                        <button type="button" @onclick="() => _versionsSyncResult = null" class="text-base font-bold">&times;</button>
-                    </div>
-                    @if (_versionsSyncResult.SyncedTitles.Count > 0)
-                    {
-                        <div class="text-[var(--text-secondary)] text-[0.75rem]">
-                            <strong>Juegos con versiones sincronizadas:</strong> @string.Join(", ", _versionsSyncResult.SyncedTitles)
-                        </div>
-                    }
-                </div>
-            }
 
             @if (_versionsSweepResult != null)
             {
@@ -1015,52 +900,6 @@
                     <p class="text-[var(--text-secondary)]">
                         @_versionsSweepResult.Message
                     </p>
-                </div>
-            }
-        </div>
-
-        @* Tarjeta INC-54: Padrón Exhaustivo del Directorio Lúdico Español *@
-        <div class="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="space-y-1">
-                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[0.7rem] font-bold">
-                        <Icon Name="building-2" Size="12" /> Padrón Nacional Exhaustivo (INC-54)
-                    </div>
-                    <h2 class="text-base font-bold text-[var(--text-primary)]">
-                        Directorio Lúdico de España
-                    </h2>
-                    <p class="text-xs text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                        Sincroniza y enriquece el censo oficial de editoriales de España (&gt;45), tiendas especializadas (Top 35) y creadores de contenido (Top 35) desde el dataset canónico sin duplicados.
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <button type="button"
-                            @onclick="ExecuteSeedDirectoryAsync"
-                            disabled="@_isSeedingDirectory"
-                            class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all flex items-center gap-2 shadow-sm disabled:opacity-50">
-                        @if (_isSeedingDirectory)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando Directorio...</span>
-                        }
-                        else
-                        {
-                            <Icon Name="refresh-cw" Size="14" />
-                            <span>Sincronizar Padrón Completo</span>
-                        }
-                    </button>
-                </div>
-            </div>
-
-            @if (_directorySeedResult != null)
-            {
-                <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-400 flex items-center justify-between">
-                    <span>
-                        <Icon Name="circle-check" Size="14" class="inline text-emerald-400 mr-1.5" />
-                        Padrón sincronizado con éxito: <strong>@_directorySeedResult.TotalPublishers</strong> editoriales (@_directorySeedResult.PublishersAdded nuevas, @_directorySeedResult.PublishersUpdated actualizadas), <strong>@_directorySeedResult.TotalStores</strong> tiendas (@_directorySeedResult.StoresAdded nuevas, @_directorySeedResult.StoresUpdated actualizadas) y <strong>@_directorySeedResult.TotalCreators</strong> creadores activos (@_directorySeedResult.CreatorsAdded nuevos).
-                    </span>
-                    <button type="button" @onclick="() => _directorySeedResult = null" class="text-base text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
                 </div>
             }
         </div>
@@ -1352,28 +1191,18 @@
     private BggQualityBackfillResultDto? _qualityBackfillResult;
     private BggQualitySweepBatchResultDto? _qualitySweepResult;
     private string? _stagingSeedResult;
-    private bool _isSeedingDirectory = false;
-    private DirectorySeedResultDto? _directorySeedResult;
     private IReadOnlyList<CatalogQueueItemDto> _queueItems = [];
     private IReadOnlyList<NightlyCatalogingExecutionLogDto> _history = [];
 
     // Incremento 90: Snapshots Crudos BGG y Expansiones
     private BggRawSnapshotStatusDto? _snapshotStatus;
-    private BggRawSnapshotSyncResultDto? _snapshotSyncResult;
     private BggExpansionDiscoveryResultDto? _expansionDiscoveryResult;
     private int? _autoLinkResultCount;
-    private bool _isSyncingSnapshots = false;
     private bool _isDiscoveringExpansions = false;
     private bool _isAutoLinkingExpansions = false;
 
-    // Incremento 99: Reconciliación y Vinculación Masiva de Expansiones desde Snapshots
-    private BggExpansionReconciliationResultDto? _expansionReconciliationResult;
-    private bool _isReconcilingExpansions = false;
-
     // Incremento 105: Versiones BGG, Títulos en Español y EAN (2x1)
-    private BggRawSnapshotSyncResultDto? _versionsSyncResult;
     private BggVersionCatalogSweepResultDto? _versionsSweepResult;
-    private bool _isSyncingVersions = false;
     private bool _isSweepingVersions = false;
 
     // Sincronización continua de versiones (2x1 + barrido) en segundo plano
@@ -1542,28 +1371,6 @@
         }
     }
 
-    private async Task ExecuteSeedDirectoryAsync()
-    {
-        if (!CanManageQueue || _isSeedingDirectory) return;
-
-        _isSeedingDirectory = true;
-        _directorySeedResult = null;
-        StateHasChanged();
-
-        try
-        {
-            _directorySeedResult = await DirectorySeederService.SeedDirectoryAsync();
-        }
-        catch (Exception)
-        {
-            _directorySeedResult = new DirectorySeedResultDto(0, 0, 0, 0, 0, 0, 0, 0, 0);
-        }
-        finally
-        {
-            _isSeedingDirectory = false;
-            StateHasChanged();
-        }
-    }
 
     private async Task ExecuteNightlyBatchAsync()
     {
@@ -1858,25 +1665,6 @@
         }
     }
 
-    private async Task ExecuteSyncSnapshotsBatchAsync()
-    {
-        if (_isSyncingSnapshots) return;
-        _isSyncingSnapshots = true;
-        _snapshotSyncResult = null;
-        try
-        {
-            _snapshotSyncResult = await SnapshotSyncService.SyncBatchAsync(batchSize: 20, delayMs: 1200);
-            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            _snapshotSyncResult = new BggRawSnapshotSyncResultDto(0, 0, 1, [], [], $"Error al sincronizar snapshots: {ex.Message}");
-        }
-        finally
-        {
-            _isSyncingSnapshots = false;
-        }
-    }
 
     private async Task ExecuteDiscoverExpansionsAsync()
     {
@@ -1918,47 +1706,6 @@
         }
     }
 
-    private async Task ExecuteReconcileExpansionsAsync()
-    {
-        if (_isReconcilingExpansions) return;
-        _isReconcilingExpansions = true;
-        _expansionReconciliationResult = null;
-        try
-        {
-            _expansionReconciliationResult = await SnapshotSyncService.ReconcileAndLinkExpansionsFromSnapshotsAsync();
-            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            _expansionReconciliationResult = new BggExpansionReconciliationResultDto(0, 0, 0, [], [], $"Error al reconciliar expansiones: {ex.Message}");
-        }
-        finally
-        {
-            _isReconcilingExpansions = false;
-        }
-    }
-
-    private async Task ExecuteSyncVersionsBatchAsync()
-    {
-        if (_isSyncingVersions || _isSyncingSnapshots) return;
-        _isSyncingVersions = true;
-        _versionsSyncResult = null;
-        try
-        {
-            _versionsSyncResult = await SnapshotSyncService.SyncVersionsBatchAsync(batchSize: 20, delayMs: 1200);
-            _snapshotStatus = await SnapshotSyncService.GetStatusAsync();
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            _versionsSyncResult = new BggRawSnapshotSyncResultDto(0, 0, 1, [], [], $"Error al sincronizar versiones: {ex.Message}");
-        }
-        finally
-        {
-            _isSyncingVersions = false;
-        }
-    }
 
     private async Task ExecuteSweepVersionsCatalogAsync()
     {
