@@ -1,8 +1,8 @@
 # 25. Motor de Afiliados, Atribución BGG, Comunidad y Modo Producción de APIs
 
 > **Estado del Módulo:** ✅ Implementado y Verificado  
-> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`), INC-56 (`comunidad-mecenazgo`), INC-86 (`feeds-catalogo-afiliados-ean`) e INC-107 (`ingesta-catalogo-shopify`)  
-> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs`, `GoogleShoppingFeedParserTests.cs`, `ShopifyJsonCatalogParserTests.cs`, `CatalogFeedSyncServiceTests.cs`, `CatalogFeedSyncJobRunnerTests.cs`, `AffiliatesAdminWebTests.cs` (2.416 pruebas unitarias + 10 de integración en verde en la suite global).
+> **Incremento Asociado:** INC-37 (`apis-produccion-afiliados`), INC-56 (`comunidad-mecenazgo`), INC-86 (`feeds-catalogo-afiliados-ean`) e INC-108 (`ingesta-catalogo-shopify`)  
+> **Pruebas Unitarias Asociadas:** `AffiliateUrlResolverTests.cs`, `CommunityAndSupportLinksContractTests.cs`, `GeminiGameSummaryServiceTests.cs`, `BggOptionsTests.cs`, `CommunityNotificationServiceTests.cs`, `GoogleShoppingFeedParserTests.cs`, `ShopifyJsonCatalogParserTests.cs`, `CatalogFeedSyncServiceTests.cs`, `CatalogFeedSyncJobRunnerTests.cs`, `AffiliatesAdminWebTests.cs` (2.444 pruebas unitarias + 10 de integración en verde en la suite global).
 
 ---
 
@@ -134,7 +134,7 @@ Los códigos de afiliado, identificadores de campaña o parámetros (`id_affilia
 - **Pestaña 1 (Fuentes de Catálogo):** Listado de feeds, selector de formato (`GoogleShoppingXml`, `ShopifyJson`, `GenericCsv`), formulario de alta/edición, conmutador de estado (activar/pausar), métricas de última sincronización y botón para forzar sincronización manual individual o global.
 - **Pestaña 2 (Discrepancias EAN):** Cola de discrepancias pendientes con comparativa visual del código actual vs código del comercio, y botón de acción atómica **"Promover a EAN principal"** (que promueve el código del comercio a principal y traslada el anterior a `AdditionalBarcodes`) o **"Descartar"**.
 
-### 6.7 Ingesta Paginada y Parser de Tiendas Shopify JSON (INC-107)
+### 6.7 Ingesta Paginada y Parser de Tiendas Shopify JSON (INC-108)
 - **Contrato:** `IShopifyJsonCatalogParser` en `Ludeka.Application.Contracts`.
 - **Implementación:** `ShopifyJsonCatalogParser` en `Ludeka.Application.Features.Affiliates`:
   - **Paginación REST Pública:** Consume el endpoint `/products.json?limit=250&page=N` disponible de forma nativa en tiendas Shopify (ej. Cuarto de Juegos, Ludus Belli, Mi Juego Bonito) sin requerir claves de API privadas ni accesos autenticados.

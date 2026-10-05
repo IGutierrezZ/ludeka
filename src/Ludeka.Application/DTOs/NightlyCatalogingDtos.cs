@@ -20,9 +20,9 @@ public record BggTopGameDto(
 public record NightlyCatalogingOptions
 {
     /// <summary>
-    /// Cupo máximo diario de juegos a catalogar en la ejecución nocturna (por defecto 20).
+    /// Cupo máximo diario de juegos a catalogar en la ejecución nocturna (por defecto 400).
     /// </summary>
-    public int DailyCatalogingLimit { get; set; } = 20;
+    public int DailyCatalogingLimit { get; set; } = 400;
 
     /// <summary>
     /// Pausa mínima en segundos entre llamadas externas consecutivas a BGG o Gemini (por defecto 2.5s).

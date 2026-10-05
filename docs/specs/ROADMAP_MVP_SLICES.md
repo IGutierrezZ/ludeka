@@ -1052,15 +1052,27 @@ Backlog de catorce incrementos (INC-55…INC-68) agrupado en seis fases, con ord
 
 ---
 
-## Incremento 107: Ingesta de Catálogos de Tiendas Shopify (/products.json) y Captura de Precios y EANs
-- **Identificador SDD:** `change-107-ingesta-catalogo-shopify`
+## Incremento 107: Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa
+- **Identificador SDD:** `ingesta-expansiones-lotes-ia`
+- **Objetivo Principal:**
+  1. **Ingesta Masiva por Lotes (BGG x20 e IA x10):** Refactorizar `NightlyCatalogingService` para procesar la cola de catalogación en bloques de 20 IDs con `IBggClient.FetchGamesByBggIdsAsync` (`&stats=1&versions=1`) y síntesis estructurada de resúmenes con Google Gemini Flash en bloques de 10 juegos (`IAiGameSummaryService.GenerateBatchSummariesAsync`), elevando el cupo diario a 400 juegos por noche (`DailyCatalogingLimit = 400`).
+  2. **Cribado Inteligente de Expansiones Anti-Promos:** Filtro en dos fases para descubrimiento de expansiones: pre-filtro léxico sobre enlaces de snapshots locales (`BggRawSnapshotParser.IsProbablePromoOrAccessory`) y verificación de umbral comunitario (`usersrated >= 30` o `owned >= 100`) o comercial en español (título o editorial) antes de encolar en `PendingBggImports`.
+  3. **Saneamiento Editorial de `/admin/cola-catalogacion`:** Purgar más de 260 líneas de botones redundantes y flujos huérfanos amortizados (sembrado de creadores, lotes rápidos manuales de 20 para snapshots/versiones y reconciliación masiva de expansiones).
+- **Estado:** ✅ **Completado y Archivado** (2.436 pruebas unitarias pasando al 100% [2.446 totales con integración]).
+- **Documento:** [`../increments/archive/inc-107-ingesta-expansiones-lotes-ia.md`](../increments/archive/inc-107-ingesta-expansiones-lotes-ia.md).
+- **Módulos del Sistema:** [`18-deteccion-novedades-y-cola-nocturna.md`](sistema/18-deteccion-novedades-y-cola-nocturna.md) y [`47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+
+---
+
+## Incremento 108: Ingesta de Catálogos de Tiendas Shopify (/products.json) y Captura de Precios y EANs
+- **Identificador SDD:** `change-108-ingesta-catalogo-shopify`
 - **Objetivo Principal:**
   1. **Formato ShopifyJson en Modelo de Dominio:** Extender `FeedFormat` con `ShopifyJson = 3` en `AffiliateFeedSource.cs` y soporte en `/admin/afiliados`.
   2. **Parser JSON de Catálogo Shopify:** Crear `ShopifyJsonCatalogParser` para consumir de forma paginada (`/products.json?limit=250&page=N`) extrayendo título, precio, stock (`available`), enlace directo (`/products/{handle}`) y EAN-13 (desde `sku`, `barcode` o URLs de imágenes).
   3. **Integración con CatalogFeedSyncService:** Inyectar el parser en el motor de sincronización para alimentar el cruce de EANs y el radar de precios (`PriceRadarService`).
   4. **Padrón Inicial de Tiendas Españolas:** Preconfigurar Cuarto de Juegos, Ludus Belli y Mi Juego Bonito.
-- **Estado:** ✅ **Archivado** (2.416 pruebas unitarias en verde).
-- **Documento:** [`../increments/archive/inc-107-ingesta-catalogo-shopify.md`](../increments/archive/inc-107-ingesta-catalogo-shopify.md).
+- **Estado:** ✅ **Archivado** (2.444 pruebas unitarias en verde).
+- **Documento:** [`../increments/archive/inc-108-ingesta-catalogo-shopify.md`](../increments/archive/inc-108-ingesta-catalogo-shopify.md).
 - **Módulos del Sistema:** [`01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md) y [`25-motor-afiliados-y-atribucion-comunitaria.md`](sistema/25-motor-afiliados-y-atribucion-comunitaria.md).
 
 ---

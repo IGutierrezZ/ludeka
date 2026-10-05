@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 
@@ -196,21 +197,58 @@ public class BggXmlApiClient : IBggClient, IDisposable
 
     public async Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default)
     {
-        string? xmlContent = await FetchRawThingXmlAsync(bggId, ct);
-        if (string.IsNullOrWhiteSpace(xmlContent)) return null;
+        if (bggId <= 0) return null;
+        var games = await FetchGamesByBggIdsAsync([bggId], includeVersions: true, ct);
+        return games.FirstOrDefault();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Game>> FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
+    {
+        var list = new List<Game>();
+        if (bggIds == null) return list;
+
+        var validIds = bggIds.Where(id => id > 0).Distinct().Take(20).ToList();
+        if (validIds.Count == 0) return list;
+
+        string? xmlContent = await FetchRawThingsXmlAsync(validIds, includeVersions, ct);
+        if (string.IsNullOrWhiteSpace(xmlContent)) return list;
 
         try
         {
             var doc = XDocument.Parse(xmlContent);
-            var item = doc.Root?.Element("item");
-            if (item == null) return null;
+            var items = doc.Root?.Elements("item")?.ToList();
+            if (items == null) return list;
 
-            return BggXmlParser.ParseItem(item);
+            foreach (var item in items)
+            {
+                var game = BggXmlParser.ParseItem(item);
+                if (game != null)
+                {
+                    if (includeVersions && item.Element("versions") != null)
+                    {
+                        string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                        var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
+                        if (vInfo != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(vInfo.Title))
+                                game.UpdateSpanishTitle(vInfo.Title);
+                            if (!string.IsNullOrWhiteSpace(vInfo.Publisher) && string.IsNullOrWhiteSpace(game.SpanishPublisher))
+                                game.UpdateSpanishPublisher(vInfo.Publisher);
+                            if (!string.IsNullOrWhiteSpace(vInfo.Ean))
+                                game.UpdateEan(vInfo.Ean);
+                        }
+                    }
+                    list.Add(game);
+                }
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            _logger?.LogWarning(ex, "Error al parsear bloque XML de BGG para IDs {Ids}: {Message}", string.Join(",", validIds), ex.Message);
         }
+
+        return list;
     }
 
     /// <inheritdoc />

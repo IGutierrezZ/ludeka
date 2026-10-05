@@ -1,6 +1,6 @@
-# Incremento 107: Ingesta de Catálogos de Tiendas Shopify (/products.json) y Captura de Precios y EANs
+# Incremento 108: Ingesta de Catálogos de Tiendas Shopify (/products.json) y Captura de Precios y EANs
 
-> **ID:** INC-107  
+> **ID:** INC-108  
 > **Slug:** `ingesta-catalogo-shopify`  
 > **Rama:** `inc/ingesta-catalogo-shopify`  
 > **Estado:** ✅ Archivado  

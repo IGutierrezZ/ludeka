@@ -240,7 +240,7 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
 
     private async Task<BggExpansionDiscoveryResultDto> DiscoverAndEnqueueMissingExpansionsCoreAsync(int maxToEnqueue, CancellationToken ct)
     {
-        var snapshots = await _snapshotRepo.GetAllSnapshotsAsync(500, ct);
+        var snapshots = await _snapshotRepo.GetAllSnapshotsAsync(2000, ct);
         var candidates = new Dictionary<int, string>();
 
         foreach (var s in snapshots)
@@ -248,6 +248,9 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
             var outboundLinks = ExtractOutboundExpansionLinksFromJson(s.RawJson);
             foreach (var link in outboundLinks)
             {
+                // Pre-filtro léxico para descartar promos, packs promocionales y accesorios
+                if (BggRawSnapshotParser.IsProbablePromoOrAccessory(link.Title)) continue;
+
                 candidates.TryAdd(link.BggId, link.Title);
             }
         }
@@ -270,7 +273,81 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
             .ToListAsync(ct);
 
         var pendingSet = alreadyPendingBggIds.ToHashSet();
-        var toEnqueue = missingCandidates.Where(c => !pendingSet.Contains(c.Key)).Take(maxToEnqueue).ToList();
+        var unqueuedCandidates = missingCandidates.Where(c => !pendingSet.Contains(c.Key)).ToList();
+
+        // Filtrado por tracción comunitaria o edición en español en bloques de 20
+        var toEnqueue = new List<KeyValuePair<int, string>>();
+        var candidateChunks = unqueuedCandidates
+            .Select((item, index) => new { item, index })
+            .GroupBy(x => x.index / 20)
+            .Select(g => g.Select(x => x.item).ToList())
+            .ToList();
+
+        foreach (var chunk in candidateChunks)
+        {
+            if (toEnqueue.Count >= maxToEnqueue) break;
+
+            var chunkBggIds = chunk.Select(c => c.Key).ToList();
+            var localSnapshots = new Dictionary<int, BggRawSnapshot>();
+            var idsNeedingFetch = new List<int>();
+
+            foreach (var bggId in chunkBggIds)
+            {
+                var localSnap = await _snapshotRepo.GetByBggIdAsync(bggId, ct);
+                if (localSnap != null)
+                {
+                    localSnapshots[bggId] = localSnap;
+                }
+                else
+                {
+                    idsNeedingFetch.Add(bggId);
+                }
+            }
+
+            if (idsNeedingFetch.Count > 0)
+            {
+                try
+                {
+                    string? xml = await _bggClient.FetchRawThingsXmlAsync(idsNeedingFetch, includeVersions: true, ct);
+                    if (!string.IsNullOrWhiteSpace(xml))
+                    {
+                        var doc = XDocument.Parse(xml);
+                        var items = doc.Root?.Elements("item")?.ToList() ?? new List<XElement>();
+                        foreach (var item in items)
+                        {
+                            if (int.TryParse(item.Attribute("id")?.Value, out int itemBggId) && itemBggId > 0)
+                            {
+                                string rawJson = BggXmlToJsonConverter.ConvertToJson(item);
+                                var newSnapshot = new BggRawSnapshot(itemBggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                                await _snapshotRepo.UpsertAsync(newSnapshot, ct);
+                                localSnapshots[itemBggId] = newSnapshot;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error al consultar BGG para validar tracción de expansiones en lote: {Message}", ex.Message);
+                }
+            }
+
+            foreach (var candidate in chunk)
+            {
+                if (toEnqueue.Count >= maxToEnqueue) break;
+
+                if (localSnapshots.TryGetValue(candidate.Key, out var snapshot))
+                {
+                    if (BggRawSnapshotParser.MeetsExpansionCommunityThresholdFromJson(snapshot.RawJson))
+                    {
+                        toEnqueue.Add(candidate);
+                    }
+                }
+                else
+                {
+                    toEnqueue.Add(candidate);
+                }
+            }
+        }
 
         var enqueuedTitles = new List<string>();
         foreach (var exp in toEnqueue)

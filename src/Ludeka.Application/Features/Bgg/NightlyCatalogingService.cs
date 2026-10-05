@@ -134,61 +134,115 @@ public class NightlyCatalogingService : INightlyCatalogingService
             var topPending = await _pendingRepo.GetTopPendingAsync(limit, ct);
             _logger.LogInformation("Fase 2: {Count} juegos pendientes encontrados en la cola prioritaria.", topPending.Count);
 
-            foreach (var pending in topPending)
+            var pendingChunks = topPending
+                .Select((item, index) => new { item, index })
+                .GroupBy(x => x.index / 20)
+                .Select(g => g.Select(x => x.item).ToList())
+                .ToList();
+
+            foreach (var chunk in pendingChunks)
             {
                 if (catalogedTitles.Count >= limit) break;
 
                 await ApplyPoliteDelayAsync(ct);
 
-                pending.MarkAsProcessing();
-                await _pendingRepo.UpdateAsync(pending, ct);
+                foreach (var p in chunk)
+                {
+                    p.MarkAsProcessing();
+                    await _pendingRepo.UpdateAsync(p, ct);
+                }
 
                 try
                 {
-                    var fetchedGame = await _bggClient.FetchGameByBggIdAsync(pending.BggId, ct);
-                    if (fetchedGame == null)
-                    {
-                        throw new InvalidOperationException($"BGG no devolvió información para el juego #{pending.BggId}.");
-                    }
+                    var chunkBggIds = chunk.Select(p => p.BggId).ToList();
+                    var fetchedGames = await _bggClient.FetchGamesByBggIdsAsync(chunkBggIds, includeVersions: true, ct);
+                    var fetchedMap = fetchedGames.ToDictionary(g => g.BggId);
 
-                    var existingGame = await _gameRepo.GetByBggIdAsync(pending.BggId, ct);
-                    Guid gameId;
+                    var newGamesToCatalog = new List<(PendingBggImport Pending, Game FetchedGame)>();
+                    var existingGamesToUpdate = new List<(PendingBggImport Pending, Game ExistingGame)>();
 
-                    if (existingGame == null)
+                    foreach (var pending in chunk)
                     {
-                        await EnrichWithAiSummarySafeAsync(fetchedGame, ct);
-                        await _gameRepo.AddRangeAsync([fetchedGame], ct);
-                        gameId = fetchedGame.Id;
-                    }
-                    else
-                    {
-                        gameId = existingGame.Id;
-                        if (existingGame.AiSummary == null)
+                        if (!fetchedMap.TryGetValue(pending.BggId, out var fetchedGame) || fetchedGame == null)
                         {
-                            await EnrichWithAiSummarySafeAsync(existingGame, ct);
-                            await _gameRepo.UpdateAsync(existingGame, ct);
+                            pending.MarkAsFailed($"BGG no devolvió información para el juego #{pending.BggId}.");
+                            await _pendingRepo.UpdateAsync(pending, ct);
+                            failedCount++;
+                            continue;
+                        }
+
+                        var existingGame = await _gameRepo.GetByBggIdAsync(pending.BggId, ct);
+                        if (existingGame == null)
+                        {
+                            newGamesToCatalog.Add((pending, fetchedGame));
+                        }
+                        else
+                        {
+                            existingGamesToUpdate.Add((pending, existingGame));
                         }
                     }
 
-                    // Promoción atómica de colecciones comunitarias
-                    await _collectionRepo.PromotePendingItemsAsync(pending.BggId, gameId, ct);
+                    // Sintetizar resúmenes de IA en lotes de hasta 10 juegos
+                    var gamesNeedingAi = new List<Game>();
+                    foreach (var (_, game) in newGamesToCatalog)
+                    {
+                        if (game.AiSummary == null) gamesNeedingAi.Add(game);
+                    }
+                    foreach (var (_, game) in existingGamesToUpdate)
+                    {
+                        if (game.AiSummary == null) gamesNeedingAi.Add(game);
+                    }
 
-                    // Vinculación con novedades pendientes que hagan referencia a este juego
-                    await LinkPendingReleasesAsync(fetchedGame, gameId, ct);
+                    if (gamesNeedingAi.Count > 0)
+                    {
+                        await EnrichGamesWithAiSummaryBatchAsync(gamesNeedingAi, ct);
+                    }
 
-                    pending.MarkAsCompleted();
-                    await _pendingRepo.UpdateAsync(pending, ct);
+                    // Guardar juegos nuevos
+                    foreach (var (pending, fetchedGame) in newGamesToCatalog)
+                    {
+                        if (catalogedTitles.Count >= limit) break;
 
-                    catalogedTitles.Add(fetchedGame.SpanishTitle);
-                    queueProcessedCount++;
+                        await _gameRepo.AddRangeAsync([fetchedGame], ct);
+                        var gameId = fetchedGame.Id;
+
+                        await _collectionRepo.PromotePendingItemsAsync(pending.BggId, gameId, ct);
+                        await LinkPendingReleasesAsync(fetchedGame, gameId, ct);
+
+                        pending.MarkAsCompleted();
+                        await _pendingRepo.UpdateAsync(pending, ct);
+
+                        catalogedTitles.Add(fetchedGame.SpanishTitle);
+                        queueProcessedCount++;
+                    }
+
+                    // Actualizar juegos existentes
+                    foreach (var (pending, existingGame) in existingGamesToUpdate)
+                    {
+                        await _gameRepo.UpdateAsync(existingGame, ct);
+
+                        await _collectionRepo.PromotePendingItemsAsync(pending.BggId, existingGame.Id, ct);
+                        await LinkPendingReleasesAsync(existingGame, existingGame.Id, ct);
+
+                        pending.MarkAsCompleted();
+                        await _pendingRepo.UpdateAsync(pending, ct);
+
+                        catalogedTitles.Add(existingGame.SpanishTitle);
+                        queueProcessedCount++;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error al catalogar juego #{BggId} ('{Title}') de la cola: {Message}",
-                        pending.BggId, pending.Title, ex.Message);
-                    pending.MarkAsFailed(ex.Message);
-                    await _pendingRepo.UpdateAsync(pending, ct);
-                    failedCount++;
+                    _logger.LogWarning(ex, "Error al procesar bloque de {Count} juegos de la cola: {Message}", chunk.Count, ex.Message);
+                    foreach (var pending in chunk)
+                    {
+                        if (pending.Status == CatalogQueueStatus.Processing)
+                        {
+                            pending.MarkAsFailed(ex.Message);
+                            await _pendingRepo.UpdateAsync(pending, ct);
+                            failedCount++;
+                        }
+                    }
                 }
             }
 
@@ -225,30 +279,54 @@ public class NightlyCatalogingService : INightlyCatalogingService
                 try
                 {
                     var topGames = await _bggClient.FetchTopGamesAsync(remainingQuota + 30, ct);
+                    var candidates = new List<BggTopGameDto>();
 
                     foreach (var topGame in topGames)
                     {
-                        if (catalogedTitles.Count >= limit) break;
-
-                        // Verificar si ya existe en catálogo
                         var inCatalog = await _gameRepo.GetByBggIdAsync(topGame.BggId, ct);
                         if (inCatalog != null) continue;
 
-                        // Verificar si ya está en cola completado
                         var existingQueue = await _pendingRepo.GetByBggIdAsync(topGame.BggId, ct);
                         if (existingQueue != null && existingQueue.Status == CatalogQueueStatus.Completed) continue;
 
+                        candidates.Add(topGame);
+                        if (candidates.Count >= remainingQuota) break;
+                    }
+
+                    var topChunks = candidates
+                        .Select((item, index) => new { item, index })
+                        .GroupBy(x => x.index / 20)
+                        .Select(g => g.Select(x => x.item).ToList())
+                        .ToList();
+
+                    foreach (var chunk in topChunks)
+                    {
+                        if (catalogedTitles.Count >= limit) break;
+
                         await ApplyPoliteDelayAsync(ct);
 
-                        try
-                        {
-                            var fetchedGame = await _bggClient.FetchGameByBggIdAsync(topGame.BggId, ct);
-                            if (fetchedGame == null) continue;
+                        var chunkIds = chunk.Select(c => c.BggId).ToList();
+                        var fetchedGames = await _bggClient.FetchGamesByBggIdsAsync(chunkIds, includeVersions: true, ct);
+                        var fetchedMap = fetchedGames.ToDictionary(g => g.BggId);
 
-                            await EnrichWithAiSummarySafeAsync(fetchedGame, ct);
+                        var gamesNeedingAi = fetchedGames.Where(g => g.AiSummary == null).ToList();
+                        if (gamesNeedingAi.Count > 0)
+                        {
+                            await EnrichGamesWithAiSummaryBatchAsync(gamesNeedingAi, ct);
+                        }
+
+                        foreach (var topGame in chunk)
+                        {
+                            if (catalogedTitles.Count >= limit) break;
+
+                            if (!fetchedMap.TryGetValue(topGame.BggId, out var fetchedGame) || fetchedGame == null)
+                            {
+                                continue;
+                            }
+
                             await _gameRepo.AddRangeAsync([fetchedGame], ct);
 
-                            // Registrar o actualizar en la cola como TopBggBackfill
+                            var existingQueue = await _pendingRepo.GetByBggIdAsync(topGame.BggId, ct);
                             if (existingQueue == null)
                             {
                                 var backfillItem = new PendingBggImport(
@@ -274,16 +352,11 @@ public class NightlyCatalogingService : INightlyCatalogingService
                             catalogedTitles.Add(fetchedGame.SpanishTitle);
                             topBackfillCount++;
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Fallo al catalogar juego #{BggId} del Top BGG: {Message}", topGame.BggId, ex.Message);
-                            failedCount++;
-                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error al consultar el Top de BGG en Fase 3: {Message}", ex.Message);
+                    _logger.LogWarning(ex, "Error al rellenar catálogo con el Top de BGG: {Message}", ex.Message);
                 }
             }
 
@@ -382,6 +455,71 @@ public class NightlyCatalogingService : INightlyCatalogingService
         if (_options.MinDelaySecondsBetweenCalls > 0)
         {
             await Task.Delay(TimeSpan.FromSeconds(_options.MinDelaySecondsBetweenCalls), ct);
+        }
+    }
+
+    private async Task EnrichGamesWithAiSummaryBatchAsync(List<Game> games, CancellationToken ct)
+    {
+        if (_aiSummaryService == null || games.Count == 0) return;
+
+        var aiChunks = games
+            .Select((game, index) => new { game, index })
+            .GroupBy(x => x.index / 10)
+            .Select(g => g.Select(x => x.game).ToList())
+            .ToList();
+
+        foreach (var aiChunk in aiChunks)
+        {
+            try
+            {
+                var inputs = aiChunk.Select(g => new AiGameBatchInputDto(
+                    BggId: g.BggId,
+                    SpanishTitle: g.SpanishTitle,
+                    OriginalTitle: g.OriginalTitle,
+                    Designer: g.Designer,
+                    Publisher: g.Publisher,
+                    YearPublished: g.YearPublished,
+                    Description: g.Description,
+                    Rating: g.BggRating,
+                    MinPlayers: g.Scalability.Count > 0 ? g.Scalability.Min(s => s.PlayerCount) : 1,
+                    MaxPlayers: g.Scalability.Count > 0 ? g.Scalability.Max(s => s.PlayerCount) : 4,
+                    MinAge: g.Age?.BoxAge ?? 10
+                )).ToList();
+
+                var batchResult = await _aiSummaryService.GenerateBatchSummariesAsync(inputs, ct);
+                if (batchResult.Success && batchResult.Summaries.Count > 0)
+                {
+                    foreach (var g in aiChunk)
+                    {
+                        if (batchResult.Summaries.TryGetValue(g.BggId, out var summaryDto))
+                        {
+                            var aiVo = new AiGameSummary(
+                                summaryDto.GeneralVerdict,
+                                summaryDto.ScalabilitySummary,
+                                summaryDto.AgeSummary,
+                                summaryDto.FootprintSummary,
+                                summaryDto.Model,
+                                summaryDto.GeneratedAt ?? DateTime.UtcNow
+                            );
+                            g.SetAiSummary(aiVo);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error al generar resumen IA en lote para {Count} juegos. Se reintentará individualmente: {Message}",
+                    aiChunk.Count, ex.Message);
+            }
+
+            // Fallback para juegos que no hayan obtenido resumen en el lote
+            foreach (var g in aiChunk)
+            {
+                if (g.AiSummary == null)
+                {
+                    await EnrichWithAiSummarySafeAsync(g, ct);
+                }
+            }
         }
     }
 

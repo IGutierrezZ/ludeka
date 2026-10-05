@@ -62,16 +62,19 @@ public enum CatalogQueueOrigin
 ### 3.2 Orquestador Nocturno (`INightlyCatalogingService` y `NightlyCatalogingService`)
 - Ejecuta en 4 fases secuenciales:
   1. **Fase 1 (Detección en Novedades):** Escanea lanzamientos sin vincular (`GameId == null`) y encola títulos nuevos en BGG.
-  2. **Fase 2 (Cola Prioritaria):** Extrae hasta `DailyCatalogingLimit` elementos pendientes, los descarga de BGG, genera su resumen con `IAiGameSummaryService` (o fallback heurístico), los añade al catálogo y promueve colecciones de usuarios en espera.
-  3. **Fase 3 (Relleno con Top de BGG):** Si el total de catalogados es inferior a `DailyCatalogingLimit`, consulta `IBggClient.FetchTopGamesAsync`, filtra los ya existentes en Ludeka o en cola, y descarga los mejores hasta completar exactamente el cupo diario con `Origin = CatalogQueueOrigin.TopBggBackfill`.
+  2. **Fase 2 (Cola Prioritaria con Lotes x20 BGG y x10 IA - INC-107):** Extrae hasta `DailyCatalogingLimit` (400) elementos pendientes, consulta BGG en bloques de hasta 20 IDs mediante `FetchGamesByBggIdsAsync(chunk, includeVersions: true)`, genera resúmenes estructurados en bloques de 10 juegos con `IAiGameSummaryService.GenerateBatchSummariesAsync` (o fallback heurístico), los añade al catálogo y promueve colecciones de usuarios en espera.
+  3. **Fase 3 (Relleno con Top de BGG en Lotes - INC-107):** Si el total de catalogados es inferior a `DailyCatalogingLimit`, consulta `IBggClient.FetchTopGamesAsync`, filtra los ya existentes en Ludeka o en cola, y descarga los mejores en bloques de 20 juegos con síntesis en lotes de 10 hasta completar exactamente el cupo diario con `Origin = CatalogQueueOrigin.TopBggBackfill`.
   4. **Fase 4 (Bitácora):** Registra el resultado en `INightlyCatalogingLogRepository`.
-- **Protección de tasa:** Pausa configurable (`MinDelaySecondsBetweenCalls = 2.5s`) entre peticiones hacia BGG y Gemini.
+- **Protección de tasa:** Pausa configurable entre bloques hacia BGG y Gemini, con una drástica reducción del número de llamadas de red (ahorro >90% en latencia y cuota).
 
 ---
 
 ## 4. Infraestructura y Persistencia (`Ludeka.Infrastructure`)
 
 - **`IBggClient`:**
+  - `FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, bool includeVersions = true, CancellationToken ct)`:
+    - En producción (`BggXmlApiClient`): Agrupa identificadores separados por comas y consulta `/xmlapi2/thing?id={ids}&stats=1&versions=1`, parseando todos los ítems devueltos en un único documento XML unificado.
+    - En pruebas (`SimulatedBggClient`): Implementación concurrente simulada.
   - `FetchTopGamesAsync(int limit, CancellationToken ct)`:
     - En producción (`BggXmlApiClient`): Consulta `https://boardgamegeek.com/xmlapi2/hot?type=boardgame` y parsea los ítems con su ranking BGG.
     - En pruebas offline (`SimulatedBggClient`): Extrae títulos de `BggSimulationDataset` ordenados por `BggRank ?? int.MaxValue`.
@@ -89,8 +92,9 @@ public enum CatalogQueueOrigin
 - **Ruta de Administración:** `/admin/cola-catalogacion` (`CatalogQueueAdmin.razor`).
 - **Control de Acceso:** Exclusivo para la Mesa Fundadora o moderadores con permiso `ModeratorPermission.CanEditGames`.
 - **Elementos UI:**
-  - **Tarjetas KPI:** Cupo diario (20), Títulos pendientes en cola, Títulos descubiertos en novedades, Estado del último lote.
+  - **Tarjetas KPI:** Cupo diario (400), Títulos pendientes en cola, Títulos descubiertos en novedades, Estado del último lote.
   - **Botón de Acción:** `[ ⚡ Ejecutar Batch Nocturno Ahora ]` para disparar el ciclo manual con indicador visual de progreso.
   - **Filtros por Origen:** Botones de alternancia rápida para ver todos, solo procedentes de novedades (`📰`), de usuarios (`👤`) o de relleno Top BGG (`🏆`).
   - **Tabla de Historial:** Auditoría de cada ejecución nocturna con fecha, estado, detalle por orígenes y títulos incorporados.
+  - **Saneamiento Editorial (INC-107):** Purgados botones de lote rápido de 20 redundantes y acciones amortizadas, manteniendo controles continuos y de descubrimiento.
 - **Navegación:** Enlace directo "🌙 Cola BGG" visible en la cabecera superior (`MainLayout.razor`) para moderadores autorizados.

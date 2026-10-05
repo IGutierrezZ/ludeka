@@ -234,6 +234,52 @@ public class NightlyCatalogingServiceTests
         Assert.Equal(1, fakeMassIngestion.DrainCallCount);
     }
 
+    [Fact]
+    public async Task ExecuteNightlyCatalogingAsync_WhenQueueHasMultipleGames_ProcessesInBatchesOf20AndGeneratesAiSummariesInBatchesOf10()
+    {
+        // Arrange: 25 juegos en cola con cupo diario de 25
+        var fakeAi = new FakeAiSummaryService();
+        var service = CreateService(
+            out var pendingRepo,
+            out var bggClient,
+            out var gameRepo,
+            out _,
+            out _,
+            out _,
+            out var logRepo,
+            limit: 25,
+            aiSummaryService: fakeAi);
+
+        for (int i = 1; i <= 25; i++)
+        {
+            int id = 700 + i;
+            bggClient.Games[id] = CreateDummyGame(id, $"Juego en lote {i}");
+            pendingRepo.Items.Add(new PendingBggImport(id, $"Juego en lote {i}", 2024));
+        }
+
+        // Act
+        var result = await service.ExecuteNightlyCatalogingAsync();
+
+        // Assert
+        Assert.Equal(25, result.TotalCatalogedCount);
+        Assert.Equal(25, result.QueueProcessedCount);
+        Assert.Equal(25, gameRepo.Games.Count);
+
+        // BggClient se invoca en chunks de 20 (primer chunk: 20, segundo chunk: 5)
+        Assert.Equal(2, bggClient.BatchCalls.Count);
+        Assert.Equal(20, bggClient.BatchCalls[0].Count);
+        Assert.Equal(5, bggClient.BatchCalls[1].Count);
+
+        // IA se invoca en lotes de 10 (primer lote: 10, segundo: 10, tercero: 5)
+        Assert.Equal(3, fakeAi.BatchCalls.Count);
+        Assert.Equal(10, fakeAi.BatchCalls[0].Count);
+        Assert.Equal(10, fakeAi.BatchCalls[1].Count);
+        Assert.Equal(5, fakeAi.BatchCalls[2].Count);
+
+        // Cada juego catalogado tiene AiSummary asignado
+        Assert.All(gameRepo.Games, g => Assert.NotNull(g.AiSummary));
+    }
+
     private static NightlyCatalogingService CreateService(
         out FakePendingRepo pendingRepo,
         out FakeBggClient bggClient,
@@ -244,7 +290,8 @@ public class NightlyCatalogingServiceTests
         out FakeLogRepo logRepo,
         int limit = 20,
         IBggDiscoveryService? discoveryService = null,
-        IBggMassIngestionService? massIngestionService = null)
+        IBggMassIngestionService? massIngestionService = null,
+        IAiGameSummaryService? aiSummaryService = null)
     {
         pendingRepo = new FakePendingRepo();
         bggClient = new FakeBggClient();
@@ -272,7 +319,7 @@ public class NightlyCatalogingServiceTests
             logRepo,
             options,
             NullLogger<NightlyCatalogingService>.Instance,
-            aiSummaryService: null,
+            aiSummaryService: aiSummaryService,
             massIngestionService: massIngestionService,
             discoveryService: discoveryService
         );
@@ -332,9 +379,21 @@ public class NightlyCatalogingServiceTests
     {
         public Dictionary<int, Game?> Games = [];
         public List<BggTopGameDto> TopGames = [];
+        public List<List<int>> BatchCalls = [];
 
         public Task<Game?> FetchGameByBggIdAsync(int bggId, CancellationToken ct = default) =>
             Task.FromResult(Games.GetValueOrDefault(bggId));
+
+        public Task<IReadOnlyList<Game>> FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, bool includeVersions, CancellationToken ct = default)
+        {
+            var idList = bggIds.ToList();
+            BatchCalls.Add(idList);
+            var list = idList.Select(id => Games.GetValueOrDefault(id)).Where(g => g != null).Select(g => g!).ToList();
+            return Task.FromResult<IReadOnlyList<Game>>(list);
+        }
+
+        public Task<IReadOnlyList<Game>> FetchGamesByBggIdsAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
+            => FetchGamesByBggIdsAsync(bggIds, true, ct);
 
         public Task<IReadOnlyList<BggCollectionItemDto>> FetchUserCollectionAsync(string username, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<BggCollectionItemDto>>([]);
@@ -520,4 +579,29 @@ public class NightlyCatalogingServiceTests
         public Task<BggMassIngestionContinuousDrainResultDto> RunContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<BggMassIngestionContinuousDrainResultDto> RunScheduledContinuousDrainAsync(int maxItems = 4000, CancellationToken ct = default) => throw new NotImplementedException();
     }
+
+    private class FakeAiSummaryService : IAiGameSummaryService
+    {
+        public List<List<int>> BatchCalls = [];
+
+        public Task<AiBatchResultDto> GenerateBatchSummariesAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct = default)
+        {
+            BatchCalls.Add(games.Select(g => g.BggId).ToList());
+            var dict = games.ToDictionary(
+                g => g.BggId,
+                g => new AiGameSummaryDto(Guid.NewGuid(), g.SpanishTitle, "Ideal 4", "10+", "Mesa", "Síntesis", "FakeModel", DateTime.UtcNow)
+            );
+            return Task.FromResult(new AiBatchResultDto(true, false, dict, null));
+        }
+
+        public Task<AiGameSummaryDto> GenerateSummaryAsync(Game game, CancellationToken ct = default)
+            => Task.FromResult(new AiGameSummaryDto(game.Id, game.SpanishTitle, "Ideal 4", "10+", "Mesa", "Síntesis", "FakeModel", DateTime.UtcNow));
+
+        public Task<AiGameSummaryDto> EnsureSummaryForGameAsync(Guid gameId, CancellationToken ct = default)
+            => throw new NotImplementedException();
+
+        public Task<AiBatchProcessingResultDto> ProcessPendingSummariesBatchAsync(int batchSize = 20, CancellationToken ct = default)
+            => Task.FromResult(new AiBatchProcessingResultDto(0, 0, 0, []));
+    }
 }
+
