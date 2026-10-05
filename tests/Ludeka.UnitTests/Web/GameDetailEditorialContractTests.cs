@@ -115,4 +115,20 @@ public class GameDetailEditorialContractTests
         // No debe activar comprobación de stock de fondo si es fallback de catálogo
         Assert.Contains("!_isReferenceFallback", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void StoreOffersCard_ShouldAlwaysRetainAmazonAffiliateOffer_WhenOtherStoreOffersExist()
+    {
+        var source = ReadSource(StoreOffersCardPath);
+
+        // Debe garantizar que Amazon esté presente aunque existan ofertas de otras tiendas
+        Assert.Contains("CreateAmazonSearchOffer", source, StringComparison.Ordinal);
+        Assert.Contains("!_displayedOffers.Any(o => string.Equals(o.StoreName, \"Amazon\", StringComparison.OrdinalIgnoreCase))", source, StringComparison.Ordinal);
+
+        // Las opciones sin precio explícito no deben marcarse como agotadas (StoreStockInfo.Unknown)
+        Assert.Contains("StoreStockInfo.Unknown(\"Consultar en catálogo\")", source, StringComparison.Ordinal);
+
+        // El botón para ofertas de búsqueda directa debe invitar a buscar en la tienda específica
+        Assert.Contains("Buscar en @offer.StoreName", source, StringComparison.Ordinal);
+    }
 }

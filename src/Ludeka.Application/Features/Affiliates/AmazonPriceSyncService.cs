@@ -120,7 +120,8 @@ public class AmazonPriceSyncService : IAmazonPriceSyncService
             currency: priceResult.Currency,
             inStock: priceResult.InStock,
             country: "España",
-            badge: "Amazon"
+            badge: "Amazon",
+            shippingCountries: ["España", "Portugal", "Internacional"]
         );
         remainingLinks.Add(amazonLink);
 

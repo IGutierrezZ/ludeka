@@ -207,7 +207,7 @@
                                rel="noopener noreferrer sponsored"
                                aria-label="Buscar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
                                class="inline-flex items-center justify-center gap-1.5 flex-1 px-3.5 py-2 rounded-lg text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all shadow-sm group-hover:shadow">
-                                <span>Buscar en tienda</span>
+                                <span>Buscar en @offer.StoreName</span>
                                 <span class="text-[0.8rem]">&nearr;</span>
                             </a>
                         }
@@ -234,13 +234,16 @@
                             </a>
                         }
 
-                        <button type="button"
-                                @onclick="() => RefreshOfferStockAsync(offer)"
-                                title="Recomprobar disponibilidad en vivo en @offer.StoreName"
-                                aria-label="Recomprobar disponibilidad en @offer.StoreName"
-                                class="p-2 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs transition-colors">
-                            <Icon Name="refresh-cw" Size="14" />
-                        </button>
+                        @if (offer.Price.HasValue)
+                        {
+                            <button type="button"
+                                    @onclick="() => RefreshOfferStockAsync(offer)"
+                                    title="Recomprobar disponibilidad en vivo en @offer.StoreName"
+                                    aria-label="Recomprobar disponibilidad en @offer.StoreName"
+                                    class="p-2 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs transition-colors">
+                                <Icon Name="refresh-cw" Size="14" />
+                            </button>
+                        }
                     </div>
                 </div>
             }
@@ -380,18 +383,32 @@
         else
         {
             _isReferenceFallback = false;
+
+            // Garantizar que la opción de Amazon esté siempre disponible (único canal con afiliación activa)
+            if (!string.IsNullOrWhiteSpace(GameTitle) && !_displayedOffers.Any(o => string.Equals(o.StoreName, "Amazon", StringComparison.OrdinalIgnoreCase)))
+            {
+                var existingAmazon = Offers?.FirstOrDefault(o => string.Equals(o.StoreName, "Amazon", StringComparison.OrdinalIgnoreCase));
+                var amazonOffer = existingAmazon ?? CreateAmazonSearchOffer(GameTitle);
+
+                var list = _displayedOffers.ToList();
+                list.Add(amazonOffer);
+                // Ordenar: primero ofertas con precio orientativo/en vivo (ordenadas por precio ascendente), seguidas de búsqueda en catálogo
+                _displayedOffers = list.OrderBy(o => !o.Price.HasValue).ThenBy(o => o.Price ?? decimal.MaxValue).ToList();
+            }
         }
 
-        // Sembrar valores iniciales orientativos si no se han cargado todavía (solo para ofertas reales)
+        // Sembrar valores iniciales orientativos si no se han cargado todavía (solo para ofertas reales o persistentes)
         if (!_isReferenceFallback)
         {
             foreach (var offer in _displayedOffers)
             {
                 if (!_stockByUrl.ContainsKey(offer.AffiliateUrl))
                 {
-                    _stockByUrl[offer.AffiliateUrl] = offer.InStock
-                        ? StoreStockInfo.InStock(price: offer.Price, note: "Disponibilidad orientativa")
-                        : StoreStockInfo.OutOfStock(note: "Agotado orientativo");
+                    _stockByUrl[offer.AffiliateUrl] = offer.Price.HasValue
+                        ? (offer.InStock
+                            ? StoreStockInfo.InStock(price: offer.Price, note: "Disponibilidad orientativa")
+                            : StoreStockInfo.OutOfStock(note: "Agotado orientativo"))
+                        : StoreStockInfo.Unknown("Consultar en catálogo");
                 }
 
                 if (GameId.HasValue && GameId.Value != Guid.Empty && offer.Price.HasValue && offer.Price.Value > 0)
@@ -527,6 +544,21 @@
         }
     }
 
+    private static GamePurchaseLink CreateAmazonSearchOffer(string gameTitle)
+    {
+        var encoded = Uri.EscapeDataString(gameTitle.Trim());
+        return new GamePurchaseLink(
+            storeName: "Amazon",
+            affiliateUrl: $"https://www.amazon.es/s?k={encoded}",
+            price: null,
+            currency: "€",
+            inStock: true,
+            badge: "Marketplace",
+            affiliateTag: "Direct",
+            country: "España",
+            shippingCountries: ["España", "Portugal", "Internacional"]);
+    }
+
     private static List<GamePurchaseLink> GenerateReferenceSearchOffers(string gameTitle, string? country)
     {
         var encoded = Uri.EscapeDataString(gameTitle.Trim());
@@ -537,10 +569,11 @@
                 affiliateUrl: $"https://www.amazon.es/s?k={encoded}",
                 price: null,
                 currency: "€",
-                inStock: false,
+                inStock: true,
                 badge: "Marketplace",
                 affiliateTag: "Direct",
-                country: "España"),
+                country: "España",
+                shippingCountries: ["España", "Portugal", "Internacional"]),
             new GamePurchaseLink(
                 storeName: "Zacatrus",
                 affiliateUrl: $"https://zacatrus.es/catalogsearch/result/?q={encoded}",
