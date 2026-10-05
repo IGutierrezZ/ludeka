@@ -6,10 +6,10 @@
   - [x] 1.3: Incorporar en `NightlyCatalogingService.RunScheduledCatalogingAsync` las llamadas pre-vuelo de recuperación.
   - [x] 1.4: Tests unitarios TDD para verificar la recuperación de títulos en `Processing` y la marcación de logs fallidos por timeout.
 
-- [ ] **Unidad 2: Desacoplo a segundo plano y control de cupo en la UI**
-  - [ ] 2.1: Refactorizar `ExecuteNightlyBatchAsync` en `CatalogQueueAdmin.razor` para lanzar la ejecución en `Task.Run` con `ScopeFactory` y `CancellationTokenSource`.
-  - [ ] 2.2: Añadir feedback reactivo en el panel con mensaje de progreso, estado activo y botón de detención segura.
-  - [ ] 2.3: Añadir selector de cupo personalizado (ej. 40, 50, 100, 200, 400 títulos) junto al botón de disparo.
+- [x] **Unidad 2: Desacoplo a segundo plano y control de cupo en la UI**
+  - [x] 2.1: Refactorizar `ExecuteNightlyBatchAsync` en `CatalogQueueAdmin.razor` para lanzar la ejecución en `Task.Run` con `ScopeFactory` y `CancellationTokenSource`.
+  - [x] 2.2: Añadir feedback reactivo en el panel con mensaje de progreso, estado activo y botón de detención segura.
+  - [x] 2.3: Añadir selector de cupo personalizado (ej. 40, 50, 100, 200, 400 títulos) junto al botón de disparo.
 
 - [ ] **Unidad 3: Verificación, suite completa y cierre SDD**
   - [ ] 3.1: Ejecutar la suite completa de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`).
