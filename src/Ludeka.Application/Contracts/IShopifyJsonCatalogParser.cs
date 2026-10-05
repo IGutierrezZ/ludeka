@@ -7,6 +7,7 @@ namespace Ludeka.Application.Contracts;
 
 /// <summary>
 /// Contrato para el parsing y extracción de catálogos comerciales de tiendas basadas en Shopify (/products.json).
+/// Extrae identificadores EAN-13 multinivel desde barcode, sku y nombres de archivo de imágenes de producto.
 /// </summary>
 public interface IShopifyJsonCatalogParser : IFeedParser
 {
