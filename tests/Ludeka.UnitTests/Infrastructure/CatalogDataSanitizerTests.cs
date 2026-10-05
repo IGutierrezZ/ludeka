@@ -36,7 +36,7 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         _connection.Dispose();
     }
 
-    private static Game CreateTestGame(int bggId, string originalTitle, string spanishTitle, string? spanishPublisher = null, string? ean = null)
+    private static Game CreateTestGame(int bggId, string originalTitle, string spanishTitle, string? spanishPublisher = null, string? ean = null, string? customSlug = null)
     {
         var game = new Game(
             bggId: bggId,
@@ -57,7 +57,8 @@ public sealed class CatalogDataSanitizerTests : IDisposable
             age: new AgeRating(10, 10),
             language: LanguageDependence.Low,
             footprint: TableFootprint.StandardTable,
-            duration: new GameDuration(30, 60, 20)
+            duration: new GameDuration(30, 60, 20),
+            customSlug: customSlug ?? $"game-{bggId}"
         );
 
         if (!string.IsNullOrWhiteSpace(spanishPublisher))
@@ -182,4 +183,42 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Equal("Edge Entertainment", refreshed.SpanishPublisher);
         Assert.Equal("8435407620001", refreshed.Ean);
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldCleanArkNovaMarineWorlds_WhenMultipleCorruptedExist()
+    {
+        // Arrange: juego base y expansión con título coreano
+        var baseGame = CreateTestGame(
+            bggId: 342942,
+            originalTitle: "Ark Nova",
+            spanishTitle: "Korean edition",
+            spanishPublisher: "Angry Lion Games",
+            ean: "8809641480507"
+        );
+        var expansion = CreateTestGame(
+            bggId: 368966,
+            originalTitle: "Ark Nova: Marine Worlds",
+            spanishTitle: "Korean edition",
+            spanishPublisher: "Angry Lion Games",
+            ean: "8809641480507"
+        );
+        _context.Games.AddRange(baseGame, expansion);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshedBase = await _context.Games.FirstAsync(g => g.BggId == 342942);
+        var refreshedExp = await _context.Games.FirstAsync(g => g.BggId == 368966);
+
+        Assert.Equal("Ark Nova", refreshedBase.SpanishTitle);
+        Assert.Null(refreshedBase.SpanishPublisher);
+        Assert.Null(refreshedBase.Ean);
+
+        Assert.Equal("Ark Nova: Marine Worlds", refreshedExp.SpanishTitle);
+        Assert.Null(refreshedExp.SpanishPublisher);
+        Assert.Null(refreshedExp.Ean);
+    }
 }
+
