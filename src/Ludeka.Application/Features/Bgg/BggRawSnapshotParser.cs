@@ -327,6 +327,14 @@ public static class BggRawSnapshotParser
                 {
                     best = best with { Title = withTitle.Title };
                 }
+                else
+                {
+                    string? altTitle = ResolveSpanishTitleFromRootNames(root);
+                    if (!string.IsNullOrWhiteSpace(altTitle))
+                    {
+                        best = best with { Title = altTitle };
+                    }
+                }
             }
 
             // Si la candidata seleccionada carece de editorial pero otra candidata española dispone de ella, enriquecer
@@ -345,6 +353,46 @@ public static class BggRawSnapshotParser
         {
             return null;
         }
+    }
+
+    private static string? ResolveSpanishTitleFromRootNames(JsonElement root)
+    {
+        if (!root.TryGetProperty("name", out var namesProp)) return null;
+
+        var nameElements = new List<JsonElement>();
+        if (namesProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var n in namesProp.EnumerateArray()) nameElements.Add(n);
+        }
+        else if (namesProp.ValueKind == JsonValueKind.Object)
+        {
+            nameElements.Add(namesProp);
+        }
+
+        foreach (var n in nameElements)
+        {
+            if (n.TryGetProperty("@type", out var typeProp) &&
+                string.Equals(typeProp.GetString(), "alternate", StringComparison.OrdinalIgnoreCase))
+            {
+                string? val = ExtractStringValue(n);
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    if (val.IndexOf("español", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        val.IndexOf("spanish", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        val.IndexOf("castellano", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        string cleaned = CleanVersionTitle(val) ?? val;
+                        cleaned = Regex.Replace(cleaned, @"\s*\([^)]*(español|spanish|castellano)[^)]*\)", "", RegexOptions.IgnoreCase).Trim();
+                        if (!string.IsNullOrWhiteSpace(cleaned) && !IsGenericEditionTitle(cleaned))
+                        {
+                            return cleaned;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private static bool IsSpanishVersion(JsonElement versionElem)
@@ -403,7 +451,7 @@ public static class BggRawSnapshotParser
         // 2. Títulos que consisten únicamente en [editorial/idioma/ordinal/adjetivo] + edition/edición/version/versión
         if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version)\b", RegexOptions.IgnoreCase))
         {
-            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|international|internacional|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|kickstarter|special|edition|edici[oó]n|versi[oó]n|version|en|de|la|el|los|las)\b", "", RegexOptions.IgnoreCase);
+            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|international|internacional|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|kickstarter|special|edition|edici[oó]n|versi[oó]n|version|en|de|la|el|los|las|(?:19|20)\d{2})\b", "", RegexOptions.IgnoreCase);
             stripped = Regex.Replace(stripped, @"[-_–—/:(),.']", " ").Trim();
 
             // Si no queda nada, era un descriptor genérico puro (ej. "Spanish edition", "Edición en español")
@@ -430,16 +478,18 @@ public static class BggRawSnapshotParser
     }
 
     /// <summary>
-    /// Limpia sufijos o coletillas de edición de un título de versión (ej. "Alta Tensión (Edición en español)" -> "Alta Tensión").
+    /// Limpia sufijos o coletillas de edición de un título de versión (ej. "Alta Tensión (Edición en español)" -> "Alta Tensión",
+    /// "Ark Nova: Mundo Marino - Spanish edition (2024)" -> "Ark Nova: Mundo Marino").
     /// Si el título resultante es un descriptor genérico (ej. "Spanish edition"), devuelve null para evitar sobreescribir el título canónico del juego.
     /// </summary>
     public static string? CleanVersionTitle(string? rawTitle)
     {
         if (string.IsNullOrWhiteSpace(rawTitle)) return null;
 
-        // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.)
+        // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.),
+        // contemplando posibles años asociados antes o después del término de edición (ej. " - Spanish edition (2024)").
         string cleaned = Regex.Replace(rawTitle.Trim(),
-            @"\s*[\(\[\-:–—]\s*(?:(?:primera|segunda|tercera|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional)\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail))?[\)\]]?\s*$",
+            @"\s*[\(\[\-:–—]\s*(?:(?:primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
             "", RegexOptions.IgnoreCase).Trim();
 
         if (string.IsNullOrWhiteSpace(cleaned) || IsGenericEditionTitle(cleaned))

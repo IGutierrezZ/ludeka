@@ -33,6 +33,7 @@ public static class CatalogDataSanitizer
                 // Detecta títulos contaminados con coreano, descriptores genéricos, editoriales coreanas y EAN 880.
                 var candidates = await db.Games
                     .Where(g => g.BggId > lastBggId && (
+                        g.BggId == 368966 ||
                         (g.SpanishTitle != null && (
                             g.SpanishTitle.ToLower().Contains("korean") ||
                             g.SpanishTitle.ToLower().Contains("angry lion") ||
@@ -110,7 +111,18 @@ public static class CatalogDataSanitizer
                         game.SpanishTitle.IndexOf("mandoo games", StringComparison.OrdinalIgnoreCase) >= 0
                     );
 
-                    if (hasCorruptedTitle)
+                    // 1) Si disponemos de un título en español válido extraído del snapshot de la versión y el actual es corrupto o coincide con el título original en inglés
+                    if (!string.IsNullOrWhiteSpace(validSpanishTitle) && game.SpanishTitle != validSpanishTitle)
+                    {
+                        if (hasCorruptedTitle || game.SpanishTitle == game.OriginalTitle)
+                        {
+                            logger.LogInformation("Actualizando SpanishTitle para BggId {BggId}: '{OldTitle}' -> '{NewTitle}'",
+                                game.BggId, game.SpanishTitle, validSpanishTitle);
+                            game.UpdateSpanishTitle(validSpanishTitle);
+                            modified = true;
+                        }
+                    }
+                    else if (hasCorruptedTitle)
                     {
                         string targetTitle = !string.IsNullOrWhiteSpace(validSpanishTitle)
                             ? validSpanishTitle
