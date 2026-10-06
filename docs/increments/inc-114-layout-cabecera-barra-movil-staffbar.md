@@ -1,7 +1,7 @@
 # INC-114: Layout Global, Cabecera Adaptativa, Barra Inferior Móvil con Hoja «Más» y Barra de Gestión Staff
 
 ## Estado
-⏳ Planificado (Fase 2 del Rediseño Integral «Revista Lúdica»)
+✅ Verificado (Fase 2 del Rediseño Integral «Revista Lúdica»)
 
 ## Rama y Worktree Sugerido
 - **Rama:** `inc/rediseño-revista-ludica` (o rama atómica `inc/layout-cabecera-barra-movil`)
