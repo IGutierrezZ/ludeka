@@ -94,22 +94,47 @@ public class MobileNavigationContractTests
         Assert.Contains("Name=\"dices\"", source, StringComparison.Ordinal);
         Assert.Contains(">Catálogo<", source, StringComparison.Ordinal);
 
-        // 3. Ludoteca
-        Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
-        Assert.Contains("Name=\"library\"", source, StringComparison.Ordinal);
-        Assert.Contains(">Ludoteca<", source, StringComparison.Ordinal);
-
-        // 4. Sorteos
+        // 3. Sorteos
         Assert.Contains("href=\"/sorteos\"", source, StringComparison.Ordinal);
         Assert.Contains("Name=\"gift\"", source, StringComparison.Ordinal);
         Assert.Contains(">Sorteos<", source, StringComparison.Ordinal);
 
-        // 5. Cuenta / Acceso
-        Assert.Contains("href=\"/cuenta\"", source, StringComparison.Ordinal);
+        // 4. Mi Ludoteca o Acceso
+        Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/login\"", source, StringComparison.Ordinal);
+        Assert.Contains("Name=\"library\"", source, StringComparison.Ordinal);
         Assert.Contains("Name=\"user\"", source, StringComparison.Ordinal);
-        Assert.Contains(">Cuenta<", source, StringComparison.Ordinal);
+        Assert.Contains(">Ludoteca<", source, StringComparison.Ordinal);
         Assert.Contains(">Entrar<", source, StringComparison.Ordinal);
+
+        // 5. Más de Ludeka (disparador modal de 5 destinos principales, INC-114)
+        Assert.Contains("aria-label=\"Más de Ludeka\"", source, StringComparison.Ordinal);
+        Assert.Contains("ToggleSheet", source, StringComparison.Ordinal);
+        Assert.Contains("Name=\"menu\"", source, StringComparison.Ordinal);
+        Assert.Contains(">Más<", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MobileBottomNav_MoreSheetContract_ShouldContainPastelGridAndAccessibility()
+    {
+        var source = ReadSource(MobileBottomNavPath);
+
+        // Hoja modal accesible WCAG 2.2 AA
+        Assert.Contains("role=\"dialog\"", source, StringComparison.Ordinal);
+        Assert.Contains("aria-modal=\"true\"", source, StringComparison.Ordinal);
+        Assert.Contains("rounded-[26px]", source, StringComparison.Ordinal);
+        Assert.Contains("border-2 border-[var(--rule)]", source, StringComparison.Ordinal);
+        Assert.Contains("e.Key == \"Escape\"", source, StringComparison.Ordinal);
+
+        // Cuadrícula 2x4 con destinos secundarios y selector de tema
+        Assert.Contains("href=\"/novedades\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/eventos\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/clasificaciones\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/editoriales\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/creadores\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/tiendas\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/transparencia\"", source, StringComparison.Ordinal);
+        Assert.Contains("ToggleThemeAsync", source, StringComparison.Ordinal);
     }
 
     [Fact]
