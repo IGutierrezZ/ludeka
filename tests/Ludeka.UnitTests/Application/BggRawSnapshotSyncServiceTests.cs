@@ -493,6 +493,94 @@ public class BggRawSnapshotSyncServiceTests : IDisposable
         Assert.Null(restoredGame.Ean);
     }
 
+    [Fact]
+    public async Task SweepCatalogFromVersionsAsync_ShouldPromoteSpanishCover_WhenSpanishVersionHasCoverImage()
+    {
+        // Arrange
+        var game = CreateGame(13, "The Settlers of Catan");
+        game.UpdateImages("https://cf.geekdo-images.com/original-english.jpg", "https://cf.geekdo-images.com/original-thumb.jpg");
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""13"">
+    <name type=""primary"" value=""The Settlers of Catan"" />
+    <image>https://cf.geekdo-images.com/original-english.jpg</image>
+    <thumbnail>https://cf.geekdo-images.com/original-thumb.jpg</thumbnail>
+    <versions>
+      <item type=""boardgameversion"" id=""5001"">
+        <name type=""primary"" value=""Catán"" />
+        <image>https://cf.geekdo-images.com/catan-spanish-cover.jpg</image>
+        <thumbnail>https://cf.geekdo-images.com/catan-spanish-thumb.jpg</thumbnail>
+        <link type=""language"" id=""2190"" value=""Spanish"" />
+        <link type=""boardgamepublisher"" value=""Devir"" />
+        <barcode value=""8436574340556"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(13, json));
+
+        // Act
+        var result = await _service.SweepCatalogFromVersionsAsync(batchSize: 10, lastBggId: 0);
+
+        // Assert
+        Assert.Equal(1, result.EvaluatedCount);
+        Assert.Equal(1, result.UpdatedTitlesCount);
+
+        var updated = await _gameRepo.GetByBggIdAsync(13);
+        Assert.NotNull(updated);
+        Assert.Equal("https://cf.geekdo-images.com/catan-spanish-cover.jpg", updated.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/catan-spanish-thumb.jpg", updated.ThumbnailUrl);
+        Assert.Equal("Catán", updated.SpanishTitle);
+        Assert.Equal("Devir", updated.SpanishPublisher);
+    }
+
+    [Fact]
+    public async Task SweepCatalogFromVersionsAsync_ShouldRecoverBrokenOrSimulatedCover_FromRootSnapshot_WhenNoSpanishCover()
+    {
+        // Arrange: Juego con URL de portada simulada/rota apuntando a R2 efímero
+        var game = CreateGame(200, "Lost Ruins");
+        game.UpdateImages("https://pub-lost-mock.r2.dev/games/200/cover.webp", "https://pub-lost-mock.r2.dev/games/200/thumb.webp");
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Snapshot con imagen raíz canónica de BGG pero versión sin portada propia
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""200"">
+    <name type=""primary"" value=""Lost Ruins"" />
+    <image>https://cf.geekdo-images.com/lost-ruins-root-cover.jpg</image>
+    <thumbnail>https://cf.geekdo-images.com/lost-ruins-root-thumb.jpg</thumbnail>
+    <versions>
+      <item type=""boardgameversion"" id=""6001"">
+        <name type=""primary"" value=""Las Ruinas Perdidas"" />
+        <link type=""language"" id=""2190"" value=""Spanish"" />
+        <link type=""boardgamepublisher"" value=""Devir"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(200, json));
+
+        // Act
+        var result = await _service.SweepCatalogFromVersionsAsync(batchSize: 10, lastBggId: 0);
+
+        // Assert
+        Assert.Equal(1, result.EvaluatedCount);
+        Assert.Equal(1, result.UpdatedTitlesCount);
+
+        var updated = await _gameRepo.GetByBggIdAsync(200);
+        Assert.NotNull(updated);
+        // Recuperada la carátula raíz de BGG al ser la anterior una URL rota de R2
+        Assert.Equal("https://cf.geekdo-images.com/lost-ruins-root-cover.jpg", updated.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/lost-ruins-root-thumb.jpg", updated.ThumbnailUrl);
+        Assert.Equal("Las Ruinas Perdidas", updated.SpanishTitle);
+    }
+
     private static Game CreateGame(int bggId, string title, GameType type = GameType.BaseGame, Guid? baseGameId = null, int? bggRank = 100)
     {
         return new Game(

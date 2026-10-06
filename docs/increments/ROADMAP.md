@@ -132,6 +132,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-117** | Ficha de Juego Editorial en 5 Bloques (01-05), Veredicto Estructurado y Herramientas Staff | ✅ Archivado | [inc-117-ficha-editorial-bloques-staff-veredicto.md](archive/inc-117-ficha-editorial-bloques-staff-veredicto.md) |
 | **INC-118** | Ludoteca Integral: 7 Pestañas, Modales de Partida/Préstamo, Radar de Precios y PWA Offline | ✅ Archivado | [inc-118-ludoteca-completa-radar-pwa-offline.md](archive/inc-118-ludoteca-completa-radar-pwa-offline.md) |
 | **INC-119** | Backoffice Editorial «Ludeka Gestión»: AdminLayout, 11 Módulos de Mesa y Atajos de Teclado | ✅ Archivado | [inc-119-backoffice-ludeka-gestion-adminlayout.md](archive/inc-119-backoffice-ludeka-gestion-adminlayout.md) |
+| **INC-120** | Extracción de Portadas en Español desde Snapshots y Sincronización de Imágenes Comunitarias Top 3.000 BGG | ✅ Archivado | [inc-120-portadas-es-imagenes-top3000.md](archive/inc-120-portadas-es-imagenes-top3000.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -158,6 +159,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+*(Ningún incremento en curso actualmente. Todos los incrementos completados y archivados).*
 
 *(Épica «Rediseño Revista Lúdica & Ludeka Gestión» [INC-113 a INC-119] entregó su verificación con 2.583 pruebas unitarias en verde al 100%, y quedó archivada el 2026-10-06. Transforma integralmente la experiencia visual y operativa de Ludeka: INC-113 establece el sistema tipográfico y tokens con Plus Jakarta Sans y paleta terracota/salvia en modo claro/oscuro; INC-114 implementa el nuevo Shell global con cabecera reactiva, barra móvil con hoja «Más» y barra contextual de staff; INC-115 despliega la portada editorial de revista con Hero en arco, cintas horizontales y Top semanal; INC-116 renueva el catálogo con frase reactiva conversacional, panel multiselección y chips activos; INC-117 estructura la ficha de juego en 5 bloques editoriales [01-05], veredicto editorial y herramientas staff; INC-118 unifica la ludoteca en 7 pestañas [Tengo, Jugado, Deseado, Prestar, Partidas, Radar y Offline PWA] con modales interactivos; e INC-119 dota a la plataforma de «Ludeka Gestión», backoffice editorial con AdminLayout, navegación lateral por las 11 bandejas operativas, atajos de teclado globales [Cmd/Ctrl+K y 1-9], consola de operaciones en /admin y adaptación a paleta oscura de alta densidad).*
 

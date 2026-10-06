@@ -233,6 +233,27 @@ public static class BggRawSnapshotParser
     }
 
     /// <summary>
+    /// Extrae las URLs canónicas de imagen de portada y miniatura del juego raíz desde el payload JSON del snapshot.
+    /// </summary>
+    public static (string? CoverImageUrl, string? ThumbnailUrl) ExtractRootImagesFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return (null, null);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            string? cover = NormalizeUrl(ExtractStringValue(root, "image"));
+            string? thumb = NormalizeUrl(ExtractStringValue(root, "thumbnail"));
+            return (cover, thumb);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
+    /// <summary>
     /// Comprueba si el payload JSON del snapshot incluye información del subárbol de versiones de BGG (&lt;versions&gt;).
     /// </summary>
     public static bool HasVersionsFromJson(string rawJson)
@@ -344,6 +365,16 @@ public static class BggRawSnapshotParser
                 if (withPub != null)
                 {
                     best = best with { Publisher = withPub.Publisher };
+                }
+            }
+
+            // Si la candidata seleccionada carece de portada pero otra candidata española dispone de ella, enriquecer
+            if (string.IsNullOrWhiteSpace(best.CoverImageUrl))
+            {
+                var withCover = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.CoverImageUrl));
+                if (withCover != null)
+                {
+                    best = best with { CoverImageUrl = withCover.CoverImageUrl, ThumbnailUrl = withCover.ThumbnailUrl };
                 }
             }
 
@@ -509,6 +540,8 @@ public static class BggRawSnapshotParser
         int? year = ExtractVersionYear(versionElem);
         string? productCode = ExtractStringValue(versionElem, "productcode");
         string? rawBarcode = ExtractStringValue(versionElem, "barcode");
+        string? coverImageUrl = NormalizeUrl(ExtractStringValue(versionElem, "image"));
+        string? thumbnailUrl = NormalizeUrl(ExtractStringValue(versionElem, "thumbnail"));
 
         string? normalizedEan = null;
         if (!string.IsNullOrWhiteSpace(rawBarcode) && BarcodeValidator.TryNormalizeEan13(rawBarcode, out var norm1))
@@ -520,8 +553,8 @@ public static class BggRawSnapshotParser
             normalizedEan = norm2;
         }
 
-        // Si no contiene título válido, ni editorial, ni EAN, la versión no aporta datos útiles
-        if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(publisher) && string.IsNullOrWhiteSpace(normalizedEan))
+        // Si no contiene título válido, ni editorial, ni EAN, ni imagen, la versión no aporta datos útiles
+        if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(publisher) && string.IsNullOrWhiteSpace(normalizedEan) && string.IsNullOrWhiteSpace(coverImageUrl))
         {
             return null;
         }
@@ -531,7 +564,9 @@ public static class BggRawSnapshotParser
             Publisher: publisher,
             YearPublished: year,
             Ean: normalizedEan,
-            ProductCode: productCode
+            ProductCode: productCode,
+            CoverImageUrl: coverImageUrl,
+            ThumbnailUrl: thumbnailUrl
         );
     }
 
@@ -634,6 +669,14 @@ public static class BggRawSnapshotParser
         }
 
         return null;
+    }
+
+    private static string? NormalizeUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        url = url.Trim();
+        if (url.StartsWith("//")) return "https:" + url;
+        return url;
     }
 
     private static readonly Regex PromoOrAccessoryRegex = new(

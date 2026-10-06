@@ -386,6 +386,9 @@ public static class LudekaServiceCollectionExtensions
         services.AddHttpClient<IGeekDoImagesClient, GeekDoImagesClient>();
         services.AddHttpClient<IBggMassIngestionService, BggMassIngestionService>();
 
+        // Incremento 120: Portadas en Español y Sincronización Top 3.000 Comunitarias
+        services.AddHttpClient<IBggImagesSyncService, BggImagesSyncService>();
+
         // Incremento 27: Monitorización y Verificación de Stock en Tiempo Real en Enlaces de Compra.
         // Orden significativo (diseño §4.3, preservado sin cambios): IEnumerable<IStoreStockClient>
         // resuelve Simulation antes de HtmlSchema, y la resolución singular de IStoreStockClient (si
