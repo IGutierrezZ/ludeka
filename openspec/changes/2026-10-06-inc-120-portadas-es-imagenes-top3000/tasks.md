@@ -1,9 +1,9 @@
 # Tareas de Implementación: INC-120 Extracción de Portadas en Español y Sincronización Top 3.000
 
 ## Fase 1: Dominio y Parser Analítico de Versiones (BGG Snapshots)
-- [ ] **Tarea 1.1:** Actualizar `BggSpanishVersionInfoDto` en `src/Ludeka.Application/DTOs/BggVersionDtos.cs` con `CoverImageUrl` y `ThumbnailUrl`.
-- [ ] **Tarea 1.2:** Modificar `BggRawSnapshotParser.cs` para extraer `image` y `thumbnail` en `ParseVersionInfo`, normalizar URLs (`//` -> `https:`) y soportar fusión de candidatas de portada en español.
-- [ ] **Tarea 1.3:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Bgg/BggRawSnapshotParserVersionsTests.cs` validando la extracción y normalización de portadas de versiones en español.
+- [x] **Tarea 1.1:** Actualizar `BggSpanishVersionInfoDto` en `src/Ludeka.Application/DTOs/BggVersionDtos.cs` con `CoverImageUrl` y `ThumbnailUrl`.
+- [x] **Tarea 1.2:** Modificar `BggRawSnapshotParser.cs` para extraer `image` y `thumbnail` en `ParseVersionInfo`, normalizar URLs (`//` -> `https:`) y soportar fusión de candidatas de portada en español.
+- [x] **Tarea 1.3:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Bgg/BggRawSnapshotParserVersionsTests.cs` validando la extracción y normalización de portadas de versiones en español.
 
 ## Fase 2: Promoción de Portada en Español en el Barrido de Catálogo
 - [ ] **Tarea 2.1:** Modificar `BggRawSnapshotSyncService.SweepCatalogFromVersionsCoreAsync` para actualizar `game.CoverImageUrl` y `ThumbnailUrl` con la portada en español cuando esté disponible o cuando la actual sea simulada/rota.

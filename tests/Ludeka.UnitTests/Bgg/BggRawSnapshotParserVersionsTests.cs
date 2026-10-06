@@ -281,5 +281,96 @@ public class BggRawSnapshotParserVersionsTests
         Assert.Equal("Ark Nova: Mundo Marino", result.Title);
         Assert.Equal("Maldito Games", result.Publisher);
     }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractCoverAndThumbnail_WhenPresentInVersion()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""1001"">
+    <name type=""primary"" value=""Terraforming Mars"" />
+    <image>https://cf.geekdo-images.com/original_cover.jpg</image>
+    <thumbnail>https://cf.geekdo-images.com/original_thumb.jpg</thumbnail>
+    <versions>
+      <item type=""boardgameversion"" id=""2001"">
+        <name type=""primary"" value=""Terraforming Mars"" />
+        <image>https://cf.geekdo-images.com/spanish_cover.jpg</image>
+        <thumbnail>https://cf.geekdo-images.com/spanish_thumb.jpg</thumbnail>
+        <link type=""boardgamepublisher"" value=""Maldito Games"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("https://cf.geekdo-images.com/spanish_cover.jpg", result.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/spanish_thumb.jpg", result.ThumbnailUrl);
+        Assert.Equal("Maldito Games", result.Publisher);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldNormalizeProtocolRelativeUrl_WhenStartingWithDoubleSlash()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""1002"">
+    <name type=""primary"" value=""Root"" />
+    <versions>
+      <item type=""boardgameversion"" id=""2002"">
+        <name type=""primary"" value=""Root"" />
+        <image>//cf.geekdo-images.com/root_es.jpg</image>
+        <thumbnail>//cf.geekdo-images.com/root_es_thumb.jpg</thumbnail>
+        <link type=""boardgamepublisher"" value=""2Tomatoes Games"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("https://cf.geekdo-images.com/root_es.jpg", result.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/root_es_thumb.jpg", result.ThumbnailUrl);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldConsolidateCoverImage_WhenBestEanCandidateLacksCoverButAnotherHasIt()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""1003"">
+    <name type=""primary"" value=""Dune: Imperium"" />
+    <versions>
+      <item type=""boardgameversion"" id=""3001"">
+        <name type=""primary"" value=""Dune: Imperium"" />
+        <barcode value=""8435407626515"" />
+        <link type=""boardgamepublisher"" value=""Asmodee"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+      <item type=""boardgameversion"" id=""3002"">
+        <name type=""primary"" value=""Dune: Imperium"" />
+        <image>https://cf.geekdo-images.com/dune_es.jpg</image>
+        <thumbnail>https://cf.geekdo-images.com/dune_es_thumb.jpg</thumbnail>
+        <link type=""boardgamepublisher"" value=""Asmodee"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("8435407626515", result.Ean);
+        Assert.Equal("https://cf.geekdo-images.com/dune_es.jpg", result.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/dune_es_thumb.jpg", result.ThumbnailUrl);
+    }
 }
 

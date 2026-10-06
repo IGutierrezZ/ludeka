@@ -10,7 +10,9 @@ public record BggSpanishVersionInfoDto(
     string? Publisher,
     int? YearPublished,
     string? Ean,
-    string? ProductCode
+    string? ProductCode,
+    string? CoverImageUrl = null,
+    string? ThumbnailUrl = null
 );
 
 /// <summary>
