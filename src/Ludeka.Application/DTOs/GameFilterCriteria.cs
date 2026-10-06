@@ -22,5 +22,9 @@ public record GameFilterCriteria(
     TableFootprint? Footprint = null,
     IReadOnlyList<TableFootprint>? Footprints = null,
     IReadOnlyList<GameComplexity>? Complexities = null,
-    GameSortOrder SortBy = GameSortOrder.Rank
+    GameSortOrder SortBy = GameSortOrder.Rank,
+    LanguageDependence? Language = null,
+    IReadOnlyList<LanguageDependence>? Languages = null,
+    int? MinYear = null,
+    int? MaxYear = null
 );

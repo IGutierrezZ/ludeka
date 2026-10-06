@@ -3,7 +3,14 @@
 
 @if (Game != null)
 {
-    <a href="/juegos/@Game.Slug" class="game-card-editorial group" aria-label="Ver ficha de @Game.SpanishTitle">
+    <a href="/juegos/@Game.Slug" class="game-card-editorial group relative" aria-label="Ver ficha de @Game.SpanishTitle">
+        @if (PositionNumber.HasValue)
+        {
+            <span class="absolute -top-3 -left-2 z-20 text-3xl sm:text-4xl font-extrabold tracking-tighter text-[var(--ink)] select-none pointer-events-none"
+                  style="text-shadow: 0 2px 0 var(--paper, #FFF8EE);">
+                @PositionNumber.Value
+            </span>
+        }
         <div class="cover-wrapper">
             @{
                 var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
@@ -166,6 +173,9 @@
 
     [Parameter]
     public string? CountryCode { get; set; }
+
+    [Parameter]
+    public int? PositionNumber { get; set; }
 
     [Parameter]
     public EventCallback<GameSummaryDto> OnQuickAction { get; set; }

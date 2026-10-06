@@ -126,6 +126,26 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             query = query.Where(g => g.Footprint == criteria.Footprint.Value);
         }
 
+        // Filtro por dependencia de idioma (INC-116)
+        if (criteria.Languages != null && criteria.Languages.Count > 0)
+        {
+            query = query.Where(g => criteria.Languages.Contains(g.Language));
+        }
+        else if (criteria.Language.HasValue)
+        {
+            query = query.Where(g => g.Language == criteria.Language.Value);
+        }
+
+        // Filtro por año de publicación (INC-116)
+        if (criteria.MinYear.HasValue)
+        {
+            query = query.Where(g => g.YearPublished >= criteria.MinYear.Value);
+        }
+        if (criteria.MaxYear.HasValue)
+        {
+            query = query.Where(g => g.YearPublished <= criteria.MaxYear.Value);
+        }
+
         // Filtro por término de búsqueda (bilingüe y multipaís en SQL: títulos, diseñador, editoriales)
         if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
         {

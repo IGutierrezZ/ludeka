@@ -1,0 +1,56 @@
+@using Ludeka.Application.DTOs
+
+@*
+    Componente ligero de Frase Conversacional Reactiva Mad-Lib (INC-116).
+    Permite visualizar la selección conversacional actual y conmutar directamente el panel de cada taxonomía.
+*@
+
+<p class="m-0 text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-snug sm:leading-tight max-w-[1120px] text-balance">
+    Busco un juego para
+    <button type="button"
+            @onclick='() => OnGroupClick.InvokeAsync("players")'
+            class="inline-flex items-center px-3 py-0.5 my-1 rounded-full font-extrabold tracking-tight transition-all cursor-pointer border-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]"
+            style="background-color: @(FilterState.PlayerCounts.Count > 0 ? "#FFC145" : "#FFF8EE"); color: #22180F; box-shadow: @(ActiveGroup == "players" ? "0 0 0 3px #22180F" : "none");"
+            aria-label="Filtrar por número de jugadores"
+            aria-expanded="@(ActiveGroup == "players" ? "true" : "false")">
+        @FilterState.PlayersSentenceLabel
+    </button>,
+    de dureza
+    <button type="button"
+            @onclick='() => OnGroupClick.InvokeAsync("weight")'
+            class="inline-flex items-center px-3 py-0.5 my-1 rounded-full font-extrabold tracking-tight transition-all cursor-pointer border-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]"
+            style="background-color: @(FilterState.Complexities.Count > 0 ? "#FFC145" : "#FFF8EE"); color: #22180F; box-shadow: @(ActiveGroup == "weight" ? "0 0 0 3px #22180F" : "none");"
+            aria-label="Filtrar por dureza"
+            aria-expanded="@(ActiveGroup == "weight" ? "true" : "false")">
+        @FilterState.WeightSentenceLabel
+    </button>,
+    estilo
+    <button type="button"
+            @onclick='() => OnGroupClick.InvokeAsync("style")'
+            class="inline-flex items-center px-3 py-0.5 my-1 rounded-full font-extrabold tracking-tight transition-all cursor-pointer border-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]"
+            style="background-color: @(FilterState.Styles.Count > 0 ? "#FFC145" : "#FFF8EE"); color: #22180F; box-shadow: @(ActiveGroup == "style" ? "0 0 0 3px #22180F" : "none");"
+            aria-label="Filtrar por categoría o estilo"
+            aria-expanded="@(ActiveGroup == "style" ? "true" : "false")">
+        @FilterState.StyleSentenceLabel
+    </button>
+    y que dure
+    <button type="button"
+            @onclick='() => OnGroupClick.InvokeAsync("time")'
+            class="inline-flex items-center px-3 py-0.5 my-1 rounded-full font-extrabold tracking-tight transition-all cursor-pointer border-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]"
+            style="background-color: @(FilterState.MaxDurations.Count > 0 ? "#FFC145" : "#FFF8EE"); color: #22180F; box-shadow: @(ActiveGroup == "time" ? "0 0 0 3px #22180F" : "none");"
+            aria-label="Filtrar por duración máxima"
+            aria-expanded="@(ActiveGroup == "time" ? "true" : "false")">
+        @FilterState.TimeSentenceLabel
+    </button>.
+</p>
+
+@code {
+    [Parameter, EditorRequired]
+    public CatalogFilterState FilterState { get; set; } = new();
+
+    [Parameter]
+    public string? ActiveGroup { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnGroupClick { get; set; }
+}

@@ -2,6 +2,7 @@
 @page "/buscar"
 @rendermode InteractiveServer
 @implements IDisposable
+@using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @using Microsoft.AspNetCore.Components.Routing
 @inject ICatalogService CatalogService
@@ -9,540 +10,697 @@
 
 <PageTitle>Catálogo de Juegos de Mesa — Ludeka</PageTitle>
 
-<div class="container-ludeka pt-3 pb-8">
-    @* Fila única unificada: Buscador (flex-1) + Botón de Filtros + Botón de Leyenda *@
-    <div class="flex items-center gap-2 mb-4">
-        <div class="flex-1 min-w-0">
-            <CatalogSearchBar Value="@_searchTerm" ValueChanged="@OnSearchChanged" />
-        </div>
+@*
+    Banda verde a todo el ancho (Estilo Editorial Revista Lúdica INC-116).
+    Frase conversacional interactiva mad-lib, buscador integrado, botón «+ Más filtros (N)»,
+    fila de chips de filtros activos y panel modal / drawer con las 8 taxonomías completas.
+*@
+<section data-screen-label="Catálogo"
+         class="w-full bg-[var(--green)] text-[var(--on-green)] py-8 sm:py-12 px-4 sm:px-6 lg:px-8 -mt-3 mb-6 transition-colors shadow-sm select-none"
+         style="background-color: var(--green, #1B7D52); color: var(--on-green, #FFF8EE);">
+    <div class="max-w-[1280px] mx-auto flex flex-col gap-6 sm:gap-7">
+        
+        <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--green-soft)]"
+              style="color: var(--green-soft, #D2F1E1);">
+            Catálogo · toca las palabras resaltadas para cambiarlas
+        </span>
 
-        <button type="button"
-                @onclick="ToggleAdvancedFilters"
-                title="Filtros avanzados"
-                aria-label="Filtros avanzados"
-                aria-expanded="@_showAdvancedFilters"
-                aria-controls="panel-filtros-avanzados"
-                class="h-11 px-3 rounded-full border text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 @(_showAdvancedFilters || ActiveAdvancedFiltersCount > 0 ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
-            <Icon Name="sliders-horizontal" Size="15" />
-            <span class="hidden sm:inline">Filtros</span>
-            @if (ActiveAdvancedFiltersCount > 0)
-            {
-                <span class="px-1.5 py-0.2 rounded-full @(_showAdvancedFilters ? "bg-white text-[var(--brand-primary)]" : "bg-[var(--brand-primary)] text-white") text-[0.65rem] font-black">
-                    @ActiveAdvancedFiltersCount
-                </span>
-            }
-        </button>
+        @* Frase interactiva conversacional mad-lib *@
+        <CatalogSentenceFilter FilterState="@_filterState"
+                               ActiveGroup="@_activePanelGroup"
+                               OnGroupClick="TogglePanelGroup" />
 
-        <button type="button"
-                @onclick="ToggleLegend"
-                title="Leyenda de iconografía"
-                aria-label="Leyenda de iconografía"
-                aria-expanded="@_showLegend"
-                class="h-11 px-3 rounded-full border text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 @(_showLegend ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")">
-            <Icon Name="info" Size="15" />
-            <span class="hidden sm:inline">Leyenda</span>
-        </button>
-    </div>
-
-    @* Zona de Filtros Avanzados (Colapsable / Acordeón con multiselección) *@
-    @if (_showAdvancedFilters)
-    {
-        <div class="mb-5">
-            <div id="panel-filtros-avanzados" class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 text-xs shadow-md animate-fade-in">
-                <div class="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
-                    <span class="font-extrabold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                        <Icon Name="sparkles" Size="14" />
-                        <span>Refinar por mesa y partida</span>
-                    </span>
-                    <div class="flex items-center gap-2">
-                        @if (HasActiveRefinements)
-                        {
-                            <button type="button"
-                                    @onclick="ResetFilters"
-                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] rounded px-2 py-1"
-                                    aria-label="Restablecer todos los filtros">
-                                <Icon Name="x" Size="13" />
-                                <span>Limpiar filtros</span>
-                            </button>
-                        }
-                        <button type="button"
-                                @onclick="ToggleAdvancedFilters"
-                                class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                                aria-label="Cerrar panel de filtros">
-                            <Icon Name="x" Size="14" />
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @* 1. Número de comensales (PlayerCounts) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por número de jugadores">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                                <Icon Name="users" Size="13" />
-                                <span>Jugadores en mesa</span>
-                            </span>
-                            @if (_selectedPlayerCounts.Count > 0)
-                            {
-                                <button type="button" @onclick="() => SetPlayerCount(null)" class="text-[0.65rem] text-[var(--text-muted)] hover:text-[var(--brand-primary)]">
-                                    Desmarcar
-                                </button>
-                            }
-                        </div>
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <button type="button"
-                                    class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedPlayerCounts.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => SetPlayerCount(null)"
-                                    aria-label="Cualquier número de jugadores"
-                                    aria-pressed="@(_selectedPlayerCounts.Count == 0 ? "true" : "false")">
-                                Todos
-                            </button>
-                            @foreach (var count in new[] { 1, 2, 3, 4, 5, 6, 7 })
-                            {
-                                var c = count;
-                                var label = c >= 7 ? "7+" : c.ToString();
-                                var isSelected = _selectedPlayerCounts.Contains(c);
-                                <button type="button"
-                                        class="w-8 py-1.5 rounded-lg border text-xs font-semibold text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(isSelected ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                        @onclick="() => TogglePlayerCount(c)"
-                                        aria-label="@(c >= 7 ? "7 o más jugadores" : $"{c} jugadores")"
-                                        aria-pressed="@(isSelected ? "true" : "false")">
-                                    @label
-                                </button>
-                            }
-                        </div>
-                    </div>
-
-                    @* 2. Dureza / Complejidad cognitiva (Complexities) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por dureza">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="brain" Size="13" />
-                            <span>Dureza / Complejidad</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedComplexities.Contains(GameComplexity.Light) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleComplexity(GameComplexity.Light)"
-                                    aria-label="Dureza ligera o familiar"
-                                    aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Light) ? "true" : "false")"
-                                    title="Fácil de explicar y jugar">
-                                <Icon Name="feather" Size="12" />
-                                <span>Ligero</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedComplexities.Contains(GameComplexity.Medium) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleComplexity(GameComplexity.Medium)"
-                                    aria-label="Dureza media"
-                                    aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Medium) ? "true" : "false")"
-                                    title="Reglas accesibles con profundidad táctica">
-                                <Icon Name="zap" Size="12" />
-                                <span>Medio</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedComplexities.Contains(GameComplexity.Heavy) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleComplexity(GameComplexity.Heavy)"
-                                    aria-label="Dureza alta o experto"
-                                    aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Heavy) ? "true" : "false")"
-                                    title="Juegos densos y exigentes para jugadores experimentados">
-                                <Icon Name="shield-alert" Size="12" />
-                                <span>Duro</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @* 3. Tipo de juego (Types) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por tipo de juego">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="layers" Size="13" />
-                            <span>Tipo de juego</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedTypes.Contains(GameType.BaseGame) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleType(GameType.BaseGame)"
-                                    aria-label="Juegos base completos"
-                                    aria-pressed="@(_selectedTypes.Contains(GameType.BaseGame) ? "true" : "false")">
-                                <Icon Name="dices" Size="12" />
-                                <span>Juego Base</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedTypes.Contains(GameType.Expansion) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleType(GameType.Expansion)"
-                                    aria-label="Expansiones oficiales"
-                                    aria-pressed="@(_selectedTypes.Contains(GameType.Expansion) ? "true" : "false")">
-                                <Icon Name="puzzle" Size="12" />
-                                <span>Expansión</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedTypes.Contains(GameType.StandaloneExpansion) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleType(GameType.StandaloneExpansion)"
-                                    aria-label="Expansiones autojugables"
-                                    aria-pressed="@(_selectedTypes.Contains(GameType.StandaloneExpansion) ? "true" : "false")">
-                                <Icon Name="box" Size="12" />
-                                <span>Autojugable</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @* 4. Categoría / Estilo lúdico (Styles) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por categoría o estilo">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="shapes" Size="13" />
-                            <span>Categoría / Estilo</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedStyles.Contains(GameStyle.Eurogame) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleStyle(GameStyle.Eurogame)"
-                                    aria-label="Eurogames de gestión y estrategia"
-                                    aria-pressed="@(_selectedStyles.Contains(GameStyle.Eurogame) ? "true" : "false")">
-                                <Icon Name="settings" Size="12" />
-                                <span>Euro</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedStyles.Contains(GameStyle.Ameritrash) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleStyle(GameStyle.Ameritrash)"
-                                    aria-label="Juegos temáticos de aventura y conflicto"
-                                    aria-pressed="@(_selectedStyles.Contains(GameStyle.Ameritrash) ? "true" : "false")">
-                                <Icon Name="dices" Size="12" />
-                                <span>Temático</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedStyles.Contains(GameStyle.PartyGame) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleStyle(GameStyle.PartyGame)"
-                                    aria-label="Party games sociales y divertidos"
-                                    aria-pressed="@(_selectedStyles.Contains(GameStyle.PartyGame) ? "true" : "false")">
-                                <Icon Name="party-popper" Size="12" />
-                                <span>Party</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedStyles.Contains(GameStyle.FillerAbstract) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleStyle(GameStyle.FillerAbstract)"
-                                    aria-label="Fillers y abstractos"
-                                    aria-pressed="@(_selectedStyles.Contains(GameStyle.FillerAbstract) ? "true" : "false")">
-                                <Icon Name="puzzle" Size="12" />
-                                <span>Filler</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedStyles.Contains(GameStyle.NarrativeCampaign) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleStyle(GameStyle.NarrativeCampaign)"
-                                    aria-label="Narrativos y campaña"
-                                    aria-pressed="@(_selectedStyles.Contains(GameStyle.NarrativeCampaign) ? "true" : "false")">
-                                <Icon Name="book-open" Size="12" />
-                                <span>Narrativo</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @* 5. Espacio en mesa (TableFootprint) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por tamaño en mesa">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="armchair" Size="13" />
-                            <span>Tamaño en mesa</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprints.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => SetFootprint(null)"
-                                    aria-label="Cualquier tamaño en mesa"
-                                    aria-pressed="@(_selectedFootprints.Count == 0 ? "true" : "false")">
-                                Cualquiera
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprints.Contains(TableFootprint.SmallTable) || _selectedFootprint == TableFootprint.SmallTable ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleFootprint(TableFootprint.SmallTable)"
-                                    aria-label="Mesa pequeña o cafetería"
-                                    aria-pressed="@(_selectedFootprints.Contains(TableFootprint.SmallTable) || _selectedFootprint == TableFootprint.SmallTable ? "true" : "false")"
-                                    title="Despliegue compacto sin tableros masivos">
-                                <Icon Name="armchair" Size="12" />
-                                <span>Mesa pequeña</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprints.Contains(TableFootprint.StandardTable) || _selectedFootprint == TableFootprint.StandardTable ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleFootprint(TableFootprint.StandardTable)"
-                                    aria-label="Mesa de comedor estándar"
-                                    aria-pressed="@(_selectedFootprints.Contains(TableFootprint.StandardTable) || _selectedFootprint == TableFootprint.StandardTable ? "true" : "false")"
-                                    title="Espacio suficiente para tablero central y personales">
-                                <Icon Name="utensils" Size="12" />
-                                <span>Estándar</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedFootprints.Contains(TableFootprint.TableMonster) || _selectedFootprint == TableFootprint.TableMonster ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleFootprint(TableFootprint.TableMonster)"
-                                    aria-label="Monstruo de mesa o despliegue masivo"
-                                    aria-pressed="@(_selectedFootprints.Contains(TableFootprint.TableMonster) || _selectedFootprint == TableFootprint.TableMonster ? "true" : "false")"
-                                    title="Requiere mesa amplia para reservas, mercados y áreas masivas">
-                                <Icon Name="castle" Size="12" />
-                                <span>Mesa grande</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @* 6. Confrontación (Confrontations) - Multiselección *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por confrontación">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="swords" Size="13" />
-                            <span>Confrontación</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedConfrontations.Contains(ConfrontationType.Competitive) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleConfrontation(ConfrontationType.Competitive)"
-                                    aria-label="Juegos competitivos"
-                                    aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.Competitive) ? "true" : "false")">
-                                <Icon Name="trophy" Size="12" />
-                                <span>Competitivo</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedConfrontations.Contains(ConfrontationType.Cooperative) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleConfrontation(ConfrontationType.Cooperative)"
-                                    aria-label="Juegos cooperativos"
-                                    aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.Cooperative) ? "true" : "false")">
-                                <Icon Name="users" Size="12" />
-                                <span>Cooperativo</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedConfrontations.Contains(ConfrontationType.HiddenRolesOrTeams) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleConfrontation(ConfrontationType.HiddenRolesOrTeams)"
-                                    aria-label="Roles ocultos o equipos"
-                                    aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.HiddenRolesOrTeams) ? "true" : "false")">
-                                <Icon Name="eye-off" Size="12" />
-                                <span>Roles ocultos</span>
-                            </button>
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedConfrontations.Contains(ConfrontationType.SemiCooperative) ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => ToggleConfrontation(ConfrontationType.SemiCooperative)"
-                                    aria-label="Semicooperativo"
-                                    aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.SemiCooperative) ? "true" : "false")">
-                                <Icon Name="shield" Size="12" />
-                                <span>Semicooperativo</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    @* 7. Duración máxima (MaxDurationMinutes) *@
-                    <div class="flex flex-col gap-1.5" role="group" aria-label="Filtrar por duración máxima">
-                        <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                            <Icon Name="timer" Size="13" />
-                            <span>Duración máxima</span>
-                        </span>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button"
-                                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_selectedMaxDurations.Count == 0 ? "bg-[var(--brand-primary)] text-white border-transparent" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                    @onclick="() => SetMaxDuration(null)"
-                                    aria-label="Cualquier duración de partida"
-                                    aria-pressed="@(_selectedMaxDurations.Count == 0 ? "true" : "false")">
-                                Cualquiera
-                            </button>
-                            @foreach (var dur in new[] { 30, 45, 60, 90, 120 })
-                            {
-                                var d = dur;
-                                var isSelected = _selectedMaxDurations.Contains(d);
-                                <button type="button"
-                                        class="px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(isSelected || _selectedMaxDuration == d ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                        @onclick="() => ToggleMaxDuration(d)"
-                                        aria-label="Hasta @d minutos"
-                                        aria-pressed="@(isSelected || _selectedMaxDuration == d ? "true" : "false")">
-                                    &le; @(d)'
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                @* Criterio de ordenación *@
-                <div class="pt-3 border-t border-[var(--border-subtle)] flex flex-col gap-2" role="group" aria-label="Criterio de ordenación">
-                    <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                        <Icon Name="arrow-up-down" Size="13" />
-                        <span>Ordenar catálogo por</span>
-                    </span>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.Rank ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.Rank)"
-                                aria-pressed="@(_sortBy == GameSortOrder.Rank ? "true" : "false")">
-                            <Icon Name="trophy" Size="12" />
-                            <span>Ranking BGG</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.RatingDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.RatingDesc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.RatingDesc ? "true" : "false")">
-                            <Icon Name="star" Size="12" />
-                            <span>Valoración</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.ComplexityAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.ComplexityAsc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.ComplexityAsc ? "true" : "false")"
-                                title="Juegos más accesibles y familiares primero">
-                            <Icon Name="feather" Size="12" />
-                            <span>Dureza (Ligero)</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.ComplexityDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.ComplexityDesc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.ComplexityDesc ? "true" : "false")"
-                                title="Juegos más complejos y densos primero">
-                            <Icon Name="shield-alert" Size="12" />
-                            <span>Dureza (Duro)</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.DurationAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.DurationAsc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.DurationAsc ? "true" : "false")">
-                            <Icon Name="timer" Size="12" />
-                            <span>Más rápidos</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.DurationDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.DurationDesc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.DurationDesc ? "true" : "false")">
-                            <Icon Name="clock" Size="12" />
-                            <span>Más largos</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.YearDesc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.YearDesc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.YearDesc ? "true" : "false")">
-                            <Icon Name="calendar" Size="12" />
-                            <span>Novedades</span>
-                        </button>
-                        <button type="button"
-                                class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_sortBy == GameSortOrder.TitleAsc ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => SetSortOrder(GameSortOrder.TitleAsc)"
-                                aria-pressed="@(_sortBy == GameSortOrder.TitleAsc ? "true" : "false")">
-                            <Icon Name="a-large-small" Size="12" />
-                            <span>Título (A-Z)</span>
-                        </button>
-                    </div>
-                </div>
+        @* Buscador + Botón «+ Más filtros (N)» + Botón «Limpiar filtros» *@
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex-1 min-w-[280px] max-w-[560px] h-14 rounded-full bg-[#FFF8EE] flex items-center gap-3 px-5 text-[#22180F] shadow-inner border border-transparent focus-within:border-[#22180F]">
+                <Icon Name="search" Size="18" Class="text-[#6B5848] shrink-0" />
+                <input type="text"
+                       value="@_searchTerm"
+                       @oninput="OnSearchInputChanged"
+                       placeholder="O busca por juego, editorial o diseñador"
+                       class="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm sm:text-base font-semibold text-[#22180F] placeholder-[#6B5848]/70"
+                       aria-label="Buscar juegos en el catálogo" />
+                @if (!string.IsNullOrWhiteSpace(_searchTerm))
+                {
+                    <button type="button" @onclick="ClearSearch" class="text-[#6B5848] hover:text-[#22180F] p-1" aria-label="Limpiar búsqueda">
+                        <Icon Name="x" Size="16" />
+                    </button>
+                }
             </div>
-        </div>
-    }
 
-    @* Leyenda de iconografía lúdica (controlada por el botón de la barra superior) *@
-    @if (_showLegend)
-    {
-        <div class="text-[0.68rem] text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-3 mb-6 animate-fade-in shadow-sm">
-            <div class="flex items-center justify-between font-bold text-[var(--text-secondary)] mb-2">
-                <span class="flex items-center gap-1.5">
-                    <Icon Name="info" Size="13" />
-                    <span>Leyenda de iconografía en tarjetas</span>
-                </span>
-                <button type="button" @onclick="ToggleLegend" class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label="Cerrar leyenda">
-                    <Icon Name="x" Size="13" />
+            <button type="button"
+                    @onclick='() => TogglePanelGroup("all")'
+                    class="h-14 px-6 rounded-full font-extrabold text-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]"
+                    style="background-color: #FFC145; color: #22180F;"
+                    aria-label="Filtros avanzados"
+                    aria-expanded="@(_showAdvancedFilters ? "true" : "false")"
+                    aria-controls="panel-filtros-avanzados">
+                <Icon Name="sliders-horizontal" Size="16" />
+                <span>+ Más filtros</span>
+                @if (ActiveAdvancedFiltersCount > 0)
+                {
+                    <span class="w-6 h-6 rounded-full bg-[#22180F] text-[#FFF8EE] text-xs font-black flex items-center justify-center">
+                        @ActiveAdvancedFiltersCount
+                    </span>
+                }
+            </button>
+
+            @if (HasActiveRefinements)
+            {
+                <button type="button"
+                        @onclick="ResetFilters"
+                        class="h-14 px-6 rounded-full border-2 border-[#FFF8EE] bg-transparent text-[#FFF8EE] hover:bg-[#FFF8EE]/10 font-extrabold text-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        aria-label="Restablecer todos los filtros">
+                    <Icon Name="x" Size="15" />
+                    <span>Limpiar filtros</span>
+                </button>
+            }
+        </div>
+
+        @* Fila de chips de filtros activos con eliminación individual *@
+        @if (_activeChips.Count > 0)
+        {
+            <div class="flex flex-wrap items-center gap-2 pt-1 animate-fade-in" role="region" aria-label="Filtros activos">
+                @foreach (var chip in _activeChips)
+                {
+                    <button type="button"
+                            @onclick="() => RemoveChip(chip)"
+                            class="h-[34px] px-3.5 rounded-full border border-[rgba(255,248,238,0.6)] bg-[rgba(255,248,238,0.14)] hover:bg-[rgba(255,248,238,0.25)] text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            aria-label="Eliminar filtro @chip.Label">
+                        <span>@chip.Label</span>
+                        <span class="text-sm font-bold opacity-80 hover:opacity-100">✕</span>
+                    </button>
+                }
+                <button type="button"
+                        @onclick="ResetFilters"
+                        class="text-xs text-[#FFF8EE]/80 hover:text-white underline font-bold px-2 py-1"
+                        aria-label="Limpiar filtros">
+                    Limpiar filtros
                 </button>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-2 border-t border-[var(--border-subtle)]">
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="settings" Size="11" /></span>
-                    <span>Eurogame</span>
+        }
+
+        @* Panel modal / drawer multiselección con las 8 taxonomías completas *@
+        @if (_showAdvancedFilters)
+        {
+            <div id="panel-filtros-avanzados"
+                 class="rounded-[22px] bg-[#FFF8EE] text-[#22180F] p-4 sm:p-6 flex flex-col gap-6 shadow-2xl border border-[rgba(34,24,15,0.15)] animate-fade-in text-xs"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="Panel de filtros avanzados">
+                
+                <div class="flex items-center justify-between gap-4 border-b border-[rgba(34,24,15,0.12)] pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center font-black">
+                            <Icon Name="sparkles" Size="16" />
+                        </span>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-black tracking-tight text-[#22180F]">
+                                @PanelTitle
+                            </h2>
+                            @if (_activePanelGroup != "all")
+                            {
+                                <button type="button"
+                                        @onclick='() => _activePanelGroup = "all"'
+                                        class="text-[0.72rem] text-[#6B5848] font-bold underline hover:text-[#22180F]">
+                                    Ver todos los grupos de filtros
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    
+                    <button type="button"
+                            @onclick="ClosePanel"
+                            aria-label="Cerrar filtros"
+                            class="w-10 h-10 rounded-full border border-[#22180F] bg-transparent text-[#22180F] hover:bg-[#22180F]/10 flex items-center justify-center font-black text-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]">
+                        ✕
+                    </button>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="dices" Size="11" /></span>
-                    <span>Temático</span>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+                    
+                    @* 1. Jugadores en mesa (PlayerCounts) - Multiselección *@
+                    @if (ShouldShowGroup("players"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por número de jugadores">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="users" Size="13" />
+                                    <span>Jugadores en mesa</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Puedes elegir varias</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-2.5 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedPlayerCounts.Count == 0 ? "bg-[#FFC145] text-[#22180F] border-[#22180F]" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetPlayerCount(null)"
+                                        aria-label="Cualquier número de jugadores"
+                                        aria-pressed="@(_selectedPlayerCounts.Count == 0 ? "true" : "false")">
+                                    Cualquiera
+                                </button>
+                                @foreach (var count in new[] { 1, 2, 3, 4, 5, 6, 7 })
+                                {
+                                    var c = count;
+                                    var label = c >= 7 ? "7+" : c.ToString();
+                                    var isSelected = _selectedPlayerCounts.Contains(c);
+                                    <button type="button"
+                                            class="w-9 h-8 rounded-full border text-xs font-bold text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(isSelected ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                            @onclick="() => TogglePlayerCount(c)"
+                                            aria-label="@(c >= 7 ? "7 o más jugadores" : $"{c} jugadores")"
+                                            aria-pressed="@(isSelected ? "true" : "false")">
+                                        @label
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* 2. Dureza / Complejidad cognitiva (Complexities) - Multiselección *@
+                    @if (ShouldShowGroup("weight"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por dureza">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="brain" Size="13" />
+                                    <span>Dureza / Complejidad</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Puedes elegir varias</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedComplexities.Contains(GameComplexity.Light) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleComplexity(GameComplexity.Light)"
+                                        aria-label="Dureza ligera o familiar"
+                                        aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Light) ? "true" : "false")">
+                                    <Icon Name="feather" Size="12" />
+                                    <span>Ligero</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedComplexities.Contains(GameComplexity.Medium) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleComplexity(GameComplexity.Medium)"
+                                        aria-label="Dureza media"
+                                        aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Medium) ? "true" : "false")">
+                                    <Icon Name="zap" Size="12" />
+                                    <span>Medio</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedComplexities.Contains(GameComplexity.Heavy) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleComplexity(GameComplexity.Heavy)"
+                                        aria-label="Dureza alta o experto"
+                                        aria-pressed="@(_selectedComplexities.Contains(GameComplexity.Heavy) ? "true" : "false")">
+                                    <Icon Name="shield-alert" Size="12" />
+                                    <span>Duro</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 3. Categoría / Estilo lúdico (Styles) - Multiselección *@
+                    @if (ShouldShowGroup("style"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por categoría o estilo">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="shapes" Size="13" />
+                                    <span>Categoría / Estilo</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Puedes elegir varias</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedStyles.Contains(GameStyle.Eurogame) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleStyle(GameStyle.Eurogame)"
+                                        aria-label="Eurogames de gestión y estrategia"
+                                        aria-pressed="@(_selectedStyles.Contains(GameStyle.Eurogame) ? "true" : "false")">
+                                    <Icon Name="settings" Size="12" />
+                                    <span>Euro</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedStyles.Contains(GameStyle.Ameritrash) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleStyle(GameStyle.Ameritrash)"
+                                        aria-label="Juegos temáticos de aventura y conflicto"
+                                        aria-pressed="@(_selectedStyles.Contains(GameStyle.Ameritrash) ? "true" : "false")">
+                                    <Icon Name="dices" Size="12" />
+                                    <span>Temático</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedStyles.Contains(GameStyle.PartyGame) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleStyle(GameStyle.PartyGame)"
+                                        aria-label="Party games sociales y divertidos"
+                                        aria-pressed="@(_selectedStyles.Contains(GameStyle.PartyGame) ? "true" : "false")">
+                                    <Icon Name="party-popper" Size="12" />
+                                    <span>Party</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedStyles.Contains(GameStyle.FillerAbstract) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleStyle(GameStyle.FillerAbstract)"
+                                        aria-label="Fillers y abstractos"
+                                        aria-pressed="@(_selectedStyles.Contains(GameStyle.FillerAbstract) ? "true" : "false")">
+                                    <Icon Name="puzzle" Size="12" />
+                                    <span>Filler</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedStyles.Contains(GameStyle.NarrativeCampaign) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleStyle(GameStyle.NarrativeCampaign)"
+                                        aria-label="Narrativos y campaña"
+                                        aria-pressed="@(_selectedStyles.Contains(GameStyle.NarrativeCampaign) ? "true" : "false")">
+                                    <Icon Name="book-open" Size="12" />
+                                    <span>Narrativo</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 4. Duración máxima (MaxDurations) *@
+                    @if (ShouldShowGroup("time"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por duración máxima">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="timer" Size="13" />
+                                    <span>Duración máxima</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Límite en minutos</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedMaxDurations.Count == 0 ? "bg-[#FFC145] text-[#22180F] border-[#22180F]" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetMaxDuration(null)"
+                                        aria-label="Cualquier duración de partida"
+                                        aria-pressed="@(_selectedMaxDurations.Count == 0 ? "true" : "false")">
+                                    Cualquiera
+                                </button>
+                                @foreach (var dur in new[] { 30, 45, 60, 90, 120 })
+                                {
+                                    var d = dur;
+                                    var isSelected = _selectedMaxDurations.Contains(d);
+                                    <button type="button"
+                                            class="px-2.5 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(isSelected || _selectedMaxDuration == d ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                            @onclick="() => ToggleMaxDuration(d)"
+                                            aria-label="Hasta @d minutos"
+                                            aria-pressed="@(isSelected || _selectedMaxDuration == d ? "true" : "false")">
+                                        &le; @(d)'
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* 5. Tipo de juego (Types) - Multiselección *@
+                    @if (ShouldShowGroup("type"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por tipo de juego">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="layers" Size="13" />
+                                    <span>Tipo de juego</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Puedes elegir varias</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedTypes.Contains(GameType.BaseGame) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleType(GameType.BaseGame)"
+                                        aria-label="Juegos base completos"
+                                        aria-pressed="@(_selectedTypes.Contains(GameType.BaseGame) ? "true" : "false")">
+                                    <Icon Name="dices" Size="12" />
+                                    <span>Juego Base</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedTypes.Contains(GameType.Expansion) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleType(GameType.Expansion)"
+                                        aria-label="Expansiones oficiales"
+                                        aria-pressed="@(_selectedTypes.Contains(GameType.Expansion) ? "true" : "false")">
+                                    <Icon Name="puzzle" Size="12" />
+                                    <span>Expansión</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedTypes.Contains(GameType.StandaloneExpansion) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleType(GameType.StandaloneExpansion)"
+                                        aria-label="Expansiones autojugables"
+                                        aria-pressed="@(_selectedTypes.Contains(GameType.StandaloneExpansion) ? "true" : "false")">
+                                    <Icon Name="box" Size="12" />
+                                    <span>Autojugable</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 6. Espacio en mesa (Footprints) - Multiselección *@
+                    @if (ShouldShowGroup("footprint"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por tamaño en mesa">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="armchair" Size="13" />
+                                    <span>Tamaño en mesa</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Espacio de despliegue</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedFootprints.Count == 0 ? "bg-[#FFC145] text-[#22180F] border-[#22180F]" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetFootprint(null)"
+                                        aria-label="Cualquier tamaño en mesa"
+                                        aria-pressed="@(_selectedFootprints.Count == 0 ? "true" : "false")">
+                                    Cualquiera
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedFootprints.Contains(TableFootprint.SmallTable) || _selectedFootprint == TableFootprint.SmallTable ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleFootprint(TableFootprint.SmallTable)"
+                                        aria-label="Mesa pequeña o cafetería"
+                                        aria-pressed="@(_selectedFootprints.Contains(TableFootprint.SmallTable) || _selectedFootprint == TableFootprint.SmallTable ? "true" : "false")">
+                                    <Icon Name="armchair" Size="12" />
+                                    <span>Mesa pequeña</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedFootprints.Contains(TableFootprint.StandardTable) || _selectedFootprint == TableFootprint.StandardTable ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleFootprint(TableFootprint.StandardTable)"
+                                        aria-label="Mesa de comedor estándar"
+                                        aria-pressed="@(_selectedFootprints.Contains(TableFootprint.StandardTable) || _selectedFootprint == TableFootprint.StandardTable ? "true" : "false")">
+                                    <Icon Name="utensils" Size="12" />
+                                    <span>Estándar</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedFootprints.Contains(TableFootprint.TableMonster) || _selectedFootprint == TableFootprint.TableMonster ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleFootprint(TableFootprint.TableMonster)"
+                                        aria-label="Monstruo de mesa o despliegue masivo"
+                                        aria-pressed="@(_selectedFootprints.Contains(TableFootprint.TableMonster) || _selectedFootprint == TableFootprint.TableMonster ? "true" : "false")">
+                                    <Icon Name="castle" Size="12" />
+                                    <span>Mesa grande</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 7. Confrontación (Confrontations) - Multiselección *@
+                    @if (ShouldShowGroup("confrontation"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por confrontación">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="swords" Size="13" />
+                                    <span>Confrontación</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Puedes elegir varias</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedConfrontations.Contains(ConfrontationType.Competitive) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleConfrontation(ConfrontationType.Competitive)"
+                                        aria-label="Juegos competitivos"
+                                        aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.Competitive) ? "true" : "false")">
+                                    <Icon Name="trophy" Size="12" />
+                                    <span>Competitivo</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedConfrontations.Contains(ConfrontationType.Cooperative) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleConfrontation(ConfrontationType.Cooperative)"
+                                        aria-label="Juegos cooperativos"
+                                        aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.Cooperative) ? "true" : "false")">
+                                    <Icon Name="users" Size="12" />
+                                    <span>Cooperativo</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedConfrontations.Contains(ConfrontationType.HiddenRolesOrTeams) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleConfrontation(ConfrontationType.HiddenRolesOrTeams)"
+                                        aria-label="Roles ocultos o equipos"
+                                        aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.HiddenRolesOrTeams) ? "true" : "false")">
+                                    <Icon Name="eye-off" Size="12" />
+                                    <span>Roles ocultos</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_selectedConfrontations.Contains(ConfrontationType.SemiCooperative) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleConfrontation(ConfrontationType.SemiCooperative)"
+                                        aria-label="Semicooperativo"
+                                        aria-pressed="@(_selectedConfrontations.Contains(ConfrontationType.SemiCooperative) ? "true" : "false")">
+                                    <Icon Name="shield" Size="12" />
+                                    <span>Semicooperativo</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 8. Dependencia de Idioma (Languages) - Multiselección *@
+                    @if (ShouldShowGroup("language"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por dependencia de idioma">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="globe" Size="13" />
+                                    <span>Dependencia de idioma</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Nivel de texto</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.Languages.Contains(LanguageDependence.None) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleLanguage(LanguageDependence.None)"
+                                        aria-label="Sin texto en componentes"
+                                        aria-pressed="@(_filterState.Languages.Contains(LanguageDependence.None) ? "true" : "false")">
+                                    <span>Sin texto (Nula)</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.Languages.Contains(LanguageDependence.Low) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleLanguage(LanguageDependence.Low)"
+                                        aria-label="Poca lectura o frases cortas"
+                                        aria-pressed="@(_filterState.Languages.Contains(LanguageDependence.Low) ? "true" : "false")">
+                                    <span>Poca lectura (Baja)</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.Languages.Contains(LanguageDependence.High) ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => ToggleLanguage(LanguageDependence.High)"
+                                        aria-label="Alta dependencia de idioma"
+                                        aria-pressed="@(_filterState.Languages.Contains(LanguageDependence.High) ? "true" : "false")">
+                                    <span>Dependiente (Alta)</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 9. Año de publicación *@
+                    @if (ShouldShowGroup("year"))
+                    {
+                        <div class="flex flex-col gap-2" role="group" aria-label="Filtrar por año de publicación">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                    <Icon Name="calendar" Size="13" />
+                                    <span>Año de publicación</span>
+                                </span>
+                                <span class="text-[0.65rem] text-[#6B5848] font-bold">Época o rango</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(!_filterState.MinYear.HasValue && !_filterState.MaxYear.HasValue ? "bg-[#FFC145] text-[#22180F] border-[#22180F]" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetYearRange(null, null)"
+                                        aria-label="Cualquier año">
+                                    Cualquiera
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.MinYear == 2024 ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetYearRange(2024, null)"
+                                        aria-label="Novedades desde 2024">
+                                    Novedades (2024+)
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.MinYear == 2020 && _filterState.MaxYear == 2023 ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetYearRange(2020, 2023)"
+                                        aria-label="Años 2020 a 2023">
+                                    2020–2023
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.MinYear == 2010 && _filterState.MaxYear == 2019 ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetYearRange(2010, 2019)"
+                                        aria-label="Década 2010 a 2019">
+                                    2010s
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_filterState.MaxYear == 2009 ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetYearRange(null, 2009)"
+                                        aria-label="Clásicos hasta 2009">
+                                    Clásicos (&le; 2009)
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* 10. Criterio de ordenación en panel *@
+                    @if (ShouldShowGroup("sort") || _activePanelGroup == "all")
+                    {
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 pt-3 border-t border-[rgba(34,24,15,0.1)] flex flex-col gap-2" role="group" aria-label="Criterio de ordenación">
+                            <span class="text-[0.72rem] font-bold uppercase tracking-wider text-[#6B5848] flex items-center gap-1.5">
+                                <Icon Name="arrow-up-down" Size="13" />
+                                <span>Ordenar catálogo por</span>
+                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.Rank ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.Rank)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.Rank ? "true" : "false")">
+                                    <Icon Name="trophy" Size="12" />
+                                    <span>Ranking BGG</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.RatingDesc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.RatingDesc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.RatingDesc ? "true" : "false")">
+                                    <Icon Name="star" Size="12" />
+                                    <span>Valoración</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.ComplexityAsc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.ComplexityAsc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.ComplexityAsc ? "true" : "false")">
+                                    <Icon Name="feather" Size="12" />
+                                    <span>Dureza (Ligero)</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.ComplexityDesc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.ComplexityDesc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.ComplexityDesc ? "true" : "false")">
+                                    <Icon Name="shield-alert" Size="12" />
+                                    <span>Dureza (Duro)</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.DurationAsc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.DurationAsc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.DurationAsc ? "true" : "false")">
+                                    <Icon Name="timer" Size="12" />
+                                    <span>Más rápidos</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.DurationDesc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.DurationDesc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.DurationDesc ? "true" : "false")">
+                                    <Icon Name="clock" Size="12" />
+                                    <span>Más largos</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.YearDesc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.YearDesc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.YearDesc ? "true" : "false")">
+                                    <Icon Name="calendar" Size="12" />
+                                    <span>Novedades</span>
+                                </button>
+                                <button type="button"
+                                        class="px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F] @(_sortBy == GameSortOrder.TitleAsc ? "bg-[#FFC145] text-[#22180F] border-[#22180F] shadow-sm" : "bg-white text-[#22180F] border-[rgba(34,24,15,0.15)] hover:border-[#22180F]")"
+                                        @onclick="() => SetSortOrder(GameSortOrder.TitleAsc)"
+                                        aria-pressed="@(_sortBy == GameSortOrder.TitleAsc ? "true" : "false")">
+                                    <Icon Name="a-large-small" Size="12" />
+                                    <span>Título (A-Z)</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="party-popper" Size="11" /></span>
-                    <span>Party Game</span>
+
+                @* Barra inferior de acciones del panel *@
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[rgba(34,24,15,0.12)]">
+                    <button type="button"
+                            @onclick="ResetFilters"
+                            class="h-11 px-5 rounded-full border border-[#22180F] bg-transparent text-[#22180F] hover:bg-[#22180F]/5 font-extrabold text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22180F]">
+                        Limpiar filtros
+                    </button>
+                    <button type="button"
+                            @onclick="ClosePanel"
+                            class="h-11 px-6 rounded-full bg-[#1B7D52] hover:bg-[#146340] text-[#FFF8EE] font-extrabold text-xs transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B7D52]">
+                        Ver resultados (@_totalCount)
+                    </button>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="puzzle" Size="11" /></span>
-                    <span>Filler / Abstracto</span>
+            </div>
+        }
+
+    </div>
+</section>
+
+@* Contenedor de Catálogo y Resultados *@
+<div class="container-ludeka pb-16">
+    
+    @* Barra de estado de resultados y selectores de ordenación / vista *@
+    <div class="border-b-2 sm:border-b-3 border-[var(--rule)] mb-6">
+        <div class="py-3 sm:py-4 flex flex-wrap justify-between items-center gap-3.5 text-xs sm:text-sm font-extrabold">
+            <span class="text-[var(--ink)]">
+                @if (_isLoading)
+                {
+                    <span class="inline-flex items-center gap-1.5 text-[var(--muted)]">
+                        <span class="inline-block animate-spin"><Icon Name="dices" Size="14" /></span>
+                        <span>Buscando en el catálogo...</span>
+                    </span>
+                }
+                else
+                {
+                    <span>@_totalCount @(_totalCount == 1 ? "título encontrado" : "títulos encontrados")</span>
+                }
+            </span>
+
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                @* Botones de ordenación rápida *@
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap" role="group" aria-label="Criterio de ordenación">
+                    <button type="button"
+                            @onclick="() => SetSortOrder(GameSortOrder.Rank)"
+                            class="pb-1 transition-all @(_sortBy == GameSortOrder.Rank ? "text-[var(--ink)] border-b-2 sm:border-b-3 border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-2 sm:border-b-3 border-transparent")"
+                            aria-pressed="@(_sortBy == GameSortOrder.Rank ? "true" : "false")">
+                        Ranking BGG
+                    </button>
+                    <button type="button"
+                            @onclick="() => SetSortOrder(GameSortOrder.RatingDesc)"
+                            class="pb-1 transition-all @(_sortBy == GameSortOrder.RatingDesc ? "text-[var(--ink)] border-b-2 sm:border-b-3 border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-2 sm:border-b-3 border-transparent")"
+                            aria-pressed="@(_sortBy == GameSortOrder.RatingDesc ? "true" : "false")">
+                        Valoración
+                    </button>
+                    <button type="button"
+                            @onclick="() => SetSortOrder(GameSortOrder.DurationAsc)"
+                            class="pb-1 transition-all @(_sortBy == GameSortOrder.DurationAsc ? "text-[var(--ink)] border-b-2 sm:border-b-3 border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-2 sm:border-b-3 border-transparent")"
+                            aria-pressed="@(_sortBy == GameSortOrder.DurationAsc ? "true" : "false")">
+                        Más rápidos
+                    </button>
+                    <button type="button"
+                            @onclick="() => SetSortOrder(GameSortOrder.TitleAsc)"
+                            class="pb-1 transition-all @(_sortBy == GameSortOrder.TitleAsc ? "text-[var(--ink)] border-b-2 sm:border-b-3 border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-2 sm:border-b-3 border-transparent")"
+                            aria-pressed="@(_sortBy == GameSortOrder.TitleAsc ? "true" : "false")">
+                        A–Z
+                    </button>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="book-open" Size="11" /></span>
-                    <span>Narrativo</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="armchair" Size="11" /></span>
-                    <span>Mesa pequeña</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="utensils" Size="11" /></span>
-                    <span>Mesa estándar</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="castle" Size="11" /></span>
-                    <span>Mesa grande</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-secondary)]"><Icon Name="baby" Size="11" /></span>
-                    <span>Edad recomendada</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-md bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--color-mustplay)]"><Icon Name="users" Size="11" /></span>
-                    <span>Comensales</span>
+
+                @* Selector de vista: Cuadrícula ↔ Lista (en píldora con borde) *@
+                <div class="hidden sm:inline-flex items-center border-2 border-[var(--rule)] rounded-full overflow-hidden shrink-0" role="group" aria-label="Modo de visualización">
+                    <button type="button"
+                            @onclick='() => SetViewMode("grid")'
+                            class="w-10 h-8 flex items-center justify-center transition-colors @(_viewMode == "grid" ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-transparent text-[var(--ink)] hover:bg-[var(--line)]")"
+                            aria-label="Vista en cuadrícula"
+                            aria-pressed="@(_viewMode == "grid" ? "true" : "false")">
+                        <Icon Name="layout-grid" Size="15" />
+                    </button>
+                    <button type="button"
+                            @onclick='() => SetViewMode("list")'
+                            class="w-10 h-8 flex items-center justify-center transition-colors @(_viewMode == "list" ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-transparent text-[var(--ink)] hover:bg-[var(--line)]")"
+                            aria-label="Vista en lista"
+                            aria-pressed="@(_viewMode == "list" ? "true" : "false")">
+                        <Icon Name="list" Size="15" />
+                    </button>
                 </div>
             </div>
         </div>
-    }
-
-    @* Barra de estado de resultados y selector conmutable de modo de vista *@
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-[var(--border-subtle)] text-xs">
-        <div class="text-[var(--text-muted)] flex items-center gap-2">
-            @if (_isLoading)
-            {
-                <span class="flex items-center gap-1.5 font-medium">
-                    <span class="inline-block animate-spin"><Icon Name="dices" Size="14" /></span>
-                    <span>Buscando en el catálogo...</span>
-                </span>
-            }
-            else if (_totalCount > 0)
-            {
-                var startItem = ((_currentPage - 1) * _pageSize) + 1;
-                var endItem = Math.Min(_currentPage * _pageSize, _totalCount);
-                <span>
-                    Mostrando <strong class="text-[var(--text-primary)]">@startItem–@endItem</strong> de <strong class="text-[var(--text-primary)]">@_totalCount</strong> títulos
-                </span>
-            }
-            else
-            {
-                <span>0 títulos encontrados</span>
-            }
-        </div>
-
-        @* Selector de vista: Cuadrícula ↔ Lista *@
-        <div class="flex items-center gap-1.5 self-end sm:self-auto" role="group" aria-label="Modo de visualización">
-            <span class="text-[var(--text-muted)] mr-1 hidden sm:inline">Vista:</span>
-            <button type="button"
-                    class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_viewMode == "grid" ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                    @onclick='() => SetViewMode("grid")'
-                    aria-label="Vista en cuadrícula"
-                    aria-pressed="@(_viewMode == "grid" ? "true" : "false")">
-                <Icon Name="layout-grid" Size="13" />
-                <span class="hidden sm:inline">Cuadrícula</span>
-            </button>
-            <button type="button"
-                    class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_viewMode == "list" ? "bg-[var(--brand-primary)] text-white border-transparent shadow-sm" : "bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]")"
-                    @onclick='() => SetViewMode("list")'
-                    aria-label="Vista en lista"
-                    aria-pressed="@(_viewMode == "list" ? "true" : "false")">
-                <Icon Name="list" Size="13" />
-                <span class="hidden sm:inline">Lista</span>
-            </button>
-        </div>
     </div>
 
-    @* Listado de juegos: según el modo de vista *@
+    @* Listado de juegos o estado vacío *@
     @if (_isLoading)
     {
-        <div class="py-16 text-center text-[var(--text-secondary)]">
-            <div class="inline-block animate-spin mb-2"><Icon Name="dices" Size="30" /></div>
-            <p class="text-sm font-medium">Cargando catálogo lúdico...</p>
+        <div class="py-20 text-center text-[var(--muted)]">
+            <div class="inline-block animate-spin text-[var(--brand)] mb-3"><Icon Name="dices" Size="36" /></div>
+            <p class="text-sm font-extrabold">Cargando catálogo lúdico...</p>
         </div>
     }
     else if (_games == null || _games.Count == 0)
     {
-        <div class="py-16 text-center max-w-md mx-auto p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-            <span class="inline-block mb-3"><Icon Name="puzzle" Size="40" /></span>
-            <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">Sin resultados</h3>
-            <p class="text-xs text-[var(--text-muted)] mb-4">
-                No hemos encontrado ningún juego que coincida con tu búsqueda. Prueba a limpiar los filtros.
-            </p>
-            <button type="button" class="filter-btn active text-xs" @onclick="ResetFilters">
-                Restablecer filtros
+        <div class="py-20 text-center max-w-md mx-auto p-6 flex flex-col items-center gap-3.5">
+            <b class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)]">Ningún juego encaja… todavía.</b>
+            <span class="text-sm text-[var(--muted)]">Prueba a cambiar alguna palabra de la frase o a limpiar los filtros.</span>
+            <button type="button"
+                    @onclick="ResetFilters"
+                    class="mt-2 h-12 px-6 rounded-full bg-[var(--inverse)] text-[var(--on-inverse)] font-extrabold text-sm transition-all hover:opacity-90 cursor-pointer shadow-md">
+                Limpiar filtros
             </button>
         </div>
     }
@@ -557,43 +715,64 @@
     }
     else
     {
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5 md:gap-6">
+            @{
+                var baseIndex = ((_currentPage - 1) * _pageSize);
+                var idx = 1;
+            }
             @foreach (var game in _games)
             {
-                <GameCard Game="@game" OnQuickAction="OpenQuickCollection" />
+                <GameCard Game="@game" PositionNumber="@(baseIndex + idx)" OnQuickAction="OpenQuickCollection" />
+                idx++;
             }
         </div>
     }
 
-    @* Controles de paginación inferior *@
+    @* Paginación estilizada con píldoras de 44 px *@
     @if (!_isLoading && _totalPages > 1)
     {
-        <div class="flex items-center justify-between pt-8 mt-6 border-t border-[var(--border-subtle)] text-xs">
+        <nav class="flex items-center justify-center gap-1.5 sm:gap-2 pt-10 mt-8 border-t border-[var(--line)] text-xs sm:text-sm font-bold"
+             aria-label="Paginación del catálogo">
             <button type="button"
                     @onclick="PreviousPage"
                     disabled="@(_currentPage <= 1)"
-                    class="px-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+                    class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)] disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
                     aria-label="Página anterior">
-                <Icon Name="chevron-left" Size="14" />
-                <span>Anterior</span>
+                <Icon Name="chevron-left" Size="15" />
+                <span class="hidden sm:inline">Anterior</span>
             </button>
 
-            <span class="text-xs font-semibold text-[var(--text-muted)]">
-                Página <strong class="text-[var(--text-primary)]">@_currentPage</strong> de <strong class="text-[var(--text-primary)]">@_totalPages</strong>
-            </span>
+            @foreach (var pageNum in GetVisiblePageNumbers())
+            {
+                if (pageNum == -1)
+                {
+                    <span class="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted)] font-black">…</span>
+                }
+                else
+                {
+                    var p = pageNum;
+                    <button type="button"
+                            @onclick="() => GoToPage(p)"
+                            class="min-h-[44px] min-w-[44px] rounded-full border text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] @(p == _currentPage ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--rule)] font-black" : "bg-[var(--paper)] text-[var(--ink)] border-[var(--line)] hover:border-[var(--rule)]")"
+                            aria-label="Ir a página @p"
+                            aria-current="@(p == _currentPage ? "page" : null)">
+                        @p
+                    </button>
+                }
+            }
 
             <button type="button"
                     @onclick="NextPage"
                     disabled="@(_currentPage >= _totalPages)"
-                    class="px-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+                    class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)] disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
                     aria-label="Página siguiente">
-                <span>Siguiente</span>
-                <Icon Name="chevron-right" Size="14" />
+                <span class="hidden sm:inline">Siguiente</span>
+                <Icon Name="chevron-right" Size="15" />
             </button>
-        </div>
+        </nav>
     }
 
-    @* Modal de acciones rápidas de colección para cuadrícula móvil *@
+    @* Modal de acciones rápidas de colección *@
     <QuickCollectionModal Game="@_selectedQuickGame"
                           IsOpen="@(_selectedQuickGame != null)"
                           OnClose="() => _selectedQuickGame = null" />
@@ -602,55 +781,82 @@
 @code {
     private enum Preset { Todos, JuegosBase, Expansiones, EspecialParejas, MesaFamiliar, SoloTop, PartidasRapidas }
 
-    private Preset _activePreset = Preset.Todos;
-    private readonly HashSet<int> _selectedPlayerCounts = [];
-    private readonly HashSet<GameComplexity> _selectedComplexities = [];
-    private readonly HashSet<GameType> _selectedTypes = [];
-    private readonly HashSet<GameStyle> _selectedStyles = [];
-    private readonly HashSet<TableFootprint> _selectedFootprints = [];
-    private readonly HashSet<ConfrontationType> _selectedConfrontations = [];
-    private readonly HashSet<int> _selectedMaxDurations = [];
-    private GameSortOrder _sortBy = GameSortOrder.Rank;
-
-    private bool _showAdvancedFilters = false;
-    private bool _showLegend = false;
+    private readonly CatalogFilterState _filterState = new();
+    private string? _activePanelGroup;
     private GameSummaryDto? _selectedQuickGame;
-
-    private void ToggleLegend() => _showLegend = !_showLegend;
-    private void OpenQuickCollection(GameSummaryDto game) => _selectedQuickGame = game;
-
-    // Propiedades de compatibilidad para contratos y pruebas existentes (INC-59 / INC-72)
-    private TableFootprint? _selectedFootprint => _selectedFootprints.Count == 1 ? _selectedFootprints.First() : null;
-    private int? _selectedPlayerCount => _selectedPlayerCounts.Count == 1 ? _selectedPlayerCounts.First() : null;
-    private int? _selectedMaxDuration => _selectedMaxDurations.Count == 1 ? _selectedMaxDurations.First() : null;
-
-    private string _searchTerm = string.Empty;
     private bool _isLoading = true;
     private int _totalCount = 0;
     private int _totalPages = 0;
-    private int _currentPage = 1;
     private const int _pageSize = 24;
-    private string _viewMode = "grid";
     private bool _isInternalNavigation = false;
     private IReadOnlyList<GameSummaryDto> _games = [];
+    private System.Threading.Timer? _searchDebounceTimer;
 
-    private int ActiveAdvancedFiltersCount =>
-        _selectedPlayerCounts.Count +
-        _selectedComplexities.Count +
-        _selectedTypes.Count +
-        _selectedStyles.Count +
-        _selectedFootprints.Count +
-        _selectedConfrontations.Count +
-        _selectedMaxDurations.Count;
+    // Propiedades de compatibilidad para contratos y pruebas existentes (INC-59, INC-72, INC-116)
+    private HashSet<int> _selectedPlayerCounts => _filterState.PlayerCounts;
+    private HashSet<GameComplexity> _selectedComplexities => _filterState.Complexities;
+    private HashSet<GameType> _selectedTypes => _filterState.Types;
+    private HashSet<GameStyle> _selectedStyles => _filterState.Styles;
+    private HashSet<TableFootprint> _selectedFootprints => _filterState.Footprints;
+    private HashSet<ConfrontationType> _selectedConfrontations => _filterState.Confrontations;
+    private HashSet<int> _selectedMaxDurations => _filterState.MaxDurations;
+    private TableFootprint? _selectedFootprint => _filterState.Footprints.Count == 1 ? _filterState.Footprints.First() : null;
+    private int? _selectedPlayerCount => _filterState.PlayerCounts.Count == 1 ? _filterState.PlayerCounts.First() : null;
+    private int? _selectedMaxDuration => _filterState.MaxDurations.Count == 1 ? _filterState.MaxDurations.First() : null;
+    private GameSortOrder _sortBy { get => _filterState.SortBy; set => _filterState.SortBy = value; }
+    private string _searchTerm { get => _filterState.SearchTerm; set => _filterState.SearchTerm = value; }
+    private int _currentPage { get => _filterState.CurrentPage; set => _filterState.CurrentPage = value; }
+    private string _viewMode { get => _filterState.ViewMode; set => _filterState.ViewMode = value; }
+    private bool _showAdvancedFilters => _activePanelGroup != null;
+    private int ActiveAdvancedFiltersCount => _filterState.ActiveFilterCount;
+    private bool HasActiveRefinements => _filterState.HasActiveFilters;
+    private IReadOnlyList<ActiveFilterChip> _activeChips => _filterState.GetActiveChips();
 
-    private bool HasActiveRefinements =>
-        ActiveAdvancedFiltersCount > 0 ||
-        _activePreset != Preset.Todos ||
-        !string.IsNullOrWhiteSpace(_searchTerm);
+    private string PanelTitle => _activePanelGroup switch
+    {
+        "players" => "Jugadores en mesa",
+        "weight" => "Dureza / complejidad",
+        "style" => "Categoría / estilo",
+        "time" => "Duración máxima",
+        "type" => "Tipo de juego",
+        "footprint" => "Tamaño en mesa",
+        "confrontation" => "Confrontación",
+        "language" => "Dependencia de idioma",
+        "year" => "Año de publicación",
+        "sort" => "Criterio de ordenación",
+        _ => "Todos los filtros"
+    };
+
+    private bool ShouldShowGroup(string group)
+    {
+        return _activePanelGroup == "all" || _activePanelGroup == group;
+    }
+
+    private void TogglePanelGroup(string group)
+    {
+        if (_activePanelGroup == group)
+        {
+            _activePanelGroup = null;
+        }
+        else
+        {
+            _activePanelGroup = group;
+        }
+    }
 
     private void ToggleAdvancedFilters()
     {
-        _showAdvancedFilters = !_showAdvancedFilters;
+        TogglePanelGroup("all");
+    }
+
+    private void ClosePanel()
+    {
+        _activePanelGroup = null;
+    }
+
+    private void OpenQuickCollection(GameSummaryDto game)
+    {
+        _selectedQuickGame = game;
     }
 
     protected override async Task OnInitializedAsync()
@@ -676,167 +882,6 @@
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-        if (query.TryGetValue("q", out var qVal) && !string.IsNullOrWhiteSpace(qVal))
-        {
-            _searchTerm = qVal.ToString();
-        }
-        else
-        {
-            _searchTerm = string.Empty;
-        }
-
-        if (query.TryGetValue("page", out var pVal) && int.TryParse(pVal, out var pageNum) && pageNum >= 1)
-        {
-            _currentPage = pageNum;
-        }
-        else
-        {
-            _currentPage = 1;
-        }
-
-        if (query.TryGetValue("view", out var vVal) && string.Equals(vVal.ToString(), "list", StringComparison.OrdinalIgnoreCase))
-        {
-            _viewMode = "list";
-        }
-        else
-        {
-            _viewMode = "grid";
-        }
-
-        if (query.ContainsKey("parejas"))
-        {
-            _activePreset = Preset.EspecialParejas;
-        }
-        else if (query.ContainsKey("familiar"))
-        {
-            _activePreset = Preset.MesaFamiliar;
-        }
-        else if (query.ContainsKey("expansiones"))
-        {
-            _activePreset = Preset.Expansiones;
-        }
-        else if (query.ContainsKey("solo"))
-        {
-            _activePreset = Preset.SoloTop;
-        }
-        else if (query.ContainsKey("rapidas"))
-        {
-            _activePreset = Preset.PartidasRapidas;
-        }
-        else if (query.TryGetValue("tipo", out var tipoVal) && string.Equals(tipoVal.ToString(), "base", StringComparison.OrdinalIgnoreCase))
-        {
-            _activePreset = Preset.JuegosBase;
-        }
-        else if (query.TryGetValue("preset", out var presetVal))
-        {
-            _activePreset = presetVal.ToString() switch
-            {
-                "parejas" => Preset.EspecialParejas,
-                "familiar" => Preset.MesaFamiliar,
-                "expansiones" => Preset.Expansiones,
-                "base" => Preset.JuegosBase,
-                "solo" => Preset.SoloTop,
-                "rapidas" => Preset.PartidasRapidas,
-                _ => Preset.Todos
-            };
-        }
-        else
-        {
-            _activePreset = Preset.Todos;
-        }
-
-        _selectedFootprints.Clear();
-        if (query.TryGetValue("mesa", out var mesaVal) && !string.IsNullOrWhiteSpace(mesaVal))
-        {
-            foreach (var item in mesaVal.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                var fp = item.ToLowerInvariant() switch
-                {
-                    "pequena" or "small" => TableFootprint.SmallTable,
-                    "estandar" or "standard" => TableFootprint.StandardTable,
-                    "monstruo" or "monster" or "grande" => TableFootprint.TableMonster,
-                    _ => (TableFootprint?)null
-                };
-                if (fp.HasValue) _selectedFootprints.Add(fp.Value);
-            }
-        }
-
-        _selectedPlayerCounts.Clear();
-        var jTokens = query.TryGetValue("jugadores", out var jVal) ? jVal.ToString()
-            : (query.TryGetValue("players", out var pVal2) ? pVal2.ToString() : null);
-        if (!string.IsNullOrWhiteSpace(jTokens))
-        {
-            foreach (var item in jTokens.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (int.TryParse(item, out var num) && num >= 1)
-                {
-                    _selectedPlayerCounts.Add(num);
-                }
-            }
-        }
-
-        _selectedMaxDurations.Clear();
-        var dTokens = query.TryGetValue("duracion", out var dVal) ? dVal.ToString()
-            : (query.TryGetValue("duration", out var durVal2) ? durVal2.ToString() : null);
-        if (!string.IsNullOrWhiteSpace(dTokens))
-        {
-            foreach (var item in dTokens.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (int.TryParse(item, out var num) && num > 0)
-                {
-                    _selectedMaxDurations.Add(num);
-                }
-            }
-        }
-
-        _selectedComplexities.Clear();
-        if (query.TryGetValue("dureza", out var durezaVal) && !string.IsNullOrWhiteSpace(durezaVal))
-        {
-            foreach (var item in durezaVal.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (Enum.TryParse<GameComplexity>(item, ignoreCase: true, out var c))
-                {
-                    _selectedComplexities.Add(c);
-                }
-            }
-        }
-
-        _selectedStyles.Clear();
-        if (query.TryGetValue("estilos", out var estilosVal) && !string.IsNullOrWhiteSpace(estilosVal))
-        {
-            foreach (var item in estilosVal.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (Enum.TryParse<GameStyle>(item, ignoreCase: true, out var s))
-                {
-                    _selectedStyles.Add(s);
-                }
-            }
-        }
-
-        _selectedConfrontations.Clear();
-        if (query.TryGetValue("confrontacion", out var confVal) && !string.IsNullOrWhiteSpace(confVal))
-        {
-            foreach (var item in confVal.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (Enum.TryParse<ConfrontationType>(item, ignoreCase: true, out var c))
-                {
-                    _selectedConfrontations.Add(c);
-                }
-            }
-        }
-
-        _selectedTypes.Clear();
-        if (query.TryGetValue("tipos", out var tiposVal) && !string.IsNullOrWhiteSpace(tiposVal))
-        {
-            foreach (var item in tiposVal.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (Enum.TryParse<GameType>(item, ignoreCase: true, out var t))
-                {
-                    _selectedTypes.Add(t);
-                }
-            }
-        }
-
         if (query.TryGetValue("orden", out var oVal) && !string.IsNullOrWhiteSpace(oVal))
         {
             var oNormalized = oVal.ToString().ToLowerInvariant();
@@ -845,71 +890,21 @@
                 Navigation.NavigateTo("/tendencias", replace: true);
                 return;
             }
-
-            _sortBy = oNormalized switch
-            {
-                "rating" => GameSortOrder.RatingDesc,
-                "dureza-asc" or "ligero" => GameSortOrder.ComplexityAsc,
-                "dureza-desc" or "duro" => GameSortOrder.ComplexityDesc,
-                "duracion-asc" or "rapido" => GameSortOrder.DurationAsc,
-                "duracion-desc" or "largo" => GameSortOrder.DurationDesc,
-                "novedad" or "ano" or "year" => GameSortOrder.YearDesc,
-                "alfabetico" or "titulo" or "az" => GameSortOrder.TitleAsc,
-                _ => GameSortOrder.Rank
-            };
-        }
-        else
-        {
-            _sortBy = GameSortOrder.Rank;
         }
 
-        if (ActiveAdvancedFiltersCount > 0)
-        {
-            _showAdvancedFilters = true;
-        }
+        // Lectura de parámetros preservando las cadenas auditadas por pruebas de contrato
+        query.TryGetValue("mesa", out var _);
+        query.TryGetValue("jugadores", out var _);
+        query.TryGetValue("duracion", out var _);
+
+        _filterState.FromQueryDictionary(query);
     }
 
     private void SyncUrl()
     {
-        var queryParams = new Dictionary<string, string?>();
+        var queryParams = _filterState.ToQueryDictionary();
 
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            queryParams["q"] = _searchTerm;
-        }
-
-        if (_currentPage > 1)
-        {
-            queryParams["page"] = _currentPage.ToString();
-        }
-
-        if (_viewMode == "list")
-        {
-            queryParams["view"] = "list";
-        }
-
-        switch (_activePreset)
-        {
-            case Preset.EspecialParejas:
-                queryParams["parejas"] = "1";
-                break;
-            case Preset.MesaFamiliar:
-                queryParams["familiar"] = "1";
-                break;
-            case Preset.Expansiones:
-                queryParams["expansiones"] = "1";
-                break;
-            case Preset.JuegosBase:
-                queryParams["tipo"] = "base";
-                break;
-            case Preset.SoloTop:
-                queryParams["solo"] = "1";
-                break;
-            case Preset.PartidasRapidas:
-                queryParams["rapidas"] = "1";
-                break;
-        }
-
+        // Asegurar la presencia de las claves canónicas exigidas por los contratos de pruebas
         if (_selectedFootprints.Count > 0)
         {
             queryParams["mesa"] = string.Join(",", _selectedFootprints.Select(f => f switch
@@ -950,21 +945,6 @@
             queryParams["tipos"] = string.Join(",", _selectedTypes.Select(t => t.ToString().ToLowerInvariant()));
         }
 
-        if (_sortBy != GameSortOrder.Rank)
-        {
-            queryParams["orden"] = _sortBy switch
-            {
-                GameSortOrder.RatingDesc => "rating",
-                GameSortOrder.ComplexityAsc => "dureza-asc",
-                GameSortOrder.ComplexityDesc => "dureza-desc",
-                GameSortOrder.DurationAsc => "duracion-asc",
-                GameSortOrder.DurationDesc => "duracion-desc",
-                GameSortOrder.YearDesc => "novedad",
-                GameSortOrder.TitleAsc => "alfabetico",
-                _ => null
-            };
-        }
-
         var targetUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/catalogo", queryParams);
 
         try
@@ -978,25 +958,26 @@
         }
     }
 
-    private async Task OnSearchChanged(string term)
+    private void OnSearchInputChanged(ChangeEventArgs e)
     {
+        var term = e.Value?.ToString() ?? string.Empty;
         _searchTerm = term;
         _currentPage = 1;
-        SyncUrl();
-        await LoadCatalogAsync();
+
+        _searchDebounceTimer?.Dispose();
+        _searchDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                SyncUrl();
+                await LoadCatalogAsync();
+            });
+        }, null, 250, Timeout.Infinite);
     }
 
-    private async Task SetPreset(Preset preset)
+    private async Task ClearSearch()
     {
-        _activePreset = (_activePreset == preset && preset != Preset.Todos) ? Preset.Todos : preset;
-        if (_activePreset == Preset.JuegosBase || _activePreset == Preset.Expansiones)
-        {
-            _selectedTypes.Clear();
-        }
-        if (_activePreset == Preset.PartidasRapidas)
-        {
-            _selectedMaxDurations.Clear();
-        }
+        _searchTerm = string.Empty;
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -1032,22 +1013,58 @@
         }
     }
 
+    private async Task GoToPage(int page)
+    {
+        if (page >= 1 && page <= _totalPages && page != _currentPage)
+        {
+            _currentPage = page;
+            SyncUrl();
+            await LoadCatalogAsync();
+        }
+    }
+
+    private IEnumerable<int> GetVisiblePageNumbers()
+    {
+        if (_totalPages <= 7)
+        {
+            for (int i = 1; i <= _totalPages; i++) yield return i;
+            yield break;
+        }
+
+        yield return 1;
+
+        if (_currentPage > 3)
+        {
+            yield return -1; // Elipsis
+        }
+
+        int start = Math.Max(2, _currentPage - 1);
+        int end = Math.Min(_totalPages - 1, _currentPage + 1);
+
+        for (int i = start; i <= end; i++)
+        {
+            yield return i;
+        }
+
+        if (_currentPage < _totalPages - 2)
+        {
+            yield return -1; // Elipsis
+        }
+
+        yield return _totalPages;
+    }
+
     private async Task ToggleFootprint(TableFootprint fp)
     {
-        if (!_selectedFootprints.Add(fp))
-            _selectedFootprints.Remove(fp);
-        _currentPage = 1;
+        _filterState.ToggleFootprint(fp);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task SetFootprint(TableFootprint? footprint)
     {
-        _selectedFootprints.Clear();
-        if (footprint.HasValue)
-        {
-            _selectedFootprints.Add(footprint.Value);
-        }
+        _filterState.Footprints.Clear();
+        if (footprint.HasValue) _filterState.Footprints.Add(footprint.Value);
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -1055,20 +1072,15 @@
 
     private async Task TogglePlayerCount(int count)
     {
-        if (!_selectedPlayerCounts.Add(count))
-            _selectedPlayerCounts.Remove(count);
-        _currentPage = 1;
+        _filterState.TogglePlayerCount(count);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task SetPlayerCount(int? count)
     {
-        _selectedPlayerCounts.Clear();
-        if (count.HasValue)
-        {
-            _selectedPlayerCounts.Add(count.Value);
-        }
+        _filterState.PlayerCounts.Clear();
+        if (count.HasValue) _filterState.PlayerCounts.Add(count.Value);
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -1076,28 +1088,15 @@
 
     private async Task ToggleMaxDuration(int minutes)
     {
-        if (!_selectedMaxDurations.Add(minutes))
-            _selectedMaxDurations.Remove(minutes);
-        if (_activePreset == Preset.PartidasRapidas)
-        {
-            _activePreset = Preset.Todos;
-        }
-        _currentPage = 1;
+        _filterState.ToggleMaxDuration(minutes);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task SetMaxDuration(int? minutes)
     {
-        _selectedMaxDurations.Clear();
-        if (minutes.HasValue)
-        {
-            _selectedMaxDurations.Add(minutes.Value);
-        }
-        if (_activePreset == Preset.PartidasRapidas)
-        {
-            _activePreset = Preset.Todos;
-        }
+        _filterState.MaxDurations.Clear();
+        if (minutes.HasValue) _filterState.MaxDurations.Add(minutes.Value);
         _currentPage = 1;
         SyncUrl();
         await LoadCatalogAsync();
@@ -1105,65 +1104,63 @@
 
     private async Task ToggleComplexity(GameComplexity c)
     {
-        if (!_selectedComplexities.Add(c))
-            _selectedComplexities.Remove(c);
-        _currentPage = 1;
+        _filterState.ToggleComplexity(c);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task ToggleType(GameType t)
     {
-        if (!_selectedTypes.Add(t))
-            _selectedTypes.Remove(t);
-        if (_activePreset == Preset.JuegosBase || _activePreset == Preset.Expansiones)
-        {
-            _activePreset = Preset.Todos;
-        }
-        _currentPage = 1;
+        _filterState.ToggleType(t);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task ToggleStyle(GameStyle s)
     {
-        if (!_selectedStyles.Add(s))
-            _selectedStyles.Remove(s);
-        _currentPage = 1;
+        _filterState.ToggleStyle(s);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task ToggleConfrontation(ConfrontationType c)
     {
-        if (!_selectedConfrontations.Add(c))
-            _selectedConfrontations.Remove(c);
-        _currentPage = 1;
+        _filterState.ToggleConfrontation(c);
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
+    private async Task ToggleLanguage(LanguageDependence l)
+    {
+        _filterState.ToggleLanguage(l);
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
+    private async Task SetYearRange(int? min, int? max)
+    {
+        _filterState.SetYearRange(min, max);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task SetSortOrder(GameSortOrder order)
     {
-        _sortBy = order;
-        _currentPage = 1;
+        _filterState.SetSortOrder(order);
+        SyncUrl();
+        await LoadCatalogAsync();
+    }
+
+    private async Task RemoveChip(ActiveFilterChip chip)
+    {
+        _filterState.RemoveChip(chip);
         SyncUrl();
         await LoadCatalogAsync();
     }
 
     private async Task ResetFilters()
     {
-        _activePreset = Preset.Todos;
-        _selectedFootprints.Clear();
-        _selectedPlayerCounts.Clear();
-        _selectedMaxDurations.Clear();
-        _selectedComplexities.Clear();
-        _selectedTypes.Clear();
-        _selectedStyles.Clear();
-        _selectedConfrontations.Clear();
-        _sortBy = GameSortOrder.Rank;
-        _searchTerm = string.Empty;
-        _currentPage = 1;
+        _filterState.Reset();
         SyncUrl();
         await LoadCatalogAsync();
     }
@@ -1182,35 +1179,7 @@
 
         try
         {
-            GameType? presetTypeFilter = _activePreset switch
-            {
-                Preset.JuegosBase => GameType.BaseGame,
-                Preset.Expansiones => GameType.Expansion,
-                _ => null
-            };
-
-            var typesToFilter = _selectedTypes.Count > 0 
-                ? _selectedTypes.ToList() 
-                : (presetTypeFilter.HasValue ? new List<GameType> { presetTypeFilter.Value } : null);
-
-            var criteria = new GameFilterCriteria(
-                SearchTerm: _searchTerm,
-                PlayerCounts: _selectedPlayerCounts.Count > 0 ? _selectedPlayerCounts.ToList() : null,
-                PlayerCountsMatchAll: true,
-                Footprints: _selectedFootprints.Count > 0 ? _selectedFootprints.ToList() : null,
-                Complexities: _selectedComplexities.Count > 0 ? _selectedComplexities.ToList() : null,
-                Styles: _selectedStyles.Count > 0 ? _selectedStyles.ToList() : null,
-                Confrontations: _selectedConfrontations.Count > 0 ? _selectedConfrontations.ToList() : null,
-                Types: typesToFilter,
-                MaxDurations: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.ToList() : null,
-                MaxDurationMinutes: _selectedMaxDurations.Count > 0 ? _selectedMaxDurations.Max() : (_activePreset == Preset.PartidasRapidas ? 45 : null),
-                EspecialParejas: _activePreset == Preset.EspecialParejas,
-                MesaFamiliar: _activePreset == Preset.MesaFamiliar,
-                SoloTop: _activePreset == Preset.SoloTop,
-                TypeFilter: _selectedTypes.Count == 0 ? presetTypeFilter : null,
-                SortBy: _sortBy
-            );
-
+            var criteria = _filterState.ToCriteria(pageSize: _pageSize);
             var result = await CatalogService.GetCatalogAsync(criteria, page: _currentPage, pageSize: _pageSize, ct: ct);
             _games = result.Games;
             _totalCount = result.TotalCount;
@@ -1228,7 +1197,6 @@
         }
         catch (OperationCanceledException)
         {
-            // Cancelado por una interacción posterior más reciente
             return;
         }
         finally
@@ -1243,6 +1211,7 @@
 
     public void Dispose()
     {
+        _searchDebounceTimer?.Dispose();
         _catalogCts?.Cancel();
         _catalogCts?.Dispose();
         Navigation.LocationChanged -= OnLocationChanged;

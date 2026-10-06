@@ -108,7 +108,13 @@ public class CachedCatalogService : ICatalogService
         sb.Append('|');
         if (c.Complexities != null && c.Complexities.Count > 0)
             sb.Append(string.Join(',', c.Complexities.OrderBy(x => (int)x)));
-        sb.Append('|').Append(c.SortBy);
+        sb.Append('|');
+        sb.Append(c.Language).Append('|');
+        if (c.Languages != null && c.Languages.Count > 0)
+            sb.Append(string.Join(',', c.Languages.OrderBy(x => (int)x)));
+        sb.Append('|');
+        sb.Append(c.MinYear).Append('|').Append(c.MaxYear).Append('|');
+        sb.Append(c.SortBy);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())))[..16];
     }
