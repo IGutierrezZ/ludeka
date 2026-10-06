@@ -767,4 +767,15 @@ body {
     backface-visibility: hidden;
 }
 
+/* ==========================================================================
+   Accesibilidad y Foco Programático (Blazor FocusOnNavigate)
+   Suprime el recuadro visual en encabezados al navegar, preservando el anuncio
+   por lectores de pantalla y manteniendo el foco en controles interactivos.
+   ========================================================================== */
+h1:focus,
+[tabindex="-1"]:focus {
+    outline: none;
+}
+
+
 
