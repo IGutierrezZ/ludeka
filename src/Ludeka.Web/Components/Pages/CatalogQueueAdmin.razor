@@ -1,5 +1,7 @@
 @page "/admin/cola-catalogacion"
+@page "/admin/cola"
 @attribute [Authorize(Policy = AuthorizationPolicies.PermisoEditarFichas)]
+@layout AdminLayout
 @rendermode InteractiveServer
 @implements IDisposable
 @using Ludeka.Application.Contracts

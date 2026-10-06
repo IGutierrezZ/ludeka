@@ -1,0 +1,325 @@
+@page "/admin"
+@page "/admin/resumen"
+@layout AdminLayout
+@rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@using Ludeka.Web.Components.Shared
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject ISocialIngestionService IngestionService
+@inject IGameIssueReportService ReportService
+@inject IMediaService MediaService
+@inject IBggCatalogQueueService QueueService
+@inject IAffiliateEanDiscrepancyRepository DiscrepancyRepository
+@inject IAuditService AuditService
+
+<PageTitle>Resumen de Operaciones — Ludeka Gestión</PageTitle>
+
+<div class="space-y-8 animate-fadeIn">
+    @* Encabezado de la Consola Principal *@
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[var(--line)]">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/25 text-[var(--accent)] text-xs font-black uppercase tracking-wider mb-2">
+                <Icon Name="layout-dashboard" Size="13" />
+                <span>Panel Central · Ludeka Gestión</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-black text-[var(--ink)] tracking-tight">
+                Resumen de Operaciones
+            </h1>
+            <p class="text-sm text-[var(--muted)] mt-1 max-w-2xl leading-relaxed">
+                Lo que necesita atención hoy y el estado de los procesos automáticos de la mesa editorial.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <a href="/admin/ingesta-social"
+               class="px-4 py-2.5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-2 hover:opacity-90 transition-opacity shadow-xs">
+                <Icon Name="sparkles" Size="14" />
+                <span>Alta exprés por URL</span>
+            </a>
+            <a href="/admin/cola-catalogacion"
+               class="px-4 py-2.5 rounded-full bg-[var(--card)] border border-[var(--line)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-2 hover:bg-[var(--paper-2)] transition-colors shadow-xs">
+                <Icon Name="database" Size="14" />
+                <span>Cola BGG &amp; Batch</span>
+            </a>
+        </div>
+    </div>
+
+    @* Rejilla de 6 Tarjetas de Métricas de Resumen *@
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        @* 1. Bandeja Social *@
+        <a href="/admin/ingesta-social"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-[var(--mustard)] transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Bandeja Social</span>
+                <span class="text-[var(--muted)] group-hover:text-[var(--mustard)]"><Icon Name="inbox" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                @_pendingSocialCount
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Pendientes de moderar</span>
+        </a>
+
+        @* 2. Reportes de Catálogo *@
+        <a href="/moderacion/reportes"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-[var(--accent)] transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Reportes</span>
+                <span class="text-[var(--muted)] group-hover:text-[var(--accent)]"><Icon Name="flag" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                @_pendingReportCount
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Erratas e incidencias</span>
+        </a>
+
+        @* 3. Multimedia *@
+        <a href="/moderacion/multimedia"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-[var(--sky)] transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Multimedia</span>
+                <span class="text-[var(--muted)] group-hover:text-[var(--sky)]"><Icon Name="clapperboard" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                @_pendingMediaCount
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Vídeos por asociar</span>
+        </a>
+
+        @* 4. Cola de Catalogación *@
+        <a href="/admin/cola-catalogacion"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-[var(--green)] transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Cola BGG</span>
+                <span class="text-[var(--muted)] group-hover:text-[var(--green)]"><Icon Name="database" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                @_pendingQueueCount
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Títulos en proceso</span>
+        </a>
+
+        @* 5. Discrepancias EAN *@
+        <a href="/admin/afiliados"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-[var(--mustard)] transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Feeds &amp; EAN</span>
+                <span class="text-[var(--muted)] group-hover:text-[var(--mustard)]"><Icon Name="shopping-bag" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                @_pendingDiscrepanciesCount
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Códigos por resolver</span>
+        </a>
+
+        @* 6. Cuentas y Canales *@
+        <a href="/admin/canales-monitorizados"
+           class="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] hover:border-emerald-400 transition-all flex flex-col gap-2 group shadow-xs">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+                <span>Directorio</span>
+                <span class="text-[var(--muted)] group-hover:text-emerald-400"><Icon Name="radio" Size="14" /></span>
+            </span>
+            <b class="text-3xl font-black text-[var(--ink)] tracking-tight leading-none">
+                11
+            </b>
+            <span class="text-xs font-semibold text-[var(--muted)]">Bandejas operativas</span>
+        </a>
+    </div>
+
+    @* Dos Paneles de Gestión en Paralelo *@
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        @* Panel 1: Estado de los Sistemas *@
+        <section class="p-6 rounded-3xl bg-[var(--card)] border border-[var(--line)] shadow-xs flex flex-col">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--line)]">
+                <div class="flex items-center gap-2">
+                    <Icon Name="shield" Size="18" Class="text-[var(--accent)]" />
+                    <h2 class="text-base font-extrabold text-[var(--ink)]">Estado de los Sistemas</h2>
+                </div>
+                <span class="text-[11px] font-bold text-emerald-400 inline-flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Salud OK</span>
+                </span>
+            </div>
+
+            <div class="divide-y divide-[var(--line)] flex-1">
+                <a href="/admin/cola-catalogacion" class="py-3 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Pipeline de Catálogo BGG</p>
+                            <p class="text-[11px] text-[var(--muted)]">Extracción continua y top de novedades activo</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+                        <span>Abrir</span>
+                        <span>&rarr;</span>
+                    </span>
+                </a>
+
+                <a href="/admin/afiliados" class="py-3 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Feeds Comerciales de Tiendas</p>
+                            <p class="text-[11px] text-[var(--muted)]">Ingesta XML/JSON y cruce determinista de ofertas</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+                        <span>Abrir</span>
+                        <span>&rarr;</span>
+                    </span>
+                </a>
+
+                <a href="/admin/notificaciones" class="py-3 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Webhooks Discord &amp; Telegram</p>
+                            <p class="text-[11px] text-[var(--muted)]">Despachador en cola y canales de comunidad activos</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+                        <span>Abrir</span>
+                        <span>&rarr;</span>
+                    </span>
+                </a>
+
+                <a href="/admin/instagram" class="py-3 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[var(--mustard)] shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Publicador de Instagram Oficial</p>
+                            <p class="text-[11px] text-[var(--muted)]">Modo simulado activo · Generador de composiciones 1:1</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+                        <span>Abrir</span>
+                        <span>&rarr;</span>
+                    </span>
+                </a>
+
+                <a href="/admin/canales-monitorizados" class="py-3 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Radar de Canales Monitorizados</p>
+                            <p class="text-[11px] text-[var(--muted)]">Perfiles de editoriales, divulgadores y tiendas</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+                        <span>Abrir</span>
+                        <span>&rarr;</span>
+                    </span>
+                </a>
+            </div>
+        </section>
+
+        @* Panel 2: Actividad Reciente de Auditoría *@
+        <section class="p-6 rounded-3xl bg-[var(--card)] border border-[var(--line)] shadow-xs flex flex-col">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[var(--line)]">
+                <div class="flex items-center gap-2">
+                    <Icon Name="scroll" Size="18" Class="text-[var(--accent)]" />
+                    <h2 class="text-base font-extrabold text-[var(--ink)]">Actividad Editorial Reciente</h2>
+                </div>
+                <a href="/admin/auditoria" class="text-xs font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1">
+                    <span>Ver bitácora completa</span>
+                    <span>&rarr;</span>
+                </a>
+            </div>
+
+            <div class="divide-y divide-[var(--line)] flex-1">
+                @if (_recentAuditLogs is not null && _recentAuditLogs.Count > 0)
+                {
+                    @foreach (var log in _recentAuditLogs)
+                    {
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0 @GetActionBadgeClass(log.Action)">
+                                    @log.ActionDisplayName
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-[var(--ink)] truncate">@log.EntityName</p>
+                                    <p class="text-[11px] text-[var(--muted)] truncate">@log.UserName &middot; @log.Summary</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] text-[var(--muted)] shrink-0">
+                                @log.Timestamp.ToString("HH:mm")
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="py-8 text-center text-xs text-[var(--muted)]">
+                        No hay registros de auditoría recientes en este ciclo.
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+@code {
+    private int _pendingSocialCount;
+    private int _pendingReportCount;
+    private int _pendingMediaCount;
+    private int _pendingQueueCount;
+    private int _pendingDiscrepanciesCount;
+    private IReadOnlyList<AuditLogDto> _recentAuditLogs = Array.Empty<AuditLogDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _pendingSocialCount = await IngestionService.GetPendingCountAsync();
+        }
+        catch { }
+
+        try
+        {
+            var summary = await ReportService.GetSummaryAsync();
+            _pendingReportCount = summary.PendingCount;
+        }
+        catch { }
+
+        try
+        {
+            var media = await MediaService.GetPendingModerationAsync();
+            _pendingMediaCount = media.Count;
+        }
+        catch { }
+
+        try
+        {
+            _pendingQueueCount = await QueueService.GetTotalPendingCountAsync();
+        }
+        catch { }
+
+        try
+        {
+            var discrepancies = await DiscrepancyRepository.GetPendingDiscrepanciesAsync(100);
+            _pendingDiscrepanciesCount = discrepancies.Count;
+        }
+        catch { }
+
+        try
+        {
+            var auditPage = await AuditService.GetAuditLogsAsync(new AuditLogFilterDto { Page = 1, PageSize = 5 });
+            _recentAuditLogs = auditPage.Items;
+        }
+        catch { }
+    }
+
+    private static string GetActionBadgeClass(AuditAction action) => action switch
+    {
+        AuditAction.Created => "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+        AuditAction.Updated => "bg-blue-500/15 text-blue-400 border border-blue-500/30",
+        AuditAction.Deleted => "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+        AuditAction.StatusChanged => "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+        AuditAction.RoleChanged or AuditAction.PermissionsChanged => "bg-purple-500/15 text-purple-400 border border-purple-500/30",
+        AuditAction.Published => "bg-[var(--mustard)]/15 text-[var(--mustard)] border border-[var(--mustard)]/30",
+        _ => "bg-stone-500/15 text-stone-400 border border-stone-500/30"
+    };
+}

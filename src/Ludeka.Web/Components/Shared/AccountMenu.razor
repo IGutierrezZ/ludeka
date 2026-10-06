@@ -8,11 +8,10 @@
 @inject NavigationManager Navigation
 
 @*
-    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-61, diseño §1).
-    - Con sesión activa: botón con avatar editorial de inicial, nombre de usuario,
-      indicador de alerta si hay correo pendiente de verificación y menú desplegable
-      accesible con 6 destinos canónicos.
-    - Sin sesión (invitado): puerta clara y accesible a /login ("Entrar").
+    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-114, Revista Lúdica).
+    - Con sesión activa: botón de píldora con avatar mostaza (inicial), nombre y desplegable
+      accesible de 290 px con borde --rule y 22 px de radio con los 6 destinos canónicos.
+    - Sin sesión (invitado): botón accesible a /login ("Entrar").
     - Cumple con WCAG 2.2 AA (teclado Escape, aria-expanded, aria-haspopup, telón de descarte).
 *@
 
@@ -20,9 +19,11 @@
 {
     <a href="/login"
        title="Entrar"
-       class="px-2.5 py-1.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
+       style="@ButtonStyle"
+       class="h-10 px-4 rounded-full bg-[var(--ink)] text-[var(--paper)] hover:opacity-90 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2">
         <Icon Name="user" Size="14" />
-        <span class="sr-only sm:not-sr-only">Entrar</span>
+        <span>Entrar</span>
+        <span class="sr-only sm:not-sr-only"></span>
     </a>
 }
 else
@@ -34,69 +35,81 @@ else
                 aria-haspopup="menu"
                 aria-label="@($"Menú de cuenta de {CurrentUserService.UserName}")"
                 title="@CurrentUserService.UserName"
-                class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border transition-all flex items-center justify-center text-xs font-semibold shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 relative @(_isOpen ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-[var(--border-subtle)] hover:border-[var(--brand-primary)]")">
+                style="@ButtonStyle"
+                class="h-10 pl-1.5 pr-2.5 sm:pr-3.5 rounded-full bg-[var(--ink)] text-[var(--paper)] border border-[var(--line)] transition-all flex items-center gap-2 font-extrabold text-xs shadow-sm shrink-0 min-h-[24px] min-w-[24px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 relative">
 
-            <Icon Name="user" Size="16" />
+            <span class="w-[30px] h-[30px] rounded-full bg-[var(--mustard)] text-[#22180F] flex items-center justify-center font-extrabold text-sm shrink-0">
+                @UserInitial
+            </span>
+
+            <span class="hidden sm:inline font-bold truncate max-w-[120px]">
+                @FirstName
+            </span>
 
             @* Indicador discreto de aviso si el correo no está verificado *@
             @if (_needsEmailNotice)
             {
-                <span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-[var(--bg-surface-elevated)] shrink-0" title="Correo pendiente de verificación"></span>
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-[var(--paper)] shrink-0" title="Correo pendiente de verificación"></span>
             }
         </button>
 
         @if (_isOpen)
         {
             <div class="fixed inset-0 z-40" @onclick="CloseMenu"></div>
-            <div class="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-2xl p-2 z-50 text-xs space-y-1 animate-fade-in"
+            <div class="absolute right-0 top-full mt-2 w-[290px] rounded-[22px] bg-[var(--paper)] text-[var(--ink)] border-2 border-[var(--rule)] shadow-2xl p-2 z-50 text-xs space-y-1 animate-fade-in"
                  role="menu"
                  aria-label="Opciones de cuenta">
 
-                @* Cabecera con datos de cuenta y rol *@
-                <div class="px-3 py-2 border-b border-[var(--border-subtle)] mb-1">
-                    <p class="font-bold text-sm text-[var(--text-primary)] truncate">@CurrentUserService.UserName</p>
-                    @if (!string.IsNullOrWhiteSpace(RoleLabel))
-                    {
-                        <p class="text-[0.7rem] text-[var(--brand-primary)] font-bold truncate">@RoleLabel</p>
-                    }
-                    else
-                    {
-                        <p class="text-[0.7rem] text-[var(--text-muted)] truncate">Usuario de Ludeka</p>
-                    }
+                @* Cabecera con avatar mostaza, nombre de cuenta y rol *@
+                <div class="p-3 border-b border-[var(--line)] mb-1 flex items-center gap-3">
+                    <span class="w-11 h-11 rounded-full bg-[var(--mustard)] text-[#22180F] flex items-center justify-center font-extrabold text-lg shrink-0">
+                        @UserInitial
+                    </span>
+                    <div class="flex flex-col min-w-0">
+                        <p class="font-extrabold text-sm text-[var(--ink)] truncate">@CurrentUserService.UserName</p>
+                        @if (!string.IsNullOrWhiteSpace(RoleLabel))
+                        {
+                            <p class="text-[0.7rem] text-[var(--accent)] font-extrabold truncate">@RoleLabel</p>
+                        }
+                        else
+                        {
+                            <p class="text-[0.7rem] text-[var(--muted)] font-bold truncate">Usuario de Ludeka</p>
+                        }
+                    </div>
                 </div>
 
                 @* 1. Perfil Público *@
-                <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <Icon Name="user" Size="14" />
                     <span>Mi Perfil Público</span>
                 </a>
 
                 @* 2. Mi Ludoteca *@
-                <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <Icon Name="library" Size="14" />
                     <span>Mi Ludoteca</span>
                 </a>
 
                 @* 3. Apariencia & Tema *@
-                <a href="/cuenta/apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="/cuenta/apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <Icon Name="palette" Size="14" />
                     <span>Apariencia & Tema</span>
                 </a>
 
                 @* 4. Ubicación & País *@
-                <a href="/cuenta/pais" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="/cuenta/pais" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <Icon Name="globe" Size="14" />
                     <span>Ubicación & País</span>
                 </a>
 
                 @* 5. Privacidad *@
-                <a href="/cuenta/privacidad" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="/cuenta/privacidad" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <Icon Name="shield" Size="14" />
                     <span>Privacidad</span>
                 </a>
 
                 @* 6. Conexiones OAuth *@
-                <a href="/cuenta/conexiones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">
+                <a href="/cuenta/conexiones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <div class="flex items-center gap-2.5">
                         <Icon Name="link" Size="14" />
                         <span>Conexiones OAuth</span>
@@ -108,8 +121,8 @@ else
                 </a>
 
                 @* 7. Cerrar Sesión *@
-                <div class="border-t border-[var(--border-subtle)] my-1 pt-1">
-                    <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors font-medium">
+                <div class="border-t border-[var(--line)] my-1 pt-1">
+                    <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors font-extrabold">
                         <Icon Name="log-out" Size="14" />
                         <span>Cerrar Sesión</span>
                     </a>
@@ -120,14 +133,28 @@ else
 }
 
 @code {
+    [Parameter] public string? ButtonBg { get; set; }
+    [Parameter] public string? ButtonFg { get; set; }
+
     private bool _isOpen;
     private bool _needsEmailNotice;
     private bool _isSubscribed;
 
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 
+    private string UserInitial => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+        ? CurrentUserService.UserName.Trim()[..1].ToUpperInvariant()
+        : "U";
+
+    private string FirstName => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+        ? CurrentUserService.UserName.Trim().Split(' ')[0]
+        : "Usuario";
 
     private string PublicProfileUrl => $"/u/{CurrentUserService.UserId}";
+
+    private string ButtonStyle => (!string.IsNullOrWhiteSpace(ButtonBg) && !string.IsNullOrWhiteSpace(ButtonFg))
+        ? $"background: {ButtonBg}; color: {ButtonFg};"
+        : string.Empty;
 
     private string RoleLabel
     {
@@ -153,7 +180,7 @@ else
 
         if (HasSession)
         {
-            await RefreshEmailStatusAsync();
+            await CheckEmailVerificationStatusAsync();
         }
     }
 
@@ -172,41 +199,27 @@ else
     {
         _ = InvokeAsync(async () =>
         {
-            await RefreshEmailStatusAsync();
+            await CheckEmailVerificationStatusAsync();
             StateHasChanged();
         });
     }
 
-    private async Task RefreshEmailStatusAsync()
+    private async Task CheckEmailVerificationStatusAsync()
     {
+        if (!HasSession)
+        {
+            _needsEmailNotice = false;
+            return;
+        }
+
         try
         {
-            _needsEmailNotice = !await ConnectionsService.HasVerifiedProviderEmailAsync();
+            bool hasVerified = await ConnectionsService.HasVerifiedProviderEmailAsync();
+            _needsEmailNotice = !hasVerified;
         }
         catch
         {
             _needsEmailNotice = false;
-        }
-    }
-
-    private void ToggleMenu()
-    {
-        _isOpen = !_isOpen;
-    }
-
-    private void CloseMenu()
-    {
-        if (_isOpen)
-        {
-            _isOpen = false;
-        }
-    }
-
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape")
-        {
-            CloseMenu();
         }
     }
 
@@ -219,12 +232,25 @@ else
         }
     }
 
+    private void ToggleMenu() => _isOpen = !_isOpen;
+
+    private void CloseMenu() => _isOpen = false;
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && _isOpen)
+        {
+            CloseMenu();
+        }
+    }
+
     public void Dispose()
     {
         Navigation.LocationChanged -= HandleLocationChanged;
         if (_isSubscribed)
         {
             ConnectionsService.Invalidated -= HandleConnectionsInvalidated;
+            _isSubscribed = false;
         }
     }
 }

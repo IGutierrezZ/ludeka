@@ -1,9 +1,16 @@
 @page "/cuenta/ludoteca"
 @page "/mi-ludoteca"
 @rendermode InteractiveServer
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using System.Threading.Tasks
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@using Ludeka.Core.Helpers
 @using Ludeka.Core.ValueObjects
+@implements IDisposable
 @inject IUserLibraryService LibraryService
 @inject IGamePlayLogService PlayLogService
 @inject ICurrentUserService CurrentUserService
@@ -18,19 +25,21 @@
 
 <div class="container-ludeka py-8 space-y-8">
 
-    @* Cabecera de la sección *@
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
+    @* Cabecera Editorial «Revista Lúdica» *@
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-6">
         <div>
             <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                    Tu Espacio Lúdico
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
+                    Colección personal
                 </span>
-                <span class="text-xs text-[var(--text-secondary)]">Sesión activa como <strong class="text-[var(--text-primary)]">@CurrentUserService.UserName</strong></span>
+                <span class="text-xs text-[var(--text-secondary)]">
+                    Sesión activa como <strong class="text-[var(--text-primary)]">@CurrentUserService.UserName</strong>
+                </span>
             </div>
-            <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                Mi Ludoteca Personal
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-[var(--text-primary)] tracking-tight leading-[0.88]">
+                Mi <i class="italic text-[var(--brand-primary)]">ludoteca</i>
             </h1>
-            <p class="text-sm text-[var(--text-secondary)] mt-1">
+            <p class="text-sm text-[var(--text-secondary)] mt-2 max-w-xl">
                 Gestiona tus copias físicas en propiedad, títulos jugados, lista de compra y tu diario de partidas y préstamos.
             </p>
         </div>
@@ -39,27 +48,66 @@
             <button type="button"
                     disabled="@_isOfflineMode"
                     @onclick="OpenBggImportModal"
-                    class="px-4 py-2 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-600 text-zinc-300" : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white") transition-all inline-flex items-center gap-1.5 shadow-sm"
+                    class="px-4 py-2.5 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-600 text-zinc-300" : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white") transition-all inline-flex items-center gap-1.5 shadow-sm"
                     title="@(_isOfflineMode ? "La importación de BGG requiere conexión a internet" : "")">
                 <Icon Name="download" Size="14" />
-                <span>Importar BGG</span>
+                <span>Importar de BGG</span>
             </button>
             <button type="button"
                     disabled="@_isOfflineMode"
                     @onclick="OpenBggSearchModal"
-                    class="px-4 py-2 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-700 text-zinc-400" : "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]") transition-colors inline-flex items-center gap-1.5 shadow-sm"
+                    class="px-4 py-2.5 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-700 text-zinc-400" : "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]") transition-colors inline-flex items-center gap-1.5 shadow-sm"
                     title="@(_isOfflineMode ? "La búsqueda asistida requiere conexión a internet" : "")">
                 <Icon Name="dices" Size="14" />
                 <span>+ Añadir por BGG</span>
             </button>
-            <a href="/" class="px-4 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1.5 shadow-sm">
+            <a href="/" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1.5 shadow-sm">
                 <Icon Name="search" Size="14" />
-                <span>Explorar Catálogo</span>
+                <span>Explorar catálogo</span>
             </a>
         </div>
     </div>
 
-    @* Invitación al acceso: sin sesión no hay ludoteca ni preferencias que persistir (INC-46 F4) *@
+    @* Cuatro Cifras Clave (Métricas de Colección) *@
+    @if (_summary != null)
+    {
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-2 border-b border-[var(--border-subtle)]">
+            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
+                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
+                    En mi ludoteca
+                </span>
+                <span class="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
+                    @_summary.TotalInCollection
+                </span>
+            </div>
+            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
+                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
+                    Partidas
+                </span>
+                <span class="text-3xl sm:text-4xl font-black text-[var(--brand-primary)]">
+                    @(_playsStats?.TotalPlays ?? _summary.TotalPlayed)
+                </span>
+            </div>
+            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
+                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
+                    Este mes
+                </span>
+                <span class="text-3xl sm:text-4xl font-black text-emerald-500">
+                    @(_playsStats?.PlaysThisMonth ?? 0)
+                </span>
+            </div>
+            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
+                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
+                    Prestados
+                </span>
+                <span class="text-3xl sm:text-4xl font-black text-sky-500">
+                    @_summary.TotalActiveLoans
+                </span>
+            </div>
+        </div>
+    }
+
+    @* Invitación al acceso: sin sesión no hay ludoteca ni preferencias que persistir *@
     @if (!HasSession)
     {
         <div class="p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm" role="status">
@@ -78,11 +126,13 @@
         </div>
     }
 
+    @* Banner Contextual Modo Offline *@
     @if (_isOfflineMode)
     {
         <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm" role="status">
             <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium">
                 <span><Icon Name="wifi-off" Size="14" /></span>
+                <span><Icon Name="triangle-alert" Size="14" /></span>
                 <span>
                     <strong>Modo Consulta Offline activo:</strong> Mostrando los títulos guardados en este dispositivo
                     @if (!string.IsNullOrWhiteSpace(_offlineTimestamp))
@@ -107,371 +157,738 @@
             <p class="text-base font-semibold">Cargando tu ludoteca...</p>
         </div>
     }
-    else if (_summary != null)
+    else if (_summary == null)
     {
-        @* Pestañas Horizontales *@
-        <div class="flex flex-wrap gap-2 border-b border-[var(--border-subtle)] pb-2" role="tablist" aria-label="Secciones de la ludoteca personal">
+        @* Vista de Contingencia Cacheada «Fuera de Cobertura» (PWA Offline) *@
+        <div class="max-w-xl mx-auto py-16 px-4 text-center space-y-6" role="status">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-black">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <Icon Name="wifi-off" Size="14" />
+                <Icon Name="triangle-alert" Size="14" />
+                <span>Modo sin conexión</span>
+            </div>
+            <h2 class="text-3xl sm:text-5xl font-black text-[var(--text-primary)] tracking-tight">
+                Estás fuera de <i class="italic text-[var(--brand-primary)]">cobertura</i>
+            </h2>
+            <p class="text-sm text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
+                No hemos podido conectar con los servidores de Ludeka. Si ya visitaste tu Ludoteca Personal, puedes seguir consultando tus títulos y préstamos guardados en este dispositivo.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button type="button" 
+                        @onclick="LoadSummaryAsync" 
+                        class="px-5 py-2.5 rounded-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs shadow-sm transition-all flex items-center gap-2">
+                    <Icon Name="refresh-cw" Size="14" />
+                    <span>Reintentar conexión</span>
+                </button>
+                <button type="button" 
+                        @onclick="LoadOfflineSnapshotDirectlyAsync" 
+                        class="px-5 py-2.5 rounded-full bg-transparent hover:bg-[var(--bg-surface-elevated)] border-2 border-[var(--border-subtle)] text-[var(--text-primary)] font-bold text-xs transition-colors flex items-center gap-2">
+                    <Icon Name="library" Size="14" />
+                    <span>Abrir Mi Ludoteca offline</span>
+                </button>
+                <a href="/" class="px-4 py-2.5 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    Volver al inicio
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        @* Pestañas Horizontales en Píldoras (7 pestañas canónicas) *@
+        <div class="flex gap-2 border-b border-[var(--border-subtle)] pb-2 overflow-x-auto scrollbar-none" role="tablist" aria-label="Secciones de la ludoteca personal">
+            @* 1. Mi Colección *@
             <button type="button"
                     id="tab-incollection"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.InCollection ? "true" : "false")"
                     aria-controls="panel-collection"
                     @onclick="() => _activeTab = TabType.InCollection"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.InCollection)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="library" Size="14" /> En mi ludoteca</span>
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.InCollection)">
+                <span class="inline-flex items-center gap-1.5"><Icon Name="library" Size="14" /> Mi Colección</span>
                 <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @GetBadgeClass(TabType.InCollection)">
                     @_summary.TotalInCollection
                 </span>
             </button>
 
+            @* 2. Jugados *@
             <button type="button"
                     id="tab-played"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.Played ? "true" : "false")"
-                    aria-controls="panel-collection"
+                    aria-controls="panel-played"
                     @onclick="() => _activeTab = TabType.Played"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Played)">
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Played)">
                 <span class="inline-flex items-center gap-1.5"><Icon Name="dices" Size="14" /> Jugados</span>
                 <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @GetBadgeClass(TabType.Played)">
                     @_summary.TotalPlayed
                 </span>
             </button>
 
+            @* 3. Deseados *@
             <button type="button"
                     id="tab-wanttobuy"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.WantToBuy ? "true" : "false")"
-                    aria-controls="panel-collection"
+                    aria-controls="panel-wishlist"
                     @onclick="() => _activeTab = TabType.WantToBuy"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.WantToBuy)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="shopping-cart" Size="14" /> Comprar</span>
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.WantToBuy)">
+                <span class="inline-flex items-center gap-1.5"><Icon Name="shopping-cart" Size="14" /> Deseados</span>
                 <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @GetBadgeClass(TabType.WantToBuy)">
                     @_summary.TotalWantToBuy
                 </span>
             </button>
 
-            <button type="button"
-                    id="tab-plays"
-                    role="tab"
-                    aria-selected="@(_activeTab == TabType.Plays ? "true" : "false")"
-                    aria-controls="panel-plays"
-                    @onclick="SwitchToPlaysAsync"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Plays)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="notebook-pen" Size="14" /> Diario de Partidas</span>
-                @if (_playsStats != null && _playsStats.TotalPlays > 0)
-                {
-                    <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @GetBadgeClass(TabType.Plays)">
-                        @_playsStats.TotalPlays
-                    </span>
-                }
-            </button>
-
+            @* 4. En Préstamo *@
             <button type="button"
                     id="tab-loans"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.Loans ? "true" : "false")"
                     aria-controls="panel-loans"
                     @onclick="() => _activeTab = TabType.Loans"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Loans)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="package" Size="14" /> Préstamos</span>
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Loans)">
+                <span class="inline-flex items-center gap-1.5"><Icon Name="package" Size="14" /> En Préstamo</span>
                 <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black @GetBadgeClass(TabType.Loans)">
                     @_summary.TotalActiveLoans
                 </span>
             </button>
 
+            @* 5. Cola Comunitaria *@
             <button type="button"
                     id="tab-queue"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.Queue ? "true" : "false")"
                     aria-controls="panel-queue"
                     @onclick="() => _activeTab = TabType.Queue"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Queue)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="hourglass" Size="14" /> Cola comunitaria</span>
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Queue)">
+                <span class="inline-flex items-center gap-1.5"><Icon Name="hourglass" Size="14" /> Cola Comunitaria</span>
             </button>
 
-            <button type="button"
-                    id="tab-appearance"
-                    role="tab"
-                    aria-selected="@(_activeTab == TabType.Appearance ? "true" : "false")"
-                    aria-controls="panel-appearance"
-                    @onclick="() => _activeTab = TabType.Appearance"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Appearance)">
-                <span class="inline-flex items-center gap-1.5"><Icon Name="palette" Size="14" /> Apariencia &amp; <Icon Name="globe" Size="14" /> País</span>
-            </button>
-
+            @* 6. ADN y Estadísticas *@
             <button type="button"
                     id="tab-stats"
                     role="tab"
                     aria-selected="@(_activeTab == TabType.Stats ? "true" : "false")"
                     aria-controls="panel-stats"
                     @onclick="SwitchToStatsAsync"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Stats)">
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Stats)">
                 <span class="inline-flex items-center gap-1.5"><Icon Name="dna" Size="14" /> ADN y Estadísticas</span>
+            </button>
+
+            @* 7. Radar de Compra *@
+            <button type="button"
+                    id="tab-radar"
+                    role="tab"
+                    aria-selected="@(_activeTab == TabType.Radar ? "true" : "false")"
+                    aria-controls="panel-radar"
+                    @onclick="() => _activeTab = TabType.Radar"
+                    class="shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 @GetTabClass(TabType.Radar)">
+                <span class="inline-flex items-center gap-1.5"><Icon Name="trending-down" Size="14" /> Radar de Compra</span>
+                @if (_wantToBuyAlerts != null && _wantToBuyAlerts.Count > 0)
+                {
+                    <span class="px-2 py-0.5 rounded-full text-[0.68rem] font-black bg-emerald-500 text-white">
+                        @_wantToBuyAlerts.Count
+                    </span>
+                }
             </button>
         </div>
 
-        @* Contenido de la pestaña activa *@
-        @if (_activeTab == TabType.Appearance)
+        @* CONTENIDO DE LAS PESTAÑAS *@
+
+        @* PESTAÑA 1: MI COLECCIÓN *@
+        @if (_activeTab == TabType.InCollection)
         {
-            <div id="panel-appearance" role="tabpanel" aria-labelledby="tab-appearance" class="space-y-6">
-                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <Icon Name="palette" Size="20" />
-                                <h2 class="text-xl font-bold text-[var(--text-primary)]">
-                                    Estilo Visual y Paleta de tu Mesa
-                                </h2>
-                            </div>
-                            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                                Personaliza los colores de Ludeka para tu usuario (<strong class="text-[var(--text-primary)]">@CurrentUserService.UserName</strong>). Tu selección se guardará en tu perfil y se cargará automáticamente en todas tus sesiones.
-                            </p>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(_saveMessage))
-                        {
-                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0">
-                                <span>✓</span>
-                                <span>@_saveMessage</span>
-                            </div>
-                        }
+            <div id="panel-collection" role="tabpanel" aria-labelledby="tab-incollection" class="space-y-6">
+                @* Barra de Filtros Rápidos y Búsqueda *@
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                    <div class="relative flex-1 max-w-md">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+                            <Icon Name="search" Size="16" />
+                        </span>
+                        <input type="search"
+                               placeholder="Buscar por título en tu colección..."
+                               @bind="_collectionSearchQuery"
+                               @bind:event="oninput"
+                               class="w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                     </div>
 
-                    @* Grid de Temas *@
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                        @* 1. Papel *@
-                        <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_userCurrentTheme == "editorial" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-highlight)]")"
-                             @onclick='() => SelectUserTheme("editorial")'>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <Icon Name="book-open" Size="18" />
-                                        <h3 class="text-sm font-black text-[var(--text-primary)]">Papel & Tinta</h3>
-                                    </div>
-                                    @if (_userCurrentTheme == "editorial")
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
-                                    }
-                                </div>
-                                <p class="text-xs text-[var(--text-secondary)] mb-4">
-                                    Editorial Claro. Inspirado en libros, reglamentos impresos y fanzines. Fondo blanco roto de máxima legibilidad y tinta oscura.
-                                </p>
-                            </div>
-                            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #F8F7F4;" title="Fondo Papel (#F8F7F4)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #FFFFFF;" title="Superficie (#FFFFFF)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #B8432F;" title="Tinta Roja (#B8432F)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #121417;" title="Texto (#121417)"></span>
-                                </div>
-                                <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_userCurrentTheme == "editorial" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
-                                    @(_userCurrentTheme == "editorial" ? "En uso" : "Aplicar")
-                                </button>
-                            </div>
-                        </div>
-
-                        @* 2. Madera Clara (NUEVO) *@
-                        <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_userCurrentTheme == "wood" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-highlight)]")"
-                             @onclick='() => SelectUserTheme("wood")'>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <Icon Name="tree-pine" Size="18" />
-                                        <h3 class="text-sm font-black text-[var(--text-primary)]">Madera Clara</h3>
-                                    </div>
-                                    @if (_userCurrentTheme == "wood")
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">Nuevo</span>
-                                    }
-                                </div>
-                                <p class="text-xs text-[var(--text-secondary)] mb-4">
-                                    Arce & Haya Lúdica. Inspirado en mesas nórdicas de juego y componentes de madera noble clara. Cálido, luminoso y acogedor.
-                                </p>
-                            </div>
-                            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #F5EFEB;" title="Fondo Madera Clara (#F5EFEB)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #FAF6F1;" title="Superficie (#FAF6F1)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #B85323;" title="Acento Ámbar Tostado (#B85323)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-black/10 inline-block shadow-sm" style="background-color: #2D2118;" title="Texto Nogal Oscuro (#2D2118)"></span>
-                                </div>
-                                <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_userCurrentTheme == "wood" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
-                                    @(_userCurrentTheme == "wood" ? "En uso" : "Aplicar")
-                                </button>
-                            </div>
-                        </div>
-
-                        @* 3. Mesa Cálida *@
-                        <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_userCurrentTheme == "tabletop" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-highlight)]")"
-                             @onclick='() => SelectUserTheme("tabletop")'>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <Icon Name="dices" Size="18" />
-                                        <h3 class="text-sm font-black text-[var(--text-primary)]">Mesa Cálida</h3>
-                                    </div>
-                                    @if (_userCurrentTheme == "tabletop")
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
-                                    }
-                                </div>
-                                <p class="text-xs text-[var(--text-secondary)] mb-4">
-                                    Madera Espresso & Tapete. Tono de mesa nocturna en club de juegos. Marrones chocolate profundo y texto pergamino cálido.
-                                </p>
-                            </div>
-                            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #1A1412;" title="Fondo Espresso (#1A1412)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #28201B;" title="Superficie (#28201B)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #D97736;" title="Acento Caramelo (#D97736)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #F7EFE6;" title="Texto Crema (#F7EFE6)"></span>
-                                </div>
-                                <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_userCurrentTheme == "tabletop" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
-                                    @(_userCurrentTheme == "tabletop" ? "En uso" : "Aplicar")
-                                </button>
-                            </div>
-                        </div>
-
-                        @* 4. Azul Medianoche *@
-                        <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_userCurrentTheme == "midnight" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-highlight)]")"
-                             @onclick='() => SelectUserTheme("midnight")'>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <Icon Name="moon-star" Size="18" />
-                                        <h3 class="text-sm font-black text-[var(--text-primary)]">Azul Medianoche</h3>
-                                    </div>
-                                    @if (_userCurrentTheme == "midnight")
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
-                                    }
-                                </div>
-                                <p class="text-xs text-[var(--text-secondary)] mb-4">
-                                    Cian & Lima Digital. Alto contraste sobre azul espacial profundo. Ideal para sesiones nocturnas con aire contemporáneo.
-                                </p>
-                            </div>
-                            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #090E1A;" title="Fondo Marino (#090E1A)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #121C34;" title="Superficie (#121C34)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #06B6D4;" title="Acento Cian (#06B6D4)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #F1F5F9;" title="Texto Blanco Hielo (#F1F5F9)"></span>
-                                </div>
-                                <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_userCurrentTheme == "midnight" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
-                                    @(_userCurrentTheme == "midnight" ? "En uso" : "Aplicar")
-                                </button>
-                            </div>
-                        </div>
-
-                        @* 5. Carbón Oscuro *@
-                        <div class="p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 cursor-pointer @(_userCurrentTheme == "charcoal" ? "border-[var(--brand-primary)] bg-[var(--bg-surface-elevated)] ring-2 ring-[var(--brand-primary)]/20" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-highlight)]")"
-                             @onclick='() => SelectUserTheme("charcoal")'>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <Icon Name="moon" Size="18" />
-                                        <h3 class="text-sm font-black text-[var(--text-primary)]">Carbón Oscuro</h3>
-                                    </div>
-                                    @if (_userCurrentTheme == "charcoal")
-                                    {
-                                        <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-black bg-[var(--brand-primary)] text-white">Activo</span>
-                                    }
-                                </div>
-                                <p class="text-xs text-[var(--text-secondary)] mb-4">
-                                    Terracota & Pizarra. La estética insignia de Ludeka. Sobriedad, elegancia y acento naranja cálido.
-                                </p>
-                            </div>
-                            <div class="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #14181C;" title="Fondo Carbón (#14181C)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #1F262D;" title="Superficie (#1F262D)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #E05A38;" title="Acento Terracota (#E05A38)"></span>
-                                    <span class="w-5 h-5 rounded-full border border-white/10 inline-block shadow-sm" style="background-color: #FFFFFF;" title="Texto Blanco (#FFFFFF)"></span>
-                                </div>
-                                <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold @(_userCurrentTheme == "charcoal" ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]")">
-                                    @(_userCurrentTheme == "charcoal" ? "En uso" : "Aplicar")
-                                </button>
-                            </div>
-                        </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button"
+                                @onclick='() => _collectionFilter = "all"'
+                                class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors @(_collectionFilter == "all" ? "bg-[var(--text-primary)] text-[var(--bg-body)]" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            Todos (@_summary.TotalInCollection)
+                        </button>
+                        <button type="button"
+                                @onclick='() => _collectionFilter = "base"'
+                                class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors @(_collectionFilter == "base" ? "bg-[var(--text-primary)] text-[var(--bg-body)]" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            Juegos base (@_summary.Items.Count(i => i.Status == CollectionStatus.InCollection && !i.IsExpansion))
+                        </button>
+                        <button type="button"
+                                @onclick='() => _collectionFilter = "expansions"'
+                                class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors @(_collectionFilter == "expansions" ? "bg-[var(--text-primary)] text-[var(--bg-body)]" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            Expansiones (@_summary.Items.Count(i => i.Status == CollectionStatus.InCollection && i.IsExpansion))
+                        </button>
+                        <button type="button"
+                                @onclick='() => _collectionFilter = "loaned"'
+                                class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors @(_collectionFilter == "loaned" ? "bg-[var(--text-primary)] text-[var(--bg-body)]" : "bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
+                            Prestados (@_summary.TotalActiveLoans)
+                        </button>
                     </div>
                 </div>
 
-                @* Tarjeta de Ubicación y Filtrado de País (Incremento 29) *@
-                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <Icon Name="globe" Size="20" />
-                                <h2 class="text-xl font-bold text-[var(--text-primary)]">
-                                    Ubicación y Filtrado Territorial
-                                </h2>
-                            </div>
-                            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                                Define tu país de residencia para filtrar tiendas con envíos a tu territorio, sorteos y eventos lúdicos.
-                            </p>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(_countrySaveMessage))
-                        {
-                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0">
-                                <span>✓</span>
-                                <span>@_countrySaveMessage</span>
-                            </div>
-                        }
-                    </div>
+                @{
+                    var items = GetFilteredCollectionItems();
+                }
 
-                    @* Advertencia Obligatoria *@
-                    <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 text-xs space-y-1.5">
-                        <div class="flex items-center gap-1.5 font-black text-sm">
-                            <Icon Name="triangle-alert" Size="14" />
-                            <span>Aviso Importante sobre el Filtrado por País</span>
-                        </div>
-                        <p class="leading-relaxed">
-                            Al seleccionar un país, los sorteos, eventos y tiendas se filtrarán automáticamente para mostrar únicamente los disponibles en tu territorio. Si prefieres explorar toda la información de la comunidad global sin filtrar, déjalo sin seleccionar.
+                @if (items.Count == 0)
+                {
+                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
+                        <span class="inline-block p-4 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+                            <Icon Name="library" Size="32" />
+                        </span>
+                        <h3 class="text-xl font-bold text-[var(--text-primary)]">Aquí todavía no hay juegos.</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            Impórtalos de BGG o añádelos desde la ficha de cualquier juego para empezar a organizar tu vitrina.
                         </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
-                        <div>
-                            <label class="font-bold text-xs text-[var(--text-secondary)] block mb-1.5">
-                                País seleccionado para tu usuario:
-                            </label>
-                            <select @bind="_userCurrentCountry"
-                                    @bind:after="OnCountrySelectChangedAsync"
-                                    class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
-                                <option value="">Sin país (Global - Todo visible sin filtrar)</option>
-                                @foreach (var c in CountryCatalog.GetAllCountries())
-                                {
-                                    <option value="@c.Name">@c.FlagEmoji @c.Name (@c.Code)</option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="flex flex-col justify-end sm:pt-6">
+                        <div class="flex flex-wrap justify-center gap-2 pt-2">
                             <button type="button"
-                                    @onclick="AutoDetectCountryAsync"
-                                    class="px-4 py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] text-xs font-bold text-[var(--text-primary)] transition-all flex items-center justify-center gap-2 shadow-sm">
-                                <Icon Name="map-pin" Size="12" />
-                                <span>Detectar automáticamente por zona horaria</span>
+                                    @onclick="OpenBggSearchModal"
+                                    class="px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm">
+                                + Añadir por BGG
+                            </button>
+                            <button type="button"
+                                    @onclick="OpenBggImportModal"
+                                    class="px-4 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors">
+                                Importar colección BGG
                             </button>
                         </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                        @for (int i = 0; i < items.Count; i++)
+                        {
+                            var item = items[i];
+                            var index = i;
+                            var placeholderUrl = item.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                            var rotation = GetCardRotation(index);
+
+                            <div class="group relative flex flex-col justify-between rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] p-3 transition-all shadow-sm">
+                                <div>
+                                    <a href="/juegos/@item.GameSlug" class="block aspect-square w-full overflow-hidden rounded-xl bg-[var(--bg-surface-elevated)] relative mb-3">
+                                        <img src="@(!string.IsNullOrWhiteSpace(item.GameCoverUrl) ? item.GameCoverUrl : placeholderUrl)"
+                                             alt="@item.GameTitle"
+                                             loading="lazy"
+                                             style="transform: @rotation;"
+                                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 group-hover:rotate-0" />
+
+                                        @* Badges *@
+                                        @if (item.IsExpansion)
+                                        {
+                                            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[0.6rem] font-black text-purple-200 shadow-sm flex items-center gap-1">
+                                                <Icon Name="puzzle" Size="10" />
+                                                <span>Expansión</span>
+                                            </div>
+                                        }
+
+                                        @if (item.IsCurrentlyLoaned)
+                                        {
+                                            <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-500/90 text-black text-[0.6rem] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                                <Icon Name="package" Size="10" />
+                                                <span>Prestado</span>
+                                            </div>
+                                        }
+                                        else if (item.IsPlayed)
+                                        {
+                                            <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[0.6rem] font-bold shadow-sm flex items-center gap-1">
+                                                <Icon Name="dices" Size="10" />
+                                                <span>Jugado</span>
+                                            </div>
+                                        }
+                                    </a>
+
+                                    <div class="space-y-1">
+                                        <a href="/juegos/@item.GameSlug" class="text-xs font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] line-clamp-2 leading-tight">
+                                            @item.GameTitle
+                                        </a>
+                                        <div class="text-[0.65rem] text-[var(--text-muted)]">
+                                            Añadido el @item.AddedAt.ToString("dd/MM/yyyy")
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @* Acciones Rápidas en la Tarjeta *@
+                                <div class="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-[var(--border-subtle)]">
+                                    <button type="button"
+                                            @onclick="() => OpenRecordPlayModal(item.GameId ?? Guid.Empty, item.GameTitle)"
+                                            class="px-2.5 py-1 rounded-full text-[0.68rem] font-bold border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white transition-colors"
+                                            title="Registrar sesión jugada">
+                                        + Partida
+                                    </button>
+
+                                    @if (item.IsCurrentlyLoaned)
+                                    {
+                                        <button type="button"
+                                                @onclick="() => _activeTab = TabType.Loans"
+                                                class="px-2.5 py-1 rounded-full text-[0.68rem] font-bold border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                                                title="Ver datos del préstamo activo">
+                                            Ver préstamo
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                @onclick="() => OpenLoanModalForGame(item.GameId ?? Guid.Empty, item.GameTitle)"
+                                                class="px-2.5 py-1 rounded-full text-[0.68rem] font-bold border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors"
+                                                title="Prestar este juego">
+                                            Prestar
+                                        </button>
+                                    }
+
+                                    <button type="button"
+                                            @onclick="() => RemoveFromCollectionAsync(item.GameId)"
+                                            class="px-2 py-1 rounded-full text-[0.68rem] font-medium text-[var(--text-muted)] hover:text-rose-500 transition-colors ml-auto"
+                                            title="Quitar de mi ludoteca">
+                                        Quitar
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
         }
-        else if (_activeTab == TabType.Stats)
+
+        @* PESTAÑA 2: JUGADOS *@
+        @if (_activeTab == TabType.Played)
+        {
+            <div id="panel-played" role="tabpanel" aria-labelledby="tab-played" class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                    <div>
+                        <b class="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">Historial de sesiones y probados</b>
+                        <p class="text-xs text-[var(--text-muted)] mt-0.5">Títulos que has probado en mesa y registro de partidas jugadas.</p>
+                    </div>
+                    <button type="button"
+                            @onclick="() => OpenRecordPlayModal(Guid.Empty, string.Empty)"
+                            class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
+                        <Icon Name="dices" Size="14" />
+                        <span>+ Registrar partida</span>
+                    </button>
+                </div>
+
+                @* Resumen Estadístico de Partidas *@
+                @if (_playsStats != null && _playsStats.TotalPlays > 0)
+                {
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Total Partidas</span>
+                            <span class="text-2xl font-black text-[var(--text-primary)]">@_playsStats.TotalPlays</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Este Mes</span>
+                            <span class="text-2xl font-black text-amber-500">@_playsStats.PlaysThisMonth</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Más Jugado</span>
+                            <span class="text-xs font-bold text-[var(--text-primary)] truncate block" title="@_playsStats.MostPlayedGameTitle">
+                                @(_playsStats.MostPlayedGameTitle ?? "—")
+                            </span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                            <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Lugar Favorito</span>
+                            <span class="text-xs font-bold text-[var(--text-primary)] truncate block" title="@_playsStats.FavoriteLocation">
+                                @(_playsStats.FavoriteLocation ?? "—")
+                            </span>
+                        </div>
+                    </div>
+                }
+
+                @* Listado de Partidas Cronológicas *@
+                @if (_userPlayLogs != null && _userPlayLogs.Count > 0)
+                {
+                    <div class="space-y-3">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)] px-1 block">
+                            Últimas sesiones registradas
+                        </span>
+
+                        <div class="divide-y divide-[var(--border-subtle)] rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
+                            @foreach (var play in _userPlayLogs)
+                            {
+                                <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-surface)] transition-colors">
+                                    <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+                                        <a href="/juegos/@play.GameSlug" class="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
+                                            <img src="@(!string.IsNullOrWhiteSpace(play.GameCoverUrl) ? play.GameCoverUrl : "/images/game-placeholder.svg")"
+                                                 alt="@play.GameTitle"
+                                                 class="w-full h-full object-cover" />
+                                        </a>
+                                        <div class="min-w-0">
+                                            <a href="/juegos/@play.GameSlug" class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
+                                                @play.GameTitle
+                                            </a>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-[var(--text-secondary)]">
+                                                <span class="inline-flex items-center gap-1 font-semibold text-[var(--text-primary)]">
+                                                    <Icon Name="calendar" Size="12" /> @play.PlayDate.ToString("dd/MM/yyyy")
+                                                </span>
+                                                <span>·</span>
+                                                <span class="inline-flex items-center gap-1">
+                                                    <Icon Name="users" Size="12" /> @play.PlayerCount @(play.PlayerCount == 1 ? "jugador" : "jugadores")
+                                                </span>
+                                                <span>·</span>
+                                                <span class="inline-flex items-center gap-1">
+                                                    <Icon Name="map-pin" Size="12" /> @play.Location
+                                                </span>
+                                                @if (play.DurationMinutes.HasValue)
+                                                {
+                                                    <span>·</span>
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <Icon Name="timer" Size="12" /> @(play.DurationMinutes)m
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(play.Comment))
+                                            {
+                                                <p class="text-xs text-[var(--text-secondary)] italic mt-2 line-clamp-2 bg-[var(--bg-surface-elevated)] p-2 rounded-lg border border-[var(--border-subtle)]">
+                                                    &ldquo;@play.Comment&rdquo;
+                                                </p>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* Listado de Juegos Marcados como Jugados *@
+                @{
+                    var playedItems = _summary.Items.Where(i => i.IsPlayed).ToList();
+                }
+
+                @if (playedItems.Count == 0 && (_userPlayLogs == null || _userPlayLogs.Count == 0))
+                {
+                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <span class="inline-block p-4 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+                            <Icon Name="dices" Size="32" />
+                        </span>
+                        <h3 class="text-xl font-bold text-[var(--text-primary)]">Tu diario de partidas está vacío</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            Registra cada sesión con fecha, lugar, número de jugadores y notas.
+                        </p>
+                        <button type="button"
+                                @onclick="() => OpenRecordPlayModal(Guid.Empty, string.Empty)"
+                                class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm">
+                            + Registrar primera partida
+                        </button>
+                    </div>
+                }
+                else if (playedItems.Count > 0)
+                {
+                    <div class="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)] px-1 block">
+                            Catálogo de títulos probados (@playedItems.Count)
+                        </span>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            @foreach (var p in playedItems)
+                            {
+                                <div class="p-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] flex flex-col justify-between gap-2 shadow-sm">
+                                    <a href="/juegos/@p.GameSlug" class="block aspect-square w-full rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] relative mb-1">
+                                        <img src="@(!string.IsNullOrWhiteSpace(p.GameCoverUrl) ? p.GameCoverUrl : "/images/game-placeholder.svg")"
+                                             alt="@p.GameTitle"
+                                             class="w-full h-full object-cover" />
+                                    </a>
+                                    <a href="/juegos/@p.GameSlug" class="text-xs font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] line-clamp-2">
+                                        @p.GameTitle
+                                    </a>
+                                    <div class="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+                                        <button type="button"
+                                                @onclick="() => OpenRecordPlayModal(p.GameId ?? Guid.Empty, p.GameTitle)"
+                                                class="px-2.5 py-1 rounded-full text-[0.65rem] font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white transition-colors">
+                                            + Partida
+                                        </button>
+                                        <button type="button"
+                                                @onclick="() => TogglePlayedAsync(p.GameId)"
+                                                class="text-[0.65rem] text-[var(--text-muted)] hover:text-rose-500">
+                                            Quitar
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @* PESTAÑA 3: DESEADOS *@
+        @if (_activeTab == TabType.WantToBuy)
+        {
+            <div id="panel-wishlist" role="tabpanel" aria-labelledby="tab-wanttobuy" class="space-y-6">
+                @* Banner Radar de Compra Inteligente *@
+                @if (_wantToBuyAlerts != null && _wantToBuyAlerts.Count > 0)
+                {
+                    <div class="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-emerald-800 dark:text-emerald-300 shadow-sm">
+                        <div class="space-y-1">
+                            <b class="text-sm font-bold text-emerald-700 dark:text-emerald-400 block">
+                                Radar de compra inteligente activo
+                            </b>
+                            <p class="leading-relaxed">
+                                @_wantToBuyAlerts.Count @(_wantToBuyAlerts.Count == 1 ? "título de tu lista ha bajado de precio o está en su mínimo histórico en tiendas colaboradoras." : "títulos de tu lista han bajado de precio o están en su mínimo histórico en tiendas colaboradoras.")
+                            </p>
+                        </div>
+                        <button type="button"
+                                @onclick="() => _activeTab = TabType.Radar"
+                                class="px-4 py-2 rounded-full font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shrink-0 shadow-sm">
+                            Ver radar de ofertas
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center gap-3 text-xs text-sky-800 dark:text-sky-300 shadow-sm">
+                        <Icon Name="bell" Size="20" class="shrink-0" />
+                        <div>
+                            <strong class="font-bold block text-sm mb-0.5">Radar de Compra Inteligente Activo</strong>
+                            <span>Ludeka monitoriza bajadas de precio, ofertas especiales, sorteos y reimpresiones en tiendas para todos los títulos de tu lista de seguimiento para comprar.</span>
+                        </div>
+                    </div>
+                }
+
+                @{
+                    var wishItems = _summary.Items.Where(i => i.Status == CollectionStatus.WantToBuy).ToList();
+                }
+
+                @if (wishItems.Count == 0)
+                {
+                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <span class="inline-block p-4 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+                            <Icon Name="shopping-cart" Size="32" />
+                        </span>
+                        <h3 class="text-xl font-bold text-[var(--text-primary)]">Sin juegos en esta lista</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            Márcalos con «Lo quiero» desde su ficha para recibir alertas de precios mínimos.
+                        </p>
+                        <a href="/" class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors inline-block shadow-sm">
+                            Explorar catálogo
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="divide-y divide-[var(--border-subtle)] rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
+                        @for (int i = 0; i < wishItems.Count; i++)
+                        {
+                            var w = wishItems[i];
+                            var index = i;
+                            var rotation = GetCardRotation(index);
+                            PriceDropAlertDto? alert = null;
+                            if (w.GameId.HasValue)
+                            {
+                                _alertsByGameId.TryGetValue(w.GameId.Value, out alert);
+                            }
+                            var hasAlertActive = _alertsByGameId.ContainsKey(w.GameId ?? Guid.Empty);
+
+                            <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-surface)] transition-colors">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <a href="/juegos/@w.GameSlug" class="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] block">
+                                        <img src="@(!string.IsNullOrWhiteSpace(w.GameCoverUrl) ? w.GameCoverUrl : "/images/game-placeholder.svg")"
+                                             alt="@w.GameTitle"
+                                             style="transform: @rotation;"
+                                             class="w-full h-full object-cover" />
+                                    </a>
+                                    <div class="min-w-0">
+                                        <a href="/juegos/@w.GameSlug" class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
+                                            @w.GameTitle
+                                        </a>
+                                        <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-[var(--text-secondary)]">
+                                            @if (alert != null)
+                                            {
+                                                <span class="font-semibold text-emerald-600 dark:text-emerald-400">@alert.StoreName</span>
+                                                <span class="px-2 py-0.5 rounded-full text-[0.62rem] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                                    @(alert.IsAllTimeLow ? "Mínimo histórico" : $"Bajada {alert.DiscountPercentage:0.#}%")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span>Precio de catálogo</span>
+                                                <span class="px-2 py-0.5 rounded-full text-[0.62rem] font-bold bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]">
+                                                    Precio estable
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                                    @if (alert != null)
+                                    {
+                                        <div class="text-right">
+                                            <div class="text-base font-black text-emerald-600 dark:text-emerald-400">@alert.FormattedCurrentPrice</div>
+                                            @if (alert.ReferencePrice.HasValue)
+                                            {
+                                                <div class="text-xs text-[var(--text-muted)] line-through">@alert.FormattedReferencePrice</div>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <button type="button"
+                                                @onclick="() => TogglePriceAlert(w.GameId)"
+                                                class="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors @(hasAlertActive ? "bg-[var(--text-primary)] text-[var(--bg-body)] border-[var(--text-primary)]" : "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-subtle)]")">
+                                            @(hasAlertActive ? "Aviso activo" : "Avisar si baja")
+                                        </button>
+                                        <button type="button"
+                                                @onclick="() => MoveToCollectionAsync(w.GameId)"
+                                                class="px-3 py-1.5 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors shadow-sm">
+                                            Ya lo tengo
+                                        </button>
+                                        <button type="button"
+                                                @onclick="() => RemoveFromWantToBuyAsync(w.GameId)"
+                                                class="px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--text-muted)] hover:text-rose-500 transition-colors">
+                                            Quitar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @* PESTAÑA 4: EN PRÉSTAMO *@
+        @if (_activeTab == TabType.Loans)
+        {
+            <div id="panel-loans" role="tabpanel" aria-labelledby="tab-loans" class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                    <div>
+                        <b class="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">Gestión de préstamos</b>
+                        <p class="text-xs text-[var(--text-muted)] mt-0.5">Control de títulos prestados a amigos, familiares o asociaciones.</p>
+                    </div>
+                    <button type="button"
+                            @onclick="OpenLoanModalGeneral"
+                            class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
+                        <Icon Name="package" Size="14" />
+                        <span>+ Nuevo préstamo</span>
+                    </button>
+                </div>
+
+                @if (_summary.ActiveLoans.Count == 0)
+                {
+                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <span class="inline-block p-4 rounded-full bg-sky-500/10 text-sky-500">
+                            <Icon Name="handshake" Size="32" />
+                        </span>
+                        <h3 class="text-xl font-bold text-[var(--text-primary)]">Todos tus juegos están a buen recaudo</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            No tienes ningún juego prestado en este momento. Cuando le dejes un título a alguien, anótalo aquí para no perderle la pista.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach (var loan in _summary.ActiveLoans)
+                        {
+                            <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between gap-4 shadow-sm">
+                                <div class="flex gap-4 items-start">
+                                    <a href="/juegos/@loan.GameSlug" class="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface)] block">
+                                        <img src="@(!string.IsNullOrWhiteSpace(loan.GameCoverUrl) ? loan.GameCoverUrl : "/images/game-placeholder.svg")"
+                                             alt="@loan.GameTitle"
+                                             class="w-full h-full object-cover" />
+                                    </a>
+
+                                    <div class="flex-1 min-w-0">
+                                        <a href="/juegos/@loan.GameSlug" class="text-sm font-black text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
+                                            @loan.GameTitle
+                                        </a>
+                                        <div class="mt-2 space-y-1">
+                                            <div class="flex items-center gap-1.5 text-xs text-[var(--brand-primary)] font-bold">
+                                                <Icon Name="user" Size="12" />
+                                                <span>@loan.BorrowerName</span>
+                                            </div>
+                                            <div class="text-[0.68rem] text-[var(--text-secondary)]">
+                                                Prestado el @loan.LoanDate.ToString("dd/MM/yyyy")
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(loan.Notes))
+                                        {
+                                            <p class="text-[0.68rem] text-[var(--text-secondary)] mt-2 italic line-clamp-2">
+                                                &ldquo;@loan.Notes&rdquo;
+                                            </p>
+                                        }
+                                    </div>
+                                </div>
+
+                                <button type="button"
+                                        @onclick="() => HandleReturnLoan(loan.Id)"
+                                        class="w-full py-2.5 px-3 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                                    <Icon Name="undo-2" Size="12" />
+                                    <span>Marcar como devuelto</span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @* PESTAÑA 5: COLA COMUNITARIA *@
+        @if (_activeTab == TabType.Queue)
+        {
+            <div id="panel-queue" role="tabpanel" aria-labelledby="tab-queue" class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+                    <p class="text-xs text-[var(--text-secondary)] max-w-xl leading-relaxed">
+                        Juegos que has pedido catalogar porque aún no están en Ludeka. Cuantas más personas los soliciten, antes entran en el lote nocturno.
+                    </p>
+                    <button type="button"
+                            @onclick="OpenBggSearchModal"
+                            class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+                        <Icon Name="hourglass" Size="14" />
+                        <span>+ Solicitar un juego</span>
+                    </button>
+                </div>
+
+                @* Solicitudes en curso del usuario *@
+                @{
+                    var pendingItems = _summary.Items.Where(i => i.IsPendingCataloging).ToList();
+                }
+
+                @if (pendingItems.Count > 0)
+                {
+                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <b class="text-xs font-bold uppercase tracking-wider text-[var(--brand-primary)] block">
+                            Tus solicitudes activas
+                        </b>
+                        <div class="divide-y divide-[var(--border-subtle)]">
+                            @foreach (var item in pendingItems)
+                            {
+                                <div class="py-2.5 flex items-center justify-between gap-3 text-xs">
+                                    <span class="font-bold text-[var(--text-primary)]">@item.GameTitle</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[0.62rem] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                        En cola de catalogación
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <CatalogQueuePanel OnQueueProcessed="LoadSummaryAsync" />
+            </div>
+        }
+
+        @* PESTAÑA 6: ADN Y ESTADÍSTICAS *@
+        @if (_activeTab == TabType.Stats)
         {
             <div id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" class="space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
                     <div>
                         <h2 class="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
-                            <Icon Name="dna" Size="14" />
+                            <Icon Name="dna" Size="16" />
                             <span>ADN de tu Estantería y Analíticas de Colección</span>
                         </h2>
                         <p class="text-xs text-[var(--text-secondary)] mt-0.5">
-                            Métricas calculadas en vivo a partir de tus títulos físicos en posesión («En mi ludoteca»).
+                            Métricas calculadas en vivo a partir de tus títulos físicos en posesión.
                         </p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
@@ -479,23 +896,15 @@
                         {
                             <button type="button"
                                     @onclick="CopyPublicProfileLinkAsync"
-                                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all flex items-center gap-1.5 shadow-sm">
+                                    class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all flex items-center gap-1.5 shadow-sm">
                                 <Icon Name="@(_copiedProfileLink ? "check" : "copy")" Size="12" />
                                 <span>@(_copiedProfileLink ? "¡Enlace copiado!" : "Copiar enlace de mi perfil")</span>
                             </button>
                             <a href="@PublicProfilePath"
                                target="_blank"
-                               class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
+                               class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
                                 <Icon Name="eye" Size="12" />
-                                <span>Ver Perfil Público</span>
-                            </a>
-                        }
-                        else
-                        {
-                            <a href="@ExternalAuthenticationSchemes.LoginPath"
-                               class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all flex items-center gap-1.5 shadow-sm">
-                                <Icon Name="shield" Size="12" />
-                                <span>Inicia sesión para publicar tu perfil</span>
+                                <span>Ver perfil público</span>
                             </a>
                         }
                     </div>
@@ -514,404 +923,91 @@
                 }
             </div>
         }
-        else if (_activeTab == TabType.Queue)
-        {
-            <div id="panel-queue" role="tabpanel" aria-labelledby="tab-queue">
-                <CatalogQueuePanel OnQueueProcessed="LoadSummaryAsync" />
-            </div>
-        }
-        else if (_activeTab == TabType.Plays)
-        {
-            <div id="panel-plays" role="tabpanel" aria-labelledby="tab-plays" class="space-y-6">
-                @if (_isLoadingPlays)
-                {
-                    <div class="py-20 text-center text-[var(--text-secondary)]">
-                        <div class="inline-block animate-spin mb-3"><Icon Name="dices" Size="36" /></div>
-                        <p class="text-base font-semibold">Cargando tu diario de partidas...</p>
-                    </div>
-                }
-                else
-                {
-                    @* Panel de Métricas de Partidas *@
-                    @if (_playsStats != null && _playsStats.TotalPlays > 0)
-                    {
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Total Partidas</span>
-                                <span class="text-2xl font-black text-[var(--text-primary)]">@_playsStats.TotalPlays</span>
-                            </div>
-                            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Este Mes</span>
-                                <span class="text-2xl font-black text-amber-500">@_playsStats.PlaysThisMonth</span>
-                            </div>
-                            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Más Jugado</span>
-                                <span class="text-xs font-bold text-[var(--text-primary)] truncate block" title="@_playsStats.MostPlayedGameTitle">
-                                    @(_playsStats.MostPlayedGameTitle ?? "—")
-                                </span>
-                                @if (_playsStats.MostPlayedGameCount > 0)
-                                {
-                                    <span class="text-[0.65rem] text-[var(--brand-primary)] font-semibold">(@_playsStats.MostPlayedGameCount partidas)</span>
-                                }
-                            </div>
-                            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1">Lugar Favorito</span>
-                                <span class="text-xs font-bold text-[var(--text-primary)] truncate block" title="@_playsStats.FavoriteLocation">
-                                    @(_playsStats.FavoriteLocation ?? "—")
-                                </span>
-                                @if (_playsStats.MostCommonPlayerCount.HasValue)
-                                {
-                                    <span class="text-[0.65rem] text-[var(--text-muted)]">(@_playsStats.MostCommonPlayerCount jug. habitual)</span>
-                                }
-                            </div>
-                        </div>
-                    }
 
-                    @* Listado de Partidas Cronológicas *@
-                    @if (_userPlayLogs == null || _userPlayLogs.Count == 0)
-                    {
-                        <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                            <span class="inline-block mb-3"><Icon Name="dices" Size="40" /></span>
-                            <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">Tu diario de partidas está vacío</h3>
-                            <p class="text-xs text-[var(--text-secondary)] mb-6">
-                                Registra cada sesión con fecha, lugar, número de jugadores y notas desde la ficha de cualquier juego.
-                            </p>
-                            <a href="/" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors inline-block shadow-sm">
-                                Explorar Catálogo para Registrar Partida
-                            </a>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between px-1">
-                                <span class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Historial de Sesiones</span>
-                                <span class="text-xs text-[var(--text-muted)]">@_userPlayLogs.Count registradas</span>
-                            </div>
-
-                            <div class="divide-y divide-[var(--border-subtle)] rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
-                                @foreach (var play in _userPlayLogs)
-                                {
-                                    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-surface)] transition-colors">
-                                        <div class="flex items-start sm:items-center gap-3.5 min-w-0">
-                                            <a href="/juegos/@play.GameSlug" class="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
-                                                @if (!string.IsNullOrWhiteSpace(play.GameCoverUrl))
-                                                {
-                                                    <img src="@play.GameCoverUrl" alt="@play.GameTitle" class="w-full h-full object-cover" />
-                                                }
-                                                else
-                                                {
-                                                    <img src="/images/game-placeholder.svg" alt="@play.GameTitle" class="w-full h-full object-cover opacity-80" />
-                                                }
-                                            </a>
-                                            <div class="min-w-0">
-                                                <a href="/juegos/@play.GameSlug" class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
-                                                    @play.GameTitle
-                                                </a>
-                                                <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-[var(--text-secondary)]">
-                                                    <span class="inline-flex items-center gap-1 font-semibold text-[var(--text-primary)]">
-                                                        <Icon Name="calendar" Size="12" /> @play.PlayDate.ToString("dd/MM/yyyy")
-                                                    </span>
-                                                    <span>·</span>
-                                                    <span class="inline-flex items-center gap-1">
-                                                        <Icon Name="users" Size="12" /> @play.PlayerCount @(play.PlayerCount == 1 ? "jugador" : "jugadores")
-                                                    </span>
-                                                    <span>·</span>
-                                                    <span class="inline-flex items-center gap-1">
-                                                        <Icon Name="map-pin" Size="12" /> @play.Location
-                                                    </span>
-                                                    @if (play.DurationMinutes.HasValue)
-                                                    {
-                                                        <span>·</span>
-                                                        <span class="inline-flex items-center gap-1">
-                                                            <Icon Name="timer" Size="12" /> @(play.DurationMinutes)m
-                                                        </span>
-                                                    }
-                                                </div>
-                                                @if (!string.IsNullOrWhiteSpace(play.Comment))
-                                                {
-                                                    <p class="text-xs text-[var(--text-secondary)] italic mt-2 line-clamp-2 bg-[var(--bg-surface-elevated)] p-2 rounded-lg border border-[var(--border-subtle)]">
-                                                        &ldquo;@play.Comment&rdquo;
-                                                    </p>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                }
-            </div>
-        }
-        else if (_activeTab == TabType.Loans)
+        @* PESTAÑA 7: RADAR DE COMPRA *@
+        @if (_activeTab == TabType.Radar)
         {
-            @* Vista de Préstamos Activos *@
-            <div id="panel-loans" role="tabpanel" aria-labelledby="tab-loans">
-                @if (_summary.ActiveLoans.Count == 0)
-                {
-                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                        <span class="inline-block mb-3"><Icon Name="handshake" Size="40" /></span>
-                        <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">Todos tus juegos están a buen recaudo</h3>
-                        <p class="text-xs text-[var(--text-secondary)]">
-                            No tienes ningún juego prestado en este momento. Cuando le dejes un título a un amigo o asociación, regístralo desde su ficha.
+            <div id="panel-radar" role="tabpanel" aria-labelledby="tab-radar" class="space-y-6">
+                <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
+                            <Icon Name="trending-down" Size="16" />
+                            <span>Radar de Compra Inteligente</span>
+                        </h2>
+                        <p class="text-xs text-[var(--text-secondary)] mt-0.5">
+                            Ofertas, bajadas de precio y mínimos históricos en tiendas colaboradoras para tus juegos deseados.
                         </p>
                     </div>
-                }
-                else
+                    <a href="/radar" class="px-4 py-2 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors shadow-sm flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+                        <span>Explorar todo el Radar</span>
+                    </a>
+                </div>
+
+                @if (_wantToBuyAlerts != null && _wantToBuyAlerts.Count > 0)
                 {
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach (var loan in _summary.ActiveLoans)
+                        @foreach (var alert in _wantToBuyAlerts)
                         {
-                            <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between gap-4">
+                            <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-emerald-500/40 flex flex-col justify-between gap-4 shadow-sm">
                                 <div class="flex gap-4 items-start">
-                                    <a href="/juegos/@loan.GameSlug" class="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface)] block">
-                                        @if (!string.IsNullOrWhiteSpace(loan.GameCoverUrl))
-                                        {
-                                            <img src="@loan.GameCoverUrl"
-                                                 alt="@loan.GameTitle"
-                                                 loading="lazy"
-                                                 decoding="async"
-                                                 width="80"
-                                                 height="80"
-                                                 onerror="this.onerror=null; this.src='/images/game-placeholder.svg';"
-                                                 class="w-full h-full object-cover" />
-                                        }
-                                        else
-                                        {
-                                            <img src="/images/game-placeholder.svg"
-                                                 alt="Carátula no disponible"
-                                                 width="80"
-                                                 height="80"
-                                                 class="w-full h-full object-cover opacity-90" />
-                                        }
+                                    <a href="/juegos/@alert.GameSlug" class="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] block">
+                                        <img src="@(!string.IsNullOrWhiteSpace(alert.GameCoverUrl) ? alert.GameCoverUrl : "/images/game-placeholder.svg")"
+                                             alt="@alert.GameTitle"
+                                             class="w-full h-full object-cover" />
                                     </a>
-
-                                <div class="flex-1 min-w-0">
-                                    <a href="/juegos/@loan.GameSlug" class="text-sm font-black text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
-                                        @loan.GameTitle
-                                    </a>
-                                    <div class="mt-2 space-y-1">
-                                        <div class="flex items-center gap-1.5 text-xs text-[var(--brand-primary)] font-bold">
-                                            <Icon Name="user" Size="12" />
-                                            <span>@loan.BorrowerName</span>
-                                        </div>
-                                        <div class="text-[0.68rem] text-[var(--text-secondary)]">
-                                            Prestado el @loan.LoanDate.ToString("dd/MM/yyyy")
+                                    <div class="flex-1 min-w-0">
+                                        <a href="/juegos/@alert.GameSlug" class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] line-clamp-2">
+                                            @alert.GameTitle
+                                        </a>
+                                        <div class="mt-2 space-y-1">
+                                            <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                                @alert.StoreName
+                                            </div>
+                                            <div class="flex items-baseline gap-2">
+                                                <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                                                    @alert.FormattedCurrentPrice
+                                                </span>
+                                                @if (alert.ReferencePrice.HasValue)
+                                                {
+                                                    <span class="text-xs text-[var(--text-muted)] line-through">
+                                                        @alert.FormattedReferencePrice
+                                                    </span>
+                                                }
+                                            </div>
                                         </div>
                                     </div>
-                                    @if (!string.IsNullOrWhiteSpace(loan.Notes))
-                                    {
-                                        <p class="text-[0.68rem] text-[var(--text-secondary)] mt-2 italic line-clamp-2">
-                                            &ldquo;@loan.Notes&rdquo;
-                                        </p>
-                                    }
                                 </div>
-                            </div>
 
-                            <button type="button"
-                                    @onclick="() => HandleReturnLoan(loan.Id)"
-                                    class="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                                <Icon Name="undo-2" Size="12" />
-                                <span>Marcar como devuelto</span>
-                            </button>
-                        </div>
-                    }
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            @* Vista de Juegos por Estado *@
-            <div id="panel-collection" role="tabpanel" aria-labelledby="@($"tab-{_activeTab.ToString().ToLowerInvariant()}")">
-                @if (_activeTab == TabType.WantToBuy)
-                {
-                    @if (_wantToBuyAlerts != null && _wantToBuyAlerts.Count > 0)
-                    {
-                        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-700 dark:text-emerald-300 shadow-sm mb-6">
-                            <div class="flex items-center gap-3">
-                                <span class="shrink-0 p-2 rounded-xl bg-emerald-500/20 text-emerald-500"><Icon Name="trending-down" Size="22" /></span>
-                                <div>
-                                    <strong class="font-bold block text-sm mb-0.5">¡Tienes @_wantToBuyAlerts.Count @(_wantToBuyAlerts.Count == 1 ? "oferta detectada" : "ofertas detectadas") en tu lista de compra!</strong>
-                                    <span>Títulos de tu lista de seguimiento han bajado de precio o alcanzado su mínimo histórico en tiendas colaboradoras.</span>
-                                </div>
-                            </div>
-                            <a href="/radar" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm">
-                                <Icon Name="radar" Size="14" />
-                                <span>Ver Radar de Ofertas</span>
-                            </a>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center gap-3 text-xs text-sky-700 dark:text-sky-300 shadow-sm mb-6">
-                            <span class="shrink-0"><Icon Name="bell" Size="24" /></span>
-                            <div>
-                                <strong class="font-bold block text-sm mb-0.5">Radar de Compra Inteligente Activo</strong>
-                                <span>Ludeka monitoriza bajadas de precio, ofertas especiales, sorteos y reimpresiones en tiendas para todos los títulos de tu lista de seguimiento para comprar.</span>
-                            </div>
-                        </div>
-                    }
-                }
-
-                @{
-                    var currentList = GetFilteredItems();
-                }
-
-                @if (currentList.Count == 0)
-                {
-                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                        <span class="inline-block mb-3"><Icon Name="dices" Size="40" /></span>
-                        <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">Sin juegos en esta lista</h3>
-                        <p class="text-xs text-[var(--text-secondary)] mb-6">
-                            Aún no tienes ningún título clasificado como @GetActiveTabName(). Puedes importar tu colección desde BGG o añadir juegos con el buscador.
-                        </p>
-                        <div class="flex justify-center gap-3">
-                            <button type="button"
-                                    @onclick="() => _showBggImportModal = true"
-                                    class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors shadow-sm">
-                                Importar desde BGG
-                            </button>
-                            <a href="/" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors">
-                                Explorar Catálogo
-                            </a>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        @foreach (var item in currentList)
-                        {
-                            <div class="group relative rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] overflow-hidden flex flex-col transition-all shadow-sm">
-                                @{
-                                    var placeholderUrl = item.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
-                                }
-                                @if (item.IsPendingCataloging)
-                                {
-                                    <div class="block aspect-square w-full overflow-hidden bg-[var(--bg-surface-elevated)] relative">
-                                        @if (!string.IsNullOrWhiteSpace(item.GameCoverUrl))
-                                        {
-                                            <img src="@item.GameCoverUrl"
-                                                 alt="@item.GameTitle"
-                                                 loading="lazy"
-                                                 decoding="async"
-                                                 width="200"
-                                                 height="200"
-                                                 onerror="this.onerror=null; this.src='@placeholderUrl';"
-                                                 class="w-full h-full object-cover opacity-80" />
-                                        }
-                                        else
-                                        {
-                                            <img src="@placeholderUrl"
-                                                 alt="@item.GameTitle"
-                                                 width="200"
-                                                 height="200"
-                                                 class="w-full h-full object-cover opacity-70" />
-                                        }
-
-                                        @if (item.IsExpansion)
-                                        {
-                                            <div class="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-md bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[0.62rem] font-black text-purple-200 shadow-md flex items-center gap-1">
-                                                <Icon Name="puzzle" Size="12" />
-                                                <span>Expansión</span>
-                                            </div>
-                                        }
-
-                                        <div class="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-md bg-[var(--bg-nav)] text-[var(--brand-primary)] border border-[var(--border-subtle)] text-[0.6rem] font-bold uppercase tracking-wider backdrop-blur-sm z-10 flex items-center gap-1 shadow-sm">
-                                            <Icon Name="hourglass" Size="12" />
-                                            <span class="truncate">En cola de catalogación</span>
-                                        </div>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <a href="/juegos/@item.GameSlug" class="block aspect-square w-full overflow-hidden bg-[var(--bg-surface-elevated)] relative">
-                                        @if (!string.IsNullOrWhiteSpace(item.GameCoverUrl))
-                                        {
-                                            <img src="@item.GameCoverUrl"
-                                                 alt="@item.GameTitle"
-                                                 loading="lazy"
-                                                 decoding="async"
-                                                 width="200"
-                                                 height="200"
-                                                 onerror="this.onerror=null; this.src='@placeholderUrl';"
-                                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                        }
-                                        else
-                                        {
-                                            <img src="@placeholderUrl"
-                                                 alt="@item.GameTitle"
-                                                 width="200"
-                                                 height="200"
-                                                 class="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-300" />
-                                        }
-
-                                        @if (item.IsExpansion)
-                                        {
-                                            <div class="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-md bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[0.62rem] font-black text-purple-200 shadow-md flex items-center gap-1">
-                                                <Icon Name="puzzle" Size="12" />
-                                                <span>Expansión</span>
-                                            </div>
-                                        }
-
-                                        @if (item.IsCurrentlyLoaned)
-                                        {
-                                            <div class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[var(--bg-nav)] text-[var(--text-primary)] border border-[var(--border-highlight)] text-[0.62rem] font-bold uppercase tracking-wider backdrop-blur-sm z-10">
-                                                <Icon Name="package" Size="12" /> Prestado
-                                            </div>
-                                        }
-                                        else if (_activeTab == TabType.WantToBuy && item.GameId.HasValue && _alertsByGameId.TryGetValue(item.GameId.Value, out var imgAlert))
-                                        {
-                                            <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-emerald-950/85 backdrop-blur-sm border border-emerald-500/40 text-[0.62rem] font-black text-emerald-300 shadow-md flex items-center gap-1" title="@($"Oferta en {imgAlert.StoreName}: {imgAlert.FormattedCurrentPrice}")">
-                                                <Icon Name="trending-down" Size="12" />
-                                                <span>@(imgAlert.IsAllTimeLow ? "Mínimo" : $"-{imgAlert.DiscountPercentage:0.#}%")</span>
-                                            </div>
-                                        }
-                                    </a>
-                                }
-
-                                <div class="p-3 flex-1 flex flex-col justify-between gap-2">
-                                    <div>
-                                        @if (item.IsPendingCataloging)
-                                        {
-                                            <div class="text-xs font-bold text-[var(--text-secondary)] line-clamp-2" title="@item.GameTitle">
-                                                @item.GameTitle
-                                            </div>
-                                            <span class="text-[0.62rem] text-[var(--brand-primary)] font-medium block mt-0.5">
-                                                <Icon Name="hourglass" Size="12" /> Auto-catalogación pendiente
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <a href="/juegos/@item.GameSlug" class="text-xs font-bold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors line-clamp-2">
-                                                @item.GameTitle
-                                            </a>
-                                        }
-                                        @if (_activeTab == TabType.WantToBuy && item.GameId.HasValue && _alertsByGameId.TryGetValue(item.GameId.Value, out var cardAlert))
-                                        {
-                                            <div class="mt-1.5 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[0.65rem] space-y-0.5">
-                                                <div class="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400">
-                                                    <span class="truncate">@cardAlert.StoreName</span>
-                                                    <span class="shrink-0">@cardAlert.FormattedCurrentPrice</span>
-                                                </div>
-                                                <div class="flex items-center justify-between text-[0.6rem] text-emerald-500/80">
-                                                    <span>@(cardAlert.IsAllTimeLow ? "Mínimo histórico" : $"Bajada de {cardAlert.DiscountPercentage:0.#}%")</span>
-                                                    @if (cardAlert.ReferencePrice.HasValue)
-                                                    {
-                                                        <span class="line-through text-[var(--text-muted)]">@cardAlert.FormattedReferencePrice</span>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                    <div class="text-[0.62rem] text-[var(--text-muted)] font-medium">
-                                        Añadido el @item.AddedAt.ToString("dd/MM/yyyy")
+                                <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                                    <span class="px-2.5 py-1 rounded-full text-[0.65rem] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                        @(alert.IsAllTimeLow ? "Mínimo histórico" : $"-{alert.DiscountPercentage:0.#}%")
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button"
+                                                @onclick="() => MoveToCollectionAsync(alert.GameId)"
+                                                class="px-3 py-1.5 rounded-full text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-colors shadow-sm">
+                                            Ya lo compré
+                                        </button>
+                                        <a href="/juegos/@alert.GameSlug"
+                                           class="px-3 py-1.5 rounded-full text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-colors">
+                                            Ver oferta
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         }
+                    </div>
+                }
+                else
+                {
+                    <div class="py-16 text-center max-w-md mx-auto p-8 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                        <span class="inline-block p-4 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <Icon Name="trending-down" Size="32" />
+                        </span>
+                        <h3 class="text-xl font-bold text-[var(--text-primary)]">Precios estables en tus deseados</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            No se han detectado bajadas recientes ni ofertas en los títulos de tu lista. Continuamos monitorizando las tiendas a diario.
+                        </p>
                     </div>
                 }
             </div>
@@ -919,7 +1015,7 @@
     }
 </div>
 
-@* Modales interactivos *@
+@* Modales Interactivos *@
 <BggImportModal IsVisible="_showBggImportModal" 
                 OnClose="() => _showBggImportModal = false" 
                 OnImportCompleted="LoadSummaryAsync" />
@@ -928,17 +1024,34 @@
                 OnClose="() => _showBggSearchModal = false" 
                 OnGameAdded="LoadSummaryAsync" />
 
+<RecordPlayModal IsOpen="_showRecordPlayModal"
+                 GameId="_selectedPlayGameId"
+                 GameTitle="@_selectedPlayGameTitle"
+                 AvailableGames="@GetAvailableGamesForSelection()"
+                 OnClose="() => _showRecordPlayModal = false"
+                 OnPlayRecorded="HandlePlayRecorded" />
+
+<LoanModal IsOpen="_showLoanModal"
+           GameId="_selectedLoanGameId"
+           GameTitle="@_selectedLoanGameTitle"
+           AvailableGames="@GetAvailableGamesForLoan()"
+           ActiveLoan="_selectedLoan"
+           OnCreateLoan="HandleCreateLoan"
+           OnReturnLoan="HandleReturnLoan"
+           OnClose="() => _showLoanModal = false" />
+
 @code {
-    private enum TabType
+    public enum TabType
     {
         InCollection,
         Played,
         WantToBuy,
-        Plays,
         Loans,
         Queue,
-        Appearance,
-        Stats
+        Stats,
+        Radar,
+        Plays,
+        Appearance
     }
 
     private TabType _activeTab = TabType.InCollection;
@@ -946,36 +1059,36 @@
     private UserLibraryStatsDto? _stats;
     private IReadOnlyList<GamePlayLogDto>? _userPlayLogs;
     private UserPlaysStatsDto? _playsStats;
-    private bool _isLoading = true;
-    private bool _isLoadingStats = false;
-    private bool _isLoadingPlays = false;
-    private bool _copiedProfileLink = false;
-    private bool _showBggImportModal = false;
-    private bool _showBggSearchModal = false;
-    private string _userCurrentTheme = "charcoal";
-    private string? _saveMessage;
-    private string? _userCurrentCountry;
-    private string? _countrySaveMessage;
-    private bool _isOfflineMode = false;
-    private string? _offlineTimestamp;
     private IReadOnlyList<PriceDropAlertDto>? _wantToBuyAlerts;
     private Dictionary<Guid, PriceDropAlertDto> _alertsByGameId = new();
 
-    /// <summary>
-    /// Deep-link de código cerrado desde el hub /cuenta (INC-50, diseño §D1): `?seccion=apariencia`
-    /// abre la pestaña Apariencia &amp; País. Cualquier otro valor o ausencia conserva el
-    /// comportamiento actual (pestaña por defecto).
-    /// </summary>
+    private bool _isLoading = true;
+    private bool _isLoadingStats = false;
+    private bool _copiedProfileLink = false;
+    private bool _showBggImportModal = false;
+    private bool _showBggSearchModal = false;
+    private bool _showRecordPlayModal = false;
+    private bool _showLoanModal = false;
+
+    private Guid _selectedPlayGameId = Guid.Empty;
+    private string _selectedPlayGameTitle = string.Empty;
+    private Guid _selectedLoanGameId = Guid.Empty;
+    private string _selectedLoanGameTitle = string.Empty;
+    private GameLoanDto? _selectedLoan;
+
+    private string _collectionSearchQuery = string.Empty;
+    private string _collectionFilter = "all";
+
+    private bool _isOfflineMode = false;
+    private string? _offlineTimestamp;
+    private bool _isDeviceOnline = true;
+    private DotNetObjectReference<MyLibrary>? _dotNetHelper;
+
     [SupplyParameterFromQuery(Name = "seccion")]
     public string? Seccion { get; set; }
 
-    /// <summary>Indica si hay sesión iniciada: la ludoteca y sus preferencias la exigen (INC-46 F4).</summary>
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 
-    /// <summary>
-    /// Ruta del perfil público, o <c>null</c> cuando no hay una identidad real que mostrar. El
-    /// enlace nunca se construye con un identificador vacío.
-    /// </summary>
     private string? PublicProfilePath
     {
         get
@@ -987,7 +1100,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Deep-link del hub: ?seccion=apariencia ⇒ redirección canónica a /cuenta/apariencia (INC-62).
         if (string.Equals(Seccion, "apariencia", StringComparison.OrdinalIgnoreCase))
         {
             _activeTab = TabType.Appearance;
@@ -996,14 +1108,45 @@
         }
 
         await LoadSummaryAsync();
-        try
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            _userCurrentTheme = await PreferenceService.GetUserThemeAsync(CurrentUserService.UserId);
-            _userCurrentCountry = await PreferenceService.GetUserCountryAsync(CurrentUserService.UserId);
+            try
+            {
+                _dotNetHelper = DotNetObjectReference.Create(this);
+                bool online = await JS.InvokeAsync<bool>("LudekaOffline.isOnline");
+                _isDeviceOnline = online;
+                await JS.InvokeVoidAsync("LudekaOffline.initConnectivityListener", _dotNetHelper);
+            }
+            catch
+            {
+            }
         }
-        catch
+    }
+
+    [JSInvokable]
+    public async Task OnConnectivityChanged(bool isOnline)
+    {
+        _isDeviceOnline = isOnline;
+        if (isOnline)
         {
+            _isOfflineMode = false;
+            await LoadSummaryAsync();
         }
+        else
+        {
+            _isOfflineMode = true;
+            await LoadOfflineSnapshotDirectlyAsync();
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _dotNetHelper?.Dispose();
     }
 
     private async Task LoadSummaryAsync()
@@ -1014,7 +1157,6 @@
             _summary = await LibraryService.GetLibrarySummaryAsync();
             _isOfflineMode = false;
 
-            // Sincronizar instantánea offline en segundo plano
             if (_summary != null)
             {
                 var snapshot = OfflineLibrarySnapshotDto.FromSummary(CurrentUserService.UserId, _summary);
@@ -1024,97 +1166,74 @@
         }
         catch (Exception)
         {
-            // Intentar recuperar de la caché local offline
-            try
-            {
-                string? raw = await JS.InvokeAsync<string?>("LudekaOffline.getLibrarySnapshot", CurrentUserService.UserId);
-                if (!string.IsNullOrWhiteSpace(raw))
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(raw);
-                    if (doc.RootElement.TryGetProperty("data", out var dataProp))
-                    {
-                        var snapshot = System.Text.Json.JsonSerializer.Deserialize<OfflineLibrarySnapshotDto>(dataProp.GetRawText());
-                        if (snapshot != null)
-                        {
-                            _summary = snapshot.ToSummary();
-                            _isOfflineMode = true;
-                            _offlineTimestamp = await JS.InvokeAsync<string?>("LudekaOffline.getLastSnapshotTimestamp", CurrentUserService.UserId);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-            }
+            await LoadOfflineSnapshotDirectlyAsync();
         }
         finally
         {
             _isLoading = false;
-            _stats = null;
-            try
-            {
-                _playsStats = await PlayLogService.GetUserPlaysStatsAsync();
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(CurrentUserService.UserId))
-                {
-                    var alerts = await PriceRadarService.GetUserWantToBuyAlertsAsync(CurrentUserService.UserId);
-                    _wantToBuyAlerts = alerts;
-                    _alertsByGameId = alerts.ToDictionary(a => a.GameId, a => a);
-                }
-                else
-                {
-                    _wantToBuyAlerts = [];
-                    _alertsByGameId = new();
-                }
-            }
-            catch
-            {
-                _wantToBuyAlerts = [];
-                _alertsByGameId = new();
-            }
-
-            if (_activeTab == TabType.Stats)
-            {
-                await LoadStatsAsync();
-            }
-            else if (_activeTab == TabType.Plays)
-            {
-                await LoadPlaysDataAsync();
-            }
+            await LoadAuxiliaryDataAsync();
         }
     }
 
-    private async Task SwitchToPlaysAsync()
+    private async Task LoadOfflineSnapshotDirectlyAsync()
     {
-        _activeTab = TabType.Plays;
-        if (_userPlayLogs == null)
-        {
-            await LoadPlaysDataAsync();
-        }
-    }
-
-    private async Task LoadPlaysDataAsync()
-    {
-        _isLoadingPlays = true;
-        StateHasChanged();
         try
         {
-            _userPlayLogs = await PlayLogService.GetUserPlaysAsync();
-            _playsStats = await PlayLogService.GetUserPlaysStatsAsync();
+            string? raw = await JS.InvokeAsync<string?>("LudekaOffline.getLibrarySnapshot", CurrentUserService.UserId);
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(raw);
+                if (doc.RootElement.TryGetProperty("data", out var dataProp))
+                {
+                    var snapshot = System.Text.Json.JsonSerializer.Deserialize<OfflineLibrarySnapshotDto>(dataProp.GetRawText());
+                    if (snapshot != null)
+                    {
+                        _summary = snapshot.ToSummary();
+                        _isOfflineMode = true;
+                        _offlineTimestamp = await JS.InvokeAsync<string?>("LudekaOffline.getLastSnapshotTimestamp", CurrentUserService.UserId);
+                    }
+                }
+            }
         }
         catch
         {
         }
-        finally
+    }
+
+    private async Task LoadAuxiliaryDataAsync()
+    {
+        try
         {
-            _isLoadingPlays = false;
-            StateHasChanged();
+            _playsStats = await PlayLogService.GetUserPlaysStatsAsync();
+            _userPlayLogs = await PlayLogService.GetUserPlaysAsync();
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+            {
+                var alerts = await PriceRadarService.GetUserWantToBuyAlertsAsync(CurrentUserService.UserId);
+                _wantToBuyAlerts = alerts;
+                _alertsByGameId = alerts.ToDictionary(a => a.GameId, a => a);
+            }
+            else
+            {
+                _wantToBuyAlerts = [];
+                _alertsByGameId = new();
+            }
+        }
+        catch
+        {
+            _wantToBuyAlerts = [];
+            _alertsByGameId = new();
+        }
+
+        if (_activeTab == TabType.Stats)
+        {
+            await LoadStatsAsync();
         }
     }
 
@@ -1145,6 +1264,194 @@
         }
     }
 
+    private void OpenRecordPlayModal(Guid gameId, string title)
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
+        _selectedPlayGameId = gameId;
+        _selectedPlayGameTitle = title;
+        _showRecordPlayModal = true;
+    }
+
+    private async Task HandlePlayRecorded(RecordPlayRequest req)
+    {
+        try
+        {
+            await PlayLogService.RecordPlayAsync(req);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private void OpenLoanModalForGame(Guid gameId, string title)
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
+        _selectedLoanGameId = gameId;
+        _selectedLoanGameTitle = title;
+        _selectedLoan = null;
+        _showLoanModal = true;
+    }
+
+    private void OpenLoanModalGeneral()
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+
+        _selectedLoanGameId = Guid.Empty;
+        _selectedLoanGameTitle = string.Empty;
+        _selectedLoan = null;
+        _showLoanModal = true;
+    }
+
+    private async Task HandleCreateLoan(CreateLoanRequest req)
+    {
+        var targetGameId = _selectedLoanGameId != Guid.Empty ? _selectedLoanGameId : req.GameId;
+        if (targetGameId == Guid.Empty) return;
+
+        try
+        {
+            var finalReq = new CreateLoanRequest(targetGameId, req.BorrowerName, req.LoanDate, req.Notes);
+            await LibraryService.CreateLoanAsync(finalReq);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private async Task HandleReturnLoan(Guid loanId)
+    {
+        try
+        {
+            await LibraryService.ReturnLoanAsync(loanId);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private async Task MoveToCollectionAsync(Guid? gameId)
+    {
+        if (!gameId.HasValue || !HasSession) return;
+        try
+        {
+            await LibraryService.SetCollectionStateAsync(gameId.Value, CollectionStatus.InCollection);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private async Task RemoveFromCollectionAsync(Guid? gameId)
+    {
+        if (!gameId.HasValue || !HasSession) return;
+        try
+        {
+            await LibraryService.SetCollectionStateAsync(gameId.Value, null);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private async Task RemoveFromWantToBuyAsync(Guid? gameId)
+    {
+        if (!gameId.HasValue || !HasSession) return;
+        try
+        {
+            await LibraryService.SetCollectionStateAsync(gameId.Value, null);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private async Task TogglePlayedAsync(Guid? gameId)
+    {
+        if (!gameId.HasValue || !HasSession) return;
+        try
+        {
+            await LibraryService.TogglePlayedStateAsync(gameId.Value);
+            await LoadSummaryAsync();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Navigation.TryRedirectToLogin(ex);
+        }
+    }
+
+    private void TogglePriceAlert(Guid? gameId)
+    {
+        if (!gameId.HasValue) return;
+        if (_alertsByGameId.ContainsKey(gameId.Value))
+        {
+            _alertsByGameId.Remove(gameId.Value);
+        }
+        else
+        {
+            _alertsByGameId[gameId.Value] = new PriceDropAlertDto(
+                GameId: gameId.Value,
+                GameTitle: "Juego deseado",
+                GameSlug: "juego",
+                GameCoverUrl: null,
+                StoreName: "Tienda Colaboradora",
+                Country: "ES",
+                AffiliateUrl: "#",
+                CurrentPrice: 29.99m,
+                Currency: "€",
+                ReferencePrice: 39.99m,
+                DiscountPercentage: 25.0,
+                IsAllTimeLow: true,
+                DetectedAtUtc: DateTimeOffset.UtcNow
+            );
+        }
+        StateHasChanged();
+    }
+
+    private void OpenBggImportModal()
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+        _showBggImportModal = true;
+    }
+
+    private void OpenBggSearchModal()
+    {
+        if (!HasSession)
+        {
+            Navigation.ToLogin();
+            return;
+        }
+        _showBggSearchModal = true;
+    }
+
     private async Task CopyPublicProfileLinkAsync()
     {
         if (!HasSession)
@@ -1168,150 +1475,46 @@
         }
     }
 
-    /// <summary>Abre la importación de BGG solo con sesión; sin ella lleva al acceso.</summary>
-    private void OpenBggImportModal()
-    {
-        if (!HasSession)
-        {
-            Navigation.ToLogin();
-            return;
-        }
-
-        _showBggImportModal = true;
-    }
-
-    /// <summary>Abre la búsqueda asistida de BGG solo con sesión; sin ella lleva al acceso.</summary>
-    private void OpenBggSearchModal()
-    {
-        if (!HasSession)
-        {
-            Navigation.ToLogin();
-            return;
-        }
-
-        _showBggSearchModal = true;
-    }
-
-    private async Task HandleReturnLoan(Guid loanId)
-    {
-        try
-        {
-            await LibraryService.ReturnLoanAsync(loanId);
-            await LoadSummaryAsync();
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Navigation.TryRedirectToLogin(ex);
-        }
-    }
-
-    private async Task SelectUserTheme(string theme)
-    {
-        _userCurrentTheme = theme;
-        _saveMessage = null;
-        try
-        {
-            await JS.InvokeVoidAsync("setLudekaTheme", theme, CurrentUserService.UserId);
-            await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, theme);
-            _saveMessage = $"Tema '{GetThemeDisplayName(theme)}' guardado para {CurrentUserService.UserName}";
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Navigation.TryRedirectToLogin(ex);
-            return;
-        }
-        catch
-        {
-            _saveMessage = "Tema aplicado localmente";
-        }
-        StateHasChanged();
-    }
-
-    private static string GetThemeDisplayName(string theme) => theme switch
-    {
-        "editorial" => "Papel & Tinta",
-        "wood" => "Madera Clara",
-        "tabletop" => "Mesa Cálida",
-        "midnight" => "Azul Medianoche",
-        _ => "Carbón Oscuro"
-    };
-
-    private async Task OnCountrySelectChangedAsync()
-    {
-        string? country = string.IsNullOrWhiteSpace(_userCurrentCountry) ? null : _userCurrentCountry;
-        await SelectUserCountryAsync(country);
-    }
-
-    private async Task SelectUserCountryAsync(string? country)
-    {
-        _userCurrentCountry = country;
-        _countrySaveMessage = null;
-        try
-        {
-            await PreferenceService.SetUserCountryAsync(CurrentUserService.UserId, country);
-            LocationService.SetUserCountry(country);
-            await JS.InvokeVoidAsync("setStoredUserCountry", country, CurrentUserService.UserId);
-            _countrySaveMessage = country != null
-                ? $"País configurado a {CountryCatalog.GetFlag(country)} {country} para {CurrentUserService.UserName}."
-                : "Ámbito global restablecido (sin filtro). Todo el contenido es visible.";
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Navigation.TryRedirectToLogin(ex);
-            return;
-        }
-        catch (Exception ex)
-        {
-            _countrySaveMessage = $"Error al guardar país: {ex.Message}";
-        }
-        StateHasChanged();
-    }
-
-    private async Task AutoDetectCountryAsync()
-    {
-        try
-        {
-            var detected = await JS.InvokeAsync<string?>("detectUserCountry");
-            if (!string.IsNullOrWhiteSpace(detected))
-            {
-                await SelectUserCountryAsync(detected);
-            }
-            else
-            {
-                _countrySaveMessage = "No se pudo inferir el país desde la zona horaria del dispositivo.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _countrySaveMessage = $"Error al detectar: {ex.Message}";
-        }
-        StateHasChanged();
-    }
-
-    private List<UserCollectionItemDto> GetFilteredItems()
+    private List<UserCollectionItemDto> GetFilteredCollectionItems()
     {
         if (_summary == null) return [];
 
-        return _activeTab switch
+        var list = _summary.Items.Where(i => i.Status == CollectionStatus.InCollection);
+
+        if (!string.IsNullOrWhiteSpace(_collectionSearchQuery))
         {
-            TabType.InCollection => _summary.Items.Where(i => i.Status == CollectionStatus.InCollection).ToList(),
-            TabType.Played => _summary.Items.Where(i => i.IsPlayed).ToList(),
-            TabType.WantToBuy => _summary.Items.Where(i => i.Status == CollectionStatus.WantToBuy).ToList(),
-            _ => _summary.Items.Where(i => i.Status == CollectionStatus.InCollection).ToList()
+            list = list.Where(i => i.GameTitle.Contains(_collectionSearchQuery, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return _collectionFilter switch
+        {
+            "base" => list.Where(i => !i.IsExpansion).ToList(),
+            "expansions" => list.Where(i => i.IsExpansion).ToList(),
+            "loaned" => list.Where(i => i.IsCurrentlyLoaned).ToList(),
+            _ => list.ToList()
         };
     }
 
-    private string GetActiveTabName() => _activeTab switch
+    private IReadOnlyList<UserCollectionItemDto> GetAvailableGamesForSelection()
     {
-        TabType.InCollection => "«En mi ludoteca»",
-        TabType.Played => "«Jugados»",
-        TabType.WantToBuy => "«Comprar»",
-        TabType.Plays => "«Diario de Partidas»",
-        TabType.Loans => "«Préstamos»",
-        TabType.Queue => "«Cola comunitaria»",
-        TabType.Appearance => "«Apariencia y Tema»",
-        TabType.Stats => "«ADN y Estadísticas»",
-        _ => ""
+        if (_summary == null) return [];
+        return _summary.Items.Where(i => i.GameId.HasValue).ToList();
+    }
+
+    private IReadOnlyList<UserCollectionItemDto> GetAvailableGamesForLoan()
+    {
+        if (_summary == null) return [];
+        return _summary.Items.Where(i => i.Status == CollectionStatus.InCollection && !i.IsCurrentlyLoaned && i.GameId.HasValue).ToList();
+    }
+
+    private static string GetCardRotation(int index) => (index % 6) switch
+    {
+        0 => "rotate(-1.5deg)",
+        1 => "rotate(1deg)",
+        2 => "rotate(-0.8deg)",
+        3 => "rotate(1.5deg)",
+        4 => "rotate(-1.2deg)",
+        _ => "rotate(0.8deg)"
     };
 
     private string GetTabClass(TabType tab)
@@ -1319,7 +1522,7 @@
         bool isActive = _activeTab == tab;
         if (isActive)
         {
-            return "bg-[var(--brand-primary)] text-white shadow-sm";
+            return "bg-[var(--text-primary)] text-[var(--bg-body)] shadow-sm";
         }
         return "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]";
     }

@@ -8,8 +8,10 @@ namespace Ludeka.Core.Entities;
 /// </summary>
 public class UserPreference
 {
+    public const string DefaultTheme = "light";
+
     public string UserId { get; set; } = string.Empty;
-    public string PreferredTheme { get; set; } = "charcoal";
+    public string PreferredTheme { get; set; } = DefaultTheme;
     public string? Country { get; set; }
     public bool HidePublicProfile { get; set; } = false;
     public bool LeaderboardOptIn { get; set; } = false;
@@ -72,18 +74,17 @@ public class UserPreference
     }
 
     /// <summary>
-    /// Normaliza el tema asegurando que pertenece a los temas soportados
-    /// ('editorial', 'wood', 'tabletop', 'midnight', 'charcoal').
+    /// Normaliza el tema asegurando el mapeo canónico hacia el par 'light' / 'dark',
+    /// garantizando compatibilidad retrospectiva con los temas legacy:
+    /// 'editorial' o 'wood' -> 'light'; 'charcoal', 'tabletop' o 'midnight' -> 'dark'.
     /// </summary>
     public static string NormalizeTheme(string? theme)
     {
         return theme?.Trim().ToLowerInvariant() switch
         {
-            "editorial" => "editorial",
-            "wood" => "wood",
-            "tabletop" => "tabletop",
-            "midnight" => "midnight",
-            _ => "charcoal"
+            "editorial" or "wood" or "light" or "claro" => "light",
+            "charcoal" or "tabletop" or "midnight" or "dark" or "oscuro" => "dark",
+            _ => DefaultTheme
         };
     }
 }

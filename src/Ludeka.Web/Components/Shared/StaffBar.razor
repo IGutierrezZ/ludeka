@@ -1,0 +1,114 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.ValueObjects
+@inject ICurrentUserService CurrentUserService
+
+@*
+    Barra Contextual de Staff (INC-114).
+    Visible exclusivamente cuando el usuario tiene roles de administración o moderación.
+    Proporciona acceso rápido a los módulos principales de moderación y enlace al panel central.
+*@
+
+@if (IsStaff)
+{
+    <div class="bg-[var(--paper-2)] border-b-2 border-dashed border-[var(--mustard)] transition-colors"
+         role="region"
+         aria-label="Barra de gestión staff">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-2 items-center text-xs">
+            @* Badge identificador de rol *@
+            <span class="px-2.5 py-1 rounded-full bg-[var(--mustard)] text-[#22180F] text-[11px] font-extrabold uppercase tracking-wider shadow-xs shrink-0">
+                Gestión · @RoleLabel
+            </span>
+
+            @* Atajos a los módulos de gestión según permisos *@
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
+            {
+                <a href="/moderacion/reportes"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Reportes de Catálogo">
+                    <Icon Name="flag" Size="13" />
+                    <span>Reportes</span>
+                </a>
+            }
+
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
+            {
+                <a href="/admin/cola-catalogacion"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Cola BGG & Catalogación">
+                    <Icon Name="moon" Size="13" />
+                    <span>Cola BGG</span>
+                </a>
+            }
+
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
+            {
+                <a href="/admin/afiliados"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Feeds & Afiliados">
+                    <Icon Name="shopping-bag" Size="13" />
+                    <span>Feeds & Afiliados</span>
+                </a>
+            }
+
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
+            {
+                <a href="/admin/ingesta-social"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Bandeja de Ingesta Social">
+                    <Icon Name="sparkles" Size="13" />
+                    <span>Ingesta Social</span>
+                </a>
+            }
+
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanPublishInstagram))
+            {
+                <a href="/admin/instagram"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Publicador de Instagram">
+                    <Icon Name="camera" Size="13" />
+                    <span>Instagram</span>
+                </a>
+            }
+
+            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers))
+            {
+                <a href="/admin/usuarios"
+                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   title="Gestión de Usuarios">
+                    <Icon Name="users" Size="13" />
+                    <span>Usuarios</span>
+                </a>
+            }
+
+            @* Enlace al panel de control central de administración *@
+            <a href="/admin"
+               class="ml-auto text-xs font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 py-1"
+               title="Ir al panel de gestión">
+                <span>Panel de gestión</span>
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsStaff => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
+
+    private string RoleLabel
+    {
+        get
+        {
+            if (CurrentUserService.IsFoundingTeam)
+            {
+                return "Mesa Fundadora";
+            }
+
+            if (CurrentUserService.IsInRole("Moderator"))
+            {
+                return "Moderador";
+            }
+
+            return "Staff";
+        }
+    }
+}

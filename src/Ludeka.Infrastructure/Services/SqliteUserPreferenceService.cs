@@ -26,7 +26,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
-            return "charcoal";
+            return UserPreference.DefaultTheme;
         }
 
         await using var scope = await CreateScopeAsync(ct);
@@ -34,7 +34,9 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId.Trim(), ct);
 
-        return pref?.PreferredTheme ?? "charcoal";
+        return pref?.PreferredTheme != null
+            ? UserPreference.NormalizeTheme(pref.PreferredTheme)
+            : UserPreference.DefaultTheme;
     }
 
     public async Task SetUserThemeAsync(string userId, string theme, CancellationToken ct = default)
@@ -70,7 +72,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
         {
             return new UserPreferenceDto(
                 pref.UserId,
-                pref.PreferredTheme,
+                UserPreference.NormalizeTheme(pref.PreferredTheme),
                 pref.UpdatedAt,
                 pref.Country,
                 pref.HidePublicProfile,
@@ -79,7 +81,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
                 pref.LeaderboardPseudonym);
         }
 
-        return new UserPreferenceDto(cleanUserId, "charcoal", DateTime.UtcNow, null, false, false, false, null);
+        return new UserPreferenceDto(cleanUserId, UserPreference.DefaultTheme, DateTime.UtcNow, null, false, false, false, null);
     }
 
     public async Task<string?> GetUserCountryAsync(string userId, CancellationToken ct = default)
@@ -104,7 +106,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
 
         if (existing == null)
         {
-            var newPref = new UserPreference(cleanUserId, "charcoal", country);
+            var newPref = new UserPreference(cleanUserId, UserPreference.DefaultTheme, country);
             scope.Context.UserPreferences.Add(newPref);
         }
         else
@@ -136,7 +138,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
 
         if (existing == null)
         {
-            var newPref = new UserPreference(cleanUserId, "charcoal", null, hide);
+            var newPref = new UserPreference(cleanUserId, UserPreference.DefaultTheme, null, hide);
             scope.Context.UserPreferences.Add(newPref);
         }
         else
@@ -155,7 +157,7 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
 
         if (existing == null)
         {
-            var newPref = new UserPreference(cleanUserId, "charcoal", null, false, optIn, anonymous, pseudonym);
+            var newPref = new UserPreference(cleanUserId, UserPreference.DefaultTheme, null, false, optIn, anonymous, pseudonym);
             scope.Context.UserPreferences.Add(newPref);
         }
         else

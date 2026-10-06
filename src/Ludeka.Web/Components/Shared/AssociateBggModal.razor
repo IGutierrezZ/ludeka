@@ -1,0 +1,184 @@
+@using Ludeka.Application.Contracts
+@inject IGameEditorService GameEditorService
+@inject ILogger<AssociateBggModal> Logger
+
+@*
+    Modal de Gestión y Asociación de BGG ID para Moderadores y Mesa Fundadora (INC-117).
+*@
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="associate-bgg-title">
+        <div class="w-full max-w-md rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-6 shadow-2xl space-y-5"
+             @onclick:stopPropagation="true">
+            <div class="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-full bg-[var(--mustard)]/20 text-[var(--ink)] flex items-center justify-center">
+                        <Icon Name="globe" Size="18" />
+                    </span>
+                    <div>
+                        <h3 id="associate-bgg-title" class="text-base font-black text-[var(--ink)] tracking-tight">
+                            Asociar BGG ID
+                        </h3>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                            Herramientas de Mesa &bull; Catálogo
+                        </span>
+                    </div>
+                </div>
+                <button type="button"
+                        @onclick="Close"
+                        class="text-[var(--muted)] hover:text-[var(--ink)] text-xl font-black p-1 transition-colors"
+                        aria-label="Cerrar">
+                    &times;
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <p class="text-xs text-[var(--muted)] leading-relaxed">
+                    Indica el identificador canónico de BoardGameGeek para <strong class="text-[var(--ink)]">@GameTitle</strong>. Se sincronizarán los enlaces oficiales y la auditoría editorial.
+                </p>
+
+                <div class="space-y-1.5">
+                    <label for="bgg-id-input" class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">
+                        Identificador BGG (ID Numérico)
+                    </label>
+                    <input id="bgg-id-input"
+                           type="number"
+                           min="1"
+                           @bind="_inputBggId"
+                           @bind:event="oninput"
+                           class="w-full h-11 px-4 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] text-[var(--ink)] font-black text-sm focus:outline-none focus:border-[var(--brand)] transition-colors"
+                           placeholder="Ej. 266192" />
+                </div>
+
+                @if (_inputBggId > 0)
+                {
+                    <div class="p-2.5 rounded-xl bg-[var(--paper-2)] border border-[var(--line)] flex items-center justify-between text-xs">
+                        <span class="text-[var(--muted)]">Comprobar en BGG:</span>
+                        <a href="https://boardgamegeek.com/boardgame/@_inputBggId"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="font-black text-[var(--accent)] hover:underline inline-flex items-center gap-1">
+                            <span>boardgame/@_inputBggId</span>
+                            <span>↗</span>
+                        </a>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                {
+                    <div class="p-3 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-xs text-[var(--state-error)] font-bold flex items-center gap-2">
+                        <Icon Name="alert-circle" Size="14" />
+                        <span>@_errorMessage</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_successMessage))
+                {
+                    <div class="p-3 rounded-xl bg-[var(--state-success-bg)] border border-[var(--state-success-border)] text-xs text-[var(--state-success)] font-bold flex items-center gap-2">
+                        <Icon Name="check-circle" Size="14" />
+                        <span>@_successMessage</span>
+                    </div>
+                }
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--line)]">
+                <button type="button"
+                        @onclick="Close"
+                        class="h-10 px-4 rounded-full border border-[var(--line)] bg-transparent text-[var(--muted)] hover:text-[var(--ink)] font-black text-xs transition-colors">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="HandleSubmit"
+                        disabled="@(_isSubmitting || _inputBggId <= 0)"
+                        class="h-10 px-5 rounded-full font-black text-xs bg-[var(--brand)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50 inline-flex items-center gap-1.5">
+                    @if (_isSubmitting)
+                    {
+                        <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
+                        <span>Asociando...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="check" Size="14" />
+                        <span>Guardar BGG ID</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter]
+    public Guid GameId { get; set; }
+
+    [Parameter]
+    public string GameTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public int CurrentBggId { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnBggAssociated { get; set; }
+
+    private int _inputBggId;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen && _inputBggId == 0)
+        {
+            _inputBggId = CurrentBggId;
+        }
+    }
+
+    private async Task Close()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_inputBggId <= 0)
+        {
+            _errorMessage = "Por favor, introduce un identificador de BGG válido (número positivo).";
+            return;
+        }
+
+        _isSubmitting = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            await GameEditorService.AssociateBggIdAsync(GameId, _inputBggId);
+            _successMessage = $"¡BGG ID {_inputBggId} asociado con éxito!";
+            await OnBggAssociated.InvokeAsync(_inputBggId);
+            await Task.Delay(400);
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al asociar BggId {BggId} al juego {GameId}", _inputBggId, GameId);
+            _errorMessage = $"No se pudo asociar el BGG ID: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

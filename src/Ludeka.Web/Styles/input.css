@@ -2,252 +2,271 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ludeka — Variables y Componentes Editoriales con Soporte Multi-Tema */
-
-/* Tema Original: Carbón Oscuro & Naranja Terracota (Estilo Insignia) */
+/* ==========================================================================
+   INC-113: Tokens Canónicos Revista Lúdica — Modo Claro (:root, :root.light, [data-theme="light"])
+   ========================================================================== */
 :root,
+:root.light,
+[data-theme="light"] {
+    /* Paleta Editorial Principal (INC-113) */
+    --color-terracota: #C85A32;
+    --color-salvia: #2D6A4F;
+    --color-arena: #F4EEDB;
+    --color-arena-light: #FAF6EE;
+    --color-tinta: #1A1A1A;
+
+    /* Estados Semánticos (INC-113) */
+    --semantic-verde: #2D6A4F;
+    --semantic-ambar: #C97A1E;
+    --semantic-carmin: #9E2A2B;
+    --color-semantic-verde: #2D6A4F;
+    --color-semantic-ambar: #C97A1E;
+    --color-semantic-carmin: #9E2A2B;
+
+    /* Superficies y Textos Canónicos */
+    --paper: #FFF8EE;
+    --paper-2: #F4ECE0;
+    --card: #FFFFFF;
+    --ink: #22180F;
+    --muted: #6B5848;
+    --line: rgba(34, 24, 15, 0.15);
+    --rule: #22180F;
+
+    /* Marca y Acentos */
+    --brand: #C85A32;
+    --brand-contrast: #C9481C;
+    --on-brand: #FFF8EE;
+    --accent: #C85A32;
+    --mustard: #FFC145;
+    --on-mustard: #22180F;
+    --green: #2D6A4F;
+    --green-contrast: #1B7D52;
+    --on-green: #FFF8EE;
+    --green-soft: #D2F1E1;
+    --accent-green: #2D6A4F;
+    --sky: #3F74D8;
+    --blue-band: #2F5FBF;
+    --on-blue: #FFF8EE;
+    --blue-soft: #D6E2FF;
+    --plum: #6E3B5F;
+    --plum-soft: #F3D9EA;
+    --silver: #9AA3AE;
+    --bronze: #B07A3F;
+    --pink: #E0607E;
+    --inverse: #1A1A1A;
+    --on-inverse: #FFF8EE;
+    --ticker: #FFC145;
+
+    /* Pasteles */
+    --p-blue: #DCE7FF;
+    --p-pink: #FFD6E0;
+    --p-peach: #FFE7DD;
+    --p-mint: #D7F0E3;
+
+    /* Alerta y Sombras */
+    --alert: #9E2A2B;
+    --shadow: rgba(34, 24, 15, 0.18);
+    --shadow-card: 0 14px 28px var(--shadow);
+    --shadow-polaroid: 0 16px 30px rgba(34, 24, 15, 0.20);
+    --shadow-sticker: 0 12px 30px rgba(0, 0, 0, 0.20);
+    --overlay: rgba(34, 24, 15, 0.55);
+
+    /* Mapeos Retrocompatibles para Componentes Existentes */
+    --bg-main: var(--paper);
+    --bg-surface: var(--paper-2);
+    --bg-surface-elevated: var(--paper-2);
+    --bg-card: var(--card);
+    --bg-nav: rgba(255, 248, 238, 0.94);
+    --border-subtle: var(--line);
+    --border-highlight: rgba(34, 24, 15, 0.28);
+    --text-primary: var(--ink);
+    --text-secondary: var(--muted);
+    --text-muted: var(--muted);
+    --brand-primary: var(--brand);
+    --brand-primary-hover: #B8401A;
+    --brand-accent: var(--mustard);
+    --brand-glow: rgba(200, 90, 50, 0.20);
+
+    --state-error: #9E2A2B;
+    --state-error-bg: rgba(158, 42, 43, 0.10);
+    --state-error-border: rgba(158, 42, 43, 0.28);
+    --state-warning: #C97A1E;
+    --state-warning-bg: rgba(201, 122, 30, 0.10);
+    --state-warning-border: rgba(201, 122, 30, 0.28);
+    --state-info: #2F5FBF;
+    --state-info-bg: rgba(47, 95, 191, 0.10);
+    --state-info-border: rgba(47, 95, 191, 0.28);
+    --state-highlight: #6E3B5F;
+    --state-highlight-bg: rgba(110, 59, 95, 0.10);
+    --state-highlight-border: rgba(110, 59, 95, 0.28);
+
+    --color-mustplay: var(--green);
+    --color-mustplay-bg: rgba(45, 106, 79, 0.12);
+    --color-mustplay-border: rgba(45, 106, 79, 0.25);
+    --color-recommended: var(--state-warning);
+    --color-recommended-bg: rgba(201, 122, 30, 0.12);
+    --color-recommended-border: rgba(201, 122, 30, 0.25);
+    --color-notrec: var(--state-error);
+    --color-notrec-bg: rgba(158, 42, 43, 0.12);
+    --color-notrec-border: rgba(158, 42, 43, 0.25);
+
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color-scheme: light;
+}
+
+/* ==========================================================================
+   INC-113: Tokens Canónicos Revista Lúdica — Modo Oscuro (:root.dark, [data-theme="dark"], html.dark)
+   ========================================================================== */
+:root.dark,
+[data-theme="dark"],
+html.dark {
+    /* Paleta Editorial Principal (INC-113) */
+    --color-terracota: #C85A32;
+    --color-salvia: #2D6A4F;
+    --color-arena: #F4EEDB;
+    --color-arena-light: #FAF6EE;
+    --color-tinta: #1A1A1A;
+
+    /* Estados Semánticos (INC-113) */
+    --semantic-verde: #2D6A4F;
+    --semantic-ambar: #C97A1E;
+    --semantic-carmin: #9E2A2B;
+    --color-semantic-verde: #2D6A4F;
+    --color-semantic-ambar: #C97A1E;
+    --color-semantic-carmin: #9E2A2B;
+
+    /* Superficies y Textos Canónicos */
+    --paper: #17120F;
+    --paper-2: #211A15;
+    --card: #241C17;
+    --ink: #FFF1E2;
+    --muted: #BFAE9E;
+    --line: rgba(255, 241, 226, 0.14);
+    --rule: #FFF1E2;
+
+    /* Marca y Acentos */
+    --brand: #B8401A;
+    --brand-contrast: #B8401A;
+    --on-brand: #FFF8EE;
+    --accent: #FF7A4D;
+    --mustard: #FFC145;
+    --on-mustard: #22180F;
+    --green: #17694A;
+    --green-contrast: #17694A;
+    --on-green: #FFF8EE;
+    --green-soft: #BFE9D3;
+    --accent-green: #4CC38A;
+    --sky: #7BA4F5;
+    --blue-band: #24498F;
+    --on-blue: #FFF8EE;
+    --blue-soft: #C9D8FA;
+    --plum: #55304A;
+    --plum-soft: #F0D3E6;
+    --silver: #B8C0CA;
+    --bronze: #C99357;
+    --pink: #FF9EB5;
+    --inverse: #0C0907;
+    --on-inverse: #FFF1E2;
+    --ticker: #FFC145;
+
+    /* Pasteles en Oscuro */
+    --p-blue: #1E2638;
+    --p-pink: #36202A;
+    --p-peach: #3A2218;
+    --p-mint: #1A3027;
+
+    /* Alerta y Sombras */
+    --alert: #FF8A65;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 14px 28px var(--shadow);
+    --shadow-polaroid: 0 16px 30px rgba(0, 0, 0, 0.40);
+    --shadow-sticker: 0 12px 30px rgba(0, 0, 0, 0.40);
+    --overlay: rgba(0, 0, 0, 0.65);
+
+    /* Mapeos Retrocompatibles para Componentes Existentes */
+    --bg-main: var(--paper);
+    --bg-surface: var(--paper-2);
+    --bg-surface-elevated: #2A221D;
+    --bg-card: var(--card);
+    --bg-nav: rgba(23, 18, 15, 0.94);
+    --border-subtle: var(--line);
+    --border-highlight: rgba(255, 241, 226, 0.24);
+    --text-primary: var(--ink);
+    --text-secondary: var(--muted);
+    --text-muted: var(--muted);
+    --brand-primary: var(--brand);
+    --brand-primary-hover: var(--accent);
+    --brand-accent: var(--accent);
+    --brand-glow: rgba(235, 110, 70, 0.25);
+
+    --state-error: #FB7185;
+    --state-error-bg: rgba(251, 113, 133, 0.10);
+    --state-error-border: rgba(251, 113, 133, 0.28);
+    --state-warning: #FBBF24;
+    --state-warning-bg: rgba(251, 191, 36, 0.10);
+    --state-warning-border: rgba(251, 191, 36, 0.28);
+    --state-info: #38BDF8;
+    --state-info-bg: rgba(56, 189, 248, 0.10);
+    --state-info-border: rgba(56, 189, 248, 0.28);
+    --state-highlight: #C084FC;
+    --state-highlight-bg: rgba(192, 132, 252, 0.10);
+    --state-highlight-border: rgba(192, 132, 252, 0.28);
+
+    --color-mustplay: #4CC38A;
+    --color-mustplay-bg: rgba(76, 195, 138, 0.12);
+    --color-mustplay-border: rgba(76, 195, 138, 0.25);
+    --color-recommended: #FFC145;
+    --color-recommended-bg: rgba(255, 193, 69, 0.12);
+    --color-recommended-border: rgba(255, 193, 69, 0.25);
+    --color-notrec: #FB7185;
+    --color-notrec-bg: rgba(251, 113, 133, 0.12);
+    --color-notrec-border: rgba(251, 113, 133, 0.25);
+
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+}
+
+/* ==========================================================================
+   Compatibilidad Retroactiva con Temas Legacy (Mapeo a Claro/Oscuro)
+   ========================================================================== */
 [data-theme="charcoal"] {
-    --bg-main: #14181C;
-    --bg-surface: #1B2228;
-    --bg-surface-elevated: #242C34;
-    --bg-card: #1F262D;
-    --bg-nav: rgba(20, 24, 28, 0.94);
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-highlight: rgba(255, 255, 255, 0.16);
-    
-    --text-primary: #FFFFFF;
-    --text-secondary: #9AB0C2;
-    --text-muted: #677B8C;
-    
-    --brand-primary: #E05A38;
-    --brand-primary-hover: #EA6B4A;
-    --brand-accent: #E59866;
-    --brand-glow: rgba(224, 90, 56, 0.20);
-    --on-brand: #14181C;
-
+    --on-brand: #FFF8EE;
     --state-error: #FB7185;
-    --state-error-bg: rgba(251, 113, 133, 0.10);
-    --state-error-border: rgba(251, 113, 133, 0.28);
     --state-warning: #FBBF24;
-    --state-warning-bg: rgba(251, 191, 36, 0.10);
-    --state-warning-border: rgba(251, 191, 36, 0.28);
     --state-info: #38BDF8;
-    --state-info-bg: rgba(56, 189, 248, 0.10);
-    --state-info-border: rgba(56, 189, 248, 0.28);
     --state-highlight: #C084FC;
-    --state-highlight-bg: rgba(192, 132, 252, 0.10);
-    --state-highlight-border: rgba(192, 132, 252, 0.28);
-    
-    --color-mustplay: #10B981;
-    --color-mustplay-bg: rgba(16, 185, 129, 0.12);
-    --color-mustplay-border: rgba(16, 185, 129, 0.25);
-    
-    --color-recommended: #F59E0B;
-    --color-recommended-bg: rgba(245, 158, 11, 0.12);
-    --color-recommended-border: rgba(245, 158, 11, 0.25);
-    
-    --color-notrec: #F43F5E;
-    --color-notrec-bg: rgba(244, 63, 94, 0.12);
-    --color-notrec-border: rgba(244, 63, 94, 0.25);
-
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color-scheme: dark;
 }
 
-/* Opción A: Editorial Claro (Papel & Tinta - Alta Legibilidad) */
 [data-theme="editorial"] {
-    --bg-main: #F8F7F4;
-    --bg-surface: #FFFFFF;
-    --bg-surface-elevated: #EDEAE5;
-    --bg-card: #FFFFFF;
-    --bg-nav: rgba(248, 247, 244, 0.95);
-    --border-subtle: rgba(0, 0, 0, 0.08);
-    --border-highlight: rgba(0, 0, 0, 0.16);
-    
-    --text-primary: #121417;
-    --text-secondary: #3D4451;
-    --text-muted: #5C6675;
-    
-    --brand-primary: #B8432F;
-    --brand-primary-hover: #A03825;
-    --brand-accent: #D96550;
-    --brand-glow: rgba(184, 67, 47, 0.15);
-    --on-brand: #FFFFFF;
-
-    --state-error: #BE123C;
-    --state-error-bg: rgba(190, 18, 60, 0.10);
-    --state-error-border: rgba(190, 18, 60, 0.28);
-    --state-warning: #92400E;
-    --state-warning-bg: rgba(146, 64, 14, 0.10);
-    --state-warning-border: rgba(146, 64, 14, 0.28);
-    --state-info: #0369A1;
-    --state-info-bg: rgba(3, 105, 161, 0.10);
-    --state-info-border: rgba(3, 105, 161, 0.28);
-    --state-highlight: #A21CAF;
-    --state-highlight-bg: rgba(162, 28, 175, 0.10);
-    --state-highlight-border: rgba(162, 28, 175, 0.28);
-    
-    --color-mustplay: #059669;
-    --color-mustplay-bg: rgba(5, 150, 105, 0.10);
-    --color-mustplay-border: rgba(5, 150, 105, 0.25);
-    
-    --color-recommended: #D97706;
-    --color-recommended-bg: rgba(217, 119, 6, 0.10);
-    --color-recommended-border: rgba(217, 119, 6, 0.25);
-    
-    --color-notrec: #E11D48;
-    --color-notrec-bg: rgba(225, 29, 72, 0.10);
-    --color-notrec-border: rgba(225, 29, 72, 0.25);
-
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color-scheme: light;
+    --on-brand: #FFF8EE;
+    --state-error: #9E2A2B;
+    --state-warning: #C97A1E;
+    --state-info: #2F5FBF;
+    --state-highlight: #6E3B5F;
 }
 
-/* Opción B: Mesa Cálida (Madera Espresso, Pergamino & Tapete) */
 [data-theme="tabletop"] {
-    --bg-main: #1A1412;
-    --bg-surface: #241D1A;
-    --bg-surface-elevated: #302622;
-    --bg-card: #28201B;
-    --bg-nav: rgba(26, 20, 18, 0.92);
-    --border-subtle: rgba(245, 235, 225, 0.10);
-    --border-highlight: rgba(245, 235, 225, 0.22);
-    
-    --text-primary: #F7EFE6;
-    --text-secondary: #D7C6B5;
-    --text-muted: #9E8D7D;
-    
-    --brand-primary: #D97736;
-    --brand-primary-hover: #E68B4D;
-    --brand-accent: #F2AE72;
-    --brand-glow: rgba(217, 119, 54, 0.25);
-    --on-brand: #14181C;
-
+    --on-brand: #FFF8EE;
     --state-error: #FB7185;
-    --state-error-bg: rgba(251, 113, 133, 0.10);
-    --state-error-border: rgba(251, 113, 133, 0.28);
     --state-warning: #FBBF24;
-    --state-warning-bg: rgba(251, 191, 36, 0.10);
-    --state-warning-border: rgba(251, 191, 36, 0.28);
     --state-info: #38BDF8;
-    --state-info-bg: rgba(56, 189, 248, 0.10);
-    --state-info-border: rgba(56, 189, 248, 0.28);
     --state-highlight: #C084FC;
-    --state-highlight-bg: rgba(192, 132, 252, 0.10);
-    --state-highlight-border: rgba(192, 132, 252, 0.28);
-    
-    --color-mustplay: #10B981;
-    --color-mustplay-bg: rgba(16, 185, 129, 0.12);
-    --color-mustplay-border: rgba(16, 185, 129, 0.25);
-    
-    --color-recommended: #F59E0B;
-    --color-recommended-bg: rgba(245, 158, 11, 0.12);
-    --color-recommended-border: rgba(245, 158, 11, 0.25);
-    
-    --color-notrec: #F43F5E;
-    --color-notrec-bg: rgba(244, 63, 94, 0.12);
-    --color-notrec-border: rgba(244, 63, 94, 0.25);
-
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color-scheme: dark;
 }
 
-/* Opción C: Azul Medianoche & Cian/Lima (Cyber Tech) */
 [data-theme="midnight"] {
-    --bg-main: #090E1A;
-    --bg-surface: #10182D;
-    --bg-surface-elevated: #16223E;
-    --bg-card: #121C34;
-    --bg-nav: rgba(9, 14, 26, 0.92);
-    --border-subtle: rgba(56, 189, 248, 0.14);
-    --border-highlight: rgba(56, 189, 248, 0.28);
-    
-    --text-primary: #F1F5F9;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
-    
-    --brand-primary: #06B6D4;
-    --brand-primary-hover: #22D3EE;
-    --brand-accent: #67E8F9;
-    --brand-glow: rgba(6, 182, 212, 0.25);
-    --on-brand: #14181C;
-
+    --on-brand: #FFF8EE;
     --state-error: #FB7185;
-    --state-error-bg: rgba(251, 113, 133, 0.10);
-    --state-error-border: rgba(251, 113, 133, 0.28);
     --state-warning: #FBBF24;
-    --state-warning-bg: rgba(251, 191, 36, 0.10);
-    --state-warning-border: rgba(251, 191, 36, 0.28);
     --state-info: #38BDF8;
-    --state-info-bg: rgba(56, 189, 248, 0.10);
-    --state-info-border: rgba(56, 189, 248, 0.28);
     --state-highlight: #C084FC;
-    --state-highlight-bg: rgba(192, 132, 252, 0.10);
-    --state-highlight-border: rgba(192, 132, 252, 0.28);
-    
-    --color-mustplay: #10B981;
-    --color-mustplay-bg: rgba(16, 185, 129, 0.12);
-    --color-mustplay-border: rgba(16, 185, 129, 0.25);
-    
-    --color-recommended: #F59E0B;
-    --color-recommended-bg: rgba(245, 158, 11, 0.12);
-    --color-recommended-border: rgba(245, 158, 11, 0.25);
-    
-    --color-notrec: #F43F5E;
-    --color-notrec-bg: rgba(244, 63, 94, 0.12);
-    --color-notrec-border: rgba(244, 63, 94, 0.25);
-
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color-scheme: dark;
 }
 
-/* Opción D: Madera Clara (Arce & Haya Lúdica - Inspirado en mesas nórdicas y tableros claros) */
 [data-theme="wood"] {
-    --bg-main: #F5EFEB;
-    --bg-surface: #FAF6F1;
-    --bg-surface-elevated: #ECE2D5;
-    --bg-card: #FFFFFF;
-    --bg-nav: rgba(245, 239, 235, 0.95);
-    --border-subtle: rgba(120, 80, 45, 0.12);
-    --border-highlight: rgba(120, 80, 45, 0.24);
-    
-    --text-primary: #2D2118;
-    --text-secondary: #5E4B3C;
-    --text-muted: #8E7766;
-    
-    --brand-primary: #B85323;
-    --brand-primary-hover: #9E4318;
-    --brand-accent: #D4743B;
-    --brand-glow: rgba(184, 83, 35, 0.16);
-    --on-brand: #FFFFFF;
-
-    --state-error: #BE123C;
-    --state-error-bg: rgba(190, 18, 60, 0.10);
-    --state-error-border: rgba(190, 18, 60, 0.28);
-    --state-warning: #92400E;
-    --state-warning-bg: rgba(146, 64, 14, 0.10);
-    --state-warning-border: rgba(146, 64, 14, 0.28);
-    --state-info: #0369A1;
-    --state-info-bg: rgba(3, 105, 161, 0.10);
-    --state-info-border: rgba(3, 105, 161, 0.28);
-    --state-highlight: #A21CAF;
-    --state-highlight-bg: rgba(162, 28, 175, 0.10);
-    --state-highlight-border: rgba(162, 28, 175, 0.28);
-    
-    --color-mustplay: #059669;
-    --color-mustplay-bg: rgba(5, 150, 105, 0.10);
-    --color-mustplay-border: rgba(5, 150, 105, 0.25);
-    
-    --color-recommended: #D97706;
-    --color-recommended-bg: rgba(217, 119, 6, 0.10);
-    --color-recommended-border: rgba(217, 119, 6, 0.25);
-    
-    --color-notrec: #E11D48;
-    --color-notrec-bg: rgba(225, 29, 72, 0.10);
-    --color-notrec-border: rgba(225, 29, 72, 0.25);
-
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color-scheme: light;
+    --on-brand: #FFF8EE;
+    --state-error: #9E2A2B;
+    --state-warning: #C97A1E;
+    --state-info: #2F5FBF;
+    --state-highlight: #6E3B5F;
 }
 
 * {
@@ -721,4 +740,25 @@ a {
         padding-bottom: 0 !important;
     }
 }
+
+/* ==========================================================================
+   Utilidades Editoriales — Revista Lúdica (INC-113)
+   ========================================================================== */
+.tracking-tight-display {
+    letter-spacing: -0.055em;
+}
+
+.leading-tight-display {
+    line-height: 0.88;
+}
+
+.rule-editorial {
+    border-bottom: 3px solid var(--rule);
+}
+
+.safe-rotations {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
 

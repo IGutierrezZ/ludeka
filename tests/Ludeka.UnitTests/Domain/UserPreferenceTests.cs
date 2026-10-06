@@ -14,7 +14,7 @@ public class UserPreferenceTests
 
         // Assert
         Assert.Equal("usuario-1", pref.UserId);
-        Assert.Equal("wood", pref.PreferredTheme);
+        Assert.Equal("light", pref.PreferredTheme);
         Assert.False(pref.HidePublicProfile);
         Assert.True((DateTime.UtcNow - pref.UpdatedAt).TotalSeconds < 5);
     }
@@ -28,6 +28,7 @@ public class UserPreferenceTests
         // Assert
         Assert.Equal("usuario-1", pref.UserId);
         Assert.Equal("España", pref.Country);
+        Assert.Equal("light", pref.PreferredTheme);
         Assert.True(pref.HidePublicProfile);
         Assert.False(pref.LeaderboardOptIn);
         Assert.False(pref.LeaderboardAnonymous);
@@ -45,6 +46,7 @@ public class UserPreferenceTests
         pref.SetLeaderboardPreferences(optIn: true, anonymous: true, pseudonym: "Estratega");
 
         // Assert
+        Assert.Equal("dark", pref.PreferredTheme);
         Assert.True(pref.LeaderboardOptIn);
         Assert.True(pref.LeaderboardAnonymous);
         Assert.Equal("Estratega", pref.LeaderboardPseudonym);
@@ -67,16 +69,21 @@ public class UserPreferenceTests
     }
 
     [Theory]
-    [InlineData("editorial", "editorial")]
-    [InlineData("wood", "wood")]
-    [InlineData("tabletop", "tabletop")]
-    [InlineData("midnight", "midnight")]
-    [InlineData("charcoal", "charcoal")]
-    [InlineData("WOOD", "wood")]
-    [InlineData("  Editorial  ", "editorial")]
-    [InlineData("desconocido", "charcoal")]
-    [InlineData(null, "charcoal")]
-    [InlineData("", "charcoal")]
+    [InlineData("editorial", "light")]
+    [InlineData("wood", "light")]
+    [InlineData("light", "light")]
+    [InlineData("claro", "light")]
+    [InlineData("tabletop", "dark")]
+    [InlineData("midnight", "dark")]
+    [InlineData("charcoal", "dark")]
+    [InlineData("dark", "dark")]
+    [InlineData("oscuro", "dark")]
+    [InlineData("WOOD", "light")]
+    [InlineData("  Editorial  ", "light")]
+    [InlineData("  CHARCOAL  ", "dark")]
+    [InlineData("desconocido", "light")]
+    [InlineData(null, "light")]
+    [InlineData("", "light")]
     public void NormalizeTheme_ShouldReturnExpectedNormalizedTheme(string? input, string expected)
     {
         // Act
@@ -97,7 +104,7 @@ public class UserPreferenceTests
         pref.SetTheme("wood");
 
         // Assert
-        Assert.Equal("wood", pref.PreferredTheme);
+        Assert.Equal("light", pref.PreferredTheme);
         Assert.True(pref.UpdatedAt >= originalTime);
     }
 

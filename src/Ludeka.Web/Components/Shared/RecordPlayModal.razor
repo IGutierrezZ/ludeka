@@ -19,9 +19,12 @@
                         <h3 id="record-play-modal-title" class="text-base font-bold text-[var(--text-primary)]">
                             Registrar Partida
                         </h3>
-                        <p class="text-[0.68rem] text-[var(--brand-primary)] font-semibold truncate max-w-xs">
-                            @GameTitle
-                        </p>
+                        @if (!string.IsNullOrWhiteSpace(GameTitle))
+                        {
+                            <p class="text-[0.68rem] text-[var(--brand-primary)] font-semibold truncate max-w-xs">
+                                @GameTitle
+                            </p>
+                        }
                     </div>
                 </div>
                 <button type="button" @onclick="Close"
@@ -37,6 +40,24 @@
                 {
                     <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-600 dark:text-red-300">
                         <Icon Name="triangle-alert" Size="12" /> @_errorMessage
+                    </div>
+                }
+
+                @* 0. Selector de juego si no viene prefijado *@
+                @if (GameId == Guid.Empty && AvailableGames != null && AvailableGames.Count > 0)
+                {
+                    <div>
+                        <label for="select-play-game" class="font-bold text-xs text-[var(--text-secondary)] block mb-1.5">
+                            Selecciona el juego:
+                        </label>
+                        <select id="select-play-game"
+                                @bind="_selectedGameId"
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                            @foreach (var g in AvailableGames)
+                            {
+                                <option value="@g.GameId">@g.GameTitle</option>
+                            }
+                        </select>
                     </div>
                 }
 
@@ -169,11 +190,15 @@
     public string GameTitle { get; set; } = string.Empty;
 
     [Parameter]
+    public IReadOnlyList<UserCollectionItemDto>? AvailableGames { get; set; }
+
+    [Parameter]
     public EventCallback<RecordPlayRequest> OnPlayRecorded { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    private Guid _selectedGameId;
     private DateTime _playDate = DateTime.Today;
     private int _playerCount = 2;
     private string _location = "En casa";
@@ -181,6 +206,17 @@
     private string? _comment;
     private string? _errorMessage;
     private bool _isSubmitting;
+
+    protected override void OnParametersSet()
+    {
+        if (GameId == Guid.Empty && AvailableGames != null && AvailableGames.Count > 0)
+        {
+            if (_selectedGameId == Guid.Empty || !AvailableGames.Any(g => g.GameId == _selectedGameId))
+            {
+                _selectedGameId = AvailableGames[0].GameId ?? Guid.Empty;
+            }
+        }
+    }
 
     private async Task HandleBackdropClick()
     {
@@ -196,7 +232,12 @@
 
     private async Task HandleSubmit()
     {
-        if (GameId == Guid.Empty) return;
+        var targetGameId = GameId != Guid.Empty ? GameId : _selectedGameId;
+        if (targetGameId == Guid.Empty)
+        {
+            _errorMessage = "Por favor selecciona un juego para registrar la partida.";
+            return;
+        }
 
         if (_playerCount < 1)
         {
@@ -215,7 +256,7 @@
         try
         {
             var request = new RecordPlayRequest(
-                GameId: GameId,
+                GameId: targetGameId,
                 PlayDate: new DateTimeOffset(_playDate.Date, TimeSpan.Zero),
                 Location: _location.Trim(),
                 PlayerCount: _playerCount,

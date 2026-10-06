@@ -44,6 +44,16 @@
                 <span class="hidden sm:inline">Expansión</span>
             </div>
         }
+        @* Botón de acción rápida: Colección / Ludoteca *@
+        <button type="button"
+                @onclick="HandleQuickActionClick"
+                @onclick:stopPropagation="true"
+                @onclick:preventDefault="true"
+                title="Añadir a mi ludoteca / jugado"
+                aria-label="Añadir @Game.SpanishTitle a tu colección o jugado"
+                class="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 z-10 w-7 h-7 rounded-full bg-black/75 hover:bg-[var(--brand-primary)] text-white backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <Icon Name="plus" Size="14" />
+        </button>
     </div>
 
     <div class="p-2 sm:p-3 flex flex-col flex-1">
@@ -52,13 +62,22 @@
         }
         <div class="flex items-center justify-between gap-1 text-[0.65rem] sm:text-[0.7rem] font-semibold text-[var(--text-muted)] mb-1">
             <span class="shrink-0">@Game.YearPublished</span>
-            @if (!string.IsNullOrWhiteSpace(compactPlayers))
-            {
-                <span class="text-[var(--color-mustplay)] font-bold truncate flex items-center gap-0.5 shrink-0" title="@Game.IdealPlayerCountText">
-                    <Icon Name="users" Size="11" />
-                    <span>@compactPlayers</span>
-                </span>
-            }
+            <div class="flex items-center gap-1.5 truncate">
+                @if (!string.IsNullOrWhiteSpace(compactPlayers))
+                {
+                    <span class="text-[var(--color-mustplay)] font-bold truncate flex items-center gap-0.5 shrink-0" title="@Game.IdealPlayerCountText">
+                        <Icon Name="users" Size="11" />
+                        <span>@compactPlayers</span>
+                    </span>
+                }
+                @if (Game.EstimatedPerPlayerMinutes > 0)
+                {
+                    <span class="text-[var(--text-muted)] font-semibold truncate flex items-center gap-0.5 shrink-0" title="@Game.EstimatedPerPlayerMinutes min/jugador">
+                        <Icon Name="clock" Size="11" />
+                        <span>@(Game.EstimatedPerPlayerMinutes)m</span>
+                    </span>
+                }
+            </div>
         </div>
         <h3 class="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] line-clamp-2 leading-snug min-h-[2.1rem] sm:min-h-[2.5rem]">
             @Game.SpanishTitle
@@ -73,6 +92,17 @@
 @code {
     /// <summary>Juego del carril Top 20 (datos puros; la card no accede a servicios).</summary>
     [Parameter, EditorRequired] public GameSummaryDto Game { get; set; } = null!;
+
+    /// <summary>Evento para desplegar el modal de colección rápida (INC-115).</summary>
+    [Parameter] public EventCallback<GameSummaryDto> OnQuickAction { get; set; }
+
+    private async Task HandleQuickActionClick()
+    {
+        if (OnQuickAction.HasDelegate)
+        {
+            await OnQuickAction.InvokeAsync(Game);
+        }
+    }
 
     private static string FormatCompactPlayers(string? idealText)
     {

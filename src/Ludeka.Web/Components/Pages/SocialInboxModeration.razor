@@ -1,5 +1,8 @@
 @page "/admin/ingesta-social"
+@page "/moderacion/bandeja"
+@page "/admin/bandeja"
 @attribute [Authorize(Policy = AuthorizationPolicies.PermisoAprobarMedios)]
+@layout AdminLayout
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs

@@ -37,7 +37,7 @@ public class AccountMenuContractTests
     }
 
     [Fact]
-    public void AccountMenu_AuthenticatedTriggerContract_ShouldRenderUserIconOnlyWithoutVisibleNameOrChevron()
+    public void AccountMenu_AuthenticatedTriggerContract_ShouldRenderMustardInitialAvatarAndEditorialDropdown()
     {
         var source = ReadSource(AccountMenuPath);
 
@@ -46,9 +46,12 @@ public class AccountMenuContractTests
         Assert.Contains("aria-haspopup=\"menu\"", source, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"@($\"Menú de cuenta de {CurrentUserService.UserName}\")\"", source, StringComparison.Ordinal);
 
-        // Botón compacto con solo el icono de usuario típico
-        Assert.Contains("Icon Name=\"user\"", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("@UserInitial", source, StringComparison.Ordinal);
+        // Avatar en píldora con inicial mostaza (INC-114, Revista Lúdica)
+        Assert.Contains("@UserInitial", source, StringComparison.Ordinal);
+        Assert.Contains("bg-[var(--mustard)]", source, StringComparison.Ordinal);
+        Assert.Contains("w-[290px]", source, StringComparison.Ordinal);
+        Assert.Contains("rounded-[22px]", source, StringComparison.Ordinal);
+        Assert.Contains("border-2 border-[var(--rule)]", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Icon Name=\"chevron-down\"", source, StringComparison.Ordinal);
     }
 

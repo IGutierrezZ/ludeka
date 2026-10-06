@@ -79,11 +79,11 @@ public class WebMarkupContractTests
           new[] { "Gestionar Creadores de Contenido" },
           new[] { "Autores y Diseñadores" } },
 
-        // HomeDashboard: orquestador editorial (Decisión 3) — hero y carriles por componentes,
+        // HomeDashboard: orquestador editorial Revista Lúdica (INC-115) — hero y bloques por componentes,
         // sin markup de card inline, sin emojis, sin h1 propio (vive en el hero) y sin la
         // clase inválida sm:w-68
         { "HomeDashboard (orquestador editorial)", "src/Ludeka.Web/Components/Pages/HomeDashboard.razor",
-          new[] { "<HeroEditorial", "Background=\"HeroBackgroundVariant.Ilustracion\"", "<RailHeader", "<HomeGameCard", "<HomeGiveawayCard", "<HomeReleaseCard", "<HomeEventCard", "Name=\"dices\"" },
+          new[] { "<HeroRevistaLudica", "<TickerBar", "<WeeklyTopSection", "<HomeGameCard", "<PolaroidGiveawayCard", "<UpcomingEventsGrid", "Name=\"dices\"" },
           new[] { "PORTADA EDITORIAL", "href=\"/radar\"", "sm:w-68", "BggRating", "RemainingTimeText", "<h1", "sr-only" } },
 
         // Radar: sin banner legacy, alias silencioso con ambas rutas @page

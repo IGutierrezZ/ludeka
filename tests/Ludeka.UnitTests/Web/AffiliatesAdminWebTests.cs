@@ -46,10 +46,15 @@ public class AffiliatesAdminWebTests
     }
 
     [Fact]
-    public void MainLayout_RazorFile_ShouldIncludeAffiliatesAdminLinkWithPermissionGuard()
+    public void StaffBar_RazorFile_ShouldIncludeAffiliatesAdminLinkWithPermissionGuard()
     {
-        var source = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
+        var mainLayoutSource = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
+        Assert.True(
+            mainLayoutSource.Contains("<StaffBar />", StringComparison.Ordinal) ||
+            mainLayoutSource.Contains("<StaffActionBar />", StringComparison.Ordinal),
+            "MainLayout debe montar el componente de barra de gestión Staff (StaffBar o StaffActionBar).");
 
+        var source = ReadSource("src/Ludeka.Web/Components/Shared/StaffBar.razor");
         Assert.Contains("/admin/afiliados", source, StringComparison.Ordinal);
         Assert.Contains("ModeratorPermission.CanManageStoreLinks", source, StringComparison.Ordinal);
         Assert.Contains("Feeds & Afiliados", source, StringComparison.Ordinal);

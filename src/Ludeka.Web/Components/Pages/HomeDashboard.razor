@@ -1,170 +1,276 @@
 @page "/"
 @rendermode InteractiveServer
 @using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
 @using Ludeka.Web.Components.Home
 @using Ludeka.Web.Components.Shared
 @inject IHomeDashboardService DashboardService
+@inject ICatalogService CatalogService
+@inject ITrendingService TrendingService
+@inject IGiveawayService GiveawayService
+@inject IWeeklyReleaseService ReleaseService
+@inject NavigationManager Navigation
 
 <PageTitle>Ludeka — Juegos, sorteos, eventos y opiniones de verdad</PageTitle>
 
-<div class="container-ludeka py-3 sm:py-6 space-y-6 sm:space-y-10">
-    @* 1. Hero editorial narrativo: oculto en móvil para dar paso directo al contenido *@
-    <div class="hidden md:block">
-        <HeroEditorial Background="HeroBackgroundVariant.Ilustracion" />
-    </div>
-
-    @if (_isLoading)
-    {
-        <div class="py-20 text-center text-[var(--text-secondary)]">
-            <div class="inline-block animate-spin text-[var(--brand-primary)] mb-3">
-                <Icon Name="dices" Size="40" />
-            </div>
-            <p class="text-sm font-semibold">Sintonizando el dashboard editorial de Ludeka...</p>
+@if (_isLoading)
+{
+    <div class="py-20 text-center text-[var(--text-secondary)]">
+        <div class="inline-block animate-spin text-[var(--brand-primary)] mb-3">
+            <Icon Name="dices" Size="40" />
         </div>
-    }
-    else
-    {
-        @* 2. Carril 1: Conmutador Editorial: En tendencia (defecto) vs Mejor valorados en fila única *@
-        <section class="space-y-4" aria-label="@(_showTrending ? "Juegos en tendencia hoy" : "Top 20 Juegos de Mesa")">
-            <header class="flex items-center justify-between gap-1.5 sm:gap-3">
-                <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-                    <span class="text-[var(--brand-primary)] shrink-0">
-                        <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="20" />
-                    </span>
-                    <h2 class="rail-title text-base sm:text-2xl font-black truncate">
-                        <span class="sm:hidden">Catálogo</span>
-                        <span class="hidden sm:inline">Catálogo de Juegos</span>
-                    </h2>
-                </div>
+        <p class="text-sm font-semibold">Sintonizando el escaparate editorial de Ludeka...</p>
+    </div>
+}
+else
+{
+    <div class="w-full flex flex-col">
+        @* 1. Hero Terracota: Titular clamp, Buscador píldora 60px y Arco fotográfico con pegatina inclinada *@
+        <HeroRevistaLudica FeaturedGame="@_featuredGame"
+                           VerdictQuote="@_featuredVerdict"
+                           VerdictBadge="Veredicto de la Mesa Fundadora"
+                           OnQuickCollection="@OpenQuickModal" />
 
-                <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                    @* Conmutador editorial compacto *@
-                    <div class="inline-flex items-center bg-[var(--bg-surface)] p-0.5 rounded-xl border border-[var(--border-subtle)] shadow-sm text-xs font-bold" role="tablist" aria-label="Seleccionar vista de juegos destacados">
-                        <button type="button"
-                                role="tab"
-                                aria-selected="@(_showTrending ? "true" : "false")"
-                                class="px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-[0.7rem] sm:text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => _showTrending = true">
-                            <Icon Name="flame" Size="12" />
-                            <span class="hidden sm:inline">En tendencia</span>
-                            <span class="sm:hidden">Tendencia</span>
-                        </button>
-                        <button type="button"
-                                role="tab"
-                                aria-selected="@(!_showTrending ? "true" : "false")"
-                                class="px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-[0.7rem] sm:text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(!_showTrending ? "bg-[var(--brand-primary)] text-white shadow-sm font-extrabold" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")"
-                                @onclick="() => _showTrending = false">
-                            <Icon Name="trophy" Size="12" />
-                            <span class="hidden sm:inline">Mejor valorados</span>
-                            <span class="sm:hidden">Top</span>
-                        </button>
+        @* 2. Cinta de Avisos Inversa: Barra --inverse con texto mostaza y cuenta atrás en vivo *@
+        <TickerBar UrgentGiveaway="@_urgentGiveaway" />
+
+        @* 3. El Top de la semana: Pestañas interactivas, numerales ciclálicos y lista móvil táctil *@
+        <WeeklyTopSection TopGames="@_dashboard.TopGames"
+                          TrendingGames="@_dashboard.TrendingGames" />
+
+        @* 4. Cintas Horizontales de Carrusel: «Tendencias del momento» y «Para sacar a mesa ya» *@
+        <div class="max-w-[1280px] w-full mx-auto px-4 sm:px-8 md:px-12 py-8 sm:py-12 space-y-10 sm:space-y-14">
+            @* Carril 1: Tendencias del Momento (con conmutador a Mejor Valorados) *@
+            <section class="space-y-4" aria-label="@(_showTrending ? "Tendencias del momento" : "Mejor valorados")">
+                <header class="flex items-center justify-between gap-3 border-b-2 border-[var(--line)] pb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-[var(--accent)] shrink-0">
+                            <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="22" />
+                        </span>
+                        <h2 class="text-xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em] truncate m-0">
+                            <span class="sm:hidden">@(_showTrending ? "Tendencias" : "Mejor valorados")</span>
+                            <span class="hidden sm:inline">@(_showTrending ? "Tendencias del momento" : "Mejor valorados en Ludeka")</span>
+                        </h2>
                     </div>
 
-                    <a href="@(_showTrending ? "/tendencias" : "/catalogo")"
-                       title="@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")"
-                       class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1 p-1 rounded-lg hover:bg-[var(--bg-surface-elevated)] transition-colors whitespace-nowrap"
-                       aria-label="@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")">
-                        <span class="hidden md:inline">@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")</span>
-                        <span aria-hidden="true" class="text-sm font-extrabold">&rarr;</span>
+                    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                        @* Conmutador editorial de carril *@
+                        <div class="inline-flex items-center bg-[var(--paper-2)] p-0.5 rounded-full border border-[var(--line)] shadow-sm text-xs font-bold" role="tablist">
+                            <button type="button"
+                                    role="tab"
+                                    aria-selected="@(_showTrending ? "true" : "false")"
+                                    class="px-2.5 py-1 rounded-full transition-all text-xs focus-visible:outline-none @(_showTrending ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")"
+                                    @onclick="() => _showTrending = true">
+                                <span class="hidden sm:inline">En tendencia</span>
+                                <span class="sm:hidden">Tendencia</span>
+                            </button>
+                            <button type="button"
+                                    role="tab"
+                                    aria-selected="@(!_showTrending ? "true" : "false")"
+                                    class="px-2.5 py-1 rounded-full transition-all text-xs focus-visible:outline-none @(!_showTrending ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")"
+                                    @onclick="() => _showTrending = false">
+                                <span class="hidden sm:inline">Mejor valorados</span>
+                                <span class="sm:hidden">Top</span>
+                            </button>
+                        </div>
+
+                        <a href="@(_showTrending ? "/tendencias" : "/catalogo")"
+                           class="text-xs sm:text-sm font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                            <span class="hidden sm:inline">@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")</span>
+                            <span class="sm:hidden">Ver más</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                </header>
+
+                @{
+                    var displayedGames = (_showTrending && _dashboard.TrendingGames != null && _dashboard.TrendingGames.Count > 0)
+                        ? _dashboard.TrendingGames
+                        : _dashboard.TopGames;
+                }
+
+                <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
+                    @foreach (var game in displayedGames)
+                    {
+                        <HomeGameCard Game="game" OnQuickAction="@OpenQuickModal" />
+                    }
+                </div>
+            </section>
+
+            @* Carril 2: Para sacar a mesa ya (partidas ágiles y accesibles) *@
+            @if (_quickGames.Count > 0)
+            {
+                <section class="space-y-4" aria-label="Para sacar a mesa ya">
+                    <header class="flex items-center justify-between gap-3 border-b-2 border-[var(--line)] pb-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[var(--accent)] shrink-0">
+                                <Icon Name="zap" Size="22" />
+                            </span>
+                            <h2 class="text-xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em] truncate m-0">
+                                <span class="sm:hidden">A mesa ya</span>
+                                <span class="hidden sm:inline">Para sacar a mesa ya</span>
+                            </h2>
+                            <span class="hidden md:inline-block px-2.5 py-0.5 rounded-full bg-[var(--paper-2)] text-[var(--muted)] text-xs font-bold border border-[var(--line)]">
+                                Partidas &le; 45 min
+                            </span>
+                        </div>
+
+                        <a href="/catalogo"
+                           class="text-xs sm:text-sm font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                            <span>Explorar títulos ágiles</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </header>
+
+                    <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
+                        @foreach (var game in _quickGames)
+                        {
+                            <HomeGameCard Game="game" OnQuickAction="@OpenQuickModal" />
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+
+        @* 5. Sorteos en Marcha: Banda Mostaza con Polaroids Físicas *@
+        <section class="w-full bg-[var(--mustard)] text-[var(--on-mustard)] py-10 sm:py-16" aria-label="Sorteos en marcha">
+            <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 flex flex-col gap-8 sm:gap-10">
+                <header class="flex flex-wrap justify-between items-end gap-4 border-b-2 border-black/15 pb-4">
+                    <div class="flex flex-col gap-1.5">
+                        <span class="text-xs font-black uppercase tracking-[0.18em] opacity-80">
+                            @_dashboard.Giveaways.Count activos en la comunidad
+                        </span>
+                        <h2 class="text-3xl sm:text-5xl md:text-[54px] font-black tracking-[-0.045em] leading-none m-0 text-[#22180F]">
+                            Sorteos en marcha
+                        </h2>
+                    </div>
+
+                    <a href="/sorteos"
+                       class="h-11 sm:h-12 px-6 sm:px-7 rounded-full bg-[#22180F] text-[#FFC145] text-sm font-black inline-flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform shadow-lg">
+                        <span>Ver todos los sorteos</span>
+                        <span aria-hidden="true">&rarr;</span>
                     </a>
-                </div>
-            </header>
+                </header>
 
-            @{
-                var displayedGames = (_showTrending && _dashboard.TrendingGames != null && _dashboard.TrendingGames.Count > 0)
-                    ? _dashboard.TrendingGames
-                    : _dashboard.TopGames;
-            }
-
-            <div class="flex gap-2.5 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                @foreach (var game in displayedGames)
+                @if (_dashboard.Giveaways.Count == 0)
                 {
-                    <HomeGameCard Game="game" />
+                    <div class="p-8 text-center rounded-2xl bg-[#FFF8EE] text-[#22180F] text-sm font-medium shadow-md">
+                        No hay sorteos activos registrados en este momento. ¡Sé el primero en compartir uno en la comunidad!
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                        @for (var i = 0; i < Math.Min(4, _dashboard.Giveaways.Count); i++)
+                        {
+                            var giveaway = _dashboard.Giveaways[i];
+                            <PolaroidGiveawayCard Giveaway="giveaway" Index="i" />
+                        }
+                    </div>
                 }
             </div>
         </section>
 
-        @* 3. Carril 2: Sorteos Activos & Promocionados *@
-        <section class="space-y-4" aria-label="Sorteos Activos y Destacados">
-            <RailHeader IconName="gift"
-                        Title="Sorteos en Marcha"
-                        MobileTitle="Sorteos"
-                        Count="_dashboard.Giveaways.Count"
-                        CountLabel="activos"
-                        Href="/sorteos"
-                        LinkText="Ver todos los sorteos"
-                        AriaLabel="Sorteos Activos y Destacados" />
-
-            @if (_dashboard.Giveaways.Count == 0)
-            {
-                <div class="p-8 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                    No hay sorteos registrados en este momento. ¡Sé el primero en compartir uno en la comunidad!
+        @* 6. Novedades en Tiendas: Banda Verde con Calendario y Precios *@
+        <section id="novedades" class="w-full bg-[var(--green)] text-[var(--on-green)] py-10 sm:py-16" aria-label="Novedades en tiendas">
+            <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                <div class="lg:col-span-5 flex flex-col gap-4 sm:gap-5">
+                    <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--green-soft)]">
+                        Calendario Editorial
+                    </span>
+                    <h2 class="text-3xl sm:text-5xl md:text-[54px] font-black tracking-[-0.045em] leading-none m-0 text-[var(--on-green)]">
+                        Novedades en tiendas
+                    </h2>
+                    <p class="text-sm sm:text-base leading-relaxed text-[var(--on-green)]/90 font-medium m-0 max-w-md">
+                        Lanzamientos y reimpresiones confirmados por las editoriales del sector hispanohablante, con su fecha y precio estimado.
+                    </p>
+                    <div class="pt-2">
+                        @* Href="/novedades" *@
+                        <a href="/novedades"
+                           class="h-11 sm:h-12 px-6 sm:px-7 rounded-full bg-[#FFF8EE] text-[#1B7D52] text-sm font-black inline-flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform shadow-lg">
+                            <span>Ver todas las novedades</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
                 </div>
-            }
-            else
-            {
-                <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                    @foreach (var giveaway in _dashboard.Giveaways)
+
+                <div class="lg:col-span-7 flex flex-col divide-y divide-white/20">
+                    @if (_dashboard.RecentReleases.Count == 0)
                     {
-                        <HomeGiveawayCard Giveaway="giveaway" />
+                        <div class="p-6 text-center text-sm font-medium text-[var(--green-soft)]">
+                            No hay novedades cargadas para esta semana.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var release in _dashboard.RecentReleases.Take(5))
+                        {
+                            var dayText = release.ReleaseDate?.Day.ToString("00") ?? "—";
+                            var monthText = release.ReleaseDate?.ToString("MMM") ?? "Pronto";
+                            var pvpText = release.EstimatedPvp.HasValue ? $"{release.EstimatedPvp.Value:F2} €" : "PVP TBD";
+                            var tag = release.IsReprint ? "Reimpresión" : "Novedad";
+
+                            <a href="/novedades"
+                               class="grid grid-cols-[54px_60px_1fr_auto] gap-3 sm:gap-4 items-center py-3.5 hover:bg-white/5 transition-colors rounded-xl px-2"
+                               role="listitem">
+                                <div class="flex flex-col leading-none text-left">
+                                    <b class="text-2xl sm:text-3xl font-black tracking-[-0.04em]">@dayText</b>
+                                    <span class="text-[10px] font-black uppercase text-[var(--green-soft)] mt-0.5">@monthText</span>
+                                </div>
+
+                                <div class="w-14 h-14 rounded-md overflow-hidden bg-black/20 shrink-0">
+                                    <img src="@(string.IsNullOrWhiteSpace(release.CoverImageUrl) ? "/images/game-placeholder.svg" : release.CoverImageUrl)"
+                                         alt="@release.Title"
+                                         width="60"
+                                         height="60"
+                                         loading="lazy"
+                                         decoding="async"
+                                         class="w-full h-full object-cover"
+                                         onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+                                </div>
+
+                                <div class="flex flex-col min-w-0 pr-2">
+                                    <b class="text-sm sm:text-base font-black tracking-[-0.015em] leading-snug truncate">
+                                        @release.Title
+                                    </b>
+                                    <span class="text-xs text-[var(--green-soft)] font-medium truncate mt-0.5">
+                                        @release.Publisher &bull; @tag
+                                    </span>
+                                </div>
+
+                                <div class="text-right shrink-0">
+                                    <b class="text-sm sm:text-base font-black whitespace-nowrap">
+                                        @pvpText
+                                    </b>
+                                </div>
+                            </a>
+                        }
                     }
                 </div>
-            }
-        </section>
-
-        @* 4. Carril 3: Novedades del Sector & Lanzamientos *@
-        <section class="space-y-4" aria-label="Novedades del Sector y Lanzamientos">
-            <RailHeader IconName="rocket"
-                        Title="Novedades en Tiendas"
-                        MobileTitle="Novedades"
-                        Count="_dashboard.RecentReleases.Count"
-                        CountLabel="títulos"
-                        Href="/novedades"
-                        LinkText="Ver todas las novedades"
-                        AriaLabel="Novedades del Sector y Lanzamientos" />
-
-            @if (_dashboard.RecentReleases.Count == 0)
-            {
-                <div class="p-8 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                    No hay novedades cargadas para esta semana.
-                </div>
-            }
-            else
-            {
-                <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                    @foreach (var release in _dashboard.RecentReleases)
-                    {
-                        <HomeReleaseCard Release="release" />
-                    }
-                </div>
-            }
-        </section>
-
-        @* 5. Carril 4: Próximos Eventos & Ferias Lúdicas *@
-        <section class="space-y-4" aria-label="Próximos Eventos y Ferias Lúdicas">
-            <RailHeader IconName="tent"
-                        Title="Grandes Citas & Ferias del Sector"
-                        MobileTitle="Eventos"
-                        Count="_dashboard.UpcomingEvents.Count"
-                        CountLabel="eventos"
-                        Href="/eventos"
-                        LinkText="Ver todos los eventos"
-                        AriaLabel="Próximos Eventos y Ferias Lúdicas" />
-
-            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                @foreach (var evt in _dashboard.UpcomingEvents)
-                {
-                    <HomeEventCard Event="evt" />
-                }
             </div>
         </section>
-    }
-</div>
+
+        @* 7. Ferias y Grandes Citas: Tarjetas pastel con radio de 24px y día gigante *@
+        <UpcomingEventsGrid Events="@_dashboard.UpcomingEvents" />
+    </div>
+
+    @* Modal de Colección Rápida desplegable desde cualquier tarjeta de la portada *@
+    <QuickCollectionModal Game="@_quickCollectionGame"
+                          IsOpen="@_isQuickModalOpen"
+                          OnClose="@CloseQuickModal" />
+}
 
 @code {
     private bool _isLoading = true;
     private bool _showTrending = true;
     private HomeDashboardDto _dashboard = new([], [], [], []);
+    private IReadOnlyList<GameSummaryDto> _quickGames = [];
+    private GameSummaryDto? _featuredGame;
+    private string? _featuredVerdict;
+    private GiveawayDto? _urgentGiveaway;
+
+    private bool _isQuickModalOpen;
+    private GameSummaryDto? _quickCollectionGame;
 
     protected override async Task OnInitializedAsync()
     {
@@ -172,10 +278,58 @@
         try
         {
             _dashboard = await DashboardService.GetDashboardDataAsync();
+
+            // Juego destacado en el Hero con micro-veredicto editorial
+            _featuredGame = _dashboard.TopGames.FirstOrDefault();
+            if (_featuredGame != null)
+            {
+                _featuredVerdict = "Un diseño de mesa sobresaliente que equilibra tensión, toma de decisiones profunda y una presencia visual magnífica.";
+            }
+
+            // Sorteo más urgente para la cinta reactiva TickerBar
+            _urgentGiveaway = _dashboard.Giveaways.FirstOrDefault();
+
+            // Juegos para el carril "Para sacar a mesa ya" (<= 45 min o partidas ágiles)
+            try
+            {
+                var quickResult = await CatalogService.GetCatalogAsync(
+                    new GameFilterCriteria(MaxDurationMinutes: 45),
+                    page: 1, pageSize: 10);
+
+                if (quickResult.Games.Count > 0)
+                {
+                    _quickGames = quickResult.Games;
+                }
+                else
+                {
+                    _quickGames = _dashboard.TopGames.Where(g => g.EstimatedPerPlayerMinutes <= 30 && g.EstimatedPerPlayerMinutes > 0).Take(8).ToList();
+                }
+            }
+            catch
+            {
+                _quickGames = _dashboard.TopGames.Where(g => g.EstimatedPerPlayerMinutes <= 30 && g.EstimatedPerPlayerMinutes > 0).Take(8).ToList();
+            }
+
+            if (_quickGames.Count == 0)
+            {
+                _quickGames = _dashboard.TopGames.Take(8).ToList();
+            }
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void OpenQuickModal(GameSummaryDto game)
+    {
+        _quickCollectionGame = game;
+        _isQuickModalOpen = true;
+    }
+
+    private void CloseQuickModal()
+    {
+        _isQuickModalOpen = false;
+        _quickCollectionGame = null;
     }
 }

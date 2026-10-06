@@ -1,0 +1,142 @@
+@using Ludeka.Web.Components.Shared
+@using Ludeka.Application.DTOs
+@inject NavigationManager Navigation
+
+<section class="w-full bg-[var(--brand)] text-[var(--on-brand)] relative overflow-hidden" aria-label="Portada editorial de Ludeka">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 pt-8 sm:pt-12 md:pt-16 pb-10 sm:pb-16 md:pb-20 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+        @* Columna izquierda: Eyebrow, Titular display, Buscador píldora y Veredicto opcional *@
+        <div class="flex flex-col gap-5 sm:gap-6 z-10">
+            <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--on-brand)]/90">
+                Juegos, sorteos, eventos y opiniones de verdad
+            </span>
+
+            <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-[84px] font-black leading-[0.9] tracking-[-0.055em] m-0 text-[var(--on-brand)]">
+                ¿A qué<br />jugamos<br /><i class="not-italic text-[var(--mustard)] font-black">hoy?</i>
+            </h1>
+
+            @* Buscador Píldora de 60px *@
+            <form @onsubmit="HandleSearch" class="flex items-center w-full max-w-[580px] min-h-[58px] sm:min-h-[60px] rounded-full bg-[#FFF8EE] p-1.5 pl-5 sm:pl-6 gap-3 shadow-lg">
+                <span class="text-[#6B5848] shrink-0" aria-hidden="true">
+                    <Icon Name="search" Size="20" />
+                </span>
+                <input type="text"
+                       @bind="_searchTerm"
+                       placeholder="Busca un juego, editorial o diseñador"
+                       aria-label="Buscar juegos, editoriales o diseñadores en el catálogo"
+                       class="flex-1 min-w-0 border-0 outline-none bg-transparent text-sm sm:text-base text-[#22180F] placeholder-[#6B5848]/75 font-semibold" />
+                <button type="submit"
+                        class="h-11 sm:h-12 px-5 sm:px-6 rounded-full border-0 bg-[#22180F] text-[#FFF8EE] font-extrabold text-sm transition-transform hover:scale-[1.02] active:scale-95 shrink-0 shadow">
+                    Buscar
+                </button>
+            </form>
+
+            @if (FeaturedGame != null)
+            {
+                @* Micro-reseña / Veredicto destacado editorial con insignias y CTA directo *@
+                <div class="mt-1 p-4 rounded-2xl bg-black/25 backdrop-blur-sm border border-white/20 max-w-[580px] flex flex-col gap-2.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full bg-[var(--mustard)] text-[#22180F] text-[11px] font-black uppercase tracking-wider shadow-sm">
+                            @(string.IsNullOrWhiteSpace(VerdictBadge) ? "Veredicto Editorial" : VerdictBadge)
+                        </span>
+                        <span class="text-xs font-black text-white/95 flex items-center gap-1">
+                            <span class="text-[var(--mustard)]">★</span> @FeaturedGame.BggRating.ToString("0.0") · @FeaturedGame.SpanishTitle
+                        </span>
+                    </div>
+
+                    <p class="text-xs sm:text-sm leading-relaxed text-white/95 font-medium m-0 line-clamp-2">
+                        @(string.IsNullOrWhiteSpace(VerdictQuote)
+                            ? $"La propuesta imprescindible del catálogo para tu mesa. Un diseño pulido con un ritmo de juego impecable."
+                            : $"«{VerdictQuote}»")
+                    </p>
+
+                    <div class="flex items-center gap-3 pt-1">
+                        <a href="/juegos/@FeaturedGame.Slug"
+                           class="h-9 px-4 rounded-full bg-[var(--mustard)] text-[#22180F] text-xs font-black inline-flex items-center gap-1 transition-transform hover:scale-105 active:scale-95 shadow">
+                            <span>Ver ficha</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+
+                        @if (OnQuickCollection.HasDelegate)
+                        {
+                            <button type="button"
+                                    @onclick="HandleQuickCollectionClick"
+                                    class="h-9 px-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors border border-white/20">
+                                <Icon Name="plus" Size="13" />
+                                <span>A mi ludoteca</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Columna derecha: Composición en arco superior con borde de 6px y pegatina circular a -12deg *@
+        <div class="relative w-full max-w-[480px] mx-auto lg:max-w-none h-[320px] sm:h-[400px] md:h-[460px]">
+            @* Arco superior: 220px 220px 24px 24px con borde blanco de 6px *@
+            <div class="absolute inset-0 sm:left-6 rounded-[140px_140px_20px_20px] sm:rounded-[220px_220px_24px_24px] overflow-hidden border-[5px] sm:border-[6px] border-[#FFF8EE] shadow-2xl bg-[#22180F]">
+                @if (FeaturedGame != null && !string.IsNullOrWhiteSpace(FeaturedGame.CoverImageUrl))
+                {
+                    <img src="@FeaturedGame.CoverImageUrl"
+                         alt="@FeaturedGame.SpanishTitle"
+                         class="w-full h-full object-cover"
+                         loading="eager"
+                         fetchpriority="high"
+                         width="600"
+                         height="600"
+                         onerror="this.onerror=null; this.src='/images/home/hero-ambiente-mesa-amigos.webp';" />
+                }
+                else
+                {
+                    <picture>
+                        <source type="image/avif" srcset="/images/home/hero-ambiente-mesa-amigos.avif" />
+                        <source type="image/webp" srcset="/images/home/hero-ambiente-mesa-amigos.webp" />
+                        <img src="/images/home/hero-ambiente-mesa-amigos.jpg"
+                             alt="Amigos jugando a un juego de mesa alrededor de la mesa"
+                             class="w-full h-full object-cover"
+                             loading="eager"
+                             fetchpriority="high"
+                             width="600"
+                             height="600"
+                             onerror="this.onerror=null; this.src='/images/home/hero-ambiente-eurogame.webp';" />
+                    </picture>
+                }
+            </div>
+
+            @* Pegatina redonda inclinada a -12deg: «Bienvenido a tu mesa» *@
+            <div class="absolute -left-2 sm:left-0 bottom-4 sm:bottom-8 w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-[var(--mustard)] text-[var(--on-mustard)] flex flex-col items-center justify-center text-center -rotate-12 shadow-[0_12px_30px_rgba(0,0,0,0.25)] border-2 border-white/30 pointer-events-none select-none z-20">
+                <span class="text-[10px] sm:text-xs font-black uppercase tracking-[0.08em] opacity-90">Bienvenido</span>
+                <b class="text-base sm:text-xl md:text-2xl font-black leading-tight tracking-[-0.03em]">a tu mesa</b>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter] public GameSummaryDto? FeaturedGame { get; set; }
+    [Parameter] public string? VerdictQuote { get; set; }
+    [Parameter] public string? VerdictBadge { get; set; } = "Veredicto de la Mesa Fundadora";
+    [Parameter] public EventCallback<GameSummaryDto> OnQuickCollection { get; set; }
+
+    private string _searchTerm = string.Empty;
+
+    private void HandleSearch()
+    {
+        var term = _searchTerm.Trim();
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            Navigation.NavigateTo($"/catalogo?q={Uri.EscapeDataString(term)}");
+        }
+        else
+        {
+            Navigation.NavigateTo("/catalogo");
+        }
+    }
+
+    private async Task HandleQuickCollectionClick()
+    {
+        if (FeaturedGame != null && OnQuickCollection.HasDelegate)
+        {
+            await OnQuickCollection.InvokeAsync(FeaturedGame);
+        }
+    }
+}

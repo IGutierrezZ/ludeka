@@ -1,0 +1,514 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.Enums
+@using Ludeka.Web.Authentication
+@using Ludeka.Web.Components.Shared
+@inject NavigationManager Navigation
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
+
+@*
+    Layout de Gestión Profesional «Ludeka Gestión» (INC-119).
+    - Cabecera compacta de 56 px con estado de sincronización y atajos de teclado (⌘K).
+    - Barra lateral retráctil de 248 px con las 11 bandejas operativas y atajos 1-9.
+    - Soporte completo para dispositivos móviles (cajón emergente y barra de acceso rápido).
+    - Verificación estricta de roles staff (Mesa Fundadora / Moderadores).
+    - Paleta editorial oscura de backoffice (#17120F / #1A1A1A / terracota / arena).
+*@
+
+<div class="admin-shell min-h-screen flex flex-col font-sans select-text"
+     data-theme="dark">
+    <a href="#admin-main" class="skip-link sr-only focus:not-sr-only">
+        Saltar al contenido de gestión
+    </a>
+
+    @* Cabecera Superior Compacta (56 px) *@
+    <header class="h-[56px] sticky top-0 z-30 bg-[var(--inverse)] text-[var(--on-inverse)] border-b border-[var(--line)] flex items-center justify-between px-3 sm:px-6 gap-3 select-none shrink-0"
+            role="banner">
+        <div class="flex items-center gap-3">
+            <a href="/admin"
+               class="flex items-center gap-2 hover:opacity-90 transition-opacity"
+               title="Ludeka Gestión — Panel de operaciones">
+                <span class="w-8 h-8 rounded-full bg-[#FFF8EE] flex items-center justify-center shrink-0">
+                    <img src="images/logo-light.png" alt="Ludeka" class="h-6 w-auto" />
+                </span>
+                <b class="text-lg font-black tracking-tight text-[#FFF8EE] hidden sm:inline">Ludeka.</b>
+            </a>
+            <span class="px-2.5 py-0.5 rounded-full bg-[var(--mustard)] text-[#22180F] text-[11px] font-extrabold uppercase tracking-wider">
+                Gestión
+            </span>
+            <span class="text-xs font-bold text-[var(--muted)] hidden md:inline ml-1 pl-3 border-l border-[var(--line)]">
+                @CurrentSectionTitle
+            </span>
+        </div>
+
+        @* Centro: Buscador global y estado *@
+        <div class="flex items-center gap-3">
+            <button type="button"
+                    @onclick="OpenQuickSearch"
+                    class="h-8 px-3 rounded-full bg-[var(--card)] hover:bg-[var(--paper-2)] border border-[var(--line)] text-xs font-bold text-[var(--muted)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-2"
+                    title="Buscador global de módulos (Atajo: ⌘K / Ctrl+K)">
+                <Icon Name="search" Size="13" />
+                <span class="hidden sm:inline">Buscar bandeja...</span>
+                <kbd class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[var(--paper)] text-[var(--muted)] border border-[var(--line)]">
+                    @(IsApple ? "⌘K" : "Ctrl+K")
+                </kbd>
+            </button>
+
+            <div class="hidden lg:flex items-center gap-2 text-xs font-bold">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>11 Módulos</span>
+                </span>
+            </div>
+        </div>
+
+        @* Derecha: Usuario y Volver a la web *@
+        <div class="flex items-center gap-3">
+            @if (IsStaff)
+            {
+                <div class="hidden xl:flex flex-col text-right">
+                    <span class="text-xs font-extrabold text-[var(--ink)] leading-tight">
+                        @(string.IsNullOrWhiteSpace(CurrentUserService.UserName) ? "Personal Editorial" : CurrentUserService.UserName)
+                    </span>
+                    <span class="text-[10px] font-semibold text-[var(--muted)]">
+                        @RoleLabel
+                    </span>
+                </div>
+            }
+
+            <a href="/"
+               class="h-8 px-3.5 rounded-full bg-[#FFF8EE] hover:bg-[#FAF6EE] text-[#22180F] font-extrabold text-xs inline-flex items-center gap-1.5 transition-all shadow-xs"
+               title="Volver a la revista pública de Ludeka">
+                <Icon Name="external-link" Size="13" />
+                <span class="hidden sm:inline">Volver a la web</span>
+            </a>
+
+            @* Botón Cajón Móvil *@
+            <button type="button"
+                    @onclick="ToggleMobileDrawer"
+                    class="lg:hidden p-2 rounded-xl text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--card)]"
+                    aria-label="Abrir navegación de bandejas">
+                <Icon Name="menu" Size="20" />
+            </button>
+        </div>
+    </header>
+
+    @* Guardia de Autorización Granular *@
+    @if (!IsStaff)
+    {
+        <div class="flex-1 flex items-center justify-center p-6 sm:p-12">
+            <div class="max-w-md w-full text-center p-8 rounded-3xl bg-[var(--card)] border border-[var(--line)] shadow-xl space-y-5">
+                <span class="w-16 h-16 rounded-3xl bg-[var(--alert-soft)] text-[var(--alert)] inline-flex items-center justify-center shadow-inner">
+                    <Icon Name="shield" Size="36" />
+                </span>
+                <div class="space-y-2">
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)]">
+                        Acceso Restringido
+                    </h1>
+                    <p class="text-sm text-[var(--muted)] leading-relaxed">
+                        Esta zona está reservada exclusivamente a la Mesa Fundadora y a moderadores acreditados de Ludeka.
+                    </p>
+                </div>
+                <div class="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                    <a href="/"
+                       class="px-5 py-2.5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs hover:opacity-90 transition-opacity inline-flex items-center justify-center gap-2">
+                        <Icon Name="dices" Size="14" />
+                        <span>Volver a la web</span>
+                    </a>
+                    <a href="/login"
+                       class="px-5 py-2.5 rounded-full bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] font-extrabold text-xs hover:bg-[var(--paper-2)] transition-colors inline-flex items-center justify-center gap-2">
+                        <Icon Name="user" Size="14" />
+                        <span>Iniciar sesión</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="flex-1 flex items-start">
+            @* Barra Lateral Escritorio (248 px) *@
+            <aside class="sticky top-[56px] w-[248px] shrink-0 h-[calc(100vh-56px)] overflow-y-auto border-r border-[var(--line)] p-3 hidden lg:flex flex-col gap-4 bg-[var(--paper)] select-none"
+                   aria-label="Navegación de módulos de gestión">
+                @foreach (var group in NavGroups)
+                {
+                    <div class="flex flex-col gap-1">
+                        <span class="px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                            @group.Title
+                        </span>
+                        @foreach (var item in group.Items)
+                        {
+                            var isActive = IsUrlActive(item.Url);
+                            <a href="@item.Url"
+                               class="h-[38px] px-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all @(isActive ? "bg-[var(--card)] text-[var(--ink)] shadow-xs border border-[var(--line)]" : "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper-2)]")"
+                               title="@item.Description @(!string.IsNullOrEmpty(item.Shortcut) ? $"(Atajo: {item.Shortcut})" : "")">
+                                <span class="shrink-0 @(isActive ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                                    <Icon Name="@item.Icon" Size="15" />
+                                </span>
+                                <span class="flex-1 truncate">@item.Label</span>
+                                @if (!string.IsNullOrEmpty(item.Shortcut))
+                                {
+                                    <kbd class="px-1.5 py-0.5 text-[9px] font-mono rounded bg-[var(--paper-2)] text-[var(--muted)] border border-[var(--line)] opacity-60">
+                                        @item.Shortcut
+                                    </kbd>
+                                }
+                            </a>
+                        }
+                    </div>
+                }
+
+                @* Atajos Rápidos Informativos *@
+                <div class="mt-auto pt-3 border-t border-[var(--line)] px-2 text-[11px] text-[var(--muted)] leading-relaxed space-y-1">
+                    <div class="font-bold text-[var(--ink)] flex items-center gap-1.5">
+                        <Icon Name="command" Size="12" />
+                        <span>Atajos de teclado</span>
+                    </div>
+                    <p><b>⌘K / Ctrl+K</b> Buscador global</p>
+                    <p><b>1-9</b> Salto rápido a bandejas</p>
+                    <p><b>Esc</b> Cerrar ventanas</p>
+                </div>
+            </aside>
+
+            @* Área Principal de Contenido *@
+            <main id="admin-main" class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-28">
+                @Body
+            </main>
+        </div>
+
+        @* Barra Inferior Móvil para Staff *@
+        <div class="lg:hidden fixed bottom-0 left-0 right-0 z-20 h-14 bg-[var(--inverse)] text-[var(--on-inverse)] border-t border-[var(--line)] flex items-center justify-around px-2 shadow-lg">
+            <a href="/admin" class="flex flex-col items-center gap-1 text-[10px] font-bold @(IsUrlActive("/admin") ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                <Icon Name="layout-dashboard" Size="18" />
+                <span>Resumen</span>
+            </a>
+            <a href="/admin/ingesta-social" class="flex flex-col items-center gap-1 text-[10px] font-bold @(IsUrlActive("/admin/ingesta-social") ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                <Icon Name="inbox" Size="18" />
+                <span>Bandeja</span>
+            </a>
+            <a href="/moderacion/reportes" class="flex flex-col items-center gap-1 text-[10px] font-bold @(IsUrlActive("/moderacion/reportes") ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                <Icon Name="flag" Size="18" />
+                <span>Reportes</span>
+            </a>
+            <button type="button" @onclick="ToggleMobileDrawer" class="flex flex-col items-center gap-1 text-[10px] font-bold text-[var(--muted)]">
+                <Icon Name="menu" Size="18" />
+                <span>Bandejas</span>
+            </button>
+        </div>
+
+        @* Cajón Móvil Desplegable *@
+        @if (_isMobileDrawerOpen)
+        {
+            <div class="fixed inset-0 z-50 flex lg:hidden bg-black/70 backdrop-blur-xs" @onclick="ToggleMobileDrawer">
+                <div class="w-72 max-w-[80vw] h-full bg-[var(--paper)] text-[var(--ink)] border-r border-[var(--line)] p-4 flex flex-col gap-4 overflow-y-auto"
+                     @onclick:stopPropagation="true">
+                    <div class="flex items-center justify-between pb-3 border-b border-[var(--line)]">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-[#FFF8EE] flex items-center justify-center">
+                                <img src="images/logo-light.png" alt="Ludeka" class="h-4 w-auto" />
+                            </span>
+                            <span class="font-extrabold text-sm">Bandejas de Gestión</span>
+                        </div>
+                        <button type="button" @onclick="ToggleMobileDrawer" class="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--ink)]">
+                            <Icon Name="x" Size="18" />
+                        </button>
+                    </div>
+
+                    @foreach (var group in NavGroups)
+                    {
+                        <div class="flex flex-col gap-1">
+                            <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                                @group.Title
+                            </span>
+                            @foreach (var item in group.Items)
+                            {
+                                var isActive = IsUrlActive(item.Url);
+                                <a href="@item.Url"
+                                   @onclick="ToggleMobileDrawer"
+                                   class="h-9 px-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all @(isActive ? "bg-[var(--card)] text-[var(--accent)] shadow-xs" : "text-[var(--muted)]")">
+                                    <Icon Name="@item.Icon" Size="14" />
+                                    <span class="truncate">@item.Label</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Modal Buscador Global (Cmd/Ctrl + K) *@
+        @if (_isQuickSearchOpen)
+        {
+            <div class="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/70 backdrop-blur-xs"
+                 @onclick="CloseQuickSearch">
+                <div class="w-full max-w-lg bg-[var(--card)] text-[var(--ink)] rounded-2xl border border-[var(--line)] shadow-2xl overflow-hidden flex flex-col"
+                     @onclick:stopPropagation="true">
+                    <div class="flex items-center gap-3 px-4 py-3 border-b border-[var(--line)]">
+                        <Icon Name="search" Size="18" Class="text-[var(--muted)]" />
+                        <input type="text"
+                               @bind="_searchQuery"
+                               @bind:event="oninput"
+                               placeholder="Escribe para buscar bandeja o acción..."
+                               class="flex-1 bg-transparent border-0 outline-none text-sm text-[var(--ink)] placeholder-[var(--muted)] font-medium"
+                               autofocus />
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[var(--paper-2)] text-[var(--muted)] border border-[var(--line)]">
+                            Esc
+                        </kbd>
+                    </div>
+                    <div class="max-h-72 overflow-y-auto p-2 space-y-1">
+                        @foreach (var item in FilteredItems)
+                        {
+                            <button type="button"
+                                    @onclick="() => NavigateToItem(item.Url)"
+                                    class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between hover:bg-[var(--paper-2)] transition-colors group">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-[var(--muted)] group-hover:text-[var(--accent)]">
+                                        <Icon Name="@item.Icon" Size="15" />
+                                    </span>
+                                    <span>@item.Label</span>
+                                </div>
+                                <span class="text-[11px] font-normal text-[var(--muted)]">@item.GroupTitle</span>
+                            </button>
+                        }
+                        @if (!FilteredItems.Any())
+                        {
+                            <div class="py-6 text-center text-xs text-[var(--muted)]">
+                                No se encontraron bandejas coincidentes con «@_searchQuery».
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool _isMobileDrawerOpen;
+    private bool _isQuickSearchOpen;
+    private string _searchQuery = "";
+    private DotNetObjectReference<AdminLayout>? _dotNetRef;
+    private bool IsApple { get; set; }
+
+    private bool IsStaff =>
+        CurrentUserService.IsFoundingTeam ||
+        CurrentUserService.IsInRole("Moderator") ||
+        CurrentUserService.IsInRole("Admin") ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanEditGames) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanPublishInstagram) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanViewAuditLog) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManageEvents) ||
+        CurrentUserService.HasPermission(ModeratorPermission.CanManageNotifications);
+
+    private string RoleLabel
+    {
+        get
+        {
+            if (CurrentUserService.IsFoundingTeam) return "Mesa Fundadora";
+            if (CurrentUserService.IsInRole("Moderator")) return "Moderador";
+            if (CurrentUserService.IsInRole("Admin")) return "Administrador";
+            return "Staff Editorial";
+        }
+    }
+
+    private string CurrentSectionTitle
+    {
+        get
+        {
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri).ToLowerInvariant();
+            if (string.IsNullOrEmpty(relative) || relative == "admin" || relative == "admin/resumen") return "Resumen de Operaciones";
+            if (relative.Contains("ingesta-social") || relative.Contains("bandeja")) return "Bandeja Social";
+            if (relative.Contains("reportes")) return "Reportes de Catálogo";
+            if (relative.Contains("multimedia") || relative.Contains("moderacion-media")) return "Multimedia & Vídeos";
+            if (relative.Contains("cola")) return "Cola de Catalogación BGG";
+            if (relative.Contains("eventos")) return "Eventos & Ferias";
+            if (relative.Contains("canales") || relative.Contains("cuentas")) return "Cuentas Monitorizadas";
+            if (relative.Contains("afiliados") || relative.Contains("feeds")) return "Feeds Comerciales & Afiliados";
+            if (relative.Contains("instagram")) return "Publicador Instagram";
+            if (relative.Contains("notificaciones")) return "Webhooks & Notificaciones";
+            if (relative.Contains("usuarios")) return "Usuarios & Permisos";
+            if (relative.Contains("auditoria")) return "Bitácora de Auditoría";
+            return "Gestión Editorial";
+        }
+    }
+
+    private sealed record NavItem(string Label, string Url, string Icon, string Description, string Shortcut = "");
+    private sealed record NavGroup(string Title, IReadOnlyList<NavItem> Items);
+
+    private static readonly IReadOnlyList<NavGroup> NavGroups = new List<NavGroup>
+    {
+        new("General", new List<NavItem>
+        {
+            new("Resumen", "/admin", "layout-dashboard", "Panel de control general y estado de sistemas", "1")
+        }),
+        new("Catálogo & Cola", new List<NavItem>
+        {
+            new("Catálogo BGG", "/admin/cola-catalogacion", "database", "Extracción BGG, cola comunitaria y top", "2"),
+            new("Revisiones & Reportes", "/moderacion/reportes", "flag", "Incidencias reportadas por la comunidad", "3"),
+            new("Duplicados & Multimedia", "/moderacion/multimedia", "clapperboard", "Vídeos huérfanos y aprobación multimedia", "4")
+        }),
+        new("Comunidad & Sorteos", new List<NavItem>
+        {
+            new("Sorteos & Bandeja", "/admin/ingesta-social", "inbox", "Ingesta social comunitaria y alta exprés", "5"),
+            new("Eventos & Ferias", "/admin/eventos", "calendar", "Agenda de citas, jornadas y torneos lúdicos", "6"),
+            new("Novedades & Releases", "/admin/instagram", "camera", "Publicador de novedades y tarjetas Instagram", "7")
+        }),
+        new("Comercial & Tiendas", new List<NavItem>
+        {
+            new("Tiendas & Feeds", "/admin/afiliados", "shopping-bag", "Ingesta de catálogos comerciales y mapeo EAN", "8"),
+            new("Creadores & Canales", "/admin/canales-monitorizados", "radio", "Directorio oficial de cuentas y fuentes", "9"),
+            new("Afiliados & Enlaces", "/admin/afiliados", "link", "Gestión de comisiones y tiendas afiliadas")
+        }),
+        new("Administración", new List<NavItem>
+        {
+            new("Usuarios & Permisos", "/admin/usuarios", "users", "Roles comunitarios y privilegios granulares"),
+            new("Bitácora de Auditoría", "/admin/auditoria", "scroll", "Trazabilidad inmutable de cambios en el catálogo"),
+            new("Webhooks & Notificaciones", "/admin/notificaciones", "bell", "Despachador en segundo plano a Discord y Telegram")
+        })
+    };
+
+    private sealed record SearchResult(string Label, string Url, string Icon, string GroupTitle);
+
+    private IEnumerable<SearchResult> FilteredItems
+    {
+        get
+        {
+            var query = _searchQuery.Trim().ToLowerInvariant();
+            foreach (var group in NavGroups)
+            {
+                foreach (var item in group.Items)
+                {
+                    if (string.IsNullOrEmpty(query) ||
+                        item.Label.ToLowerInvariant().Contains(query) ||
+                        item.Description.ToLowerInvariant().Contains(query) ||
+                        group.Title.ToLowerInvariant().Contains(query))
+                    {
+                        yield return new SearchResult(item.Label, item.Url, item.Icon, group.Title);
+                    }
+                }
+            }
+        }
+    }
+
+    private bool IsUrlActive(string url)
+    {
+        var current = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+        if (url == "/admin")
+        {
+            return current == "/admin" || current == "/admin/resumen";
+        }
+        return current.StartsWith(url, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ToggleMobileDrawer() => _isMobileDrawerOpen = !_isMobileDrawerOpen;
+
+    private void OpenQuickSearch()
+    {
+        _searchQuery = "";
+        _isQuickSearchOpen = true;
+    }
+
+    private void CloseQuickSearch() => _isQuickSearchOpen = false;
+
+    private void NavigateToItem(string url)
+    {
+        _isQuickSearchOpen = false;
+        _isMobileDrawerOpen = false;
+        Navigation.NavigateTo(url);
+    }
+
+    private void NavigateByShortcut(int num)
+    {
+        var target = num switch
+        {
+            1 => "/admin",
+            2 => "/admin/cola-catalogacion",
+            3 => "/moderacion/reportes",
+            4 => "/moderacion/multimedia",
+            5 => "/admin/ingesta-social",
+            6 => "/admin/eventos",
+            7 => "/admin/instagram",
+            8 => "/admin/afiliados",
+            9 => "/admin/canales-monitorizados",
+            _ => null
+        };
+
+        if (target is not null)
+        {
+            Navigation.NavigateTo(target);
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("eval", @"
+                    (function(dotNetRef) {
+                        window._ludekaAdminHandler = function(e) {
+                            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                                e.preventDefault();
+                                dotNetRef.invokeMethodAsync('OnGlobalShortcutTriggered', 'k');
+                                return;
+                            }
+                            if (e.key === 'Escape') {
+                                dotNetRef.invokeMethodAsync('OnGlobalShortcutTriggered', 'Escape');
+                                return;
+                            }
+                            if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key >= '1' && e.key <= '9') {
+                                var tag = document.activeElement ? document.activeElement.tagName : '';
+                                if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+                                    e.preventDefault();
+                                    dotNetRef.invokeMethodAsync('OnGlobalShortcutTriggered', e.key);
+                                }
+                            }
+                        };
+                        window.addEventListener('keydown', window._ludekaAdminHandler);
+                    })
+                ", _dotNetRef);
+            }
+            catch { }
+        }
+    }
+
+    [JSInvokable]
+    public void OnGlobalShortcutTriggered(string key)
+    {
+        if (key.Equals("k", StringComparison.OrdinalIgnoreCase))
+        {
+            _isQuickSearchOpen = !_isQuickSearchOpen;
+            StateHasChanged();
+        }
+        else if (key == "Escape")
+        {
+            _isQuickSearchOpen = false;
+            _isMobileDrawerOpen = false;
+            StateHasChanged();
+        }
+        else if (int.TryParse(key, out var num) && num >= 1 && num <= 9)
+        {
+            NavigateByShortcut(num);
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _ = JS.InvokeVoidAsync("eval", "if (window._ludekaAdminHandler) { window.removeEventListener('keydown', window._ludekaAdminHandler); delete window._ludekaAdminHandler; }");
+            _dotNetRef?.Dispose();
+        }
+        catch { }
+    }
+}

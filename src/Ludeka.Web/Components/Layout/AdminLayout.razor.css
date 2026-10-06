@@ -1,0 +1,77 @@
+/* Paleta de Backoffice Editorial «Ludeka Gestión» (INC-119) */
+.admin-shell {
+    --paper: #17120F;
+    --paper-2: #211A15;
+    --card: #241C17;
+    --ink: #FFF1E2;
+    --muted: #BFAE9E;
+    --line: rgba(255, 241, 226, 0.14);
+    --rule: #FFF1E2;
+    --brand: #C9481C;
+    --brand-contrast: #B8401A;
+    --on-brand: #FFF8EE;
+    --accent: #FF7A4D;
+    --mustard: #FFC145;
+    --on-mustard: #22180F;
+    --green: #17694A;
+    --accent-green: #4CC38A;
+    --sky: #7BA4F5;
+    --inverse: #0C0907;
+    --on-inverse: #FFF1E2;
+    --alert: #FF8A65;
+    --alert-soft: #3A1E16;
+    --bg-main: var(--paper);
+    --bg-surface: var(--paper-2);
+    --bg-surface-elevated: var(--paper-2);
+    --bg-card: var(--card);
+    --border-subtle: var(--line);
+    --border-highlight: rgba(255, 241, 226, 0.25);
+    --text-primary: var(--ink);
+    --text-secondary: var(--muted);
+    --text-muted: var(--muted);
+    --brand-primary: var(--brand);
+    background-color: var(--paper);
+    color: var(--ink);
+    color-scheme: dark;
+}
+
+/* Densidad de tablas administrativas y listas */
+::deep .admin-shell table {
+    font-size: 13px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+::deep .admin-shell table th {
+    background-color: var(--paper-2);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+::deep .admin-shell table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+::deep .admin-shell table tbody tr:hover {
+    background-color: rgba(255, 241, 226, 0.04);
+}
+
+/* Ajuste de contenedor amplio para gestión */
+::deep .container-ludeka {
+    max-width: 1536px !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+    ::deep .container-ludeka {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}

@@ -370,4 +370,56 @@ public class GameEditorServiceTests
         Assert.Single(logRepo.Logs);
         Assert.Contains("Código de barras (EAN-13)", logRepo.Logs[0].SummaryOfChanges);
     }
+
+    [Fact]
+    public async Task AssociateBggIdAsync_WhenAuthorized_UpdatesBggIdAndRecordsAudit()
+    {
+        // Arrange
+        var gameRepo = new FakeGameRepository();
+        var game = CreateGame();
+        await gameRepo.UpdateAsync(game);
+
+        var logRepo = new FakeEditLogRepository();
+        var userSvc = new FakeCurrentUserService
+        {
+            Roles = ["Moderator"],
+            Permissions = ModeratorPermission.CanEditGames
+        };
+        var catalogSvc = new FakeCatalogService();
+        var service = new GameEditorService(gameRepo, userSvc, logRepo, catalogSvc);
+
+        // Act
+        var result = await service.AssociateBggIdAsync(game.Id, 99999);
+
+        // Assert
+        Assert.Equal(99999, result.BggId);
+        var updated = await gameRepo.GetByIdAsync(game.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(99999, updated.BggId);
+
+        Assert.Single(logRepo.Logs);
+        Assert.Contains("99999", logRepo.Logs[0].SummaryOfChanges);
+    }
+
+    [Fact]
+    public async Task AssociateBggIdAsync_WhenUnauthorized_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        var gameRepo = new FakeGameRepository();
+        var game = CreateGame();
+        await gameRepo.UpdateAsync(game);
+
+        var logRepo = new FakeEditLogRepository();
+        var userSvc = new FakeCurrentUserService
+        {
+            Roles = ["User"],
+            Permissions = ModeratorPermission.None
+        };
+        var catalogSvc = new FakeCatalogService();
+        var service = new GameEditorService(gameRepo, userSvc, logRepo, catalogSvc);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.AssociateBggIdAsync(game.Id, 12345));
+    }
 }

@@ -1135,5 +1135,27 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md`](../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md).
 - **Módulos del Sistema:** [`51-precios-stock-afiliados-amazon.md`](sistema/51-precios-stock-afiliados-amazon.md).
 
+---
 
+## Incremento 113: Tokens de Diseño Editorial, Paleta Terracota/Salvia, Plus Jakarta Sans y Modo Claro/Oscuro
+- **Identificador SDD:** `tokens-paleta-editorial-plus-jakarta`
+- **Objetivo Principal:**
+  1. **Tipografía Plus Jakarta Sans y Zero-FOUC:** Inyección de Google Fonts con preconexión temprana en `App.razor` y configuración de la familia `sans` en `tailwind.config.js`. Scripts tempranos de normalización determinista en `<head>` y sincronización de clases `.light` / `.dark` y atributos `data-theme`.
+  2. **Tokens Semánticos Completos «Revista Lúdica»:** Paleta editorial en `input.css` y `app.css` (Terracota `#C85A32`, Salvia `#2D6A4F`, Arena `#F4EEDB` / `#FAF6EE`, Tinta `#1A1A1A`, Verde `#2D6A4F`, Ámbar `#C97A1E`, Carmín `#9E2A2B`, bandas cromáticas `paper`, `card`, `ink`, `muted`, `line`, `rule`, `blue-band`, `plum`, pasteles y sombras físicas `--shadow-card`, `--shadow-polaroid`, `--shadow-sticker`).
+  3. **Par Canónico Claro/Oscuro y Normalización Determinista:** Mapeo de temas legados (`editorial`/`wood` a `light`, `charcoal`/`tabletop`/`midnight` a `dark`, con `light` por defecto) en `UserPreference` y `SqliteUserPreferenceService`, garantizando compatibilidad retrospectiva total.
+  4. **Pruebas de Contrato y Regresión:** Creación de `ThemeContractTests.cs` y adaptación de contratos web y de anonimato con 100% de la suite de pruebas unitarias en verde.
+- **Estado:** ✅ **Completado y Verificado** (Fase 1/7 de la Épica Revista Lúdica · 2.530 tests unitarios en verde al 100%).
+- **Documento:** [`../increments/inc-113-tokens-paleta-editorial-plus-jakarta.md`](../increments/inc-113-tokens-paleta-editorial-plus-jakarta.md).
 
+---
+
+## Incremento 114: Shell Global «Revista Lúdica» (Cabecera Reactiva, Barra Móvil con Hoja «Más» y Barra Contextual de Staff)
+- **Identificador SDD:** `layout-cabecera-barra-movil-staffbar`
+- **Objetivo Principal:**
+  1. **Cabecera Compacta de 72px con Tintado Reactivo Dinámico:** Detección de ruta activa y asignación cromática contextual (`GetHeaderColors()` con fondo Terracota en Portada, Verde en Catálogo, Mostaza en Sorteos, Azul en Eventos, Ciruela en Clasificaciones y Papel por defecto) manteniendo legibilidad estricta y contraste tipográfico sin parpadeos.
+  2. **Utilidades de Cabecera y Menús:** Enlace directo de búsqueda rápida (`/buscar`), conmutador accesible claro/oscuro (Sun/Moon), botón de soporte a la comunidad (Ko-fi), `<OfflineIndicator AsBanner="false" />` estilizado como píldora en cabecera y `<AccountMenu />` con inicial `@UserInitial` sobre fondo mostaza y menú desplegable de 290px con bordes `--rule` y 22px de radio.
+  3. **Barra Inferior Móvil (64px) y Hoja Flotante «Más de Ludeka»:** Píldora fija `--inverse` accesible al pulgar con 5 destinos primarios (Inicio, Catálogo, Sorteos, Ludoteca/Entrar, y disparador «Más») con soporte de `safe-area-inset-bottom`. Hoja modal flotante (`role="dialog"`, `aria-modal="true"`, soporte de tecla Escape y cierre exterior) con cuadrícula 2x4 en tonos pastel: Novedades, Eventos, Clasificación, Editoriales, Creadores, Tiendas, Transparencia y conmutador de tema.
+  4. **Barra Contextual de Staff (`StaffBar.razor` / `StaffActionBar.razor`):** Montada bajo la cabecera exclusivamente para roles de administración o moderación, con badge mostaza de rol, enlace directo a `/admin` («Ludeka Gestión») y accesos rápidos filtrados por permisos (`/moderacion/reportes`, `/admin/cola-catalogacion`, `/admin/afiliados`, `/admin/ingesta-social`).
+  5. **Resiliencia de Red y Accesibilidad:** Soporte dual para `<OfflineIndicator />` (píldora compacta y franja de aviso reactiva a eventos de desconexión PWA) y cumplimiento estricto WCAG 2.2 AA (landmarks `<main id="main-content">`, `<header>`, skip-link, focos y teclado).
+- **Estado:** ✅ **Completado y Verificado** (Fase 2/7 de la Épica Revista Lúdica · 2.536 tests unitarios en verde al 100%).
+- **Documento:** [`../increments/inc-114-layout-cabecera-barra-movil-staffbar.md`](../increments/inc-114-layout-cabecera-barra-movil-staffbar.md).

@@ -1,47 +1,54 @@
 @using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 
-<div class="scalability-component">
-    <div class="flex items-center justify-between mb-2">
-        <span class="text-xs uppercase tracking-wider font-bold text-[var(--text-secondary)]">Escalabilidad en Mesa</span>
-        @if (!string.IsNullOrWhiteSpace(IdealText))
+<div class="scalability-component space-y-3">
+    <div class="grid grid-cols-7 border-t-[3px] border-[var(--rule)]" role="group" aria-label="Semáforo de jugadores de 1 a 7+">
+        @for (int count = 1; count <= 7; count++)
         {
-            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--color-mustplay)] border border-[var(--border-subtle)] inline-flex items-center gap-1">
-                <Icon Name="sparkles" Size="12" /> @IdealText
-            </span>
-        }
-    </div>
+            var pCount = count;
+            var labelCount = count == 7 ? "7+" : count.ToString();
+            var entry = Entries?.FirstOrDefault(e => count == 7 ? e.PlayerCount >= 7 : e.PlayerCount == count);
+            var status = entry?.Status;
 
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Semáforo de jugadores">
-        @if (Entries != null && Entries.Count > 0)
-        {
-            @foreach (var entry in Entries.OrderBy(e => e.PlayerCount))
+            var barColor = status switch
             {
-                var statusClass = entry.Status switch
-                {
-                    ScalabilityStatus.MustPlay => "status-mustplay",
-                    ScalabilityStatus.Recommended => "status-recommended",
-                    _ => "status-notrecommended"
-                };
+                ScalabilityStatus.MustPlay => "var(--accent-green)",
+                ScalabilityStatus.Recommended => "var(--mustard)",
+                ScalabilityStatus.NotRecommended => "var(--line)",
+                _ => "var(--line)"
+            };
 
-                var tooltip = entry.Status switch
-                {
-                    ScalabilityStatus.MustPlay => $"{entry.DisplayCount}: ¡Imprescindible! ({entry.BestVotes} votos)",
-                    ScalabilityStatus.Recommended => $"{entry.DisplayCount}: Recomendado ({entry.RecommendedVotes} votos)",
-                    _ => $"{entry.DisplayCount}: No recomendado ({entry.NotRecommendedVotes} votos)"
-                };
+            var statusText = status switch
+            {
+                ScalabilityStatus.MustPlay => "Ideal",
+                ScalabilityStatus.Recommended => "Bien",
+                ScalabilityStatus.NotRecommended => "No",
+                _ => "—"
+            };
 
-                <div class="traffic-chip @statusClass" role="img" tabindex="0" title="@tooltip" aria-label="@tooltip">
-                    <span class="player-label">@entry.DisplayCount</span>
-                    <span class="dot-indicator" aria-hidden="true"></span>
-                </div>
-            }
-        }
-        else
-        {
-            <span class="text-xs text-[var(--text-muted)] italic">Sin datos de escalabilidad</span>
+            var tooltip = entry != null
+                ? $"{labelCount} jugadores: {statusText} ({entry.BestVotes} votos mejor, {entry.RecommendedVotes} recomendados)"
+                : $"{labelCount} jugadores: Sin datos";
+
+            <div class="py-3 px-1.5 flex flex-col gap-2 border-r last:border-r-0 border-[var(--line)]" title="@tooltip">
+                <span class="text-xl sm:text-2xl font-black tracking-tight text-[var(--ink)] pl-1">
+                    @labelCount
+                </span>
+                <span class="h-[10px] w-full rounded-full transition-colors" style="background-color: @barColor" aria-hidden="true"></span>
+                <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] pl-1">
+                    @statusText
+                </span>
+            </div>
         }
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(IdealText))
+    {
+        <p class="text-xs sm:text-sm text-[var(--muted)] flex items-center gap-1.5 pt-1">
+            <Icon Name="sparkles" Size="14" class="text-[var(--accent-green)]" />
+            <span>Votos de la comunidad. <strong>@IdealText</strong></span>
+        </p>
+    }
 </div>
 
 @code {
