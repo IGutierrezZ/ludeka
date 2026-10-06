@@ -67,6 +67,7 @@ public class HomeDashboardContractTests
         Assert.Contains("jugamos", source, StringComparison.Ordinal);
         Assert.Contains("text-[var(--mustard)]", source, StringComparison.Ordinal);
         Assert.Contains("hoy?", source, StringComparison.Ordinal);
+        Assert.Contains("focus:outline-none", source, StringComparison.Ordinal);
 
         // Buscador píldora de 60px
         Assert.Contains("rounded-full bg-[#FFF8EE]", source, StringComparison.Ordinal);

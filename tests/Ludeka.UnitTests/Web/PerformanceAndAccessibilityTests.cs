@@ -142,6 +142,18 @@ public class PerformanceAndAccessibilityTests
         Assert.Contains("rel=\"preconnect\" href=\"https://cf.geekdo-images.com\"", content);
     }
 
+    [Fact]
+    public void AppCss_DebeSuprimirOutlineEnFocoDeH1_ParaEvitarRecuadroEnFocusOnNavigate()
+    {
+        // En Blazor, FocusOnNavigate sitúa el foco programáticamente en h1 con tabindex="-1".
+        // app.css debe suprimir el recuadro de foco visual (outline:none) para evitar marcas molestas en móviles.
+        var appCssPath = Path.Combine(GetRepoRoot(), "src", "Ludeka.Web", "wwwroot", "app.css");
+        Assert.True(File.Exists(appCssPath), $"El archivo CSS de producción compilado no existe en: {appCssPath}");
+
+        var cssContent = File.ReadAllText(appCssPath);
+        Assert.Contains("h1:focus", cssContent);
+    }
+
     private class FakeGameRepository : IGameRepository
     {
         public Task<Ludeka.Core.Entities.Game?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<Ludeka.Core.Entities.Game?>(null);
