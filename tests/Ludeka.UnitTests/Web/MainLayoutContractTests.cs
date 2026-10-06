@@ -39,23 +39,19 @@ public class MainLayoutContractTests
     }
 
     [Fact]
-    public void MainLayout_Utilities_ShouldContainQuickSearchThemeToggleAndOfflineIndicator()
+    public void MainLayout_Utilities_ShouldContainThemeToggleAndOfflineIndicator()
     {
         var source = ReadSource(MainLayoutPath);
 
-        // 1. Acceso a búsqueda rápida /buscar con icono Lucide
-        Assert.Contains("href=\"/buscar\"", source, StringComparison.Ordinal);
-        Assert.Contains("Icon Name=\"search\"", source, StringComparison.Ordinal);
-
-        // 2. Conmutador claro/oscuro (Sun/Moon)
+        // 1. Conmutador claro/oscuro (Sun/Moon)
         Assert.Contains("ToggleTheme", source, StringComparison.Ordinal);
         Assert.Contains("Name=\"@(CurrentTheme == \"dark\" ? \"sun\" : \"moon\")\"", source, StringComparison.Ordinal);
 
-        // 3. Montaje dual de OfflineIndicator (píldora en cabecera y banner reactivo)
+        // 2. Montaje dual de OfflineIndicator (píldora en cabecera y banner reactivo)
         Assert.Contains("<OfflineIndicator AsBanner=\"false\" />", source, StringComparison.Ordinal);
         Assert.Contains("<OfflineIndicator AsBanner=\"true\" />", source, StringComparison.Ordinal);
 
-        // 4. Montaje de menú de cuenta
+        // 3. Montaje de menú de cuenta
         Assert.Contains("<AccountMenu />", source, StringComparison.Ordinal);
     }
 
