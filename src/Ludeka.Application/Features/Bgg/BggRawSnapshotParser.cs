@@ -233,6 +233,27 @@ public static class BggRawSnapshotParser
     }
 
     /// <summary>
+    /// Extrae las URLs canónicas de imagen de portada y miniatura del juego raíz desde el payload JSON del snapshot.
+    /// </summary>
+    public static (string? CoverImageUrl, string? ThumbnailUrl) ExtractRootImagesFromJson(string rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return (null, null);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            var root = GetEffectiveItemElement(doc);
+            string? cover = NormalizeUrl(ExtractStringValue(root, "image"));
+            string? thumb = NormalizeUrl(ExtractStringValue(root, "thumbnail"));
+            return (cover, thumb);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
+    /// <summary>
     /// Comprueba si el payload JSON del snapshot incluye información del subárbol de versiones de BGG (&lt;versions&gt;).
     /// </summary>
     public static bool HasVersionsFromJson(string rawJson)

@@ -862,6 +862,29 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
                     modified = true;
                 }
 
+                // Actualización y priorización de portada en español / recuperación de URLs simuladas o rotas
+                bool isCurrentCoverCorruptedOrSimulated = string.IsNullOrWhiteSpace(game.CoverImageUrl) ||
+                                                         game.CoverImageUrl.Contains(".r2.dev/games/") ||
+                                                         game.CoverImageUrl.Contains("/images/game-placeholder.svg");
+
+                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.CoverImageUrl))
+                {
+                    if (isCurrentCoverCorruptedOrSimulated || game.CoverImageUrl != vInfo.CoverImageUrl)
+                    {
+                        game.UpdateImages(vInfo.CoverImageUrl, vInfo.ThumbnailUrl ?? game.ThumbnailUrl);
+                        modified = true;
+                    }
+                }
+                else if (isCurrentCoverCorruptedOrSimulated)
+                {
+                    var (rootCover, rootThumb) = BggRawSnapshotParser.ExtractRootImagesFromJson(s.RawJson);
+                    if (!string.IsNullOrWhiteSpace(rootCover) && game.CoverImageUrl != rootCover)
+                    {
+                        game.UpdateImages(rootCover, rootThumb ?? game.ThumbnailUrl);
+                        modified = true;
+                    }
+                }
+
                 if (!modified)
                 {
                     skipped++;

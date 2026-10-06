@@ -6,8 +6,8 @@
 - [x] **Tarea 1.3:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Bgg/BggRawSnapshotParserVersionsTests.cs` validando la extracción y normalización de portadas de versiones en español.
 
 ## Fase 2: Promoción de Portada en Español en el Barrido de Catálogo
-- [ ] **Tarea 2.1:** Modificar `BggRawSnapshotSyncService.SweepCatalogFromVersionsCoreAsync` para actualizar `game.CoverImageUrl` y `ThumbnailUrl` con la portada en español cuando esté disponible o cuando la actual sea simulada/rota.
-- [ ] **Tarea 2.2:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Infrastructure/BggRawSnapshotSyncServiceTests.cs` (o test suite adecuada) verificando la promoción de carátula en español en el barrido de catálogo.
+- [x] **Tarea 2.1:** Modificar `BggRawSnapshotSyncService.SweepCatalogFromVersionsCoreAsync` para actualizar `game.CoverImageUrl` y `ThumbnailUrl` con la portada en español cuando esté disponible o cuando la actual sea simulada/rota.
+- [x] **Tarea 2.2:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Infrastructure/BggRawSnapshotSyncServiceTests.cs` (o test suite adecuada) verificando la promoción de carátula en español en el barrido de catálogo.
 
 ## Fase 3: Contratos y Servicio de Sincronización de Medios Top 3.000
 - [ ] **Tarea 3.1:** Crear `BggImagesSyncDtos.cs` y el contrato `IBggImagesSyncService.cs` en `src/Ludeka.Application/`.
