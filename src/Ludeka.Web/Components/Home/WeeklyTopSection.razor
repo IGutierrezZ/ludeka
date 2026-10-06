@@ -38,33 +38,6 @@
         </div>
     </header>
 
-    @* Subselector de período / filtro secundario *@
-    <div class="flex items-center justify-between gap-3 -mt-2">
-        <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-[var(--paper-2)] border border-[var(--line)] text-xs font-bold">
-            <button type="button"
-                    @onclick='() => _period = "semana"'
-                    class="px-3 py-1 rounded-full transition-all @(_period == "semana" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                Esta semana
-            </button>
-            <button type="button"
-                    @onclick='() => _period = "mes"'
-                    class="px-3 py-1 rounded-full transition-all @(_period == "mes" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                Este mes
-            </button>
-            <button type="button"
-                    @onclick='() => _period = "historico"'
-                    class="px-3 py-1 rounded-full transition-all @(_period == "historico" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                Histórico
-            </button>
-        </div>
-
-        <a href="/catalogo"
-           class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-            <span>Ver ranking completo</span>
-            <span aria-hidden="true">&rarr;</span>
-        </a>
-    </div>
-
     @{
         var topFive = GetDisplayedGames();
     }
@@ -85,14 +58,13 @@
                 var position = i + 1;
                 var colorVar = GetCyclicColor(i);
                 var rotation = i % 2 == 0 ? "rotate-[-1.5deg]" : "rotate-[1.5deg]";
-                var medalLabel = position switch { 1 => "1º", 2 => "2º", 3 => "3º", _ => $"{position}º" };
 
                 <a href="/juegos/@g.Slug"
                    class="flex items-center gap-3.5 py-3 hover:bg-[var(--paper-2)]/50 transition-colors"
                    role="listitem">
-                    <div class="w-10 shrink-0 font-black text-2xl sm:text-3xl tracking-[-0.06em] text-center"
+                    <div class="w-10 sm:w-12 shrink-0 font-extrabold text-2xl sm:text-3xl tracking-[-0.06em] text-center"
                          style="color: @colorVar">
-                        @medalLabel
+                        @position.ToString("00")
                     </div>
 
                     <div class="w-14 h-14 shrink-0 rounded overflow-hidden shadow-sm @rotation">
@@ -142,15 +114,8 @@
                     <div class="flex items-baseline justify-between">
                         <span class="text-5xl sm:text-6xl lg:text-[76px] font-black leading-none tracking-[-0.06em] select-none"
                               style="color: @colorVar">
-                            @position
+                            @position.ToString("00")
                         </span>
-
-                        @if (position <= 3)
-                        {
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--paper-2)] border border-[var(--line)] text-[var(--ink)]">
-                                @(position switch { 1 => "1º Oro", 2 => "2º Plata", 3 => "3º Bronce", _ => "" })
-                            </span>
-                        }
                     </div>
 
                     @* Carátula cuadrada 1:1 girada con sombra profunda *@
@@ -187,11 +152,14 @@
         </div>
     }
 
-    <div class="pt-2">
+    <div class="flex flex-wrap gap-4 sm:gap-7 pt-4 border-t border-[var(--line)]/40 mt-2">
         <a href="/catalogo"
-           class="self-start text-sm sm:text-base font-extrabold text-[var(--ink)] border-b-[3px] border-[var(--accent)] pb-1 hover:text-[var(--accent)] transition-colors inline-flex items-center gap-1.5">
-            <span>Ver el catálogo completo</span>
-            <span aria-hidden="true">&rarr;</span>
+           class="text-sm sm:text-[15px] font-extrabold text-[var(--ink)] border-b-[3px] border-[var(--accent)] pb-1 hover:opacity-80 transition-opacity">
+            Ver el catálogo completo
+        </a>
+        <a href="/tendencias"
+           class="text-sm sm:text-[15px] font-extrabold text-[var(--ink)] border-b-[3px] border-[var(--mustard)] pb-1 hover:opacity-80 transition-opacity">
+            @(_activeTab == "tendencias" ? "Ver tendencia completa →" : "Tendencias de hoy →")
         </a>
     </div>
 </section>
@@ -201,7 +169,6 @@
     [Parameter] public IReadOnlyList<GameSummaryDto>? TrendingGames { get; set; }
 
     private string _activeTab = "tendencias";
-    private string _period = "semana";
 
     private void SetTab(string tab)
     {
@@ -216,16 +183,6 @@
             "para2" => TopGames.Where(IsGoodForTwo).Concat(TopGames).DistinctBy(g => g.Id),
             _ => TopGames
         };
-
-        if (_period == "mes")
-        {
-            // Variación estética de ordenamiento para dar interactividad viva
-            source = source.OrderByDescending(g => g.YearPublished).ThenByDescending(g => g.BggRating);
-        }
-        else if (_period == "historico")
-        {
-            source = source.OrderByDescending(g => g.BggRating);
-        }
 
         return source.Take(5).ToList();
     }

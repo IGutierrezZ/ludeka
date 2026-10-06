@@ -5,10 +5,6 @@
 @using Ludeka.Web.Components.Home
 @using Ludeka.Web.Components.Shared
 @inject IHomeDashboardService DashboardService
-@inject ICatalogService CatalogService
-@inject ITrendingService TrendingService
-@inject IGiveawayService GiveawayService
-@inject IWeeklyReleaseService ReleaseService
 @inject NavigationManager Navigation
 
 <PageTitle>Ludeka — Juegos, sorteos, eventos y opiniones de verdad</PageTitle>
@@ -38,101 +34,7 @@ else
         <WeeklyTopSection TopGames="@_dashboard.TopGames"
                           TrendingGames="@_dashboard.TrendingGames" />
 
-        @* 4. Cintas Horizontales de Carrusel: «Tendencias del momento» y «Para sacar a mesa ya» *@
-        <div class="max-w-[1280px] w-full mx-auto px-4 sm:px-8 md:px-12 py-8 sm:py-12 space-y-10 sm:space-y-14">
-            @* Carril 1: Tendencias del Momento (con conmutador a Mejor Valorados) *@
-            <section class="space-y-4" aria-label="@(_showTrending ? "Tendencias del momento" : "Mejor valorados")">
-                <header class="flex items-center justify-between gap-3 border-b-2 border-[var(--line)] pb-3">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <span class="text-[var(--accent)] shrink-0">
-                            <Icon Name="@(_showTrending ? "flame" : "trophy")" Size="22" />
-                        </span>
-                        <h2 class="text-xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em] truncate m-0">
-                            <span class="sm:hidden">@(_showTrending ? "Tendencias" : "Mejor valorados")</span>
-                            <span class="hidden sm:inline">@(_showTrending ? "Tendencias del momento" : "Mejor valorados en Ludeka")</span>
-                        </h2>
-                    </div>
-
-                    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-                        @* Conmutador editorial de carril *@
-                        <div class="inline-flex items-center bg-[var(--paper-2)] p-0.5 rounded-full border border-[var(--line)] shadow-sm text-xs font-bold" role="tablist">
-                            <button type="button"
-                                    role="tab"
-                                    aria-selected="@(_showTrending ? "true" : "false")"
-                                    class="px-2.5 py-1 rounded-full transition-all text-xs focus-visible:outline-none @(_showTrending ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")"
-                                    @onclick="() => _showTrending = true">
-                                <span class="hidden sm:inline">En tendencia</span>
-                                <span class="sm:hidden">Tendencia</span>
-                            </button>
-                            <button type="button"
-                                    role="tab"
-                                    aria-selected="@(!_showTrending ? "true" : "false")"
-                                    class="px-2.5 py-1 rounded-full transition-all text-xs focus-visible:outline-none @(!_showTrending ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")"
-                                    @onclick="() => _showTrending = false">
-                                <span class="hidden sm:inline">Mejor valorados</span>
-                                <span class="sm:hidden">Top</span>
-                            </button>
-                        </div>
-
-                        <a href="@(_showTrending ? "/tendencias" : "/catalogo")"
-                           class="text-xs sm:text-sm font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
-                            <span class="hidden sm:inline">@(_showTrending ? "Ver todas las tendencias" : "Ver catálogo completo")</span>
-                            <span class="sm:hidden">Ver más</span>
-                            <span aria-hidden="true">&rarr;</span>
-                        </a>
-                    </div>
-                </header>
-
-                @{
-                    var displayedGames = (_showTrending && _dashboard.TrendingGames != null && _dashboard.TrendingGames.Count > 0)
-                        ? _dashboard.TrendingGames
-                        : _dashboard.TopGames;
-                }
-
-                <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                    @foreach (var game in displayedGames)
-                    {
-                        <HomeGameCard Game="game" OnQuickAction="@OpenQuickModal" />
-                    }
-                </div>
-            </section>
-
-            @* Carril 2: Para sacar a mesa ya (partidas ágiles y accesibles) *@
-            @if (_quickGames.Count > 0)
-            {
-                <section class="space-y-4" aria-label="Para sacar a mesa ya">
-                    <header class="flex items-center justify-between gap-3 border-b-2 border-[var(--line)] pb-3">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="text-[var(--accent)] shrink-0">
-                                <Icon Name="zap" Size="22" />
-                            </span>
-                            <h2 class="text-xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em] truncate m-0">
-                                <span class="sm:hidden">A mesa ya</span>
-                                <span class="hidden sm:inline">Para sacar a mesa ya</span>
-                            </h2>
-                            <span class="hidden md:inline-block px-2.5 py-0.5 rounded-full bg-[var(--paper-2)] text-[var(--muted)] text-xs font-bold border border-[var(--line)]">
-                                Partidas &le; 45 min
-                            </span>
-                        </div>
-
-                        <a href="/catalogo"
-                           class="text-xs sm:text-sm font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
-                            <span>Explorar títulos ágiles</span>
-                            <span aria-hidden="true">&rarr;</span>
-                        </a>
-                    </header>
-
-                    <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 pt-1 px-1" role="list">
-                        @foreach (var game in _quickGames)
-                        {
-                            <HomeGameCard Game="game" OnQuickAction="@OpenQuickModal" />
-                        }
-                    </div>
-                </section>
-            }
-        </div>
-
-        @* 5. Sorteos en Marcha: Banda Mostaza con Polaroids Físicas *@
+        @* 4. Sorteos en Marcha: Banda Mostaza con Polaroids Físicas *@
         <section class="w-full bg-[var(--mustard)] text-[var(--on-mustard)] py-10 sm:py-16" aria-label="Sorteos en marcha">
             <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 flex flex-col gap-8 sm:gap-10">
                 <header class="flex flex-wrap justify-between items-end gap-4 border-b-2 border-black/15 pb-4">
@@ -210,7 +112,7 @@ else
                             var pvpText = release.EstimatedPvp.HasValue ? $"{release.EstimatedPvp.Value:F2} €" : "PVP TBD";
                             var tag = release.IsReprint ? "Reimpresión" : "Novedad";
 
-                            <a href="/novedades"
+                            <a href="/novedades/@release.Id"
                                class="grid grid-cols-[54px_60px_1fr_auto] gap-3 sm:gap-4 items-center py-3.5 hover:bg-white/5 transition-colors rounded-xl px-2"
                                role="listitem">
                                 <div class="flex flex-col leading-none text-left">
@@ -262,9 +164,7 @@ else
 
 @code {
     private bool _isLoading = true;
-    private bool _showTrending = true;
     private HomeDashboardDto _dashboard = new([], [], [], []);
-    private IReadOnlyList<GameSummaryDto> _quickGames = [];
     private GameSummaryDto? _featuredGame;
     private string? _featuredVerdict;
     private GiveawayDto? _urgentGiveaway;
@@ -288,32 +188,6 @@ else
 
             // Sorteo más urgente para la cinta reactiva TickerBar
             _urgentGiveaway = _dashboard.Giveaways.FirstOrDefault();
-
-            // Juegos para el carril "Para sacar a mesa ya" (<= 45 min o partidas ágiles)
-            try
-            {
-                var quickResult = await CatalogService.GetCatalogAsync(
-                    new GameFilterCriteria(MaxDurationMinutes: 45),
-                    page: 1, pageSize: 10);
-
-                if (quickResult.Games.Count > 0)
-                {
-                    _quickGames = quickResult.Games;
-                }
-                else
-                {
-                    _quickGames = _dashboard.TopGames.Where(g => g.EstimatedPerPlayerMinutes <= 30 && g.EstimatedPerPlayerMinutes > 0).Take(8).ToList();
-                }
-            }
-            catch
-            {
-                _quickGames = _dashboard.TopGames.Where(g => g.EstimatedPerPlayerMinutes <= 30 && g.EstimatedPerPlayerMinutes > 0).Take(8).ToList();
-            }
-
-            if (_quickGames.Count == 0)
-            {
-                _quickGames = _dashboard.TopGames.Take(8).ToList();
-            }
         }
         finally
         {

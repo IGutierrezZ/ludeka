@@ -34,28 +34,20 @@ public class HomeDashboardContractTests
         // 3. El Top de la semana
         Assert.Contains("<WeeklyTopSection", source, StringComparison.Ordinal);
 
-        // 4. Cintas horizontales con HomeGameCard
-        Assert.Contains("<HomeGameCard", source, StringComparison.Ordinal);
-        Assert.Contains("Tendencias del momento", source, StringComparison.Ordinal);
-        Assert.Contains("Para sacar a mesa ya", source, StringComparison.Ordinal);
-
-        // 5. Banda de Sorteos en marcha con polaroids
+        // 4. Banda de Sorteos en marcha con polaroids (flujo directo tras Top)
         Assert.Contains("<PolaroidGiveawayCard", source, StringComparison.Ordinal);
         Assert.Contains("Sorteos en marcha", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/sorteos\"", source, StringComparison.Ordinal);
 
-        // 6. Banda verde de Novedades en tiendas
+        // 5. Banda verde de Novedades en tiendas
         Assert.Contains("Novedades en tiendas", source, StringComparison.Ordinal);
-        Assert.Contains("href=\"/novedades\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/novedades/", source, StringComparison.Ordinal);
 
-        // 7. Ferias y grandes citas pastel
+        // 6. Ferias y grandes citas pastel
         Assert.Contains("<UpcomingEventsGrid", source, StringComparison.Ordinal);
 
-        // 8. Integración con modal de colección rápida
+        // 7. Integración con modal de colección rápida
         Assert.Contains("<QuickCollectionModal", source, StringComparison.Ordinal);
-
-        // Contratos de navegación canónica
-        Assert.Contains("href=\"@(_showTrending ? \"/tendencias\" : \"/catalogo\")\"", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,15 +118,13 @@ public class HomeDashboardContractTests
         Assert.Contains("Mejor valorados", source, StringComparison.Ordinal);
         Assert.Contains("Para 2", source, StringComparison.Ordinal);
 
-        // Selector de período
-        Assert.Contains("Esta semana", source, StringComparison.Ordinal);
-        Assert.Contains("Este mes", source, StringComparison.Ordinal);
-        Assert.Contains("Histórico", source, StringComparison.Ordinal);
+        // Numerales 01, 02, 03... formateados con dos dígitos de Claude Design
+        Assert.Contains("ToString(\"00\")", source, StringComparison.Ordinal);
 
-        // Condecoraciones de posición
-        Assert.Contains("1º Oro", source, StringComparison.Ordinal);
-        Assert.Contains("2º Plata", source, StringComparison.Ordinal);
-        Assert.Contains("3º Bronce", source, StringComparison.Ordinal);
+        // Enlace canónico a tendencias y catálogo
+        Assert.Contains("/tendencias", source, StringComparison.Ordinal);
+        Assert.Contains("/catalogo", source, StringComparison.Ordinal);
+
 
         // Colores cíclicos
         Assert.Contains("var(--accent)", source, StringComparison.Ordinal);
