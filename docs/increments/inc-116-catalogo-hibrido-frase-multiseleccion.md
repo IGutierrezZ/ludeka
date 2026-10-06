@@ -1,7 +1,7 @@
 # INC-116: Catálogo Híbrido (Frase Interactiva Mad-Lib, Panel Multiselección y Chips Activos)
 
 ## Estado
-⏳ Planificado (Fase 4 del Rediseño Integral «Revista Lúdica»)
+✅ Verificado (Fase 4 del Rediseño Integral «Revista Lúdica»)
 
 ## Rama y Worktree Sugerido
 - **Rama:** `inc/rediseño-revista-ludica` (o rama atómica `inc/catalogo-hibrido-frase-multiseleccion`)
