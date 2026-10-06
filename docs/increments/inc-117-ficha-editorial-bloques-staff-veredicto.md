@@ -1,7 +1,7 @@
 # INC-117: Ficha de Juego Editorial (Secciones 01-05, Cifras Clave, Herramientas Staff y Banner de Juego Padre)
 
 ## Estado
-⏳ Planificado (Fase 5 del Rediseño Integral «Revista Lúdica»)
+✅ Verificado (Fase 5 del Rediseño Integral «Revista Lúdica»)
 
 ## Rama y Worktree Sugerido
 - **Rama:** `inc/rediseño-revista-ludica` (o rama atómica `inc/ficha-editorial-bloques-staff-veredicto`)

@@ -129,7 +129,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-114** | Shell Global «Revista Lúdica»: Cabecera Reactiva, Barra Móvil con Hoja «Más» y Barra Contextual de Staff | ✅ Verificado | [inc-114-layout-cabecera-barra-movil-staffbar.md](inc-114-layout-cabecera-barra-movil-staffbar.md) |
 | **INC-115** | Portada «Revista Lúdica»: Hero en Arco, Cintas Horizontales y Top Semanal Editorial | ✅ Verificado | [inc-115-portada-editorial-revista-ludica.md](inc-115-portada-editorial-revista-ludica.md) |
 | **INC-116** | Catálogo Híbrido: Frase Reactiva Conversacional, Panel Multiselección y Chips Activos | ✅ Verificado | [inc-116-catalogo-hibrido-frase-multiseleccion.md](inc-116-catalogo-hibrido-frase-multiseleccion.md) |
-| **INC-117** | Ficha de Juego Editorial en 5 Bloques (01-05), Veredicto Estructurado y Herramientas Staff | ⏳ Planificado | [inc-117-ficha-editorial-bloques-staff-veredicto.md](inc-117-ficha-editorial-bloques-staff-veredicto.md) |
+| **INC-117** | Ficha de Juego Editorial en 5 Bloques (01-05), Veredicto Estructurado y Herramientas Staff | ✅ Verificado | [inc-117-ficha-editorial-bloques-staff-veredicto.md](inc-117-ficha-editorial-bloques-staff-veredicto.md) |
 | **INC-118** | Ludoteca Integral: 7 Pestañas, Modales de Partida/Préstamo, Radar de Precios y PWA Offline | ⏳ Planificado | [inc-118-ludoteca-completa-radar-pwa-offline.md](inc-118-ludoteca-completa-radar-pwa-offline.md) |
 | **INC-119** | Backoffice Editorial «Ludeka Gestión»: AdminLayout, 11 Módulos de Mesa y Atajos de Teclado | ⏳ Planificado | [inc-119-backoffice-ludeka-gestion-adminlayout.md](inc-119-backoffice-ludeka-gestion-adminlayout.md) |
 
