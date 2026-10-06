@@ -120,10 +120,18 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-105** | Ingesta de Versiones BGG (versions=1), Persistencia de Snapshots y Barrido Determinista de Títulos en Español y EAN | ✅ Archivado | [inc-105-bgg-versiones-titulos-ean.md](archive/inc-105-bgg-versiones-titulos-ean.md) |
 | **INC-106** | Optimización del Modal de YouTube (Permanencia, Estado Visual y Caché) e Ingesta Automática del Top 4.000 | ✅ Archivado | [inc-106-youtube-modal-cache-autoingesta.md](archive/inc-106-youtube-modal-cache-autoingesta.md) |
 | **INC-107** | Ingesta Masiva en Lotes BGG (x20) e IA (x10), Filtrado Inteligente de Expansiones y Saneamiento de Cola Administrativa | ✅ Archivado | [inc-107-ingesta-expansiones-lotes-ia.md](archive/inc-107-ingesta-expansiones-lotes-ia.md) |
+| **INC-108** | Ingesta de Feeds de Catálogo en Formato Shopify JSON y Extracción de Códigos EAN-13 | ✅ Archivado | [inc-108-ingesta-catalogo-shopify.md](archive/inc-108-ingesta-catalogo-shopify.md) |
 | **INC-109** | Descubrimiento de Expansiones Priorizado por BggRank de Juegos Base y Ampliación de Cupo a 1.200 Títulos | ✅ Archivado | [inc-109-expansiones-top-bgg-rank.md](archive/inc-109-expansiones-top-bgg-rank.md) |
 | **INC-110** | Desacoplo en Segundo Plano del Batch Nocturno y Auto-Recuperación de Bloqueos en Cola | ✅ Archivado | [inc-110-desacoplo-batch-nocturno.md](archive/inc-110-desacoplo-batch-nocturno.md) |
 | **INC-111** | Corrección de Detección de Idioma (ID 2195 BGG), Filtrado de Descriptores de Edición y Saneamiento Automático de Títulos | ✅ Archivado | [inc-111-correccion-idioma-coreano-versiones-bgg.md](archive/inc-111-correccion-idioma-coreano-versiones-bgg.md) |
 | **INC-112** | Arquitectura de Proveedores de Precios de Amazon (API Puente / PA-API Oficial), Mapeo EAN-ASIN y Caché de Precios (< 24h) | ✅ Archivado | [inc-112-amazon-pricing-bridge-asin-cache.md](archive/inc-112-amazon-pricing-bridge-asin-cache.md) |
+| **INC-113** | Tokens de Diseño Editorial, Paleta Terracota/Salvia, Plus Jakarta Sans y Modo Claro/Oscuro | ⏳ Planificado | [inc-113-tokens-paleta-editorial-plus-jakarta.md](inc-113-tokens-paleta-editorial-plus-jakarta.md) |
+| **INC-114** | Shell Global «Revista Lúdica»: Cabecera Reactiva, Barra Móvil con Hoja «Más» y Barra Contextual de Staff | ⏳ Planificado | [inc-114-layout-cabecera-barra-movil-staffbar.md](inc-114-layout-cabecera-barra-movil-staffbar.md) |
+| **INC-115** | Portada «Revista Lúdica»: Hero en Arco, Cintas Horizontales y Top Semanal Editorial | ⏳ Planificado | [inc-115-portada-editorial-revista-ludica.md](inc-115-portada-editorial-revista-ludica.md) |
+| **INC-116** | Catálogo Híbrido: Frase Reactiva Conversacional, Panel Multiselección y Chips Activos | ⏳ Planificado | [inc-116-catalogo-hibrido-frase-multiseleccion.md](inc-116-catalogo-hibrido-frase-multiseleccion.md) |
+| **INC-117** | Ficha de Juego Editorial en 5 Bloques (01-05), Veredicto Estructurado y Herramientas Staff | ⏳ Planificado | [inc-117-ficha-editorial-bloques-staff-veredicto.md](inc-117-ficha-editorial-bloques-staff-veredicto.md) |
+| **INC-118** | Ludoteca Integral: 7 Pestañas, Modales de Partida/Préstamo, Radar de Precios y PWA Offline | ⏳ Planificado | [inc-118-ludoteca-completa-radar-pwa-offline.md](inc-118-ludoteca-completa-radar-pwa-offline.md) |
+| **INC-119** | Backoffice Editorial «Ludeka Gestión»: AdminLayout, 11 Módulos de Mesa y Atajos de Teclado | ⏳ Planificado | [inc-119-backoffice-ludeka-gestion-adminlayout.md](inc-119-backoffice-ludeka-gestion-adminlayout.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
