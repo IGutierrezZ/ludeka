@@ -1,5 +1,6 @@
 @page "/admin/eventos"
 @attribute [Authorize(Policy = AuthorizationPolicies.PermisoGestionarEventos)]
+@layout AdminLayout
 @rendermode InteractiveServer
 @using Ludeka.Core.ValueObjects
 @inject IBoardGameEventService EventService

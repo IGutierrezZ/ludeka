@@ -1,5 +1,7 @@
 @page "/admin/notificaciones"
 @attribute [Authorize(Policy = AuthorizationPolicies.PermisoGestionarNotificaciones)]
+@layout AdminLayout
+@rendermode InteractiveServer
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums

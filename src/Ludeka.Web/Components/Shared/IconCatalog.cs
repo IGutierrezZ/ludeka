@@ -140,5 +140,12 @@ public static class IconCatalog
         // ===== INC-61: Menú de Cuenta y Estado de Sesión en Cabecera =====
         ["chevron-down"] = @"<path d=""m6 9 6 6 6-6"" />",
         ["log-out"] = @"<path d=""M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"" /><polyline points=""16 17 21 12 16 7"" /><line x1=""21"" x2=""9"" y1=""12"" y2=""12"" />",
+
+        // ===== INC-119: Backoffice «Ludeka Gestión» =====
+        ["layout-dashboard"] = @"<rect width=""7"" height=""9"" x=""3"" y=""3"" rx=""1"" /><rect width=""7"" height=""5"" x=""14"" y=""3"" rx=""1"" /><rect width=""7"" height=""9"" x=""14"" y=""12"" rx=""1"" /><rect width=""7"" height=""5"" x=""3"" y=""16"" rx=""1"" />",
+        ["database"] = @"<ellipse cx=""12"" cy=""5"" rx=""9"" ry=""3"" /><path d=""M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"" /><path d=""M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"" />",
+        ["radio"] = @"<circle cx=""12"" cy=""12"" r=""2"" /><path d=""M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"" />",
+        ["external-link"] = @"<path d=""M15 3h6v6"" /><path d=""M10 14 21 3"" /><path d=""M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"" />",
+        ["command"] = @"<path d=""M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"" />",
     };
 }
