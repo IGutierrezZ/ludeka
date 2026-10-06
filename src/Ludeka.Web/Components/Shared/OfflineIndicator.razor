@@ -2,26 +2,49 @@
 @implements IDisposable
 @inject IJSRuntime JS
 
-@if (!_isOnline)
+@if (AsBanner)
 {
-    <div role="status" 
-         aria-live="polite" 
-         class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-sm animate-pulse">
-        <Icon Name="wifi-off" Size="14" />
-        <span>Modo sin conexión</span>
-    </div>
+    @if (!_isOnline)
+    {
+        <div role="status" aria-live="polite" class="bg-[var(--p-peach)] text-[var(--ink)] border-b border-[var(--line)]">
+            <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap gap-2 sm:gap-4 items-center justify-between text-xs sm:text-sm font-bold">
+                <span class="flex items-center gap-2 flex-1 min-w-[280px]">
+                    <span class="text-[var(--alert)] shrink-0"><Icon Name="wifi-off" Size="16" /></span>
+                    <span>Sin conexión. Estás viendo los datos guardados en este dispositivo.</span>
+                </span>
+                <button type="button" @onclick="CheckConnectivityAsync" class="h-8 px-3.5 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs hover:opacity-90 transition-opacity">
+                    Reintentar
+                </button>
+            </div>
+        </div>
+    }
 }
-else if (_showRestoredNotice)
+else
 {
-    <div role="status" 
-         aria-live="polite" 
-         class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-sm transition-all">
-        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
-        <span>Conexión restablecida</span>
-    </div>
+    @if (!_isOnline)
+    {
+        <span role="status" 
+              aria-live="polite" 
+              title="Sin conexión" 
+              class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[var(--p-peach)] text-[var(--ink)] text-xs font-extrabold whitespace-nowrap shadow-xs">
+            <span class="text-[var(--alert)] shrink-0"><Icon Name="wifi-off" Size="14" /></span>
+            <span>Sin conexión</span>
+        </span>
+    }
+    else if (_showRestoredNotice)
+    {
+        <span role="status" 
+              aria-live="polite" 
+              class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[var(--green-soft)] text-[var(--green)] text-xs font-extrabold whitespace-nowrap shadow-xs transition-all">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+            <span>Conexión restablecida</span>
+        </span>
+    }
 }
 
 @code {
+    [Parameter] public bool AsBanner { get; set; } = false;
+
     private bool _isOnline = true;
     private bool _showRestoredNotice = false;
     private DotNetObjectReference<OfflineIndicator>? _dotNetRef;
@@ -63,6 +86,18 @@ else if (_showRestoredNotice)
         }
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CheckConnectivityAsync()
+    {
+        try
+        {
+            bool online = await JS.InvokeAsync<bool>("eval", "navigator.onLine");
+            await OnConnectivityChanged(online);
+        }
+        catch
+        {
+        }
     }
 
     private async Task HideRestoredNoticeAfterDelayAsync(CancellationToken token)

@@ -1,65 +1,58 @@
 @implements IDisposable
 @using Ludeka.Application.Contracts
 @using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager Navigation
 @inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
 
 @*
-    Barra de Navegación Inferior Móvil (INC-60: Mobile-First Radical).
-    Proporciona 5 destinos de primer nivel accesibles con el pulgar en resoluciones
-    móviles y tabletas (<1024px, lg:hidden).
-    Cumple con WCAG 2.2 AA (landmark nav, aria-label, aria-current, tamaño táctil >=48px)
+    Barra de Navegación Inferior Móvil y Hoja «Más de Ludeka» (INC-114, Revista Lúdica).
+    Píldora fija de 64 px (--inverse) al alcance del pulgar con 5 destinos principales
+    y hoja modal flotante accesible (borde 2px var(--rule), radio 26 px) con cuadrícula 2x4 pastel.
+    Cumple con WCAG 2.2 AA (teclado Escape, aria-expanded, aria-current, tamaño táctil >=48px)
     y respeta env(safe-area-inset-bottom) en dispositivos con barra de inicio gestual.
 *@
 
-<nav aria-label="Navegación principal móvil"
-     class="fixed bottom-0 inset-x-0 z-40 bg-[var(--bg-nav)] backdrop-blur-md border-t border-[var(--border-subtle)] mobile-safe-bottom lg:hidden shadow-lg transition-colors select-none">
-    <div class="grid grid-cols-5 h-16 items-center px-1 max-w-lg mx-auto">
+<div class="lg:hidden fixed bottom-0 inset-x-0 z-40 pointer-events-none p-2 sm:p-3 mobile-safe-bottom select-none">
+    <nav aria-label="Navegación principal móvil"
+         class="pointer-events-auto h-16 max-w-md mx-auto rounded-full bg-[var(--inverse)] border border-white/12 shadow-2xl flex items-center justify-around px-2 backdrop-blur-md">
         @* 1. Inicio *@
         <a href="/"
            aria-current="@(IsHomeActive ? "page" : null)"
            title="Inicio"
-           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsHomeActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-            <Icon Name="house" Size="18" />
-            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Inicio</span>
+           class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(IsHomeActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+            <Icon Name="house" Size="20" />
+            <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Inicio</span>
         </a>
 
         @* 2. Catálogo *@
         <a href="/catalogo"
            aria-current="@(IsCatalogActive ? "page" : null)"
            title="Catálogo"
-           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsCatalogActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-            <Icon Name="dices" Size="18" />
-            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Catálogo</span>
+           class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(IsCatalogActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+            <Icon Name="dices" Size="20" />
+            <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Catálogo</span>
         </a>
 
-        @* 3. Mi Ludoteca *@
-        <a href="/cuenta/ludoteca"
-           aria-current="@(IsLibraryActive ? "page" : null)"
-           title="Mi Ludoteca"
-           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsLibraryActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-            <Icon Name="library" Size="18" />
-            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Ludoteca</span>
-        </a>
-
-        @* 4. Sorteos *@
+        @* 3. Sorteos *@
         <a href="/sorteos"
            aria-current="@(IsDrawsActive ? "page" : null)"
            title="Sorteos"
-           class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsDrawsActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-            <Icon Name="gift" Size="18" />
-            <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Sorteos</span>
+           class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(IsDrawsActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+            <Icon Name="gift" Size="20" />
+            <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Sorteos</span>
         </a>
 
-        @* 5. Mi Cuenta / Acceso *@
+        @* 4. Mi Ludoteca o Acceso *@
         @if (HasSession)
         {
-            <a href="/cuenta"
-               aria-current="@(IsAccountActive ? "page" : null)"
-               title="Mi Cuenta"
-               class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsAccountActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-                <Icon Name="user" Size="18" />
-                <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Cuenta</span>
+            <a href="/cuenta/ludoteca"
+               aria-current="@(IsLibraryActive ? "page" : null)"
+               title="Mi Ludoteca"
+               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(IsLibraryActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+                <Icon Name="library" Size="20" />
+                <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Ludoteca</span>
             </a>
         }
         else
@@ -67,23 +60,176 @@
             <a href="/login"
                aria-current="@(IsAccountActive ? "page" : null)"
                title="Iniciar sesión"
-               class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-center transition-all min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] @(IsAccountActive ? "text-[var(--brand-primary)] font-bold bg-[var(--brand-primary)]/10" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]")">
-                <Icon Name="user" Size="18" />
-                <span class="text-[0.68rem] tracking-tight mt-1 truncate max-w-full leading-none">Entrar</span>
+               class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(IsAccountActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+                <Icon Name="user" Size="20" />
+                <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Entrar</span>
             </a>
         }
+
+        @* 5. Más de Ludeka (abre hoja modal) *@
+        <button type="button"
+                @onclick="ToggleSheet"
+                aria-haspopup="dialog"
+                aria-expanded="@_isSheetOpen"
+                aria-label="Más de Ludeka"
+                title="Más opciones de navegación"
+                class="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] px-1 py-1 rounded-full text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mustard)] @(_isSheetOpen || IsMoreActive ? "text-[var(--mustard)] font-extrabold" : "text-[var(--on-inverse)] opacity-85 hover:opacity-100")">
+            <Icon Name="menu" Size="20" />
+            <span class="text-[0.62rem] tracking-tight mt-0.5 leading-none">Más</span>
+        </button>
+    </nav>
+</div>
+
+@* Hoja modal flotante «Más de Ludeka» *@
+@if (_isSheetOpen)
+{
+    <div class="lg:hidden fixed inset-0 bg-[var(--overlay)] z-50 animate-fade-in"
+         @onclick="CloseSheet"
+         aria-hidden="true"></div>
+
+    <div class="lg:hidden fixed left-2 right-2 bottom-[82px] z-50 bg-[var(--paper)] text-[var(--ink)] border-2 border-[var(--rule)] rounded-[26px] p-4 sm:p-5 shadow-2xl flex flex-col gap-3 max-h-[75vh] overflow-y-auto animate-fade-in"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Más de Ludeka"
+         @onkeydown="HandleKeyDown"
+         tabindex="-1">
+
+        <div class="flex justify-between items-center pb-1 border-b border-[var(--line)]">
+            <b class="text-xl font-black tracking-tight text-[var(--ink)]">Más de Ludeka</b>
+            <button type="button"
+                    @onclick="CloseSheet"
+                    aria-label="Cerrar"
+                    class="w-9 h-9 rounded-full border-[1.5px] border-[var(--rule)] bg-transparent text-[var(--ink)] flex items-center justify-center font-extrabold text-sm hover:opacity-80 transition-opacity">
+                ✕
+            </button>
+        </div>
+
+        @* Cuadrícula 2x4 de accesos pastel *@
+        <div class="grid grid-cols-2 gap-2 text-xs font-extrabold">
+            @* 1. Novedades *@
+            <a href="/novedades"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-mint)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="newspaper" Size="18" />
+                <span class="text-sm">Novedades</span>
+            </a>
+
+            @* 2. Eventos *@
+            <a href="/eventos"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-blue)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="tent" Size="18" />
+                <span class="text-sm">Eventos</span>
+            </a>
+
+            @* 3. Clasificación *@
+            <a href="/clasificaciones"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-pink)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="trophy" Size="18" />
+                <span class="text-sm">Clasificación</span>
+            </a>
+
+            @* 4. Editoriales *@
+            <a href="/editoriales"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-peach)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="building-2" Size="18" />
+                <span class="text-sm">Editoriales</span>
+            </a>
+
+            @* 5. Creadores *@
+            <a href="/creadores"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-peach)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="pen-tool" Size="18" />
+                <span class="text-sm">Creadores</span>
+            </a>
+
+            @* 6. Tiendas *@
+            <a href="/tiendas"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--p-mint)] text-[var(--ink)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="store" Size="18" />
+                <span class="text-sm">Tiendas</span>
+            </a>
+
+            @* 7. Transparencia *@
+            <a href="/transparencia"
+               @onclick="CloseSheet"
+               class="min-h-[64px] p-3 rounded-2xl bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all">
+                <Icon Name="shield" Size="18" />
+                <span class="text-sm">Transparencia</span>
+            </a>
+
+            @* 8. Selector de tema *@
+            <button type="button"
+                    @onclick="ToggleThemeAsync"
+                    class="min-h-[64px] p-3 rounded-2xl bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] flex flex-col justify-between gap-2 shadow-xs hover:opacity-90 transition-all text-left">
+                <Icon Name="@(_isDarkTheme ? "sun" : "moon")" Size="18" />
+                <span class="text-sm">@(_isDarkTheme ? "Tema claro" : "Tema oscuro")</span>
+            </button>
+        </div>
     </div>
-</nav>
+}
 
 @code {
-    protected override void OnInitialized()
+    private bool _isSheetOpen;
+    private bool _isDarkTheme;
+
+    protected override async Task OnInitializedAsync()
     {
         Navigation.LocationChanged += HandleLocationChanged;
+        try
+        {
+            string stored = await JS.InvokeAsync<string>("getLudekaTheme", CurrentUserService.UserId);
+            _isDarkTheme = stored == "dark";
+        }
+        catch
+        {
+            _isDarkTheme = false;
+        }
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        if (_isSheetOpen)
+        {
+            _isSheetOpen = false;
+        }
         InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSheet()
+    {
+        _isSheetOpen = !_isSheetOpen;
+    }
+
+    private void CloseSheet()
+    {
+        _isSheetOpen = false;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && _isSheetOpen)
+        {
+            CloseSheet();
+        }
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        _isDarkTheme = !_isDarkTheme;
+        string nextTheme = _isDarkTheme ? "dark" : "light";
+        try
+        {
+            await JS.InvokeVoidAsync("setLudekaTheme", nextTheme, CurrentUserService.UserId);
+        }
+        catch
+        {
+        }
+        CloseSheet();
     }
 
     public void Dispose()
@@ -133,6 +279,22 @@
                    CurrentRelativePath.StartsWith("login/", StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    public bool IsMoreActive =>
+        CurrentRelativePath.Equals("novedades", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("novedades/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("eventos", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("eventos/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("clasificaciones", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("clasificaciones/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("editoriales", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("editoriales/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("creadores", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("creadores/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("tiendas", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("tiendas/", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.Equals("transparencia", StringComparison.OrdinalIgnoreCase) ||
+        CurrentRelativePath.StartsWith("transparencia/", StringComparison.OrdinalIgnoreCase);
 
     public bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 }

@@ -10,232 +10,197 @@
 @inject IJSRuntime JS
 @inject Microsoft.Extensions.Options.IOptions<Ludeka.Application.Options.CommunityNotificationOptions> CommunityOptions
 
-<div class="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors duration-200">
+@*
+    Shell Global «Revista Lúdica» (INC-114).
+    - Cabecera reactiva de 72 px que tiñe su fondo según la sección activa.
+    - Barra de navegación móvil fija en píldora con 5 destinos y hoja modal «Más de Ludeka».
+    - Barra contextual StaffBar bajo la cabecera para moderadores y administradores.
+    - Banner global de desconexión reactivo ante eventos navigator.onLine.
+    - Cumplimiento estricto WCAG 2.2 AA (landmarks, aria attributes, skip link, área táctil >=48px).
+*@
+
+<div class="min-h-screen flex flex-col bg-[var(--paper)] text-[var(--ink)] transition-colors duration-200">
     <a href="#main-content" class="skip-link sr-only focus:not-sr-only">
         Saltar al contenido principal
     </a>
-    <header class="header-nav">
-        <div class="container-ludeka flex items-center justify-between h-16 gap-3">
-            <a href="/" class="logo-badge flex items-center gap-2.5 shrink-0" title="Ludeka — Inicio">
-                <img src="/images/logo-dark.png" alt="Logotipo de Ludeka" width="36" height="36" decoding="async" class="h-9 w-auto object-contain drop-shadow logo-img-dark" />
-                <img src="/images/logo-light.png" alt="Logotipo de Ludeka" width="36" height="36" decoding="async" class="h-9 w-auto object-contain drop-shadow logo-img-light" />
-                <span class="font-extrabold tracking-tight text-xl text-[var(--text-primary)]">Ludeka<span class="dot text-[var(--brand-primary)]">.</span></span>
-            </a>
 
-            @* Navegación Pública Principal *@
-            <nav class="hidden lg:flex items-center gap-3 xl:gap-4 text-xs font-semibold">
-                <a href="/catalogo" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+    @* Cabecera superior compacta reactiva (72 px) *@
+    <header class="h-[72px] transition-colors duration-200 border-b border-[var(--line)] select-none shrink-0"
+            style="background: @HeaderColors.Bg; color: @HeaderColors.Fg;">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-3 sm:gap-4">
+            
+            @* Navegación en escritorio (izquierda) *@
+            <nav class="hidden lg:flex items-center gap-5 text-sm font-extrabold flex-1"
+                 aria-label="Navegación principal">
+                <a href="/catalogo"
+                   style="border-bottom: 3px solid @(IsPageActive("catalogo") ? HeaderColors.Accent : "transparent");"
+                   class="py-1 transition-opacity hover:opacity-80">
                     Catálogo
                 </a>
-                <a href="/editoriales" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    Editoriales
-                </a>
-                <a href="/creadores" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    Creadores
-                </a>
-                <a href="/tiendas" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    Tiendas
-                </a>
-                <a href="/sorteos" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1">
+                <a href="/sorteos"
+                   style="border-bottom: 3px solid @(IsPageActive("sorteos") ? HeaderColors.Accent : "transparent");"
+                   class="py-1 transition-opacity hover:opacity-80 inline-flex items-center gap-1.5">
                     <Icon Name="gift" Size="14" />
                     <span>Sorteos</span>
                 </a>
-                <a href="/novedades" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1">
+                <a href="/novedades"
+                   style="border-bottom: 3px solid @(IsPageActive("novedades") ? HeaderColors.Accent : "transparent");"
+                   class="py-1 transition-opacity hover:opacity-80 inline-flex items-center gap-1.5">
                     <Icon Name="newspaper" Size="14" />
                     <span>Novedades</span>
                 </a>
-                <a href="/eventos" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1">
+                <a href="/eventos"
+                   style="border-bottom: 3px solid @(IsPageActive("eventos") ? HeaderColors.Accent : "transparent");"
+                   class="py-1 transition-opacity hover:opacity-80 inline-flex items-center gap-1.5">
                     <Icon Name="tent" Size="14" />
                     <span>Eventos</span>
                 </a>
-                <a href="/clasificaciones" class="text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1">
-                    <Icon Name="trophy" Size="14" />
-                    <span>Clasificación</span>
-                </a>
+
+                @* Desplegable de escritorio «Más ▾» *@
+                <div class="relative" @onkeydown="HandleMoreKeyDown">
+                    <button type="button"
+                            @onclick="ToggleMore"
+                            aria-haspopup="menu"
+                            aria-expanded="@_isMoreOpen"
+                            style="border-bottom: 3px solid @(_isMoreOpen || IsMoreSectionActive ? HeaderColors.Accent : "transparent");"
+                            class="py-1 transition-opacity hover:opacity-80 flex items-center gap-1 font-extrabold text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-current">
+                        <span>Más</span>
+                        <Icon Name="chevron-down" Size="14" />
+                    </button>
+
+                    @if (_isMoreOpen)
+                    {
+                        <div class="fixed inset-0 z-40" @onclick="CloseMore"></div>
+                        <div role="menu"
+                             aria-label="Más secciones de Ludeka"
+                             class="absolute left-0 top-full mt-2 w-[260px] bg-[var(--paper)] text-[var(--ink)] border-2 border-[var(--rule)] rounded-[22px] p-2 shadow-2xl z-50 flex flex-col gap-1 animate-fade-in text-left">
+                            <a href="/clasificaciones" @onclick="CloseMore" role="menuitem" class="p-2.5 rounded-xl hover:bg-[var(--paper-2)] transition-colors flex flex-col">
+                                <b class="text-sm font-extrabold text-[var(--ink)]">Clasificación</b>
+                                <span class="text-xs text-[var(--muted)] font-semibold">Ranking mensual de partidas</span>
+                            </a>
+                            <a href="/editoriales" @onclick="CloseMore" role="menuitem" class="p-2.5 rounded-xl hover:bg-[var(--paper-2)] transition-colors flex flex-col">
+                                <b class="text-sm font-extrabold text-[var(--ink)]">Editoriales</b>
+                                <span class="text-xs text-[var(--muted)] font-semibold">Casas de edición y juegos</span>
+                            </a>
+                            <a href="/creadores" @onclick="CloseMore" role="menuitem" class="p-2.5 rounded-xl hover:bg-[var(--paper-2)] transition-colors flex flex-col">
+                                <b class="text-sm font-extrabold text-[var(--ink)]">Creadores</b>
+                                <span class="text-xs text-[var(--muted)] font-semibold">Autoría y catálogo</span>
+                            </a>
+                            <a href="/tiendas" @onclick="CloseMore" role="menuitem" class="p-2.5 rounded-xl hover:bg-[var(--paper-2)] transition-colors flex flex-col">
+                                <b class="text-sm font-extrabold text-[var(--ink)]">Tiendas</b>
+                                <span class="text-xs text-[var(--muted)] font-semibold">Tiendas especializadas y ofertas</span>
+                            </a>
+                            <a href="/transparencia" @onclick="CloseMore" role="menuitem" class="p-2.5 rounded-xl hover:bg-[var(--paper-2)] transition-colors flex flex-col border-t border-[var(--line)] mt-1 pt-2">
+                                <b class="text-sm font-extrabold text-[var(--ink)]">Transparencia</b>
+                                <span class="text-xs text-[var(--muted)] font-semibold">Financiación y afiliados</span>
+                            </a>
+                        </div>
+                    }
+                </div>
             </nav>
 
-            @* Zona de Utilidades y Controles de Usuario *@
-            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                @* Menú móvil: los destinos de la nav principal, accesibles siempre
-                   (details/summary SSR puro, accesible, con cierre automático exterior) *@
-                <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative">
-                    <summary aria-label="Menú de navegación"
-                             class="px-2.5 py-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:border-[var(--brand-primary)] text-xs font-bold transition-all flex items-center gap-1.5 text-[var(--text-primary)] shadow-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden shrink-0">
-                        <Icon Name="menu" Size="14" />
-                        <span>Menú</span>
-                    </summary>
-                    <div class="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-lg p-2 z-50">
-                        <a href="/catalogo" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Catálogo</a>
-                        <a href="/editoriales" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Editoriales</a>
-                        <a href="/creadores" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Creadores</a>
-                        <a href="/tiendas" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Tiendas</a>
-                        <a href="/sorteos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Sorteos</a>
-                        <a href="/novedades" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Novedades</a>
-                        <a href="/eventos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Eventos</a>
-                        <a href="/clasificaciones" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] transition-colors">Clasificación</a>
-                    </div>
-                </details>
+            @* Menú móvil superior desplegable (SSR puro, accesible, details/summary) *@
+            <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative">
+                <summary aria-label="Menú de navegación"
+                         class="px-2.5 py-1.5 rounded-full border border-current/30 bg-black/5 dark:bg-white/5 hover:border-current text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden shrink-0">
+                    <Icon Name="menu" Size="14" />
+                    <span>Menú</span>
+                </summary>
+                <div class="absolute left-0 top-full mt-2 w-56 rounded-2xl border-2 border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] shadow-2xl p-2 z-50">
+                    <a href="/catalogo" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Catálogo</a>
+                    <a href="/editoriales" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Editoriales</a>
+                    <a href="/creadores" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Creadores</a>
+                    <a href="/tiendas" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Tiendas</a>
+                    <a href="/sorteos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Sorteos</a>
+                    <a href="/novedades" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Novedades</a>
+                    <a href="/eventos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Eventos</a>
+                    <a href="/clasificaciones" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Clasificación</a>
+                </div>
+            </details>
 
-                <OfflineIndicator />
+            @* Logotipo editorial central *@
+            <a href="/" class="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-85" title="Ludeka — Inicio">
+                <span class="w-[42px] h-[42px] rounded-full bg-[#FFF8EE] border border-[var(--line)] flex items-center justify-center shadow-xs shrink-0">
+                    <img src="/images/logo-light.png" alt="Logotipo de Ludeka" width="32" height="32" decoding="async" class="h-8 w-auto object-contain" />
+                </span>
+                <span class="text-2xl font-black tracking-tighter">Ludeka<span style="color: @HeaderColors.Accent;">.</span></span>
+            </a>
 
-                @* Selector compacto de temas para visitantes (no logueados) *@
+            @* Utilidades de cabecera (derecha) *@
+            <div class="flex items-center gap-2 sm:gap-2.5 justify-end flex-1 shrink-0">
+                @* 1. Barra / Enlace de búsqueda rápida (/buscar) *@
+                <a href="/buscar"
+                   class="h-10 px-3 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+                   title="Búsqueda rápida en Ludeka"
+                   aria-label="Buscar en Ludeka">
+                    <Icon Name="search" Size="15" />
+                    <span class="hidden md:inline">Buscar</span>
+                </a>
+
+                @* 2. Botón de soporte y mecenazgo *@
+                @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
+                {
+                    <a href="@CommunityOptions.Value.KofiUrl"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="h-10 px-3 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+                       title="Apoyar el proyecto en Ko-fi"
+                       aria-label="Apoyar en Ko-fi">
+                        <Icon Name="coffee" Size="15" />
+                        <span class="hidden xl:inline">Apoyar</span>
+                    </a>
+                }
+
+                @* 3. Píldora de estado de red offline en cabecera *@
+                <OfflineIndicator AsBanner="false" />
+
+                @* 4. Conmutador claro/oscuro Sun/Moon *@
+                <button type="button"
+                        @onclick="ToggleTheme"
+                        aria-label="Cambiar tema"
+                        title="@(CurrentTheme == "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro")"
+                        class="w-10 h-10 rounded-full border border-current/30 hover:border-current bg-transparent flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current">
+                    <Icon Name="@(CurrentTheme == "dark" ? "sun" : "moon")" Size="17" />
+                </button>
+
+                @* Selector compacto de temas para visitantes (compatibilidad INC-113) *@
                 @if (!HasSession)
                 {
                     <GuestThemePicker CurrentTheme="@CurrentTheme" OnThemeChanged="SwitchTheme" />
                 }
 
-                @* Menú de cuenta y estado de sesión en cabecera (INC-61/INC-62) *@
-                <AccountMenu />
-
-                @* Menú Desplegable de Gestión / Mesa (Solo Administradores y Moderadores) *@
                 @if (CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"))
                 {
-                    <div class="relative">
-                        <button type="button"
-                                @onclick="ToggleAdminMenu"
-                                class="px-2.5 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm @(_isAdminMenuOpen ? "bg-[var(--bg-surface-elevated)] border-[var(--brand-primary)] text-[var(--brand-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-highlight)]")"
-                                title="Herramientas y paneles de gestión editorial"
-                                aria-expanded="@_isAdminMenuOpen"
-                                aria-haspopup="true">
-                            <Icon Name="settings" Size="14" />
-                            <span class="hidden sm:inline">Gestión</span>
-                            <span class="text-[0.65rem] transition-transform duration-200 @(_isAdminMenuOpen ? "rotate-180" : "")">▼</span>
-                        </button>
-
-                        @if (_isAdminMenuOpen)
-                        {
-                            <div class="fixed inset-0 z-40" @onclick="() => _isAdminMenuOpen = false"></div>
-                            <div class="absolute right-0 mt-2 w-72 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-2xl z-50 p-2.5 text-xs space-y-2.5 animate-fade-in divide-y divide-[var(--border-subtle)]">
-                                <div class="p-1 pb-0 text-[var(--text-muted)] font-extrabold uppercase tracking-wider text-[0.65rem] flex items-center justify-between">
-                                    <span>Panel de Mesa & Moderación</span>
-                                    <span class="px-1.5 py-0.5 rounded bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] font-black text-[0.6rem]">
-                                        @(CurrentUserService.IsFoundingTeam ? "Fundador" : "Moderador")
-                                    </span>
-                                </div>
-
-                                @* Bloque: Moderación & Catálogo *@
-                                <div class="pt-2 space-y-1">
-                                    <span class="px-2 text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Moderación & Catálogo</span>
-                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
-                                    {
-                                        <a href="/moderacion/reportes" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-amber-400"><Icon Name="flag" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Reportes de Catálogo</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Erratas y correcciones comunitarias</div>
-                                            </div>
-                                        </a>
-                                    }
-                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
-                                    {
-                                        <a href="/admin/cola-catalogacion" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-indigo-400"><Icon Name="moon" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Cola BGG & Catalogación</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Batch nocturno y sincronización BGG</div>
-                                            </div>
-                                        </a>
-                                    }
-                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
-                                    {
-                                        <a href="/admin/afiliados" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-emerald-400"><Icon Name="shopping-bag" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Feeds & Afiliados</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Catálogos comerciales y discrepancias EAN</div>
-                                            </div>
-                                        </a>
-                                    }
-                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
-                                    {
-                                        <a href="/admin/ingesta-social" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-amber-400"><Icon Name="sparkles" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Bandeja Ingesta Social</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Alta exprés, moderación y sorteos</div>
-                                            </div>
-                                        </a>
-                                        <a href="/admin/canales-monitorizados" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-blue-400"><Icon Name="radio" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Canales Monitorizados</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Directorio de Instagram, YouTube y webs</div>
-                                            </div>
-                                        </a>
-                                        <a href="/moderacion-media" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-emerald-400"><Icon Name="clapperboard" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Moderación Multimedia</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Vídeos de YouTube y carátulas</div>
-                                            </div>
-                                        </a>
-                                    }
-                                </div>
-
-                                @* Bloque: Difusión & Comunidad *@
-                                <div class="pt-2 space-y-1">
-                                    <span class="px-2 text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Difusión & Redes</span>
-                                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanPublishInstagram))
-                                    {
-                                        <a href="/admin/instagram" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-pink-400"><Icon Name="camera" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Publicador de Instagram</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Posts oficiales de sorteos y noticias</div>
-                                            </div>
-                                        </a>
-                                    }
-                                    <a href="/admin/notificaciones" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                        <span class="text-sky-400"><Icon Name="bell" Size="14" /></span>
-                                        <div>
-                                            <div class="font-bold text-[var(--text-primary)]">Webhooks & Notificaciones</div>
-                                            <div class="text-[0.65rem] text-[var(--text-muted)]">Difusión a Discord y Telegram</div>
-                                        </div>
-                                    </a>
-                                </div>
-
-                                @* Bloque: Gobernanza *@
-                                @if (CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers) ||
-                                     CurrentUserService.HasPermission(ModeratorPermission.CanViewAuditLog))
-                                {
-                                    <div class="pt-2 space-y-1">
-                                        <span class="px-2 text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Gobernanza del Sistema</span>
-                                        <a href="/admin/usuarios" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-purple-400"><Icon Name="users" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Gestión de Usuarios</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Roles RBAC y permisos de moderación</div>
-                                            </div>
-                                        </a>
-                                        <a href="/admin/auditoria" @onclick="() => _isAdminMenuOpen = false" class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-medium transition-colors">
-                                            <span class="text-sky-400"><Icon Name="scroll" Size="14" /></span>
-                                            <div>
-                                                <div class="font-bold text-[var(--text-primary)]">Bitácora de Auditoría</div>
-                                                <div class="text-[0.65rem] text-[var(--text-muted)]">Histórico inmutable de mutaciones</div>
-                                            </div>
-                                        </a>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
+                    <a href="/admin/notificaciones"
+                       class="h-10 w-10 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+                       title="Webhooks & Notificaciones"
+                       aria-label="Notificaciones del sistema">
+                        <Icon Name="bell" Size="16" />
+                    </a>
                 }
+
+                @* 5. Menú de cuenta y estado de sesión *@
+                <AccountMenu />
             </div>
         </div>
     </header>
 
-    @* Aviso descartable de correo no verificado (INC-49 PR #6). Se monta justo bajo la cabecera
-       -no como hermano invisible de <SessionGuard /> al final del documento- porque, a diferencia
-       de aquel, este componente SÍ renderiza contenido visible: debe aparecer en la parte alta de
-       cada página, tal como exige el escenario "Aviso visible y descartable en la cabecera". *@
+    @* Banner global de conectividad/offline reactivo ante eventos navigator.onLine *@
+    <OfflineIndicator AsBanner="true" />
+
+    @* Barra contextual de Staff para moderadores y administradores *@
+    <StaffBar />
+
+    @* Aviso descartable de correo no verificado *@
     <AccountEmailNotice />
 
     <main class="flex-1" id="main-content" tabindex="-1">
         @Body
     </main>
 
-    <footer class="mt-auto border-t border-stone-800 bg-[#12161A] py-8 mobile-nav-spacer text-xs text-stone-300 shadow-inner">
-        <div class="container-ludeka space-y-6">
+    @* Pie de página editorial con canales de comunidad y afiliados *@
+    <footer class="mt-auto border-t border-[var(--line)] bg-[#12161A] py-8 mobile-nav-spacer text-xs text-stone-300 shadow-inner">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-stone-800/80">
                 <div class="space-y-1">
                     <p class="font-extrabold text-sm text-white tracking-tight">Ludeka &copy; 2026</p>
@@ -313,7 +278,7 @@
         </div>
     </footer>
 
-    @* Barra de navegación móvil fija al alcance del pulgar (INC-60) *@
+    @* Barra de navegación móvil fija al alcance del pulgar *@
     <MobileBottomNav />
 </div>
 
@@ -322,7 +287,7 @@
     OnClose="() => _showLocationModal = false"
     OnCountryChanged="HandleCountryChanged" />
 
-@* Recarga el circuito cuando la cuenta de la sesión se suspende o cambian sus permisos. *@
+@* Recarga el circuito cuando la cuenta de la sesión se suspende o cambian sus permisos *@
 <SessionGuard />
 
 <div id="blazor-error-ui" class="hidden">
@@ -335,37 +300,99 @@
     private string CurrentTheme = "wood";
     private string? _activeCountry;
     private bool _showLocationModal;
-    private bool _isAdminMenuOpen;
+    private bool _isMoreOpen;
 
-    /// <summary>
-    /// Indica si hay sesión iniciada (patrón MyLibrary.razor):UserId no vacío ⇒ identidad real.
-    /// La puerta de cabecera distingue entre «visitante» y «persona con sesión» con esta
-    /// superficie congelada de ICurrentUserService, sin ampliar el contrato.
-    /// </summary>
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
 
-    protected override void OnInitialized()
+    private string CurrentRelativePath
     {
-        Navigation.LocationChanged += HandleLocationChangedForMenu;
-    }
-
-    private void HandleLocationChangedForMenu(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        if (_isAdminMenuOpen)
+        get
         {
-            _isAdminMenuOpen = false;
-            StateHasChanged();
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+            var queryIndex = relative.IndexOf('?');
+            if (queryIndex >= 0)
+            {
+                relative = relative.Substring(0, queryIndex);
+            }
+            return relative.Trim('/');
         }
     }
 
-    private void ToggleAdminMenu()
+    private (string Bg, string Fg, string Accent) HeaderColors => GetHeaderColors();
+
+    private (string Bg, string Fg, string Accent) GetHeaderColors()
     {
-        _isAdminMenuOpen = !_isAdminMenuOpen;
+        var path = CurrentRelativePath.ToLowerInvariant();
+        if (string.IsNullOrEmpty(path))
+            return ("var(--brand)", "var(--on-brand)", "var(--mustard)");
+        if (path == "catalogo" || path.StartsWith("catalogo/") || path.StartsWith("juegos"))
+            return ("var(--green)", "var(--on-green)", "var(--mustard)");
+        if (path == "sorteos" || path.StartsWith("sorteos/"))
+            return ("var(--mustard)", "var(--on-mustard)", "#C9481C");
+        if (path == "novedades" || path.StartsWith("novedades/"))
+            return ("var(--inverse)", "var(--on-inverse)", "var(--mustard)");
+        if (path == "eventos" || path.StartsWith("eventos/"))
+            return ("var(--blue-band)", "var(--on-blue)", "var(--mustard)");
+        if (path == "clasificaciones" || path.StartsWith("clasificaciones/"))
+            return ("var(--plum)", "#FFF8EE", "var(--mustard)");
+
+        return ("var(--paper)", "var(--ink)", "var(--accent)");
+    }
+
+    private bool IsPageActive(string section)
+    {
+        var path = CurrentRelativePath.ToLowerInvariant();
+        return path == section || path.StartsWith(section + "/");
+    }
+
+    private bool IsMoreSectionActive
+    {
+        get
+        {
+            var path = CurrentRelativePath.ToLowerInvariant();
+            return path == "clasificaciones" || path.StartsWith("clasificaciones/") ||
+                   path == "editoriales" || path.StartsWith("editoriales/") ||
+                   path == "creadores" || path.StartsWith("creadores/") ||
+                   path == "tiendas" || path.StartsWith("tiendas/") ||
+                   path == "transparencia" || path.StartsWith("transparencia/");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (_isMoreOpen)
+        {
+            _isMoreOpen = false;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMore()
+    {
+        _isMoreOpen = !_isMoreOpen;
+    }
+
+    private void CloseMore()
+    {
+        _isMoreOpen = false;
+    }
+
+    private void HandleMoreKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && _isMoreOpen)
+        {
+            CloseMore();
+        }
     }
 
     public void Dispose()
     {
-        Navigation.LocationChanged -= HandleLocationChangedForMenu;
+        Navigation.LocationChanged -= HandleLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -374,10 +401,9 @@
         {
             try
             {
-                // Consultar tema almacenado en localStorage para este usuario o visitante
+                // Consultar tema almacenado en localStorage
                 string stored = await JS.InvokeAsync<string>("getLudekaTheme", HasSession ? CurrentUserService.UserId : null);
 
-                // Priorizar preferencia persistida de usuario si existe y es válida
                 string effectiveTheme;
                 if (HasSession)
                 {
@@ -400,7 +426,6 @@
                 // Cargar país activo
                 _activeCountry = await LocationService.GetEffectiveCountryAsync();
 
-                // Si no hay país en BD, comprobar localStorage o zona horaria
                 if (string.IsNullOrWhiteSpace(_activeCountry))
                 {
                     string? storedCountry = await JS.InvokeAsync<string?>("getStoredUserCountry", CurrentUserService.UserId);
@@ -415,7 +440,6 @@
                         if (!string.IsNullOrWhiteSpace(detected))
                         {
                             LocationService.SetDetectedCountry(detected);
-                            // Solo como detección (no forzado a usuario)
                         }
                     }
                 }
@@ -424,9 +448,17 @@
             }
             catch
             {
-                // Ignorar en entornos donde JS o DB aún no estén listos en prerender
+                // Ignorar en prerender cuando JS no esté disponible
             }
         }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var nextTheme = (CurrentTheme == "dark" || CurrentTheme == "charcoal" || CurrentTheme == "tabletop" || CurrentTheme == "midnight")
+            ? "light"
+            : "dark";
+        await SwitchTheme(nextTheme);
     }
 
     private async Task SwitchTheme(string theme)
