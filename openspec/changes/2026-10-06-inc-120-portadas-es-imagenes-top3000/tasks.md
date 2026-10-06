@@ -10,10 +10,10 @@
 - [x] **Tarea 2.2:** Agregar pruebas unitarias en `tests/Ludeka.UnitTests/Infrastructure/BggRawSnapshotSyncServiceTests.cs` (o test suite adecuada) verificando la promoción de carátula en español en el barrido de catálogo.
 
 ## Fase 3: Contratos y Servicio de Sincronización de Medios Top 3.000
-- [ ] **Tarea 3.1:** Crear `BggImagesSyncDtos.cs` y el contrato `IBggImagesSyncService.cs` en `src/Ludeka.Application/`.
-- [ ] **Tarea 3.2:** Implementar `BggImagesSyncService.cs` en `src/Ludeka.Infrastructure/Bgg/`, gestionando la paginación por `BggRank <= 3000`, la consulta a `GeekDoImagesClient`, la priorización de portada española y la estrategia de persistencia (R2 vs CDN directo seguro anti-404).
-- [ ] **Tarea 3.3:** Registrar `IBggImagesSyncService` en `LudekaServiceCollectionExtensions.cs`.
-- [ ] **Tarea 3.4:** Crear pruebas unitarias para `BggImagesSyncService` cubriendo la asignación de portada, trasera, mesa y el modo Zero-Cloud sin R2.
+- [x] **Tarea 3.1:** Crear `BggImagesSyncDtos.cs` y el contrato `IBggImagesSyncService.cs` en `src/Ludeka.Application/`.
+- [x] **Tarea 3.2:** Implementar `BggImagesSyncService.cs` en `src/Ludeka.Infrastructure/Bgg/`, gestionando la paginación por `BggRank <= 3000`, la consulta a `GeekDoImagesClient`, la priorización de portada española y la estrategia de persistencia (R2 vs CDN directo seguro anti-404).
+- [x] **Tarea 3.3:** Registrar `IBggImagesSyncService` en `LudekaServiceCollectionExtensions.cs`.
+- [x] **Tarea 3.4:** Crear pruebas unitarias para `BggImagesSyncService` cubriendo la asignación de portada, trasera, mesa y el modo Zero-Cloud sin R2.
 
 ## Fase 4: Runner Autónomo en `Ludeka.Jobs`
 - [ ] **Tarea 4.1:** Registrar el nombre del trabajo `JobNames.BggImagesTop3000 = "bgg-images-top3000"` en `src/Ludeka.Jobs/JobNames.cs`.
