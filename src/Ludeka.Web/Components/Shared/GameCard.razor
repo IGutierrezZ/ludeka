@@ -110,6 +110,37 @@
                         </span>
                         break;
                 }
+                @* Estilo de juego sutil *@
+                @switch (Game.Style)
+                {
+                    case GameStyle.Eurogame:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Eurogame" aria-label="Eurogame">
+                            <Icon Name="settings" Size="11" />
+                        </span>
+                        break;
+                    case GameStyle.PartyGame:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Party Game" aria-label="Party Game">
+                            <Icon Name="party-popper" Size="11" />
+                        </span>
+                        break;
+                    case GameStyle.FillerAbstract:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Filler / Abstracto" aria-label="Filler">
+                            <Icon Name="puzzle" Size="11" />
+                        </span>
+                        break;
+                    default:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Narrativo" aria-label="Narrativo">
+                            <Icon Name="book-open" Size="11" />
+                        </span>
+                        break;
+                }
+
+                @if (Game.IsAccessibleEarlier)
+                {
+                    <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Edad: @Game.CommunityAge+ años" aria-label="Edad: @Game.CommunityAge+ años">
+                        <Icon Name="baby" Size="11" />
+                    </span>
+                }
             </div>
         </div>
     </a>

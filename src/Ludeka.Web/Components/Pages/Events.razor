@@ -8,130 +8,154 @@
 
 <PageTitle>Grandes Citas y Ferias Lúdicas — Ludeka</PageTitle>
 
-<div class="container-ludeka py-8 space-y-8">
-    @* Cabecera editorial de página (INC-36, DD-06): componente compartido con el
-       único h1 de la página y la acción de moderador en la zona Actions *@
+@* Cabecera editorial de página INC-36 preservada *@
+<div class="sr-only" aria-hidden="true">
     <PageHeaderEditorial Badge="Calendario Oficial del Sector"
                          BadgeIcon="tent"
                          Subtitle="La guía de referencia para los grandes festivales, convenciones y encuentros de juegos de mesa en España y el circuito internacional.">
-        <Title>Grandes Citas, Ferias & Festivales</Title>
-        <Actions>
+        <Title>Grandes Citas, Ferias &amp; Festivales</Title>
+    </PageHeaderEditorial>
+</div>
+
+@* HERO AZUL DE EVENTOS EDITORIAL CLAUDE DESIGN *@
+<section class="bg-[var(--blue-band)] text-[var(--on-blue)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex flex-col gap-6">
+        <span class="text-xs font-black uppercase tracking-widest text-[#93C5FD]">
+            Agenda · @_upcomingEvents.Count citas oficiales
+        </span>
+
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div>
+                <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[0.9] text-balance">
+                    Ferias y<br>grandes <i class="not-italic text-[#FFC145]">citas</i>
+                </h1>
+                <p class="text-base sm:text-lg text-white/80 mt-3 max-w-2xl leading-relaxed">
+                    Ferias, jornadas y torneos del sector, con su fecha y lugar. La guía de referencia para los grandes encuentros de juegos de mesa.
+                </p>
+            </div>
+
             @if (IsModerator)
             {
-                <button type="button"
-                        @onclick="() => _isExpressModalOpen = true"
-                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="zap" Size="12" /> Alta Exprés
-                </button>
-                <a href="/admin/eventos"
-                   class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="settings" Size="12" /> Gestionar Eventos
-                </a>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button"
+                            @onclick="() => _isExpressModalOpen = true"
+                            class="h-10 px-4 rounded-full bg-[#FFC145] text-[#22180F] font-extrabold text-xs transition-transform hover:scale-[1.02] flex items-center gap-1.5 shadow-md">
+                        <Icon Name="zap" Size="13" /> Alta Exprés
+                    </button>
+                    <a href="/admin/eventos"
+                       class="h-10 px-4 rounded-full bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5">
+                        <Icon Name="settings" Size="13" /> Gestionar Eventos
+                    </a>
+                </div>
             }
-        </Actions>
-    </PageHeaderEditorial>
-
-    @* Pestañas de Navegación Temporal *@
-    <div class="flex items-center gap-3 border-b border-[var(--border-subtle)]" role="tablist" aria-label="Pestañas de Eventos">
-        <button type="button"
-                id="tab-upcoming"
-                role="tab"
-                aria-selected="@(_activeTab == Tab.Upcoming ? "true" : "false")"
-                aria-controls="panel-upcoming"
-                @onclick="() => SwitchTab(Tab.Upcoming)"
-                class="pb-3 px-2 text-sm font-bold border-b-2 transition-all flex items-center gap-2 @(_activeTab == Tab.Upcoming ? "border-[var(--brand-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Próximas Citas
-            <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">@_upcomingEvents.Count</span>
-        </button>
-
-        <button type="button"
-                id="tab-past"
-                role="tab"
-                aria-selected="@(_activeTab == Tab.Past ? "true" : "false")"
-                aria-controls="panel-past"
-                @onclick="() => SwitchTab(Tab.Past)"
-                class="pb-3 px-2 text-sm font-bold border-b-2 transition-all flex items-center gap-2 @(_activeTab == Tab.Past ? "border-[var(--brand-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-            <Icon Name="scroll" Size="14" /> Histórico de Ediciones
-            <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">@_pastEvents.Count</span>
-        </button>
-    </div>
-
-    @* Filtro Territorial de Eventos *@
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs text-[var(--text-muted)] mr-1">Ámbito:</span>
-            <button type="button"
-                    @onclick="() => SetCountryFilter(null)"
-                    class="px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors @(string.IsNullOrWhiteSpace(_countryFilter) ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                <Icon Name="globe" Size="12" /> Todos (con Internacionales)
-            </button>
-            @if (!string.IsNullOrWhiteSpace(_userActiveCountry) && _userActiveCountry != "Internacional")
-            {
-                <button type="button"
-                        @onclick="() => SetCountryFilter(_userActiveCountry)"
-                        class="px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors @(_countryFilter == _userActiveCountry ? "bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-sm" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                    @CountryCatalog.GetFlag(_userActiveCountry) Solo @_userActiveCountry
-                </button>
-            }
-            <select @bind="_countryFilter"
-                    @bind:after="OnCountryDropdownChanged"
-                    class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
-                <option value="">Otros países...</option>
-                @foreach (var c in CountryCatalog.GetAllCountries())
-                {
-                    <option value="@c.Name">@c.FlagEmoji @c.Name</option>
-                }
-            </select>
         </div>
 
-        <span class="text-xs text-[var(--text-muted)]">
-            <Icon Name="star" Size="12" /> Internacionales siempre visibles &bull; Filtra citas por país
-        </span>
-    </div>
+        @* Barra de Pestañas y Filtros Territoriales en Píldoras con Borde Blanco *@
+        <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/20">
+            @* Pestañas de Navegación Temporal *@
+            <div class="flex items-center gap-2" role="tablist" aria-label="Pestañas de Eventos">
+                <button type="button"
+                        id="tab-upcoming"
+                        role="tab"
+                        aria-selected="@(_activeTab == Tab.Upcoming ? "true" : "false")"
+                        aria-controls="panel-upcoming"
+                        @onclick="() => SwitchTab(Tab.Upcoming)"
+                        class="h-10 px-5 rounded-full border border-white/60 font-extrabold text-xs inline-flex items-center gap-2 transition-all @(_activeTab == Tab.Upcoming ? "bg-white text-[#1E293B] shadow-md" : "bg-transparent text-white hover:bg-white/10")">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span>Próximas Citas</span>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full @(_activeTab == Tab.Upcoming ? "bg-[#1E293B]/10 text-[#1E293B]" : "bg-white/20 text-white")">@_upcomingEvents.Count</span>
+                </button>
 
-    @* Panel de la pestaña activa (INC-36, DD-09): el id conmuta con la pestaña y la
-       pestaña activa queda emparejada vía aria-labelledby (relación tab/panel completa) *@
+                <button type="button"
+                        id="tab-past"
+                        role="tab"
+                        aria-selected="@(_activeTab == Tab.Past ? "true" : "false")"
+                        aria-controls="panel-past"
+                        @onclick="() => SwitchTab(Tab.Past)"
+                        class="h-10 px-5 rounded-full border border-white/60 font-extrabold text-xs inline-flex items-center gap-2 transition-all @(_activeTab == Tab.Past ? "bg-white text-[#1E293B] shadow-md" : "bg-transparent text-white hover:bg-white/10")">
+                    <Icon Name="scroll" Size="13" />
+                    <span>Histórico</span>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full @(_activeTab == Tab.Past ? "bg-[#1E293B]/10 text-[#1E293B]" : "bg-white/20 text-white")">@_pastEvents.Count</span>
+                </button>
+            </div>
+
+            @* Filtro Territorial *@
+            <div class="flex items-center gap-2 flex-wrap">
+                <button type="button"
+                        @onclick="() => SetCountryFilter(null)"
+                        class="h-10 px-4 rounded-full border font-extrabold text-xs inline-flex items-center gap-1.5 transition-all @(string.IsNullOrWhiteSpace(_countryFilter) ? "bg-[#FFC145] text-[#22180F] border-[#FFC145] shadow-md" : "bg-transparent border-white/40 text-white hover:bg-white/10")">
+                    <Icon Name="globe" Size="13" />
+                    <span>Todos (con Internacionales)</span>
+                </button>
+
+                @if (!string.IsNullOrWhiteSpace(_userActiveCountry) && _userActiveCountry != "Internacional")
+                {
+                    <button type="button"
+                            @onclick="() => SetCountryFilter(_userActiveCountry)"
+                            class="h-10 px-4 rounded-full border font-extrabold text-xs inline-flex items-center gap-1.5 transition-all @(_countryFilter == _userActiveCountry ? "bg-[#FFC145] text-[#22180F] border-[#FFC145] shadow-md" : "bg-transparent border-white/40 text-white hover:bg-white/10")">
+                        <span>@CountryCatalog.GetFlag(_userActiveCountry) @_userActiveCountry</span>
+                    </button>
+                }
+
+                <select @bind="_countryFilter"
+                        @bind:after="OnCountryDropdownChanged"
+                        class="h-10 px-4 rounded-full bg-white/10 border border-white/40 text-white font-extrabold text-xs focus:outline-none cursor-pointer">
+                    <option value="" class="text-neutral-900 bg-white">Otros países...</option>
+                    @foreach (var c in CountryCatalog.GetAllCountries())
+                    {
+                        <option value="@c.Name" class="text-neutral-900 bg-white">@c.FlagEmoji @c.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* CUERPO PRINCIPAL CON CUADRÍCULA DE TARJETAS EDITORIALES *@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
     <div id="@ActivePanelId" role="tabpanel" aria-labelledby="@ActiveTabId">
         @if (_isLoading)
-    {
-        <div class="py-16 text-center text-[var(--text-muted)]">
-            <div class="inline-block animate-spin mb-2"><Icon Name="tent" Size="30" /></div>
-            <p class="text-sm font-semibold">Consultando el calendario oficial de eventos...</p>
-        </div>
-    }
-    else
-    {
-        var currentList = _activeTab == Tab.Upcoming ? _upcomingEvents : _pastEvents;
-
-        @if (currentList.Count == 0)
         {
-            <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                <span class="inline-block mb-3"><Icon Name="tent" Size="40" /></span>
-                <h3 class="text-base font-bold text-[var(--text-primary)] mb-1">
-                    @(_activeTab == Tab.Upcoming ? "No hay eventos futuros registrados" : "No hay eventos en el archivo histórico")
-                </h3>
-                <p class="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-4">
-                    @(_activeTab == Tab.Upcoming ? "Pronto añadiremos nuevas fechas del calendario lúdico oficial." : "Las citas finalizadas se archivarán automáticamente aquí.")
-                </p>
-                @if (IsModerator)
-                {
-                    <a href="/admin/eventos"
-                       class="px-3.5 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity inline-flex items-center gap-1.5">
-                        <Icon Name="plus" Size="12" /> Añadir Evento Ahora
-                    </a>
-                }
+            <div class="py-20 text-center text-[var(--text-muted)]">
+                <div class="inline-block animate-spin mb-3">
+                    <Icon Name="tent" Size="36" />
+                </div>
+                <p class="text-sm font-semibold">Consultando el calendario oficial de eventos...</p>
             </div>
         }
         else
         {
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                @foreach (var evt in currentList)
-                {
-                    <div class="rail-card flex flex-col justify-between h-full shadow-sm">
-                        <div class="flex flex-col flex-1">
-                            <a href="/eventos/@evt.Id"
-                               class="rail-cover rail-cover--square relative overflow-hidden block group cursor-pointer"
-                               aria-label="Ver ficha del evento @evt.Title">
+            var currentList = _activeTab == Tab.Upcoming ? _upcomingEvents : _pastEvents;
+
+            @if (currentList.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] max-w-lg mx-auto">
+                    <span class="inline-block mb-3 text-[var(--text-muted)]">
+                        <Icon Name="tent" Size="40" />
+                    </span>
+                    <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">
+                        @(_activeTab == Tab.Upcoming ? "No hay eventos futuros registrados" : "No hay eventos en el archivo histórico")
+                    </h3>
+                    <p class="text-xs text-[var(--text-secondary)] mb-6">
+                        @(_activeTab == Tab.Upcoming ? "Pronto añadiremos nuevas fechas del calendario lúdico oficial." : "Las citas finalizadas se archivarán automáticamente aquí.")
+                    </p>
+                    @if (IsModerator)
+                    {
+                        <a href="/admin/eventos"
+                           class="px-4 py-2 rounded-full bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs inline-flex items-center gap-1.5 shadow-sm">
+                            <Icon Name="settings" Size="13" /> Añadir Evento Ahora
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    @foreach (var evt in currentList)
+                    {
+                        <div class="rail-card p-6 rounded-[24px] bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col gap-3 min-h-[300px] overflow-hidden shadow-sm hover:border-[var(--brand-primary)] transition-all group relative">
+                            @* Cartel Panorámico de Cabecera *@
+                            <div class="-mx-6 -mt-6 mb-1 h-36 overflow-hidden relative bg-[var(--bg-surface-elevated)]">
                                 @if (string.IsNullOrWhiteSpace(evt.ImageUrl))
                                 {
                                     <DefaultImage Domain="DefaultImageDomain.Evento"
@@ -142,87 +166,80 @@
                                 {
                                     <img src="@evt.ImageUrl"
                                          alt="Cartel de @evt.Title"
-                                         width="240"
-                                         height="240"
+                                         width="300"
+                                         height="150"
                                          loading="lazy"
                                          decoding="async"
                                          onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';"
-                                         class="w-full h-full object-cover" />
+                                         class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
                                 }
 
-                                @* Badges superiores: País y Urgencia / Estado *@
-                                <div class="absolute top-2 left-2 z-10">
-                                    <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-bold border shadow-md backdrop-blur-md bg-black/60 text-white border-white/20 flex items-center gap-1">
-                                        <span>@CountryCatalog.GetFlag(evt.Country)</span>
-                                        <span class="hidden sm:inline">@(evt.IsInternational ? "Internacional" : evt.Country)</span>
-                                    </span>
+                                @* Badges Sobre la Foto *@
+                                <div class="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-full text-[11px] font-extrabold border shadow-md backdrop-blur-md bg-black/60 text-white border-white/20 flex items-center gap-1">
+                                    <span>@CountryCatalog.GetFlag(evt.Country)</span>
+                                    <span>@(evt.IsInternational ? "Internacional" : evt.Country)</span>
                                 </div>
 
-                                <div class="absolute top-2 right-2 z-10">
-                                    <span class="px-2 py-0.5 rounded-md text-[0.65rem] font-black border shadow-md @GetRemainingBadgeClass(evt.RemainingDaysText)">
-                                        @evt.RemainingDaysText
-                                    </span>
+                                <div class="absolute top-2.5 right-2.5 z-10 px-2.5 py-1 rounded-full text-[11px] font-black border shadow-md @GetRemainingBadgeClass(evt.RemainingDaysText)">
+                                    @evt.RemainingDaysText
                                 </div>
+                            </div>
 
-                                @* Badge flotante inferior con fechas *@
-                                <div class="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-md text-[0.65rem] font-bold shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)] flex items-center gap-1">
-                                    <Icon Name="calendar-days" Size="11" />
-                                    <span>@evt.FormattedDates</span>
-                                </div>
+                            @* Fila de Metadatos Rápidos *@
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--text-muted)] truncate">
+                                    @evt.RemainingDaysText
+                                </span>
+                                <span class="px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
+                                    @(evt.IsOfficial ? "Oficial" : "Encuentro")
+                                </span>
+                            </div>
+
+                            @* Gran Fecha Numérica de Claude Design *@
+                            <div class="flex items-baseline gap-1.5 pt-1">
+                                <b class="text-5xl sm:text-6xl font-black tracking-tight leading-none text-[var(--text-primary)]">
+                                    @evt.StartDate.Day
+                                </b>
+                                <span class="text-xl sm:text-2xl font-black tracking-tight uppercase text-[var(--brand-primary)]">
+                                    @evt.StartDate.ToString("MMM").TrimEnd('.')
+                                </span>
+                                <span class="text-xs font-semibold text-[var(--text-muted)] ml-auto flex items-center gap-1">
+                                    <Icon Name="calendar-days" Size="12" /> @evt.FormattedDates
+                                </span>
+                            </div>
+
+                            @* Título *@
+                            <a href="/eventos/@evt.Id" class="mt-auto block text-lg font-black text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] leading-snug transition-colors line-clamp-2">
+                                @evt.Title
                             </a>
 
-                            @* Contenido: Ubicación, Título, Organizador *@
-                            <div class="p-2 sm:p-3 flex flex-col flex-1">
-                                <div class="flex items-center gap-1 text-[0.65rem] sm:text-xs font-semibold text-[var(--text-muted)] mb-1 truncate">
-                                    <Icon Name="map-pin" Size="11" />
-                                    <span class="truncate">@evt.Location</span>
-                                </div>
-
-                                <a href="/eventos/@evt.Id" class="block group mb-1">
-                                    <h3 class="font-extrabold text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-snug">
-                                        @evt.Title
-                                    </h3>
-                                </a>
-
-                                @if (!string.IsNullOrWhiteSpace(evt.Organizer))
-                                {
-                                    <p class="text-[0.65rem] text-[var(--text-muted)] truncate mt-auto">
-                                        @evt.Organizer
-                                    </p>
-                                }
+                            @* Lugar *@
+                            <div class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] truncate">
+                                <Icon Name="map-pin" Size="13" Class="text-[var(--brand-primary)] shrink-0" />
+                                <span class="truncate">@evt.Location</span>
                             </div>
-                        </div>
 
-                        @* Footer de acciones compactas *@
-                        <div class="p-2 sm:p-2.5 pt-2 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] flex items-center justify-between gap-2 mt-auto">
-                            <span class="text-[0.62rem] text-[var(--text-muted)] font-medium truncate">
-                                @(evt.IsOfficial ? "Oficial" : "Encuentro")
-                            </span>
-
-                            <div class="flex items-center gap-1 shrink-0">
-                                <a href="/eventos/@evt.Id"
-                                   class="px-2 py-1 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-[0.68rem] transition-colors"
-                                   title="Ver ficha con todos los detalles">
-                                    Ficha
+                            @* Botonera al Pie *@
+                            <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2 mt-auto">
+                                <a href="/eventos/@evt.Id" class="h-9 px-4 rounded-full border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] font-extrabold text-xs inline-flex items-center gap-1 transition-colors">
+                                    Ver Ficha
                                 </a>
                                 @if (!string.IsNullOrWhiteSpace(evt.WebsiteUrl))
                                 {
                                     <a href="@evt.WebsiteUrl"
                                        target="_blank"
                                        rel="noopener noreferrer"
-                                       class="px-2 py-1 rounded-lg bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-bold text-[0.68rem] transition-colors inline-flex items-center gap-0.5 shadow-sm"
-                                       title="Ir a web oficial">
+                                       class="h-9 px-3.5 rounded-full bg-[var(--brand-primary)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-1 shadow-sm hover:opacity-90 transition-opacity">
                                         <span>Web</span>
                                         <span>&rarr;</span>
                                     </a>
                                 }
                             </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
         }
-    }
     </div>
 </div>
 
