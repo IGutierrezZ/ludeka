@@ -9,17 +9,17 @@
 :root.light,
 [data-theme="light"] {
     /* Paleta Editorial Principal (INC-113) */
-    --color-terracota: #C85A32;
-    --color-salvia: #2D6A4F;
+    --color-terracota: #C9481C;
+    --color-salvia: #1B7D52;
     --color-arena: #F4EEDB;
     --color-arena-light: #FAF6EE;
-    --color-tinta: #1A1A1A;
+    --color-tinta: #22180F;
 
     /* Estados Semánticos (INC-113) */
-    --semantic-verde: #2D6A4F;
+    --semantic-verde: #1B7D52;
     --semantic-ambar: #C97A1E;
     --semantic-carmin: #9E2A2B;
-    --color-semantic-verde: #2D6A4F;
+    --color-semantic-verde: #1B7D52;
     --color-semantic-ambar: #C97A1E;
     --color-semantic-carmin: #9E2A2B;
 
@@ -33,17 +33,17 @@
     --rule: #22180F;
 
     /* Marca y Acentos */
-    --brand: #C85A32;
+    --brand: #C9481C;
     --brand-contrast: #C9481C;
     --on-brand: #FFF8EE;
-    --accent: #C85A32;
+    --accent: #C9481C;
     --mustard: #FFC145;
     --on-mustard: #22180F;
-    --green: #2D6A4F;
+    --green: #1B7D52;
     --green-contrast: #1B7D52;
     --on-green: #FFF8EE;
     --green-soft: #D2F1E1;
-    --accent-green: #2D6A4F;
+    --accent-green: #1B7D52;
     --sky: #3F74D8;
     --blue-band: #2F5FBF;
     --on-blue: #FFF8EE;
@@ -53,7 +53,7 @@
     --silver: #9AA3AE;
     --bronze: #B07A3F;
     --pink: #E0607E;
-    --inverse: #1A1A1A;
+    --inverse: #22180F;
     --on-inverse: #FFF8EE;
     --ticker: #FFC145;
 
