@@ -1168,5 +1168,6 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   1. **Extracción y Priorización de Portada en Español:** Ampliación de `BggSpanishVersionInfoDto` y `BggRawSnapshotParser` para capturar `<image>` y `<thumbnail>` de la versión en español de BGG XMLAPI2 y asignarlas como portada preferente del juego en catálogo durante los barridos.
   2. **Sincronización de Medios Comunitarios (Top 3.000):** Servicio y runner autónomo `bgg-images-top3000` para enriquecer los 3.000 juegos con mayor relevancia comunitaria (`BggRank` ascendente) con contraportadas (`BackCoverImageUrl`) y fotos en mesa (`TableImageUrl`) desde la API de GeekDo.
   3. **Persistencia Resiliente anti-404:** Prevención de URLs rotas de Cloudflare R2 en entornos locales/simulados persistiendo URLs canónicas públicas seguras y directas de CDN BGG si no hay credenciales de R2 activas.
-- **Estado:** ⏳ **En progreso** (Worktree: `inc/bgg-imagenes-top3000`).
-- **Documento:** [`../increments/inc-120-portadas-es-imagenes-top3000.md`](../increments/inc-120-portadas-es-imagenes-top3000.md).
+- **Estado:** ✅ **Completado y Archivado** (2.595 tests unitarios en verde al 100%).
+- **Documento:** [`../increments/archive/inc-120-portadas-es-imagenes-top3000.md`](../increments/archive/inc-120-portadas-es-imagenes-top3000.md).
+- **Módulo del Sistema:** [`sistema/53-portadas-es-imagenes-top3000.md`](sistema/53-portadas-es-imagenes-top3000.md).

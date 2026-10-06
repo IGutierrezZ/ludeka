@@ -1,7 +1,7 @@
 # INC-120: Extracción de Portadas en Español desde Snapshots y Sincronización de Imágenes Comunitarias Top 3.000 BGG
 
 > **Incremento:** INC-120  
-> **Estado:** ⏳ En progreso  
+> **Estado:** ✅ Archivado  
 > **Rama / Worktree:** `inc/bgg-imagenes-top3000` (`F:\repos\ludeka-wt\bgg-imagenes-top3000`)  
 > **Fecha:** 2026-10-06  
 
