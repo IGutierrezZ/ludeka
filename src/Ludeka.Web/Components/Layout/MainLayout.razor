@@ -19,15 +19,15 @@
     - Cumplimiento estricto WCAG 2.2 AA (landmarks, aria attributes, skip link, área táctil >=48px).
 *@
 
-<div class="min-h-screen flex flex-col bg-[var(--paper)] text-[var(--ink)] transition-colors duration-200">
+<div class="min-h-screen flex flex-col bg-[var(--paper)] text-[var(--ink)] transition-colors duration-200 w-full max-w-full overflow-x-clip">
     <a href="#main-content" class="skip-link sr-only focus:not-sr-only">
         Saltar al contenido principal
     </a>
 
     @* Cabecera superior compacta reactiva (72 px) *@
-    <header class="h-[72px] transition-colors duration-200 border-b border-[var(--line)] select-none shrink-0"
+    <header class="relative z-30 h-16 sm:h-[72px] transition-colors duration-200 border-b border-[var(--line)] shrink-0"
             style="background: @HeaderColors.Bg; color: @HeaderColors.Fg;">
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-3 sm:gap-4">
+        <div class="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-2 sm:gap-4">
             
             @* Navegación en escritorio (izquierda) *@
             <nav class="hidden lg:flex items-center gap-5 text-sm font-extrabold flex-1"
@@ -100,13 +100,15 @@
             </nav>
 
             @* Menú móvil superior desplegable (SSR puro, accesible, details/summary) *@
-            <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative">
+            <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative shrink-0">
                 <summary aria-label="Menú de navegación"
-                         class="px-2.5 py-1.5 rounded-full border border-current/30 bg-black/5 dark:bg-white/5 hover:border-current text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden shrink-0">
-                    <Icon Name="menu" Size="14" />
-                    <span>Menú</span>
+                         class="cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none focus-visible:ring-2 focus-visible:ring-current rounded-full select-none">
+                    <span class="h-8 sm:h-9 px-2.5 rounded-full border border-current/30 bg-black/5 dark:bg-white/5 hover:border-current text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-xs pointer-events-none">
+                        <Icon Name="menu" Size="14" />
+                        <span>Menú</span>
+                    </span>
                 </summary>
-                <div class="absolute left-0 top-full mt-2 w-56 rounded-2xl border-2 border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] shadow-2xl p-2 z-50">
+                <div class="absolute left-0 top-full mt-2 w-52 sm:w-56 rounded-2xl border-2 border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] shadow-2xl p-2 z-50">
                     <a href="/catalogo" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Catálogo</a>
                     <a href="/editoriales" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Editoriales</a>
                     <a href="/creadores" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Creadores</a>
@@ -119,15 +121,15 @@
             </details>
 
             @* Logotipo editorial central *@
-            <a href="/" class="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-85" title="Ludeka — Inicio">
-                <span class="w-[42px] h-[42px] rounded-full bg-[#FFF8EE] border border-[var(--line)] flex items-center justify-center shadow-xs shrink-0">
-                    <img src="/images/logo-light.png" alt="Logotipo de Ludeka" width="32" height="32" decoding="async" class="h-8 w-auto object-contain" />
+            <a href="/" class="flex items-center gap-2 sm:gap-2.5 shrink-0 transition-opacity hover:opacity-85" title="Ludeka — Inicio">
+                <span class="w-8 h-8 sm:w-[42px] sm:h-[42px] rounded-full bg-[#FFF8EE] border border-[var(--line)] flex items-center justify-center shadow-xs shrink-0">
+                    <img src="/images/logo-light.png" alt="Logotipo de Ludeka" width="28" height="28" decoding="async" class="h-6 sm:h-8 w-auto object-contain" />
                 </span>
-                <span class="text-2xl font-black tracking-tighter">Ludeka<span style="color: @HeaderColors.Accent;">.</span></span>
+                <span class="text-xl sm:text-2xl font-black tracking-tighter">Ludeka<span style="color: @HeaderColors.Accent;">.</span></span>
             </a>
 
             @* Utilidades de cabecera (derecha) *@
-            <div class="flex items-center gap-2 sm:gap-2.5 justify-end flex-1 shrink-0">
+            <div class="flex items-center gap-1.5 sm:gap-2.5 justify-end flex-1 shrink-0">
                 @* 1. Píldora de estado de red offline en cabecera *@
                 <OfflineIndicator AsBanner="false" />
 
@@ -136,8 +138,8 @@
                         @onclick="ToggleTheme"
                         aria-label="Cambiar tema"
                         title="@(CurrentTheme == "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro")"
-                        class="w-10 h-10 rounded-full border border-current/30 hover:border-current bg-transparent flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current">
-                    <Icon Name="@(CurrentTheme == "dark" ? "sun" : "moon")" Size="17" />
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-current/30 hover:border-current bg-transparent flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current">
+                    <Icon Name="@(CurrentTheme == "dark" ? "sun" : "moon")" Size="15" />
                 </button>
 
                 @* Selector compacto de temas para visitantes (compatibilidad INC-113) *@
@@ -149,10 +151,10 @@
                 @if (CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"))
                 {
                     <a href="/admin/notificaciones"
-                       class="h-10 w-10 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+                       class="h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
                        title="Webhooks & Notificaciones"
                        aria-label="Notificaciones del sistema">
-                        <Icon Name="bell" Size="16" />
+                        <Icon Name="bell" Size="14" />
                     </a>
                 }
 

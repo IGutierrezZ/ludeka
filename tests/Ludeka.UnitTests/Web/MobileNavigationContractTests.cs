@@ -185,8 +185,11 @@ public class MobileNavigationContractTests
         var source = ReadSource(MainLayoutPath);
 
         // Menú móvil con identificador para descarte exterior accesible y semántica estándar
-        Assert.Contains("<details id=\"mobile-nav-details\" data-mobile-nav class=\"lg:hidden relative\">", source, StringComparison.Ordinal);
+        Assert.Contains("id=\"mobile-nav-details\"", source, StringComparison.Ordinal);
+        Assert.Contains("data-mobile-nav", source, StringComparison.Ordinal);
         Assert.Contains("<summary aria-label=\"Menú de navegación\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/catalogo\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/sorteos\"", source, StringComparison.Ordinal);
         Assert.Contains("onclick=\"this.closest('details')?.removeAttribute('open')\"", source, StringComparison.Ordinal);
     }
 
@@ -198,6 +201,7 @@ public class MobileNavigationContractTests
         // Soporte de pointerdown y click para compatibilidad móvil/escritorio sin bloquear otras acciones
         Assert.Contains("document.addEventListener('pointerdown'", source, StringComparison.Ordinal);
         Assert.Contains("document.addEventListener('click'", source, StringComparison.Ordinal);
+        Assert.Contains("nav.removeAttribute('open')", source, StringComparison.Ordinal);
 
         // Soporte WCAG 2.2 AA de tecla Escape y retorno de foco
         Assert.Contains("e.key === 'Escape'", source, StringComparison.Ordinal);

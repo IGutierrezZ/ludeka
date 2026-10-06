@@ -723,6 +723,12 @@ a {
 }
 
 /* ===== Navegación Móvil y Safe-Area (INC-60) ===== */
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
 .mobile-safe-top {
     padding-top: env(safe-area-inset-top, 0px);
 }
