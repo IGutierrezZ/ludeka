@@ -21,5 +21,5 @@
 - [x] **Tarea 4.3:** Crear prueba unitaria para `BggImagesTop3000JobRunnerTests.cs` validando el ciclo de ejecución y leases de ventana.
 
 ## Fase 5: Verificación Integral y Suite de Pruebas
-- [ ] **Tarea 5.1:** Ejecutar la suite completa de pruebas unitarias (`dotnet test`) asegurando 100% verde y cero regresiones.
-- [ ] **Tarea 5.2:** Generar informe de verificación `verification-report.md` y preparar apertura de Pull Request vía `scripts/sdd-worktree.ps1 pr bgg-imagenes-top3000`.
+- [x] **Tarea 5.1:** Ejecutar la suite completa de pruebas unitarias (`dotnet test`) asegurando 100% verde y cero regresiones.
+- [x] **Tarea 5.2:** Generar informe de verificación `verification-report.md` y preparar apertura de Pull Request vía `scripts/sdd-worktree.ps1 pr bgg-imagenes-top3000`.

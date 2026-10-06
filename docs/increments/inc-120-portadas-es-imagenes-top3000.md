@@ -18,8 +18,16 @@
 ## 2. Componentes Afectados
 
 - `src/Ludeka.Application/DTOs/BggVersionDtos.cs`: Inclusión de `CoverImageUrl` y `ThumbnailUrl` en `BggSpanishVersionInfoDto`.
-- `src/Ludeka.Application/Features/Bgg/BggRawSnapshotParser.cs`: Extracción de `<image>` y `<thumbnail>` desde `<item type="boardgameversion">`.
-- `src/Ludeka.Infrastructure/Bgg/BggRawSnapshotSyncService.cs`: Promoción de portada española en el barrido de catálogo.
-- `src/Ludeka.Application/Contracts/IBggImagesSyncService.cs` y `src/Ludeka.Infrastructure/Bgg/BggImagesSyncService.cs`: Orquestador de sincronización de medios para el Top 3.000.
+- `src/Ludeka.Application/Features/Bgg/BggRawSnapshotParser.cs`: Extracción de `<image>` y `<thumbnail>` desde `<item type="boardgameversion">`, fusión de portadas multiedición y normalización de URLs relativas.
+- `src/Ludeka.Infrastructure/Bgg/BggRawSnapshotSyncService.cs`: Promoción de portada española y recuperación de URLs rotas en el barrido de catálogo.
+- `src/Ludeka.Application/Contracts/IBggImagesSyncService.cs` y `src/Ludeka.Infrastructure/Bgg/BggImagesSyncService.cs`: Orquestador de sincronización de medios para el Top 3.000 con estrategia Zero-Cloud anti-404.
 - `src/Ludeka.Jobs/JobNames.cs` y `src/Ludeka.Jobs/Runners/BggImagesTop3000JobRunner.cs`: Runner autónomo `bgg-images-top3000`.
-- `tests/Ludeka.UnitTests/`: Cobertura exhaustiva de extracción de imágenes de versión y asignación de medios.
+- `tests/Ludeka.UnitTests/`: Cobertura exhaustiva de extracción de imágenes de versión, asignación de medios comunitarios y composición del contenedor (2.595 tests superados).
+
+---
+
+## 3. Estado de Verificación
+
+- **Suite Automatizada:** 2.595 superadas, 0 fallidas, 0 omitidas (100% verde).
+- **Informe de Verificación:** `openspec/changes/2026-10-06-inc-120-portadas-es-imagenes-top3000/verification-report.md`.
+- **Trabajo Autónomo:** `bgg-images-top3000` listo para despliegue y ejecución desatendida.
