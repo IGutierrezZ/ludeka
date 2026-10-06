@@ -16,9 +16,9 @@
 - [x] **Tarea 3.4:** Crear pruebas unitarias para `BggImagesSyncService` cubriendo la asignación de portada, trasera, mesa y el modo Zero-Cloud sin R2.
 
 ## Fase 4: Runner Autónomo en `Ludeka.Jobs`
-- [ ] **Tarea 4.1:** Registrar el nombre del trabajo `JobNames.BggImagesTop3000 = "bgg-images-top3000"` en `src/Ludeka.Jobs/JobNames.cs`.
-- [ ] **Tarea 4.2:** Implementar `BggImagesTop3000JobRunner.cs` en `src/Ludeka.Jobs/Runners/` y registrar en `JobRunnerServiceCollectionExtensions.cs`.
-- [ ] **Tarea 4.3:** Crear prueba unitaria para `BggImagesTop3000JobRunnerTests.cs` validando el ciclo de ejecución y leases de ventana.
+- [x] **Tarea 4.1:** Registrar el nombre del trabajo `JobNames.BggImagesTop3000 = "bgg-images-top3000"` en `src/Ludeka.Jobs/JobNames.cs`.
+- [x] **Tarea 4.2:** Implementar `BggImagesTop3000JobRunner.cs` en `src/Ludeka.Jobs/Runners/` y registrar en `JobRunnerServiceCollectionExtensions.cs`.
+- [x] **Tarea 4.3:** Crear prueba unitaria para `BggImagesTop3000JobRunnerTests.cs` validando el ciclo de ejecución y leases de ventana.
 
 ## Fase 5: Verificación Integral y Suite de Pruebas
 - [ ] **Tarea 5.1:** Ejecutar la suite completa de pruebas unitarias (`dotnet test`) asegurando 100% verde y cero regresiones.
