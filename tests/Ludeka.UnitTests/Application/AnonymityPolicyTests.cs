@@ -487,7 +487,7 @@ public class UserPreferenceAnonymityTests : AnonymityPolicyTestBase
 
         var stored = await Context.UserPreferences.AsNoTracking().SingleAsync();
         Assert.Equal("jugadora-real", stored.UserId);
-        Assert.Equal("editorial", stored.PreferredTheme);
+        Assert.Equal("light", stored.PreferredTheme);
     }
 }
 

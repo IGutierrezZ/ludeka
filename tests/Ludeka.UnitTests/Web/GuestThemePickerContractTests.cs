@@ -15,18 +15,18 @@ public class GuestThemePickerContractTests
     private const string GuestThemePickerPath = "src/Ludeka.Web/Components/Shared/GuestThemePicker.razor";
 
     [Fact]
-    public void AppRazor_ShouldSetWoodThemeAsDefaultOnHtmlAndFallbacks()
+    public void AppRazor_ShouldSetLightThemeAsDefaultOnHtmlAndFallbacks()
     {
         var source = ReadSource(AppPath);
 
-        // Atributo data-theme="wood" directo en <html> para renderizado Zero-FOUC
-        Assert.Contains("<html lang=\"es\" data-theme=\"wood\">", source, StringComparison.Ordinal);
+        // Atributo data-theme="light" y class="light" directo en <html> para renderizado Zero-FOUC
+        Assert.Contains("<html lang=\"es\" data-theme=\"light\" class=\"light\">", source, StringComparison.Ordinal);
 
         // Fallback en script temprano de cabecera
-        Assert.Contains("|| 'wood'", source, StringComparison.Ordinal);
+        Assert.Contains("|| 'light'", source, StringComparison.Ordinal);
 
         // Fallback en función JS getLudekaTheme
-        Assert.Contains("return 'wood';", source, StringComparison.Ordinal);
+        Assert.Contains("return 'light';", source, StringComparison.Ordinal);
     }
 
     [Fact]

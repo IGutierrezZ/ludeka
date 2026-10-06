@@ -1135,5 +1135,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md`](../increments/archive/inc-112-amazon-pricing-bridge-asin-cache.md).
 - **Módulos del Sistema:** [`51-precios-stock-afiliados-amazon.md`](sistema/51-precios-stock-afiliados-amazon.md).
 
+---
+
+## Incremento 113: Tokens de Diseño Editorial, Paleta Terracota/Salvia, Plus Jakarta Sans y Modo Claro/Oscuro
+- **Identificador SDD:** `tokens-paleta-editorial-plus-jakarta`
+- **Objetivo Principal:**
+  1. **Tipografía Plus Jakarta Sans y Zero-FOUC:** Inyección de Google Fonts con preconexión temprana en `App.razor` y configuración de la familia `sans` en `tailwind.config.js`. Scripts tempranos de normalización determinista en `<head>` y sincronización de clases `.light` / `.dark` y atributos `data-theme`.
+  2. **Tokens Semánticos Completos «Revista Lúdica»:** Paleta editorial en `input.css` y `app.css` (Terracota `#C85A32`, Salvia `#2D6A4F`, Arena `#F4EEDB` / `#FAF6EE`, Tinta `#1A1A1A`, Verde `#2D6A4F`, Ámbar `#C97A1E`, Carmín `#9E2A2B`, bandas cromáticas `paper`, `card`, `ink`, `muted`, `line`, `rule`, `blue-band`, `plum`, pasteles y sombras físicas `--shadow-card`, `--shadow-polaroid`, `--shadow-sticker`).
+  3. **Par Canónico Claro/Oscuro y Normalización Determinista:** Mapeo de temas legados (`editorial`/`wood` a `light`, `charcoal`/`tabletop`/`midnight` a `dark`, con `light` por defecto) en `UserPreference` y `SqliteUserPreferenceService`, garantizando compatibilidad retrospectiva total.
+  4. **Pruebas de Contrato y Regresión:** Creación de `ThemeContractTests.cs` y adaptación de contratos web y de anonimato con 100% de la suite de pruebas unitarias en verde.
+- **Estado:** ✅ **Completado y Verificado** (Fase 1/7 de la Épica Revista Lúdica · 2.530 tests unitarios en verde al 100%).
+- **Documento:** [`../increments/inc-113-tokens-paleta-editorial-plus-jakarta.md`](../increments/inc-113-tokens-paleta-editorial-plus-jakarta.md).
+
+
 
 

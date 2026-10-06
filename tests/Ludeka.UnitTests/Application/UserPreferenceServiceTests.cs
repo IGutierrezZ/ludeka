@@ -36,23 +36,23 @@ public class UserPreferenceServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetUserThemeAsync_ShouldReturnDefaultCharcoal_WhenUserHasNoPreference()
+    public async Task GetUserThemeAsync_ShouldReturnDefaultLight_WhenUserHasNoPreference()
     {
         // Act
         var theme = await _service.GetUserThemeAsync("usuario-nuevo");
 
         // Assert
-        Assert.Equal("charcoal", theme);
+        Assert.Equal("light", theme);
     }
 
     [Fact]
-    public async Task GetUserThemeAsync_ShouldReturnDefaultCharcoal_WhenUserIdIsNullOrEmpty()
+    public async Task GetUserThemeAsync_ShouldReturnDefaultLight_WhenUserIdIsNullOrEmpty()
     {
         // Act
         var themeNull = await _service.GetUserThemeAsync(string.Empty);
 
         // Assert
-        Assert.Equal("charcoal", themeNull);
+        Assert.Equal("light", themeNull);
     }
 
     [Fact]
@@ -63,11 +63,11 @@ public class UserPreferenceServiceTests : IAsyncLifetime
 
         // Assert
         var theme = await _service.GetUserThemeAsync("jugador-1");
-        Assert.Equal("wood", theme);
+        Assert.Equal("light", theme);
 
         var dto = await _service.GetUserPreferenceAsync("jugador-1");
         Assert.Equal("jugador-1", dto.UserId);
-        Assert.Equal("wood", dto.PreferredTheme);
+        Assert.Equal("light", dto.PreferredTheme);
     }
 
     [Fact]
@@ -77,11 +77,11 @@ public class UserPreferenceServiceTests : IAsyncLifetime
         await _service.SetUserThemeAsync("jugador-2", "editorial");
 
         // Act
-        await _service.SetUserThemeAsync("jugador-2", "wood");
+        await _service.SetUserThemeAsync("jugador-2", "charcoal");
 
         // Assert
         var theme = await _service.GetUserThemeAsync("jugador-2");
-        Assert.Equal("wood", theme);
+        Assert.Equal("dark", theme);
     }
 
     [Fact]
@@ -92,12 +92,12 @@ public class UserPreferenceServiceTests : IAsyncLifetime
 
         // Assert
         var theme = await _service.GetUserThemeAsync("jugador-3");
-        Assert.Equal("wood", theme);
+        Assert.Equal("light", theme);
 
         // Act 2: Tema desconocido
         await _service.SetUserThemeAsync("jugador-3", "color-inexistente");
         var themeFallback = await _service.GetUserThemeAsync("jugador-3");
-        Assert.Equal("charcoal", themeFallback);
+        Assert.Equal("light", themeFallback);
     }
 
     [Fact]

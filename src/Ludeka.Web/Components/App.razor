@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="wood">
+<html lang="es" data-theme="light" class="light">
 
 <head>
     <meta charset="utf-8" />
@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://cf.geekdo-images.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600..700&family=JetBrains+Mono:wght@500;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&family=Fraunces:opsz,wght@9..144,600..700&family=JetBrains+Mono:wght@500;700&display=swap" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Ludeka.Web.styles.css"]" />
     <!-- Favicon & Touch Icons -->
@@ -22,7 +22,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <!-- PWA & Mobile Meta Tags (Incremento 16) -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#d97706" />
+    <meta name="theme-color" content="#C85A32" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -30,10 +30,18 @@
     <script>
         (function() {
             try {
-                // Sin identidad simulada: el tema se resuelve por usuario autenticado o por el tema global (por defecto 'wood').
+                // INC-113: Soporte zero-FOUC con resolución determinista light / dark
                 var activeUserId = localStorage.getItem('ludeka-active-user-id');
-                var theme = (activeUserId ? localStorage.getItem('ludeka-theme-' + activeUserId) : null) || localStorage.getItem('ludeka-theme') || 'wood';
+                var rawTheme = (activeUserId ? localStorage.getItem('ludeka-theme-' + activeUserId) : null) || localStorage.getItem('ludeka-theme') || 'light';
+                var theme = (rawTheme === 'dark' || rawTheme === 'charcoal' || rawTheme === 'tabletop' || rawTheme === 'midnight' || rawTheme === 'oscuro') ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                } else {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                }
             } catch (e) {}
         })();
     </script>
@@ -47,23 +55,37 @@
     <script>
         window.setLudekaTheme = function(theme, userId) {
             try {
-                localStorage.setItem('ludeka-theme', theme);
+                var normalized = (theme === 'dark' || theme === 'charcoal' || theme === 'tabletop' || theme === 'midnight' || theme === 'oscuro') ? 'dark' : 'light';
+                localStorage.setItem('ludeka-theme', normalized);
                 if (userId) {
-                    localStorage.setItem('ludeka-theme-' + userId, theme);
+                    localStorage.setItem('ludeka-theme-' + userId, normalized);
                     localStorage.setItem('ludeka-active-user-id', userId);
                 }
-                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-theme', normalized);
+                if (normalized === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                } else {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                }
             } catch (e) {}
         };
         window.getLudekaTheme = function(userId) {
             try {
                 if (userId) {
                     var userTheme = localStorage.getItem('ludeka-theme-' + userId);
-                    if (userTheme) return userTheme;
+                    if (userTheme) {
+                        return (userTheme === 'dark' || userTheme === 'charcoal' || userTheme === 'tabletop' || userTheme === 'midnight' || userTheme === 'oscuro') ? 'dark' : 'light';
+                    }
                 }
-                return localStorage.getItem('ludeka-theme') || 'wood';
+                var stored = localStorage.getItem('ludeka-theme');
+                if (stored) {
+                    return (stored === 'dark' || stored === 'charcoal' || stored === 'tabletop' || stored === 'midnight' || stored === 'oscuro') ? 'dark' : 'light';
+                }
+                return 'light';
             } catch (e) {
-                return 'wood';
+                return 'light';
             }
         };
         window.setActiveUserTheme = function(userId) {
@@ -72,8 +94,16 @@
                     localStorage.setItem('ludeka-active-user-id', userId);
                     var userTheme = localStorage.getItem('ludeka-theme-' + userId);
                     if (userTheme) {
-                        document.documentElement.setAttribute('data-theme', userTheme);
-                        return userTheme;
+                        var normalized = (userTheme === 'dark' || userTheme === 'charcoal' || userTheme === 'tabletop' || userTheme === 'midnight' || userTheme === 'oscuro') ? 'dark' : 'light';
+                        document.documentElement.setAttribute('data-theme', normalized);
+                        if (normalized === 'dark') {
+                            document.documentElement.classList.add('dark');
+                            document.documentElement.classList.remove('light');
+                        } else {
+                            document.documentElement.classList.add('light');
+                            document.documentElement.classList.remove('dark');
+                        }
+                        return normalized;
                     }
                 }
             } catch (e) {}
