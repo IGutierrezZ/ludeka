@@ -1,7 +1,7 @@
 # INC-118: Mi Ludoteca Completa (Cola Comunitaria, ADN Lúdico, Radar de Compra) y Modo Offline PWA
 
 ## Estado
-⏳ Planificado (Fase 6 del Rediseño Integral «Revista Lúdica»)
+✅ Verificado (Fase 6 del Rediseño Integral «Revista Lúdica»)
 
 ## Rama y Worktree Sugerido
 - **Rama:** `inc/rediseño-revista-ludica` (o rama atómica `inc/ludoteca-completa-radar-pwa-offline`)
