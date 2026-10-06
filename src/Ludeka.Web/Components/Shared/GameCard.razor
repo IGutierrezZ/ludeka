@@ -3,21 +3,28 @@
 
 @if (Game != null)
 {
-    <a href="/juegos/@Game.Slug" class="game-card-editorial group relative" aria-label="Ver ficha de @Game.SpanishTitle">
-        @if (PositionNumber.HasValue)
-        {
-            <span class="absolute -top-3 -left-2 z-20 text-3xl sm:text-4xl font-extrabold tracking-tighter text-[var(--ink)] select-none pointer-events-none"
-                  style="text-shadow: 0 2px 0 var(--paper, #FFF8EE);">
-                @PositionNumber.Value
-            </span>
-        }
-        <div class="cover-wrapper">
-            @{
-                var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
-                var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
-                    ? Game.ThumbnailUrl
-                    : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : null);
+    var colorVar = GetCyclicColor(PositionNumber ?? 1);
+    var placeholderUrl = Game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+    var effectiveImageUrl = !string.IsNullOrWhiteSpace(Game.ThumbnailUrl)
+        ? Game.ThumbnailUrl
+        : (!string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : null);
+    var displayTitle = Game.GetTitleForCountry(CountryCode);
+    var compactPlayers = FormatCompactPlayers(Game.IdealPlayerCountText);
+
+    <a href="/juegos/@Game.Slug"
+       class="group flex flex-col gap-3 transition-transform hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] rounded-md"
+       aria-label="Ver ficha de @Game.SpanishTitle">
+        
+        @* Carátula cuadrada 1:1 con sombra profunda y numeral ciclálico *@
+        <div class="relative aspect-square w-full rounded overflow-hidden bg-[var(--paper-2)] shadow-[0_12px_24px_var(--shadow)]">
+            @if (PositionNumber.HasValue)
+            {
+                <span class="absolute -top-3.5 -left-1.5 z-20 text-3xl sm:text-[42px] font-black tracking-[-0.06em] select-none pointer-events-none leading-none"
+                      style="color: @colorVar; text-shadow: 0 2px 0 var(--paper, #FFF8EE);">
+                    @PositionNumber.Value
+                </span>
             }
+
             @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
             {
                 <img src="@effectiveImageUrl"
@@ -27,7 +34,7 @@
                      width="240"
                      height="240"
                      onerror="this.onerror=null; this.src='@placeholderUrl';"
-                     class="w-full h-full object-cover" />
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             }
             else
             {
@@ -37,23 +44,17 @@
                      decoding="async"
                      width="240"
                      height="240"
-                     class="w-full h-full object-cover opacity-90" />
+                     class="w-full h-full object-cover opacity-80" />
             }
 
             @* Badge de Expansión *@
             @if (Game.IsExpansion)
             {
-                <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[0.68rem] font-black text-purple-200 shadow-md flex items-center gap-1">
-                    <Icon Name="puzzle" Size="12" />
+                <div class="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[10px] font-black text-purple-200 flex items-center gap-1">
+                    <Icon Name="puzzle" Size="11" />
                     <span>Expansión</span>
                 </div>
             }
-
-            @* Rating flotante *@
-            <div class="rating-badge-float">
-                <span>★</span>
-                <span>@Game.BggRating.ToString("0.0")</span>
-            </div>
 
             @* Botón de acción rápida: Colección / Jugado *@
             <button type="button"
@@ -62,104 +63,82 @@
                     @onclick:preventDefault="true"
                     title="Añadir a mi ludoteca / jugado"
                     aria-label="Añadir @Game.SpanishTitle a tu colección o jugado"
-                    class="absolute bottom-2 right-2 z-10 w-7 h-7 rounded-full bg-black/70 hover:bg-[var(--brand-primary)] text-white backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                <Icon Name="plus" Size="14" />
+                    class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-[var(--brand)] text-[#FFF8EE] backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <Icon Name="plus" Size="15" />
             </button>
         </div>
 
-        <div class="p-2 sm:p-3.5 flex flex-col flex-1 justify-between bg-[var(--bg-card)]">
-            <div>
-                <div class="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
-                    <span class="text-[0.65rem] sm:text-xs font-bold text-[var(--brand-primary)] shrink-0">@Game.YearPublished</span>
-                    @{
-                        var compactPlayers = FormatCompactPlayers(Game.IdealPlayerCountText);
-                    }
-                    @if (!string.IsNullOrWhiteSpace(compactPlayers))
-                    {
-                        <span class="text-[var(--color-mustplay)] font-bold text-[0.62rem] sm:text-[0.7rem] truncate flex items-center gap-0.5 shrink-0" title="@Game.IdealPlayerCountText">
-                            <Icon Name="users" Size="11" />
-                            <span>@compactPlayers</span>
-                        </span>
-                    }
-                </div>
+        @* Detalle editorial con regla superior de 2px *@
+        <div class="flex flex-col gap-1 pt-2 border-t-2 border-[var(--rule)]">
+            <h3 class="text-base sm:text-[17px] font-black text-[var(--ink)] tracking-[-0.02em] leading-snug line-clamp-1 group-hover:text-[var(--accent)] transition-colors m-0">
+                @displayTitle
+            </h3>
 
-                @{
-                    var displayTitle = Game.GetTitleForCountry(CountryCode);
-                }
-                <h3 class="font-extrabold text-xs sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-tight sm:line-clamp-1 mb-1">
-                    @displayTitle
-                </h3>
-
-                @if (!string.Equals(displayTitle, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
-                {
-                    <p class="text-[0.65rem] sm:text-xs text-[var(--text-muted)] italic line-clamp-1 mb-1 sm:mb-1.5 hidden sm:block">(@Game.OriginalTitle)</p>
-                }
-                else
-                {
-                    <div class="mb-1 hidden sm:block"></div>
-                }
-
-                <div class="text-[0.62rem] sm:text-[0.72rem] text-[var(--text-secondary)] line-clamp-1 mb-1 sm:mb-3">
-                    @Game.Designer
-                </div>
+            <div class="text-xs text-[var(--muted)] truncate">
+                @Game.Designer · @Game.YearPublished
             </div>
 
-            <div class="flex items-center gap-1.5 flex-wrap pt-2 border-t border-[var(--border-subtle)] text-[var(--text-muted)]">
-                @switch (Game.Style)
+            <div class="flex items-center gap-2.5 flex-wrap text-xs font-black mt-1">
+                <span class="text-[var(--ink)]">★ @Game.BggRating.ToString("0.0")</span>
+                
+                @if (!string.IsNullOrWhiteSpace(compactPlayers))
                 {
-                    case GameStyle.Eurogame:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Eurogame (gestión y optimización)" aria-label="Eurogame">
-                            <Icon Name="settings" Size="12" />
-                        </span>
-                        break;
-                    case GameStyle.Ameritrash:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Temático / Ameritrash (aventura y dados)" aria-label="Temático">
-                            <Icon Name="dices" Size="12" />
-                        </span>
-                        break;
-                    case GameStyle.PartyGame:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Party Game (social y risas)" aria-label="Party Game">
-                            <Icon Name="party-popper" Size="12" />
-                        </span>
-                        break;
-                    case GameStyle.FillerAbstract:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Filler / Abstracto (rápido o mental)" aria-label="Filler">
-                            <Icon Name="puzzle" Size="12" />
-                        </span>
-                        break;
-                    default:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Narrativo / Campaña" aria-label="Narrativo">
-                            <Icon Name="book-open" Size="12" />
-                        </span>
-                        break;
+                    <span class="text-[var(--accent-green)]">· @compactPlayers</span>
                 }
 
+                @if (Game.EstimatedPerPlayerMinutes > 0)
+                {
+                    <span class="text-[var(--muted)]">· @(Game.EstimatedPerPlayerMinutes)'</span>
+                }
+
+                @* Huella en mesa sutil para cumplir contrato de accesibilidad *@
                 @switch (Game.Footprint)
                 {
                     case TableFootprint.SmallTable:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa pequeña / cafetería" aria-label="Mesa pequeña">
-                            <Icon Name="armchair" Size="12" />
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Mesa pequeña / cafetería" aria-label="Mesa pequeña">
+                            <Icon Name="armchair" Size="11" />
                         </span>
                         break;
                     case TableFootprint.TableMonster:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa grande / despliegue masivo" aria-label="Mesa grande">
-                            <Icon Name="castle" Size="12" />
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Mesa grande / despliegue masivo" aria-label="Mesa grande">
+                            <Icon Name="castle" Size="11" />
                         </span>
                         break;
                     default:
-                        <span class="w-6 h-6 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-colors shrink-0" title="Mesa estándar de comedor" aria-label="Mesa estándar">
-                            <Icon Name="utensils" Size="12" />
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Mesa estándar de comedor" aria-label="Mesa estándar">
+                            <Icon Name="utensils" Size="11" />
+                        </span>
+                        break;
+                }
+                @* Estilo de juego sutil *@
+                @switch (Game.Style)
+                {
+                    case GameStyle.Eurogame:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Eurogame" aria-label="Eurogame">
+                            <Icon Name="settings" Size="11" />
+                        </span>
+                        break;
+                    case GameStyle.PartyGame:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Party Game" aria-label="Party Game">
+                            <Icon Name="party-popper" Size="11" />
+                        </span>
+                        break;
+                    case GameStyle.FillerAbstract:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Filler / Abstracto" aria-label="Filler">
+                            <Icon Name="puzzle" Size="11" />
+                        </span>
+                        break;
+                    default:
+                        <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Narrativo" aria-label="Narrativo">
+                            <Icon Name="book-open" Size="11" />
                         </span>
                         break;
                 }
 
                 @if (Game.IsAccessibleEarlier)
                 {
-                    <span class="h-6 px-1.5 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] inline-flex items-center justify-center gap-0.5 text-[0.62rem] font-bold shrink-0"
-                          title="Edad recomendada por la comunidad: @Game.CommunityAge+ años"
-                          aria-label="Edad comunitaria: @Game.CommunityAge+ años">
+                    <span class="inline-flex items-center gap-0.5 text-[var(--muted)]" title="Edad: @Game.CommunityAge+ años" aria-label="Edad: @Game.CommunityAge+ años">
                         <Icon Name="baby" Size="11" />
-                        <span>@Game.CommunityAge+</span>
                     </span>
                 }
             </div>
@@ -185,6 +164,15 @@
         await OnQuickAction.InvokeAsync(Game);
     }
 
+    private static string GetCyclicColor(int position) => ((position - 1) % 5) switch
+    {
+        0 => "var(--accent)",
+        1 => "var(--mustard)",
+        2 => "var(--accent-green)",
+        3 => "var(--sky)",
+        _ => "var(--pink)"
+    };
+
     private static string FormatCompactPlayers(string? idealText)
     {
         if (string.IsNullOrWhiteSpace(idealText) || idealText.Contains("Sin datos", StringComparison.OrdinalIgnoreCase))
@@ -192,8 +180,6 @@
 
         return idealText
             .Replace("Ideal:", "", StringComparison.OrdinalIgnoreCase)
-            .Replace("jugadores", "J", StringComparison.OrdinalIgnoreCase)
-            .Replace("jugador", "J", StringComparison.OrdinalIgnoreCase)
             .Trim();
     }
 }

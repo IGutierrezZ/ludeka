@@ -19,319 +19,386 @@
 
 @if (_isLoading)
 {
-    <div class="container-ludeka py-20 text-center text-[var(--text-muted)]">
-        <div class="inline-block animate-spin mb-3">
-            <Icon Name="dices" Size="36" />
+    <div class="py-24 text-center text-[var(--muted)]">
+        <div class="inline-block animate-spin text-[var(--brand)] mb-3">
+            <Icon Name="dices" Size="40" />
         </div>
         <p class="text-base font-semibold">Cargando ficha del sorteo...</p>
     </div>
 }
 else if (_giveaway == null)
 {
-    <div class="container-ludeka py-20 text-center max-w-lg mx-auto">
-        <span class="inline-block mb-4 text-[var(--text-muted)]">
-            <Icon Name="gift" Size="40" />
+    <div class="py-20 text-center max-w-lg mx-auto px-4">
+        <span class="inline-block mb-4 text-[var(--muted)]">
+            <Icon Name="radar" Size="44" />
         </span>
-        <h1 class="text-2xl font-black text-[var(--text-primary)] mb-2">Sorteo no encontrado</h1>
-        <p class="text-sm text-[var(--text-muted)] mb-6">
+        <h1 class="text-3xl font-black text-[var(--ink)] mb-2">Sorteo no encontrado</h1>
+        <p class="text-sm text-[var(--muted)] mb-6">
             El sorteo que buscas no existe o ha sido retirado de nuestra plataforma.
         </p>
-        <a href="/sorteos" class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs transition-opacity shadow-sm inline-flex items-center gap-1.5">
-            <span>&larr;</span> Volver al radar de sorteos
+        <a href="/sorteos" class="h-11 px-6 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-2 shadow-sm">
+            <span>&larr;</span>
+            <span>Volver al radar de sorteos</span>
         </a>
     </div>
 }
 else
 {
-    @* Barra de navegación superior y acciones de moderación *@
-    <div class="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <div class="flex items-center gap-4">
-                <a href="/sorteos" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
-                    <span>&larr;</span> Volver al radar de sorteos
+    @* HERO MOSTAZA DE CLAUDE DESIGN *@
+    <section data-screen-label="Ficha de sorteo" class="bg-[#FFC145] text-[#22180F] border-b-[3px] border-[var(--rule)]">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-10 flex flex-col gap-6 sm:gap-8">
+            @* Barra superior de navegación y acciones de moderación *@
+            <div class="flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm font-extrabold">
+                <a href="/sorteos" class="hover:underline inline-flex items-center gap-1.5 text-[#22180F]">
+                    <span>&larr;</span>
+                    <span>Volver al radar de sorteos</span>
                 </a>
-            </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-                @if (_giveaway.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_giveaway.InstagramPermalink))
-                {
-                    <a href="@_giveaway.InstagramPermalink"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       title="Ver publicación oficial en Instagram"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="camera" Size="12" /> Publicación en Instagram <span>↗</span>
-                    </a>
-                }
-                else if (CanModerate)
-                {
-                    <a href="/admin/instagram?sourceType=Giveaway&sourceId=@_giveaway.Id"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="camera" Size="12" /> Crear Post Instagram
-                    </a>
-                }
-
-                @if (CanModerate)
-                {
-                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
-                        <button type="button"
-                                @onclick="OpenEditModal"
-                                title="Editar datos y carátula del sorteo"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="pen-line" Size="12" /> Editar Sorteo
-                        </button>
-                        <button type="button"
-                                @onclick="() => _isDeleteConfirmOpen = true"
-                                title="Eliminar este sorteo"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-error-bg)] hover:bg-[var(--state-error-border)] text-[var(--state-error)] border border-[var(--state-error-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="trash-2" Size="12" /> Eliminar
-                        </button>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    @* Contenedor Editorial Principal *@
-    <div class="container-ludeka py-6 sm:py-10">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-            @* Columna Izquierda: Cartel del Sorteo y Acción Principal *@
-            <div class="md:col-span-5 lg:col-span-5 space-y-4">
-                <div class="rail-card flex flex-col p-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl shadow-md overflow-hidden relative">
-                    <div class="relative w-full aspect-square bg-[var(--bg-surface-elevated)] rounded-xl overflow-hidden">
-                        @if (string.IsNullOrWhiteSpace(_giveaway.ThumbnailUrl))
-                        {
-                            <DefaultImage Domain="DefaultImageDomain.Sorteo"
-                                          Alt="@($"Cartel del sorteo {_giveaway.Title}")"
-                                          CssClass="w-full h-full object-cover" />
-                        }
-                        else
-                        {
-                            <img src="@_giveaway.ThumbnailUrl"
-                                 alt="Cartel oficial de @_giveaway.Title"
-                                 width="600"
-                                 height="600"
-                                 loading="lazy"
-                                 decoding="async"
-                                 onerror="this.onerror=null; this.src='/images/defaults/sorteo-default.svg';"
-                                 class="w-full h-full object-cover" />
-                        }
-
-                        @* Badges flotantes en la carátula *@
-                        <div class="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
-                            @if (_giveaway.IsPromoted)
-                            {
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-black bg-[var(--state-warning)] text-[var(--on-brand)] shadow-md flex items-center gap-1">
-                                    <Icon Name="star" Size="12" /> Promocionado
-                                </span>
-                            }
-                            @if (_giveaway.IsCommunityExclusive)
-                            {
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-black bg-[var(--brand-primary)] text-[var(--on-brand)] shadow-md flex items-center gap-1">
-                                    <Icon Name="gift" Size="12" /> Exclusivo Comunidad
-                                </span>
-                            }
-                        </div>
-
-                        <div class="absolute bottom-3 right-3 z-10 px-3 py-1 rounded-lg text-xs font-bold shadow-md border @GetCountdownBadgeClass(_giveaway.IsExpired, _giveaway.RemainingTimeText)">
-                            @_giveaway.RemainingTimeText
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if (_giveaway.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_giveaway.InstagramPermalink))
+                    {
+                        <a href="@_giveaway.InstagramPermalink"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="h-8 px-3 rounded-full bg-[#22180F]/10 hover:bg-[#22180F]/20 text-[#22180F] text-xs font-bold transition-colors inline-flex items-center gap-1.5">
+                            <Icon Name="camera" Size="12" />
+                            <span>Instagram ↗</span>
+                        </a>
+                    }
 
                     @if (CanModerate)
                     {
-                        <div class="pt-2 px-1 text-center">
-                            <button type="button"
-                                    @onclick="OpenEditModal"
-                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                <Icon Name="pen-line" Size="12" /> Cambiar o subir carátula
-                            </button>
-                        </div>
+                        <button type="button"
+                                @onclick="OpenEditModal"
+                                class="h-8 px-3 rounded-full bg-[#22180F] text-[#FFC145] text-xs font-extrabold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shadow-xs">
+                            <Icon Name="pen-line" Size="12" />
+                            <span>Editar</span>
+                        </button>
+                        <button type="button"
+                                @onclick="() => _isDeleteConfirmOpen = true"
+                                class="h-8 px-3 rounded-full bg-red-700 text-white text-xs font-extrabold hover:bg-red-800 transition-colors inline-flex items-center gap-1.5 shadow-xs">
+                            <Icon Name="trash-2" Size="12" />
+                            <span>Eliminar</span>
+                        </button>
                     }
                 </div>
-
-                @* Botón de Acción Principal: Participar *@
-                <div class="space-y-2">
-                    <a href="@_giveaway.Url"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="w-full py-3.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-sm sm:text-base text-center flex items-center justify-center gap-2 shadow-md transition-all">
-                        <span>Participar en el sorteo oficial</span>
-                        <span class="text-base">&rarr;</span>
-                    </a>
-                    <p class="text-center text-[0.72rem] text-[var(--text-muted)] flex items-center justify-center gap-1">
-                        <Icon Name="check-circle" Size="12" />
-                        <span>Enlace oficial verificado en @_giveaway.Platform</span>
-                    </p>
-                </div>
-
-                @if (_giveaway.IsExpired)
-                {
-                    <div class="p-4 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs flex items-start gap-2.5">
-                        <Icon Name="clock" Size="16" Class="shrink-0 mt-0.5" />
-                        <div>
-                            <strong class="font-bold block">Sorteo finalizado</strong>
-                            <span>Este sorteo concluyó el @_giveaway.DeadlineAt.ToString("dd/MM/yyyy 'a las' HH:mm"). La participación oficial puede estar cerrada.</span>
-                        </div>
-                    </div>
-                }
             </div>
 
-            @* Columna Derecha: Metadatos, Organizadores y Juego Asociado *@
-            <div class="md:col-span-7 lg:col-span-7 space-y-6">
-                @* Badges de Cabecera *@
-                <div class="flex items-center gap-2 flex-wrap">
-                    @* Badge Territorial / Bandera *@
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                        <span>@CountryCatalog.GetFlag(_giveaway.Country)</span>
-                        <span>@(_giveaway.IsInternational ? "Internacional (Válido para todos)" : _giveaway.Country)</span>
-                    </span>
+            @* Cuadrícula Hero: Información a la izquierda, Polaroid a la derecha *@
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div class="lg:col-span-7 flex flex-col gap-5 sm:gap-6 min-w-0">
+                    @* Badges de urgencia y plataforma *@
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-3 py-1 rounded-full bg-[#22180F] text-[#FFC145] text-xs font-black">
+                            @(_giveaway.IsExpired ? "Sorteo finalizado" : _giveaway.RemainingTimeText)
+                        </span>
+                        <span class="px-3 py-1 rounded-full border-1.5 border-[#22180F] bg-transparent text-[#22180F] text-xs font-extrabold flex items-center gap-1.5">
+                            <Icon Name="@GetPlatformIcon(_giveaway.Platform)" Size="12" />
+                            <span>@_giveaway.Platform · @CountryCatalog.GetFlag(_giveaway.Country) @(_giveaway.IsInternational ? "Internacional" : _giveaway.Country)</span>
+                        </span>
+                    </div>
 
-                    @* Badge de Plataforma *@
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                        <Icon Name="@GetPlatformIcon(_giveaway.Platform)" Size="13" />
-                        <span>@_giveaway.Platform</span>
-                    </span>
-
-                    @* Badge de Countdown *@
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 @GetCountdownBadgeClass(_giveaway.IsExpired, _giveaway.RemainingTimeText)">
-                        <Icon Name="timer" Size="13" />
-                        <span>@_giveaway.RemainingTimeText</span>
-                    </span>
-                </div>
-
-                @* Título *@
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
+                    @* Título gigante *@
+                    <h1 class="text-4xl sm:text-6xl lg:text-[72px] font-black leading-[0.9] tracking-[-0.05em] m-0 text-balance">
                         @_giveaway.Title
                     </h1>
-                </div>
 
-                @* Bloque de Organizador y Colaboradores *@
-                <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                    <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                        Convocatoria y Organización
-                    </h2>
+                    @* Organizador y cierre *@
+                    <span class="text-sm sm:text-base font-bold leading-relaxed text-[#22180F]/90">
+                        Organiza <b>@_giveaway.Organizer</b> · cierra el <b>@_giveaway.DeadlineAt.ToString("dd/MM/yyyy 'a las' HH:mm") UTC</b>
+                    </span>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="flex items-start gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
-                                <Icon Name="user" Size="16" />
-                            </div>
-                            <div>
-                                <span class="text-[0.68rem] text-[var(--text-muted)] block">Organizador oficial</span>
-                                <strong class="text-sm font-extrabold text-[var(--text-primary)]">@_giveaway.Organizer</strong>
-                            </div>
-                        </div>
-
-                        @if (!string.IsNullOrWhiteSpace(_giveaway.Collaborator))
-                        {
-                            <div class="flex items-start gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
-                                    <Icon Name="users" Size="16" />
-                                </div>
-                                <div>
-                                    <span class="text-[0.68rem] text-[var(--text-muted)] block">En colaboración con</span>
-                                    <strong class="text-sm font-extrabold text-[var(--text-primary)]">@_giveaway.Collaborator</strong>
-                                </div>
-                            </div>
+                    @* Cajas de cuenta atrás gigante en negro *@
+                    <div class="flex gap-2 sm:gap-3 pt-1">
+                        @{
+                            var cd = GetCountdownBlocks(_giveaway);
                         }
-                    </div>
-                </div>
-
-                @* Tabla / Grid de Datos y Fechas Clave *@
-                <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                    <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                        Detalles del Sorteo
-                    </h2>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] block">Fecha límite de participación</span>
-                            <span class="font-bold text-[var(--text-primary)]">@_giveaway.DeadlineAt.ToString("dd/MM/yyyy HH:mm") UTC</span>
+                        <div class="w-20 sm:w-26 p-3 rounded-2xl bg-[#22180F] text-[#FFF8EE] flex flex-col items-center justify-center gap-0.5 shadow-sm">
+                            <b class="text-3xl sm:text-4xl font-black tabular-nums tracking-tight text-[#FFC145]">
+                                @cd.Days
+                            </b>
+                            <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest opacity-80">
+                                @(cd.Days == 1 ? "DÍA" : "DÍAS")
+                            </span>
                         </div>
-
-                        <div class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] block">Registrado en Ludeka</span>
-                            <span class="font-bold text-[var(--text-primary)]">@_giveaway.CreatedAt.ToString("dd/MM/yyyy")</span>
+                        <div class="w-20 sm:w-26 p-3 rounded-2xl bg-[#22180F] text-[#FFF8EE] flex flex-col items-center justify-center gap-0.5 shadow-sm">
+                            <b class="text-3xl sm:text-4xl font-black tabular-nums tracking-tight text-[#FFF8EE]">
+                                @cd.Hours
+                            </b>
+                            <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest opacity-80">
+                                HORAS
+                            </span>
                         </div>
-
-                        <div class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] block">Ámbito territorial</span>
-                            <span class="font-bold text-[var(--text-primary)]">@CountryCatalog.GetFlag(_giveaway.Country) @(_giveaway.IsInternational ? "Internacional" : _giveaway.Country)</span>
-                        </div>
-
-                        <div class="p-2.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] block">Plataforma</span>
-                            <span class="font-bold text-[var(--text-primary)]">@_giveaway.Platform</span>
+                        <div class="w-20 sm:w-26 p-3 rounded-2xl bg-[#22180F] text-[#FFF8EE] flex flex-col items-center justify-center gap-0.5 shadow-sm">
+                            <b class="text-3xl sm:text-4xl font-black tabular-nums tracking-tight text-[#FFF8EE]">
+                                @cd.Minutes
+                            </b>
+                            <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest opacity-80">
+                                MINUTOS
+                            </span>
                         </div>
                     </div>
-                </div>
 
-                @* Juego Asociado (si existe) *@
-                @if (_associatedGame != null)
-                {
-                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                        <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
-                            <Icon Name="dices" Size="14" />
-                            <span>Juego de Mesa Asociado</span>
-                        </h2>
-
-                        <div class="flex items-center gap-4">
-                            <a href="/juegos/@_associatedGame.Slug" class="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
-                                @if (!string.IsNullOrWhiteSpace(_associatedGame.ThumbnailUrl))
-                                {
-                                    <img src="@_associatedGame.ThumbnailUrl"
-                                         alt="@_associatedGame.SpanishTitle"
-                                         width="80"
-                                         height="80"
-                                         loading="lazy"
-                                         decoding="async"
-                                         class="w-full h-full object-cover" />
-                                }
-                                else
-                                {
-                                    <img src="/images/game-placeholder.svg"
-                                         alt="@_associatedGame.SpanishTitle"
-                                         width="80"
-                                         height="80"
-                                         loading="lazy"
-                                         decoding="async"
-                                         class="w-full h-full object-cover opacity-80" />
-                                }
-                            </a>
-
-                            <div class="flex-1 min-w-0">
-                                <a href="/juegos/@_associatedGame.Slug" class="text-base font-extrabold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
-                                    @_associatedGame.SpanishTitle
-                                </a>
-                                <p class="text-xs text-[var(--text-secondary)] mt-0.5">
-                                    @_associatedGame.YearPublished &bull; @_associatedGame.Designer
-                                </p>
-                                <div class="mt-2">
-                                    <a href="/juegos/@_associatedGame.Slug" class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                        <span>Ver ficha completa del juego</span>
-                                        <span>&rarr;</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else if (!string.IsNullOrWhiteSpace(_giveaway.GameTitle))
-                {
-                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <Icon Name="dices" Size="16" Class="text-[var(--brand-primary)]" />
-                            <span class="text-xs font-bold text-[var(--text-primary)]">Juego: @_giveaway.GameTitle</span>
-                        </div>
-                        <a href="/catalogo?q=@Uri.EscapeDataString(_giveaway.GameTitle)" class="text-xs font-bold text-[var(--brand-primary)] hover:underline">
-                            Buscar en catálogo &rarr;
+                    @* Botones CTA *@
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        <a href="@_giveaway.Url"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="h-13 sm:h-14 px-7 sm:px-8 rounded-full bg-[#22180F] text-[#FFC145] font-black text-sm sm:text-base hover:opacity-95 transition-opacity inline-flex items-center gap-2 shadow-md">
+                            <span>Participar en el sorteo oficial</span>
+                            <span>↗</span>
+                        </a>
+                        <a href="/sorteos"
+                           class="h-13 sm:h-14 px-6 rounded-full border-2 border-[#22180F] bg-transparent text-[#22180F] font-extrabold text-xs sm:text-sm hover:bg-[#22180F]/5 transition-colors inline-flex items-center gap-1.5">
+                            Ver otros sorteos
                         </a>
                     </div>
-                }
+                </div>
+
+                @* Polaroid destacada de Claude Design con Sello Circular *@
+                <div class="lg:col-span-5 flex justify-center lg:justify-end">
+                    <div class="relative w-full max-w-[380px] bg-[#FFF8EE] text-[#22180F] p-4 pb-6 rounded shadow-[0_30px_50px_rgba(34,24,15,0.3)] rotate-[2.5deg] flex flex-col gap-3 group">
+                        <div class="w-full aspect-square bg-[#EFE4D6] rounded-sm overflow-hidden relative">
+                            @if (string.IsNullOrWhiteSpace(_giveaway.ThumbnailUrl))
+                            {
+                                <DefaultImage Domain="DefaultImageDomain.Sorteo"
+                                              Alt="@($"Cartel del sorteo {_giveaway.Title}")"
+                                              CssClass="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <img src="@_giveaway.ThumbnailUrl"
+                                     alt="Cartel oficial de @_giveaway.Title"
+                                     width="600"
+                                     height="600"
+                                     loading="lazy"
+                                     decoding="async"
+                                     onerror="this.onerror=null; this.src='/images/defaults/sorteo-default.svg';"
+                                     class="w-full h-full object-cover" />
+                            }
+                        </div>
+
+                        <div class="flex justify-between items-center gap-2 pt-1 text-[#22180F]">
+                            <b class="text-base sm:text-lg font-black truncate">
+                                @(!string.IsNullOrWhiteSpace(_giveaway.GameTitle) ? _giveaway.GameTitle : _giveaway.Title)
+                            </b>
+                            <span class="text-xs font-extrabold text-[#6B5848] shrink-0">
+                                @CountryCatalog.GetFlag(_giveaway.Country) @(_giveaway.IsInternational ? "Internacional" : _giveaway.Country)
+                            </span>
+                        </div>
+
+                        @if (CanModerate)
+                        {
+                            <div class="pt-1 text-center">
+                                <button type="button"
+                                        @onclick="OpenEditModal"
+                                        class="text-xs font-bold text-[var(--brand)] hover:underline inline-flex items-center gap-1">
+                                    <Icon Name="pen-line" Size="12" />
+                                    <span>Cambiar o subir carátula</span>
+                                </button>
+                            </div>
+                        }
+
+                        @* Sello circular superpuesto en esquina: Verificado por Ludeka *@
+                        <div class="absolute -right-3 -top-3 sm:-right-4 sm:-top-4 w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#C9481C] text-[#FFF8EE] flex flex-col items-center justify-center text-center rotate-[10deg] shadow-lg pointer-events-none p-2 border-2 border-[#FFF8EE]/20">
+                            <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider">Verificado</span>
+                            <b class="text-sm sm:text-base font-black leading-tight">por Ludeka</b>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
+
+    @* CUERPO EDITORIAL PRINCIPAL DE CLAUDE DESIGN *@
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-10 sm:py-16 flex flex-col lg:flex-row gap-12 lg:gap-16">
+        @* Columna Principal de Secciones Editoriales *@
+        <div class="flex-1 min-w-0 flex flex-col gap-12 sm:gap-14">
+            @* 01 Cómo participar *@
+            <section class="flex flex-col gap-4">
+                <div class="flex items-baseline gap-4">
+                    <b class="text-4xl sm:text-5xl font-black leading-none tracking-[-0.06em] text-[var(--accent)]">01</b>
+                    <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)] m-0">Cómo participar</h2>
+                </div>
+
+                <div class="flex flex-col divide-y divide-[var(--line)] border-t-[3px] border-[var(--rule)]">
+                    <div class="flex items-center gap-4 py-3.5">
+                        <b class="w-10 h-10 shrink-0 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center text-base font-black">1</b>
+                        <span class="text-sm sm:text-base font-bold text-[var(--ink)] leading-snug">
+                            Accede a la publicación oficial mediante el enlace verificado de participación.
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-4 py-3.5">
+                        <b class="w-10 h-10 shrink-0 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center text-base font-black">2</b>
+                        <span class="text-sm sm:text-base font-bold text-[var(--ink)] leading-snug">
+                            Cumple las condiciones del organizador oficial (@_giveaway.Organizer en @_giveaway.Platform).
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-4 py-3.5">
+                        <b class="w-10 h-10 shrink-0 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center text-base font-black">3</b>
+                        <span class="text-sm sm:text-base font-bold text-[var(--ink)] leading-snug">
+                            Atento al cierre el @_giveaway.DeadlineAt.ToString("dd/MM/yyyy") para el sorteo de ganadores.
+                        </span>
+                    </div>
+                </div>
+
+                <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed m-0 pt-1">
+                    Nota comunitaria: Ludeka recopila e indexa oportunidades del sector lúdico. No organizamos los sorteos de terceros ni solicitamos pagos o registros privados para participar.
+                </p>
+            </section>
+
+            @* 02 Condiciones *@
+            <section class="flex flex-col gap-4">
+                <div class="flex items-baseline gap-4">
+                    <b class="text-4xl sm:text-5xl font-black leading-none tracking-[-0.06em] text-[#FFC145]">02</b>
+                    <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)] m-0">Condiciones</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
+                    <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Ámbito territorial</span>
+                        <b class="text-base text-[var(--ink)] font-bold">
+                            @CountryCatalog.GetFlag(_giveaway.Country) @(_giveaway.IsInternational ? "Internacional (Todos los países)" : _giveaway.Country)
+                        </b>
+                    </div>
+
+                    <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Plataforma</span>
+                        <b class="text-base text-[var(--ink)] font-bold">@_giveaway.Platform</b>
+                    </div>
+
+                    <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Fecha de Cierre</span>
+                        <b class="text-base text-[var(--ink)] font-bold">@_giveaway.DeadlineAt.ToString("dd/MM/yyyy HH:mm") UTC</b>
+                    </div>
+
+                    <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Organizador</span>
+                        <b class="text-base text-[var(--ink)] font-bold">@_giveaway.Organizer</b>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_giveaway.Collaborator))
+                    {
+                        <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                            <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Colaborador</span>
+                            <b class="text-base text-[var(--ink)] font-bold">@_giveaway.Collaborator</b>
+                        </div>
+                    }
+
+                    <div class="flex flex-col gap-1 pt-3 border-t border-[var(--line)]">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Estado actual</span>
+                        <b class="text-base font-bold @(_giveaway.IsExpired ? "text-red-600" : "text-[#1B7D52]")">
+                            @(_giveaway.IsExpired ? "Concluido" : "Vigente y activo")
+                        </b>
+                    </div>
+                </div>
+            </section>
+
+            @* 03 Fiabilidad *@
+            <section class="flex flex-col gap-4">
+                <div class="flex items-baseline gap-4">
+                    <b class="text-4xl sm:text-5xl font-black leading-none tracking-[-0.06em] text-[var(--accent-green)]">03</b>
+                    <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)] m-0">Fiabilidad</h2>
+                </div>
+
+                <div class="flex flex-col gap-3 pt-2">
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 shrink-0 rounded-full bg-[#E5F7ED] text-[#1B7D52] flex items-center justify-center font-black text-xs mt-0.5">
+                            ✓
+                        </span>
+                        <div class="flex flex-col gap-0.5">
+                            <b class="text-sm font-bold text-[var(--ink)]">Enlace verificado en fuente oficial</b>
+                            <span class="text-xs text-[var(--muted)] leading-relaxed">
+                                El sorteo enlaza directamente al canal oficial de la editorial o tienda promotora.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 shrink-0 rounded-full bg-[#E5F7ED] text-[#1B7D52] flex items-center justify-center font-black text-xs mt-0.5">
+                            ✓
+                        </span>
+                        <div class="flex flex-col gap-0.5">
+                            <b class="text-sm font-bold text-[var(--ink)]">Sin intermediarios ni registros de terceros</b>
+                            <span class="text-xs text-[var(--muted)] leading-relaxed">
+                                No recopilamos datos privados de participación ni cobramos comisiones.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 shrink-0 rounded-full bg-[#E5F7ED] text-[#1B7D52] flex items-center justify-center font-black text-xs mt-0.5">
+                            ✓
+                        </span>
+                        <div class="flex flex-col gap-0.5">
+                            <b class="text-sm font-bold text-[var(--ink)]">Comunidad y radar editorial Ludeka</b>
+                            <span class="text-xs text-[var(--muted)] leading-relaxed">
+                                Revisado activamente por la mesa fundadora para evitar campañas engañosas o caducadas.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        @* Barra Lateral Aside: El juego del premio *@
+        <aside class="w-full lg:w-[320px] shrink-0 flex flex-col gap-10">
+            @if (_associatedGame != null)
+            {
+                <div class="flex flex-col gap-3.5">
+                    <span class="text-xs font-black uppercase tracking-[0.14em] pb-2 border-b-[3px] border-[var(--rule)] text-[var(--ink)]">
+                        El juego del premio
+                    </span>
+
+                    <a href="/juegos/@_associatedGame.Slug" class="flex gap-3.5 items-center group">
+                        <div class="w-20 h-20 shrink-0 rounded overflow-hidden shadow-xs border border-black/5 -rotate-2 group-hover:rotate-0 transition-transform">
+                            @if (!string.IsNullOrWhiteSpace(_associatedGame.ThumbnailUrl))
+                            {
+                                <img src="@_associatedGame.ThumbnailUrl" alt="@_associatedGame.SpanishTitle" class="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <img src="/images/game-placeholder.svg" alt="@_associatedGame.SpanishTitle" class="w-full h-full object-cover opacity-80" />
+                            }
+                        </div>
+
+                        <div class="flex flex-col gap-1 min-w-0">
+                            <b class="text-base font-black text-[var(--ink)] tracking-tight leading-snug truncate group-hover:text-[var(--accent)] transition-colors">
+                                @_associatedGame.SpanishTitle
+                            </b>
+                            <span class="text-xs text-[var(--muted)]">@_associatedGame.YearPublished · @_associatedGame.Designer</span>
+                            <div class="text-xs font-bold flex items-center gap-1.5">
+                                <span class="text-[var(--ink)]">★ @_associatedGame.BggRating.ToString("0.0")</span>
+                                @if (_associatedGame.BggRank.HasValue && _associatedGame.BggRank.Value > 0)
+                                {
+                                    <span class="text-[#1B7D52]">· BGG #@_associatedGame.BggRank.Value</span>
+                                }
+                            </div>
+                        </div>
+                    </a>
+
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <a href="/juegos/@_associatedGame.Slug" class="h-9 px-4 rounded-full border border-[var(--line)] bg-[var(--card)] hover:border-[var(--ink)] text-[var(--ink)] font-bold text-xs inline-flex items-center transition-colors">
+                            Ver ficha del juego
+                        </a>
+                        <a href="/cuenta/ludoteca" class="h-9 px-4 rounded-full bg-[var(--inverse)] text-[var(--on-inverse)] font-bold text-xs inline-flex items-center hover:opacity-90 transition-opacity">
+                            Añadir a deseados
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <div class="p-6 rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] flex flex-col gap-3">
+                <span class="text-xs font-black uppercase tracking-wider text-[var(--muted)]">Radar Comunitario</span>
+                <b class="text-base font-black text-[var(--ink)]">¿Quieres explorar más sorteos activos?</b>
+                <p class="text-xs text-[var(--muted)] leading-relaxed m-0">
+                    Consulta el radar completo con filtros por país, plataforma y alertas de cierre inminente.
+                </p>
+                <a href="/sorteos" class="mt-1 h-10 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] text-xs font-black inline-flex items-center justify-center self-start hover:scale-105 active:scale-95 transition-transform shadow-xs">
+                    Ver todos los sorteos &rarr;
+                </a>
+            </div>
+        </aside>
     </div>
 }
 
@@ -344,7 +411,6 @@ else
                     OnClose="@(() => _isEditModalOpen = false)">
         <ChildContent>
             <div class="space-y-4 text-xs">
-                @* Título *@
                 <div>
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">Título del Sorteo *</label>
                     <input type="text"
@@ -353,7 +419,6 @@ else
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                 </div>
 
-                @* Organizador y Colaborador *@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="font-semibold text-[var(--text-secondary)] block mb-1">Organizador (Editorial / Tienda) *</label>
@@ -371,7 +436,6 @@ else
                     </div>
                 </div>
 
-                @* Enlace Oficial *@
                 <div>
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace Oficial al Sorteo *</label>
                     <input type="url"
@@ -380,7 +444,6 @@ else
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                 </div>
 
-                @* Plataforma y Ámbito Territorial *@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="font-semibold text-[var(--text-secondary)] block mb-1">Plataforma</label>
@@ -406,7 +469,6 @@ else
                     </div>
                 </div>
 
-                @* Fecha y Hora Límite *@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha Límite</label>
@@ -422,7 +484,6 @@ else
                     </div>
                 </div>
 
-                @* Reemplazo de Imagen de Portada *@
                 <div class="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
                     <label class="font-semibold text-[var(--text-secondary)] block">Imagen de Portada / Cartel</label>
 
@@ -460,7 +521,6 @@ else
                     </div>
                 </div>
 
-                @* Juego Asociado *@
                 <div>
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">Nombre del Juego Asociado (Opcional)</label>
                     <input type="text"
@@ -469,7 +529,6 @@ else
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                 </div>
 
-                @* Toggles de Promoción y Comunidad *@
                 <div class="space-y-2 pt-1">
                     <div class="flex items-center gap-2">
                         <input type="checkbox"
@@ -582,7 +641,6 @@ else
     private bool _isDeleting;
     private bool _isUploadingImage;
 
-    // Campos del formulario de edición
     private string _editTitle = string.Empty;
     private string _editOrganizer = string.Empty;
     private string? _editCollaborator;
@@ -792,6 +850,14 @@ else
         }
     }
 
+    private static (int Days, int Hours, int Minutes) GetCountdownBlocks(GiveawayDto giveaway)
+    {
+        if (giveaway.IsExpired) return (0, 0, 0);
+        var diff = giveaway.DeadlineAt - DateTimeOffset.UtcNow;
+        if (diff.TotalSeconds <= 0) return (0, 0, 0);
+        return ((int)diff.TotalDays, diff.Hours, diff.Minutes);
+    }
+
     private static string GetPlatformIcon(GiveawayPlatform platform) => platform switch
     {
         GiveawayPlatform.Instagram => "camera",
@@ -800,15 +866,4 @@ else
         GiveawayPlatform.Community => "dices",
         _ => "link"
     };
-
-    private static string GetCountdownBadgeClass(bool isExpired, string remainingText)
-    {
-        if (isExpired)
-            return "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-muted)]";
-
-        if (remainingText.Contains("horas", StringComparison.OrdinalIgnoreCase))
-            return "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)] animate-pulse";
-
-        return "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]";
-    }
 }

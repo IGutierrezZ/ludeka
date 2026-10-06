@@ -36,74 +36,161 @@ else if (_release == null)
         <p class="text-sm text-[var(--text-muted)] mb-6">
             La novedad o lanzamiento que buscas no existe o ha sido retirado del calendario.
         </p>
-        <a href="/novedades" class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs transition-opacity shadow-sm inline-flex items-center gap-1.5">
+        <a href="/novedades" class="px-5 py-2.5 rounded-full bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs transition-opacity shadow-sm inline-flex items-center gap-1.5">
             <span>&larr;</span> Volver al calendario de novedades
         </a>
     </div>
 }
 else
 {
-    @* Barra de navegación superior y accesos de moderación *@
-    <div class="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <div class="flex items-center gap-4">
-                <a href="/novedades" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
+    @* HERO INVERSO DE NOVEDAD EDITORIAL *@
+    <section class="bg-[var(--inverse)] text-[var(--on-inverse)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-6 sm:gap-8">
+            @* Barra de navegación y acciones de moderación *@
+            <div class="flex flex-wrap items-center justify-between gap-4 font-extrabold text-[13px]">
+                <a href="/novedades" class="text-white/80 hover:text-[#FFC145] transition-colors inline-flex items-center gap-1.5">
                     <span>&larr;</span> Volver al calendario de novedades
                 </a>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    @if (_release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_release.InstagramPermalink))
+                    {
+                        <a href="@_release.InstagramPermalink"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Ver publicación oficial en Instagram"
+                           class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5">
+                            <Icon Name="camera" Size="13" /> Instagram <span>↗</span>
+                        </a>
+                    }
+                    else if (CanModerate)
+                    {
+                        <a href="/admin/instagram?sourceType=WeeklyRelease&sourceId=@_release.Id"
+                           class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5">
+                            <Icon Name="camera" Size="13" /> Crear Post Instagram
+                        </a>
+                    }
+
+                    @if (CanModerate)
+                    {
+                        <div class="flex items-center gap-2 pl-2 border-l border-white/20">
+                            <button type="button"
+                                    @onclick="OpenEditModal"
+                                    title="Editar datos y carátula del lanzamiento"
+                                    class="px-3 py-1.5 rounded-full bg-[#FFC145] hover:bg-[#e6ad3e] text-[#22180F] font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="pen-line" Size="13" /> Editar Novedad
+                            </button>
+                            <button type="button"
+                                    @onclick="() => _isDeleteConfirmOpen = true"
+                                    title="Eliminar este lanzamiento"
+                                    class="px-3 py-1.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                                <Icon Name="trash-2" Size="13" /> Eliminar
+                            </button>
+                        </div>
+                    }
+                </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-                @if (_release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_release.InstagramPermalink))
-                {
-                    <a href="@_release.InstagramPermalink"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       title="Ver publicación oficial en Instagram"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="camera" Size="12" /> Publicación en Instagram <span>↗</span>
-                    </a>
-                }
-                else if (CanModerate)
-                {
-                    <a href="/admin/instagram?sourceType=WeeklyRelease&sourceId=@_release.Id"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="camera" Size="12" /> Crear Post Instagram
-                    </a>
-                }
-
-                @if (CanModerate)
-                {
-                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
-                        <button type="button"
-                                @onclick="OpenEditModal"
-                                title="Editar datos y carátula del lanzamiento"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="pen-line" Size="12" /> Editar Novedad
-                        </button>
-                        <button type="button"
-                                @onclick="() => _isDeleteConfirmOpen = true"
-                                title="Eliminar este lanzamiento"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-error-bg)] hover:bg-[var(--state-error-border)] text-[var(--state-error)] border border-[var(--state-error-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="trash-2" Size="12" /> Eliminar
-                        </button>
+            @* Grid Principal del Hero: Título, Métricas y Carátula Rotada *@
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div class="lg:col-span-7 flex flex-col gap-5 min-w-0">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-black shadow-sm flex items-center gap-1 @(_release.IsReprint ? "bg-white/20 text-white" : "bg-[#FFC145] text-[#22180F]")">
+                            @if (_release.IsReprint)
+                            {
+                                <Icon Name="refresh-cw" Size="12" /> <span>Reimpresión</span>
+                            }
+                            else
+                            {
+                                <Icon Name="sparkles" Size="12" /> <span>Novedad</span>
+                            }
+                        </span>
+                        <span class="px-3 py-1 rounded-full bg-transparent text-white text-xs font-extrabold border border-white/40 flex items-center gap-1">
+                            <Icon Name="building-2" Size="12" /> @_release.Publisher
+                        </span>
                     </div>
-                }
-            </div>
-        </div>
-    </div>
 
-    @* Contenedor Editorial Principal *@
-    <div class="container-ludeka py-6 sm:py-10">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-            @* Columna Izquierda: Carátula y Enlace CTA *@
-            <div class="md:col-span-5 lg:col-span-5 space-y-4">
-                <div class="rail-card flex flex-col p-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl shadow-md overflow-hidden relative">
-                    <div class="relative w-full aspect-square bg-[var(--bg-surface-elevated)] rounded-xl overflow-hidden">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[0.92] text-balance">
+                        @_release.Title
+                    </h1>
+
+                    @* Barra de Métricas Destacada *@
+                    <div class="flex flex-wrap gap-x-8 gap-y-4 py-4 border-t-[3px] border-[#FFC145] border-b border-white/20">
+                        <div class="flex flex-col">
+                            <b class="text-3xl sm:text-4xl font-black tracking-tight leading-none">
+                                @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.ToString("dd/MM") : "Pronto")
+                            </b>
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-white/70 mt-1">
+                                Salida · @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.ToString("yyyy") : "Calendario")
+                            </span>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <b class="text-3xl sm:text-4xl font-black tracking-tight leading-none text-[#FFC145]">
+                                @(_release.EstimatedPvp.HasValue ? $"{_release.EstimatedPvp.Value:0.00} €" : "Por definir")
+                            </b>
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-white/70 mt-1">
+                                Precio estimado
+                            </span>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <b class="text-3xl sm:text-4xl font-black tracking-tight leading-none">
+                                @(_release.IsReprint ? "Reimpresión" : "Nueva tirada")
+                            </b>
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-white/70 mt-1">
+                                Tipo de edición
+                            </span>
+                        </div>
+                    </div>
+
+                    @* Botones de Acción Hero *@
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        @if (!string.IsNullOrWhiteSpace(_release.SourceUrl))
+                        {
+                            <a href="@_release.SourceUrl"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="h-[52px] px-6 rounded-full bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-extrabold text-[15px] inline-flex items-center gap-2 shadow-lg transition-all">
+                                <span>Ir a la noticia oficial</span>
+                                <span>↗</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 text-xs text-white/80">
+                                <Icon Name="newspaper" Size="14" Class="text-[#FFC145]" />
+                                <span>Información catalogada directamente por el equipo editorial</span>
+                            </div>
+                            @if (CanModerate)
+                            {
+                                <button type="button"
+                                        @onclick="OpenEditModal"
+                                        class="h-[46px] px-5 rounded-full bg-[#FFC145] text-[#22180F] font-extrabold text-xs transition-transform hover:scale-105 inline-flex items-center gap-1.5 shadow-md">
+                                    <Icon Name="link" Size="13" />
+                                    <span>Añadir enlace oficial a la noticia</span>
+                                </button>
+                            }
+                        }
+
+                        @if (_associatedGame != null)
+                        {
+                            <a href="/juegos/@_associatedGame.Slug"
+                               class="h-[52px] px-5 rounded-full border-2 border-white/50 bg-transparent text-white font-extrabold text-sm inline-flex items-center gap-1.5 hover:bg-white/10 transition-colors">
+                                <Icon Name="dices" Size="15" /> Ver ficha de @_associatedGame.SpanishTitle
+                            </a>
+                        }
+                    </div>
+                </div>
+
+                @* Columna Derecha: Carátula Rotada con Sello Circular *@
+                <div class="lg:col-span-5 relative flex justify-center py-4 sm:py-6">
+                    <div class="relative w-full max-w-[340px] sm:max-w-[380px]">
                         @if (string.IsNullOrWhiteSpace(_release.CoverImageUrl))
                         {
                             <DefaultImage Domain="DefaultImageDomain.Novedad"
                                           Alt="@($"Carátula de {_release.Title}")"
-                                          CssClass="w-full h-full object-cover" />
+                                          CssClass="w-full aspect-square object-cover rounded-xl shadow-2xl -rotate-2 border border-white/10" />
                         }
                         else
                         {
@@ -114,158 +201,145 @@ else
                                  loading="lazy"
                                  decoding="async"
                                  onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';"
-                                 class="w-full h-full object-cover" />
+                                 class="w-full aspect-square object-cover rounded-xl shadow-2xl -rotate-2 border border-white/10" />
                         }
 
-                        @* Badges flotantes en la carátula *@
-                        <div class="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
-                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 shadow-md @(_release.IsReprint ? "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]" : "bg-[var(--brand-glow)] border-[var(--brand-primary)] text-[var(--brand-primary)]")">
-                                @if (_release.IsReprint)
-                                {
-                                    <Icon Name="refresh-cw" Size="12" /> <span>Reimpresión</span>
-                                }
-                                else
-                                {
-                                    <Icon Name="sparkles" Size="12" /> <span>Novedad</span>
-                                }
+                        @* Badge Circular Flotante estilo Claude Design *@
+                        <div class="absolute -bottom-4 -left-3 sm:-left-6 w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#FFC145] text-[#22180F] flex flex-col items-center justify-center text-center -rotate-12 shadow-xl p-2 z-10">
+                            <b class="text-3xl sm:text-4xl font-black tracking-tight leading-none">
+                                @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.Day.ToString() : "—")
+                            </b>
+                            <span class="text-[11px] sm:text-xs font-black uppercase tracking-wider mt-0.5">
+                                @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.ToString("MMM").TrimEnd('.') : "Pronto")
                             </span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                        @if (_release.EstimatedPvp.HasValue)
+    @* CUERPO EDITORIAL PRINCIPAL: 01 Qué llega / 02 Datos / 03 Reserva y Aside *@
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+            @* Contenido Central (01, 02, 03) *@
+            <div class="lg:col-span-8 space-y-12">
+                @* 01 Qué llega *@
+                <section class="space-y-4">
+                    <div class="flex items-baseline gap-4">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-[var(--brand-primary)]">01</b>
+                        <b class="text-2xl sm:text-3xl font-black tracking-tight">Qué llega</b>
+                    </div>
+                    <div class="text-lg sm:text-xl font-bold text-[var(--text-primary)] leading-relaxed text-pretty">
+                        @if (!string.IsNullOrWhiteSpace(_release.Notes))
                         {
-                            <div class="absolute bottom-3 right-3 z-10 px-3 py-1 rounded-lg text-xs font-black shadow-md border bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]">
-                                @_release.EstimatedPvp.Value.ToString("0.00") €
+                            <p class="whitespace-pre-line">@_release.Notes</p>
+                        }
+                        else
+                        {
+                            <p>
+                                @_release.Title llega al catálogo de @_release.Publisher. Mantén la pista de este lanzamiento para conocer la fecha exacta de distribución en tiendas.
+                            </p>
+                        }
+                    </div>
+                    <p class="text-xs text-[var(--text-muted)] flex items-center gap-1.5 pt-1">
+                        <Icon Name="check-circle" Size="13" Class="text-emerald-500" />
+                        <span>Información catalogada directamente por el equipo editorial</span>
+                    </p>
+                </section>
+
+                @* 02 Datos del lanzamiento *@
+                <section class="space-y-4">
+                    <div class="flex items-baseline gap-4">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-[#FFC145]">02</b>
+                        <b class="text-2xl sm:text-3xl font-black tracking-tight">Datos del lanzamiento</b>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Editorial</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">@_release.Publisher</b>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Fecha prevista</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">
+                                @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Próximamente")
+                            </b>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">PVP Estimado</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">
+                                @(_release.EstimatedPvp.HasValue ? $"{_release.EstimatedPvp.Value:0.00} €" : "Sin confirmar")
+                            </b>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Edición</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">
+                                @(_release.IsReprint ? "Reimpresión oficial" : "Nueva novedad")
+                            </b>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Idioma</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">Español</b>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex flex-col gap-1">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Circuito</span>
+                            <b class="text-base text-[var(--text-primary)] leading-tight">Tiendas especializadas</b>
+                        </div>
+                    </div>
+                </section>
+
+                @* 03 Dónde reservar / Noticia oficial *@
+                <section class="space-y-4">
+                    <div class="flex items-baseline gap-4">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-emerald-600">03</b>
+                        <b class="text-2xl sm:text-3xl font-black tracking-tight">Dónde reservar / Seguir</b>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm">
+                        @if (!string.IsNullOrWhiteSpace(_release.SourceUrl))
+                        {
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <b class="text-base text-[var(--text-primary)]">Publicación y fuente original</b>
+                                    <p class="text-xs text-[var(--text-secondary)]">Consulta el anuncio oficial de la editorial o tienda distribuidora.</p>
+                                </div>
+                                <a href="@_release.SourceUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="px-5 py-2.5 rounded-full bg-[var(--brand-primary)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-1.5 hover:opacity-90 shadow-sm shrink-0">
+                                    <span>Ir a la noticia oficial</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                                <Icon Name="info" Size="14" Class="text-[var(--text-muted)]" />
+                                <span>Este lanzamiento aún no tiene enlace directo de reserva asignado.</span>
                             </div>
                         }
                     </div>
-
-                    @if (CanModerate)
-                    {
-                        <div class="pt-2 px-1 text-center">
-                            <button type="button"
-                                    @onclick="OpenEditModal"
-                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                <Icon Name="pen-line" Size="12" /> Cambiar o subir carátula
-                            </button>
-                        </div>
-                    }
-                </div>
-
-                @* Botón de Acción Principal: Ir a la URL de origen *@
-                <div class="space-y-2">
-                    @if (!string.IsNullOrWhiteSpace(_release.SourceUrl))
-                    {
-                        <a href="@_release.SourceUrl"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           class="w-full py-3.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-sm sm:text-base text-center flex items-center justify-center gap-2 shadow-md transition-all">
-                            <span>Ir a la noticia oficial</span>
-                            <span class="text-base">&rarr;</span>
-                        </a>
-                        <p class="text-center text-[0.72rem] text-[var(--text-muted)] flex items-center justify-center gap-1">
-                            <Icon Name="check-circle" Size="12" />
-                            <span>Fuente original de la información verificada</span>
-                        </p>
-                    }
-                    else
-                    {
-                        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)] flex flex-col items-center justify-center gap-2">
-                            <div class="flex items-center justify-center gap-2">
-                                <Icon Name="newspaper" Size="14" Class="text-[var(--brand-primary)]" />
-                                <span>Información catalogada directamente por el equipo editorial</span>
-                            </div>
-                            @if (CanModerate)
-                            {
-                                <button type="button"
-                                        @onclick="OpenEditModal"
-                                        class="mt-1 px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] font-bold text-xs transition-opacity inline-flex items-center gap-1.5 shadow-sm">
-                                    <Icon Name="link" Size="13" />
-                                    <span>Añadir enlace oficial a la noticia</span>
-                                </button>
-                            }
-                        </div>
-                    }
-                </div>
+                </section>
             </div>
 
-            @* Columna Derecha: Metadatos, Editorial y Juego Asociado *@
-            <div class="md:col-span-7 lg:col-span-7 space-y-6">
-                @* Badges de Cabecera *@
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                        <Icon Name="calendar-days" Size="13" />
-                        <span>Lanzamiento: @(_release.ReleaseDate.HasValue ? _release.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Próximamente")</span>
-                    </span>
-
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                        <Icon Name="building-2" Size="13" />
-                        <span>Editorial: @_release.Publisher</span>
-                    </span>
-
-                    @if (_release.EstimatedPvp.HasValue)
-                    {
-                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-emerald-400">
-                            <Icon Name="tag" Size="13" />
-                            <span>PVP aprox: @_release.EstimatedPvp.Value.ToString("0.00") €</span>
-                        </span>
-                    }
-                </div>
-
-                @* Título *@
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] leading-tight tracking-tight">
-                        @_release.Title
-                    </h1>
-                </div>
-
-                @* Ficha de la Editorial *@
-                <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                    <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                        Sello Editorial &amp; Distribución
-                    </h2>
-
-                    <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
-                            <Icon Name="building-2" Size="18" />
-                        </div>
-                        <div>
-                            <span class="text-[0.7rem] text-[var(--text-muted)] block">Editorial responsable</span>
-                            <span class="font-extrabold text-sm text-[var(--text-primary)]">@_release.Publisher</span>
-                            <p class="text-xs text-[var(--text-secondary)] mt-0.5">
-                                Publicación prevista para el circuito de tiendas especializadas en español.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                @* Notas Editoriales *@
-                @if (!string.IsNullOrWhiteSpace(_release.Notes))
-                {
-                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
-                        <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                            Detalles del Lanzamiento
-                        </h2>
-                        <p class="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
-                            @_release.Notes
-                        </p>
-                    </div>
-                }
-
-                @* Ficha del Juego Vinculado (si existe) *@
+            @* Columna Lateral (Aside): Juego relacionado y Retorno al Calendario *@
+            <aside class="lg:col-span-4 space-y-8">
                 @if (_associatedGame != null)
                 {
-                    <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
-                                <Icon Name="dices" Size="14" /> Juego Catalogado en Ludeka
-                            </h2>
-                            <a href="/juegos/@_associatedGame.Slug" class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                Ver Ficha Completa &rarr;
-                            </a>
-                        </div>
+                    <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm">
+                        <b class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] block border-b-2 border-[var(--border-subtle)] pb-2">
+                            Juego Relacionado
+                        </b>
 
-                        <div class="flex items-center gap-4">
-                            <a href="/juegos/@_associatedGame.Slug" class="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] block">
+                        <a href="/juegos/@_associatedGame.Slug" class="flex gap-4 items-center group">
+                            <div class="w-16 h-16 rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] rotate-2 group-hover:rotate-0 transition-transform">
                                 @if (!string.IsNullOrWhiteSpace(_associatedGame.ThumbnailUrl))
                                 {
                                     <img src="@_associatedGame.ThumbnailUrl"
@@ -286,25 +360,45 @@ else
                                          decoding="async"
                                          class="w-full h-full object-cover opacity-80" />
                                 }
-                            </a>
+                            </div>
+
                             <div class="min-w-0 flex-1">
-                                <a href="/juegos/@_associatedGame.Slug" class="font-extrabold text-sm text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors block truncate">
+                                <b class="text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors block truncate">
                                     @_associatedGame.SpanishTitle
-                                </a>
-                                <p class="text-xs text-[var(--text-secondary)] truncate">
+                                </b>
+                                <span class="text-xs text-[var(--text-muted)] block truncate">
                                     @_associatedGame.Designer &bull; @_associatedGame.YearPublished
-                                </p>
-                                <div class="flex items-center gap-3 mt-1.5 text-xs text-[var(--text-muted)]">
-                                    <span class="font-bold text-amber-400 flex items-center gap-0.5">
-                                        <Icon Name="star" Size="11" /> @_associatedGame.BggRating.ToString("0.0")
-                                    </span>
-                                    <span>BGG Rank #@_associatedGame.BggRank</span>
+                                </span>
+                                <div class="flex items-center gap-2 mt-1 text-xs font-extrabold text-amber-500">
+                                    <Icon Name="star" Size="12" />
+                                    <span>@_associatedGame.BggRating.ToString("0.0")</span>
+                                    <span class="text-[var(--text-muted)] font-normal">#@_associatedGame.BggRank en BGG</span>
                                 </div>
                             </div>
+                        </a>
+
+                        <div class="pt-2">
+                            <a href="/juegos/@_associatedGame.Slug" class="w-full py-2.5 rounded-full border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] text-xs font-bold text-center block transition-colors">
+                                Ver Ficha del Juego
+                            </a>
                         </div>
                     </div>
                 }
-            </div>
+
+                @* Calendario Completo *@
+                <div class="p-5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-3">
+                    <b class="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] block">
+                        Calendario Editorial
+                    </b>
+                    <p class="text-xs text-[var(--text-secondary)]">
+                        Explora todas las novedades confirmadas, reediciones y salidas previstas del mes en curso.
+                    </p>
+                    <a href="/novedades" class="inline-flex items-center gap-1.5 font-black text-xs text-[var(--brand-primary)] hover:underline pt-1">
+                        <span>Ver calendario completo</span>
+                        <span>&rarr;</span>
+                    </a>
+                </div>
+            </aside>
         </div>
     </div>
 }

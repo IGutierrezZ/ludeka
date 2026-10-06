@@ -706,16 +706,19 @@
     }
     else if (_viewMode == "list")
     {
-        <div class="space-y-1.5">
+        var baseIndex = ((_currentPage - 1) * _pageSize);
+        var idx = 1;
+        <div class="flex flex-col">
             @foreach (var game in _games)
             {
-                <GameListItem Game="@game" />
+                <GameListItem Game="@game" PositionNumber="@(baseIndex + idx)" />
+                idx++;
             }
         </div>
     }
     else
     {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5 md:gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-5 sm:gap-x-7 gap-y-9 sm:gap-y-11">
             @{
                 var baseIndex = ((_currentPage - 1) * _pageSize);
                 var idx = 1;
@@ -728,47 +731,50 @@
         </div>
     }
 
-    @* Paginación estilizada con píldoras de 44 px *@
+    @* Paginación estilizada con píldoras de 44 px y amplio respiro antes del pie de página *@
     @if (!_isLoading && _totalPages > 1)
     {
-        <nav class="flex items-center justify-center gap-1.5 sm:gap-2 pt-10 mt-8 border-t border-[var(--line)] text-xs sm:text-sm font-bold"
+        <nav class="flex flex-col items-center justify-center gap-3.5 pt-10 pb-20 sm:pb-28 mt-12 border-t border-[var(--line)] text-xs sm:text-sm font-bold"
              aria-label="Paginación del catálogo">
-            <button type="button"
-                    @onclick="PreviousPage"
-                    disabled="@(_currentPage <= 1)"
-                    class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)] disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
-                    aria-label="Página anterior">
-                <Icon Name="chevron-left" Size="15" />
-                <span class="hidden sm:inline">Anterior</span>
-            </button>
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
+                <button type="button"
+                        @onclick="PreviousPage"
+                        disabled="@(_currentPage <= 1)"
+                        class="min-h-[44px] min-w-[44px] px-4 rounded-full border-2 border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--line)] disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                        aria-label="Página anterior">
+                    <Icon Name="chevron-left" Size="15" />
+                    <span class="hidden sm:inline">Anterior</span>
+                </button>
 
-            @foreach (var pageNum in GetVisiblePageNumbers())
-            {
-                if (pageNum == -1)
+                @foreach (var pageNum in GetVisiblePageNumbers())
                 {
-                    <span class="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted)] font-black">…</span>
+                    if (pageNum == -1)
+                    {
+                        <span class="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted)] font-black">…</span>
+                    }
+                    else
+                    {
+                        var p = pageNum;
+                        <button type="button"
+                                @onclick="() => GoToPage(p)"
+                                class="min-h-[44px] min-w-[44px] rounded-full border-0 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] @(p == _currentPage ? "bg-[var(--inverse)] text-[var(--on-inverse)] font-black shadow-sm" : "bg-transparent text-[var(--ink)] hover:bg-[var(--line)]")"
+                                aria-label="Ir a página @p"
+                                aria-current="@(p == _currentPage ? "page" : null)">
+                            @p
+                        </button>
+                    }
                 }
-                else
-                {
-                    var p = pageNum;
-                    <button type="button"
-                            @onclick="() => GoToPage(p)"
-                            class="min-h-[44px] min-w-[44px] rounded-full border text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] @(p == _currentPage ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--rule)] font-black" : "bg-[var(--paper)] text-[var(--ink)] border-[var(--line)] hover:border-[var(--rule)]")"
-                            aria-label="Ir a página @p"
-                            aria-current="@(p == _currentPage ? "page" : null)">
-                        @p
-                    </button>
-                }
-            }
 
-            <button type="button"
-                    @onclick="NextPage"
-                    disabled="@(_currentPage >= _totalPages)"
-                    class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)] disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
-                    aria-label="Página siguiente">
-                <span class="hidden sm:inline">Siguiente</span>
-                <Icon Name="chevron-right" Size="15" />
-            </button>
+                <button type="button"
+                        @onclick="NextPage"
+                        disabled="@(_currentPage >= _totalPages)"
+                        class="min-h-[44px] min-w-[44px] px-4 rounded-full border-0 bg-[var(--inverse)] text-[var(--on-inverse)] hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] shadow-sm"
+                        aria-label="Página siguiente">
+                    <span class="hidden sm:inline">Siguiente</span>
+                    <Icon Name="chevron-right" Size="15" />
+                </button>
+            </div>
+            <span class="text-xs sm:text-[13px] font-bold text-[var(--muted)]">Página @_currentPage de @_totalPages · @_totalCount @(_totalCount == 1 ? "título encontrado" : "títulos encontrados")</span>
         </nav>
     }
 

@@ -128,33 +128,10 @@
 
             @* Utilidades de cabecera (derecha) *@
             <div class="flex items-center gap-2 sm:gap-2.5 justify-end flex-1 shrink-0">
-                @* 1. Barra / Enlace de búsqueda rápida (/buscar) *@
-                <a href="/buscar"
-                   class="h-10 px-3 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
-                   title="Búsqueda rápida en Ludeka"
-                   aria-label="Buscar en Ludeka">
-                    <Icon Name="search" Size="15" />
-                    <span class="hidden md:inline">Buscar</span>
-                </a>
-
-                @* 2. Botón de soporte y mecenazgo *@
-                @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
-                {
-                    <a href="@CommunityOptions.Value.KofiUrl"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="h-10 px-3 rounded-full border border-current/30 hover:border-current bg-black/5 dark:bg-white/5 text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
-                       title="Apoyar el proyecto en Ko-fi"
-                       aria-label="Apoyar en Ko-fi">
-                        <Icon Name="coffee" Size="15" />
-                        <span class="hidden xl:inline">Apoyar</span>
-                    </a>
-                }
-
-                @* 3. Píldora de estado de red offline en cabecera *@
+                @* 1. Píldora de estado de red offline en cabecera *@
                 <OfflineIndicator AsBanner="false" />
 
-                @* 4. Conmutador claro/oscuro Sun/Moon *@
+                @* 2. Conmutador claro/oscuro Sun/Moon *@
                 <button type="button"
                         @onclick="ToggleTheme"
                         aria-label="Cambiar tema"
@@ -179,7 +156,7 @@
                     </a>
                 }
 
-                @* 5. Menú de cuenta y estado de sesión *@
+                @* 3. Menú de cuenta y estado de sesión *@
                 <AccountMenu />
             </div>
         </div>
@@ -198,27 +175,44 @@
         @Body
     </main>
 
-    @* Pie de página editorial con canales de comunidad y afiliados *@
-    <footer class="mt-auto border-t border-[var(--line)] bg-[#12161A] py-8 mobile-nav-spacer text-xs text-stone-300 shadow-inner">
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-stone-800/80">
-                <div class="space-y-1">
-                    <p class="font-extrabold text-sm text-white tracking-tight">Ludeka &copy; 2026</p>
-                    <p class="text-xs text-stone-300">Juegos, sorteos, eventos y opiniones de verdad. Bienvenido a tu mesa.</p>
-                    <p class="text-[0.68rem] text-stone-400">
+    @* Pie de página editorial estilo Claude Design (Dirección C Revista Lúdica) *@
+    <footer class="mt-auto border-t border-[var(--line)] bg-[var(--inverse)] text-[var(--on-inverse)] py-12 md:py-16 mobile-nav-spacer">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-9">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                @* Columna 1: Bienvenida *@
+                <div class="flex flex-col gap-3.5">
+                    <b class="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+                        Bienvenido<br />a tu <span class="text-[var(--accent)]">mesa.</span>
+                    </b>
+                    <span class="text-sm opacity-75 leading-relaxed max-w-[340px]">
                         Participamos en programas de afiliación de tiendas especializadas sin coste adicional para ti.
-                    </p>
+                    </span>
                 </div>
 
-                @* Canales de Comunidad (Ko-fi, Discord y Telegram) *@
-                <div class="flex items-center gap-2.5 flex-wrap">
+                @* Columna 2: Descubrir *@
+                <div class="flex flex-col gap-2.5 text-sm">
+                    <b class="text-[var(--mustard)] font-extrabold mb-1">Descubrir</b>
+                    <a href="/catalogo" class="hover:underline opacity-85 hover:opacity-100">Catálogo</a>
+                    <a href="/novedades" class="hover:underline opacity-85 hover:opacity-100">Novedades</a>
+                    <a href="/editoriales" class="hover:underline opacity-85 hover:opacity-100">Editoriales</a>
+                    <a href="/creadores" class="hover:underline opacity-85 hover:opacity-100">Creadores</a>
+                    <a href="/tiendas" class="hover:underline opacity-85 hover:opacity-100">Tiendas</a>
+                </div>
+
+                @* Columna 3: Comunidad *@
+                <div class="flex flex-col gap-2.5 text-sm">
+                    <b class="text-[var(--mustard)] font-extrabold mb-1">Comunidad</b>
+                    <a href="/sorteos" class="hover:underline opacity-85 hover:opacity-100">Sorteos</a>
+                    <a href="/eventos" class="hover:underline opacity-85 hover:opacity-100">Eventos</a>
+                    <a href="/clasificaciones" class="hover:underline opacity-85 hover:opacity-100">Clasificaciones</a>
                     @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
                     {
                         <a href="@CommunityOptions.Value.KofiUrl"
                            target="_blank"
                            rel="noopener noreferrer"
                            title="Apoyar el proyecto en Ko-fi"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-amber-500/20 border border-stone-700/60 hover:border-amber-500/50 text-amber-400 font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                           aria-label="Apoyar en Ko-fi"
+                           class="inline-flex items-center gap-1.5 hover:underline opacity-85 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-amber-500">
                             <Icon Name="coffee" Size="14" />
                             <span>Apoyar en Ko-fi</span>
                         </a>
@@ -228,8 +222,8 @@
                         <a href="@CommunityOptions.Value.DiscordInviteUrl"
                            target="_blank"
                            rel="noopener noreferrer"
-                           title="Unirse al servidor oficial de Discord de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-[#5865F2]/20 border border-stone-700/60 hover:border-[#5865F2]/50 text-[#828BF8] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
+                           title="Comunidad Discord"
+                           class="inline-flex items-center gap-1.5 hover:underline opacity-85 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-[#5865F2]">
                             <Icon Name="message-circle" Size="14" />
                             <span>Comunidad Discord</span>
                         </a>
@@ -239,41 +233,35 @@
                         <a href="@CommunityOptions.Value.TelegramChannelUrl"
                            target="_blank"
                            rel="noopener noreferrer"
-                           title="Unirse al canal oficial de Telegram de Ludeka"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A2026] hover:bg-[#229ED9]/20 border border-stone-700/60 hover:border-[#229ED9]/50 text-[#38BDF8] font-bold text-xs transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
+                           title="Canal Telegram"
+                           class="inline-flex items-center gap-1.5 hover:underline opacity-85 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-[#229ED9]">
                             <Icon Name="send" Size="14" />
                             <span>Canal Telegram</span>
                         </a>
                     }
                 </div>
-            </div>
 
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold">
-                @* Atribución oficial de BoardGameGeek *@
-                <div class="flex items-center gap-2">
+                @* Columna 4: Ludeka *@
+                <div class="flex flex-col gap-2.5 text-sm">
+                    <b class="text-[var(--mustard)] font-extrabold mb-1">Ludeka</b>
+                    <a href="/transparencia" class="hover:underline opacity-85 hover:opacity-100 inline-flex items-center gap-1.5">
+                        <Icon Name="shield" Size="14" />
+                        <span>Transparencia y afiliados</span>
+                    </a>
                     <a href="https://boardgamegeek.com"
                        target="_blank"
                        rel="noopener noreferrer"
                        title="Visitar BoardGameGeek"
-                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1A2026] border border-stone-700/60 hover:border-stone-500 text-stone-300 hover:text-white transition-colors text-[0.7rem] font-bold tracking-tight">
-                        <Icon Name="dices" Size="14" />
+                       class="hover:underline opacity-85 hover:opacity-100 inline-flex items-center gap-1">
                         <span>Powered by BoardGameGeek</span>
-                        <span class="text-[0.65rem] opacity-70">&nearr;</span>
+                        <span class="text-xs">&nearr;</span>
                     </a>
-                    <span class="text-[0.68rem] text-stone-400 hidden lg:inline">
-                        Datos técnicos sincronizados con la XMLAPI2 de BGG.
-                    </span>
                 </div>
+            </div>
 
-                @* Enlaces de Navegación y Transparencia *@
-                <div class="flex items-center gap-4 text-xs">
-                    <a href="/clasificaciones" class="text-stone-300 hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
-                        <Icon Name="trophy" Size="12" /> Clasificaciones
-                    </a>
-                    <a href="/transparencia" class="text-stone-300 hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1">
-                        <Icon Name="shield" Size="12" /> Transparencia & Afiliados
-                    </a>
-                </div>
+            <div class="text-xs opacity-70 pt-6 border-t border-[rgba(255,248,238,0.15)] flex flex-wrap justify-between items-center gap-4">
+                <span>Ludeka &copy; 2026</span>
+                <span class="text-[11px] opacity-60">Juegos, sorteos, eventos y opiniones de verdad.</span>
             </div>
         </div>
     </footer>

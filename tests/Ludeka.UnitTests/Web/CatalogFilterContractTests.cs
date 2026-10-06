@@ -158,9 +158,9 @@ public class CatalogFilterContractTests
         // ActiveAdvancedFiltersCount no incluye _sortBy
         Assert.DoesNotContain("(_sortBy != GameSortOrder.Rank ? 1 : 0)", source, StringComparison.Ordinal);
 
-        // Enlace en HomeDashboard apunta a /tendencias
-        var dashboardSource = ReadSource("src/Ludeka.Web/Components/Pages/HomeDashboard.razor");
-        Assert.Contains("href=\"@(_showTrending ? \"/tendencias\" : \"/catalogo\")\"", dashboardSource, StringComparison.Ordinal);
+        // Enlace en portada (WeeklyTopSection) apunta a /tendencias
+        var weeklyTopSource = ReadSource("src/Ludeka.Web/Components/Home/WeeklyTopSection.razor");
+        Assert.Contains("href=\"/tendencias\"", weeklyTopSource, StringComparison.Ordinal);
     }
 
     private static string ReadSource(string relativePath)
