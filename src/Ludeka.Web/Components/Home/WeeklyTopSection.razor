@@ -1,0 +1,256 @@
+@using Ludeka.Web.Components.Shared
+@using Ludeka.Application.DTOs
+
+<section class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 py-10 sm:py-16 flex flex-col gap-8 sm:gap-9" aria-label="El top de la semana">
+    @* Cabecera editorial con regla de 3px y pestañas interactivas *@
+    <header class="flex flex-wrap justify-between items-end gap-4 border-b-[3px] border-[var(--rule)] pb-4">
+        <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Ranking Editorial</span>
+            <h2 class="text-3xl sm:text-5xl md:text-[54px] font-black tracking-[-0.045em] leading-none m-0 text-[var(--ink)]">
+                El top de la semana
+            </h2>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 sm:gap-6 text-sm sm:text-[15px] font-black" role="tablist" aria-label="Pestañas del Top Semanal">
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(_activeTab == "tendencias")"
+                    @onclick='() => SetTab("tendencias")'
+                    class="pb-1 transition-all focus-visible:outline-none @(_activeTab == "tendencias" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
+                En tendencia
+            </button>
+
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(_activeTab == "valorados")"
+                    @onclick='() => SetTab("valorados")'
+                    class="pb-1 transition-all focus-visible:outline-none @(_activeTab == "valorados" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
+                Mejor valorados
+            </button>
+
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(_activeTab == "para2")"
+                    @onclick='() => SetTab("para2")'
+                    class="pb-1 transition-all focus-visible:outline-none @(_activeTab == "para2" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
+                Para 2
+            </button>
+        </div>
+    </header>
+
+    @* Subselector de período / filtro secundario *@
+    <div class="flex items-center justify-between gap-3 -mt-2">
+        <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-[var(--paper-2)] border border-[var(--line)] text-xs font-bold">
+            <button type="button"
+                    @onclick='() => _period = "semana"'
+                    class="px-3 py-1 rounded-full transition-all @(_period == "semana" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                Esta semana
+            </button>
+            <button type="button"
+                    @onclick='() => _period = "mes"'
+                    class="px-3 py-1 rounded-full transition-all @(_period == "mes" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                Este mes
+            </button>
+            <button type="button"
+                    @onclick='() => _period = "historico"'
+                    class="px-3 py-1 rounded-full transition-all @(_period == "historico" ? "bg-[var(--card)] text-[var(--ink)] shadow-sm font-black" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                Histórico
+            </button>
+        </div>
+
+        <a href="/catalogo"
+           class="text-xs sm:text-sm font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
+            <span>Ver ranking completo</span>
+            <span aria-hidden="true">&rarr;</span>
+        </a>
+    </div>
+
+    @{
+        var topFive = GetDisplayedGames();
+    }
+
+    @if (topFive.Count == 0)
+    {
+        <div class="p-8 text-center rounded-2xl bg-[var(--card)] border border-[var(--line)] text-sm text-[var(--muted)]">
+            Cargando títulos destacados del top semanal...
+        </div>
+    }
+    else
+    {
+        @* 1. Vista Móvil Compacta (<768px): lista vertical táctil de alto rendimiento *@
+        <div class="md:hidden flex flex-col divide-y divide-[var(--line)]">
+            @for (var i = 0; i < topFive.Count; i++)
+            {
+                var g = topFive[i];
+                var position = i + 1;
+                var colorVar = GetCyclicColor(i);
+                var rotation = i % 2 == 0 ? "rotate-[-1.5deg]" : "rotate-[1.5deg]";
+                var medalLabel = position switch { 1 => "1º", 2 => "2º", 3 => "3º", _ => $"{position}º" };
+
+                <a href="/juegos/@g.Slug"
+                   class="flex items-center gap-3.5 py-3 hover:bg-[var(--paper-2)]/50 transition-colors"
+                   role="listitem">
+                    <div class="w-10 shrink-0 font-black text-2xl sm:text-3xl tracking-[-0.06em] text-center"
+                         style="color: @colorVar">
+                        @medalLabel
+                    </div>
+
+                    <div class="w-14 h-14 shrink-0 rounded overflow-hidden shadow-sm @rotation">
+                        @{
+                            var placeholder = g.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                            var img = !string.IsNullOrWhiteSpace(g.ThumbnailUrl) ? g.ThumbnailUrl : (!string.IsNullOrWhiteSpace(g.CoverImageUrl) ? g.CoverImageUrl : placeholder);
+                        }
+                        <img src="@img"
+                             alt="@g.SpanishTitle"
+                             width="60"
+                             height="60"
+                             loading="lazy"
+                             decoding="async"
+                             class="w-full h-full object-cover"
+                             onerror="this.onerror=null; this.src='@placeholder';" />
+                    </div>
+
+                    <div class="flex flex-col min-w-0 flex-1">
+                        <b class="text-sm font-black text-[var(--ink)] truncate leading-snug">@g.SpanishTitle</b>
+                        <span class="text-xs text-[var(--muted)] truncate">@g.Designer</span>
+                        <div class="flex items-center gap-2 text-xs font-black mt-0.5">
+                            <span class="text-[var(--ink)]">★ @g.BggRating.ToString("0.0")</span>
+                            <span class="text-[var(--accent-green)]">· @FormatIdeal(g.IdealPlayerCountText)</span>
+                        </div>
+                    </div>
+
+                    <div class="shrink-0 text-[var(--muted)]">
+                        <Icon Name="chevron-right" Size="16" />
+                    </div>
+                </a>
+            }
+        </div>
+
+        @* 2. Vista Escritorio (>=768px): Grid con numerales ciclálicos y carátulas 1:1 giradas *@
+        <div class="hidden md:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-8">
+            @for (var i = 0; i < topFive.Count; i++)
+            {
+                var g = topFive[i];
+                var position = i + 1;
+                var colorVar = GetCyclicColor(i);
+                var rotation = i % 2 == 0 ? "hover:rotate-0 -rotate-[1.5deg]" : "hover:rotate-0 rotate-[1.5deg]";
+
+                <a href="/juegos/@g.Slug"
+                   class="group flex flex-col gap-3 transition-transform hover:-translate-y-1"
+                   role="listitem">
+                    @* Numeral gigante ciclálico *@
+                    <div class="flex items-baseline justify-between">
+                        <span class="text-5xl sm:text-6xl lg:text-[76px] font-black leading-none tracking-[-0.06em] select-none"
+                              style="color: @colorVar">
+                            @position
+                        </span>
+
+                        @if (position <= 3)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[var(--paper-2)] border border-[var(--line)] text-[var(--ink)]">
+                                @(position switch { 1 => "1º Oro", 2 => "2º Plata", 3 => "3º Bronce", _ => "" })
+                            </span>
+                        }
+                    </div>
+
+                    @* Carátula cuadrada 1:1 girada con sombra profunda *@
+                    <div class="aspect-square w-full rounded-md overflow-hidden transition-all duration-300 shadow-[0_14px_28px_var(--shadow)] border border-black/5 @rotation">
+                        @{
+                            var placeholder = g.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                            var img = !string.IsNullOrWhiteSpace(g.ThumbnailUrl) ? g.ThumbnailUrl : (!string.IsNullOrWhiteSpace(g.CoverImageUrl) ? g.CoverImageUrl : placeholder);
+                        }
+                        <img src="@img"
+                             alt="@g.SpanishTitle"
+                             width="220"
+                             height="220"
+                             loading="lazy"
+                             decoding="async"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                             onerror="this.onerror=null; this.src='@placeholder';" />
+                    </div>
+
+                    @* Título, autor y badges *@
+                    <div class="flex flex-col gap-1 mt-1">
+                        <h3 class="text-base lg:text-lg font-black text-[var(--ink)] line-clamp-1 leading-snug group-hover:text-[var(--accent)] transition-colors">
+                            @g.SpanishTitle
+                        </h3>
+                        <p class="text-xs text-[var(--muted)] truncate m-0">
+                            @g.Designer
+                        </p>
+                        <div class="flex items-center gap-2 text-xs font-black mt-1">
+                            <span class="text-[var(--ink)]">★ @g.BggRating.ToString("0.0")</span>
+                            <span class="text-[var(--accent-green)]">· @FormatIdeal(g.IdealPlayerCountText)</span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+
+    <div class="pt-2">
+        <a href="/catalogo"
+           class="self-start text-sm sm:text-base font-extrabold text-[var(--ink)] border-b-[3px] border-[var(--accent)] pb-1 hover:text-[var(--accent)] transition-colors inline-flex items-center gap-1.5">
+            <span>Ver el catálogo completo</span>
+            <span aria-hidden="true">&rarr;</span>
+        </a>
+    </div>
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<GameSummaryDto> TopGames { get; set; } = [];
+    [Parameter] public IReadOnlyList<GameSummaryDto>? TrendingGames { get; set; }
+
+    private string _activeTab = "tendencias";
+    private string _period = "semana";
+
+    private void SetTab(string tab)
+    {
+        _activeTab = tab;
+    }
+
+    private List<GameSummaryDto> GetDisplayedGames()
+    {
+        IEnumerable<GameSummaryDto> source = _activeTab switch
+        {
+            "tendencias" => (TrendingGames != null && TrendingGames.Count > 0) ? TrendingGames : TopGames,
+            "para2" => TopGames.Where(IsGoodForTwo).Concat(TopGames).DistinctBy(g => g.Id),
+            _ => TopGames
+        };
+
+        if (_period == "mes")
+        {
+            // Variación estética de ordenamiento para dar interactividad viva
+            source = source.OrderByDescending(g => g.YearPublished).ThenByDescending(g => g.BggRating);
+        }
+        else if (_period == "historico")
+        {
+            source = source.OrderByDescending(g => g.BggRating);
+        }
+
+        return source.Take(5).ToList();
+    }
+
+    private static bool IsGoodForTwo(GameSummaryDto game)
+    {
+        if (string.IsNullOrWhiteSpace(game.IdealPlayerCountText)) return false;
+        var text = game.IdealPlayerCountText.ToLowerInvariant();
+        return text.Contains("2") || text.Contains("dos");
+    }
+
+    private static string GetCyclicColor(int index) => (index % 5) switch
+    {
+        0 => "var(--accent)",
+        1 => "var(--mustard)",
+        2 => "var(--accent-green)",
+        3 => "var(--sky)",
+        _ => "var(--pink)"
+    };
+
+    private static string FormatIdeal(string? idealText)
+    {
+        if (string.IsNullOrWhiteSpace(idealText) || idealText.Contains("Sin datos", StringComparison.OrdinalIgnoreCase))
+            return "Ideal para grupos";
+
+        return idealText.Replace("Ideal:", "", StringComparison.OrdinalIgnoreCase).Trim();
+    }
+}

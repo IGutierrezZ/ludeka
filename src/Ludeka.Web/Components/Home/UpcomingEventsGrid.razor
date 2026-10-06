@@ -1,0 +1,128 @@
+@using Ludeka.Application.DTOs
+@using Ludeka.Web.Components.Shared
+
+<section id="eventos" class="max-w-[1280px] w-full mx-auto px-4 sm:px-8 md:px-12 py-10 sm:py-16 flex flex-col gap-8 sm:gap-9" aria-label="Ferias y grandes citas">
+    @* Encabezado con regla editorial y enlace a la agenda *@
+    <header class="flex flex-wrap justify-between items-end gap-4 border-b-[3px] border-[var(--rule)] pb-4">
+        <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Agenda Lúdica</span>
+            <h2 class="text-3xl sm:text-5xl md:text-[54px] font-black tracking-[-0.045em] leading-none m-0 text-[var(--ink)]">
+                Ferias y grandes citas
+            </h2>
+        </div>
+
+        <a href="/eventos"
+           class="text-sm sm:text-base font-extrabold text-[var(--ink)] border-b-[3px] border-[var(--sky)] pb-1 hover:text-[var(--sky)] transition-colors inline-flex items-center gap-1.5">
+            <span>Ver la agenda completa</span>
+            <span aria-hidden="true">&rarr;</span>
+        </a>
+    </header>
+
+    @if (Events.Count == 0)
+    {
+        <div class="p-8 text-center rounded-2xl bg-[var(--card)] border border-[var(--line)] text-sm text-[var(--muted)]">
+            No hay ferias ni eventos registrados en las próximas semanas.
+        </div>
+    }
+    else
+    {
+        @* 1. Vista móvil compacta (<768px): lista táctil con fecha superpuesta *@
+        <div class="md:hidden flex flex-col divide-y divide-[var(--line)]">
+            @for (var i = 0; i < Events.Count; i++)
+            {
+                var e = Events[i];
+                var pastel = GetPastelColor(i);
+
+                <a href="/eventos"
+                   class="flex items-center gap-3.5 py-3 hover:bg-[var(--paper-2)]/50 transition-colors"
+                   role="listitem">
+                    <div class="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-[var(--paper-2)] shadow-sm">
+                        <img src="@(string.IsNullOrWhiteSpace(e.ImageUrl) ? GetDefaultEventImage(i) : e.ImageUrl)"
+                             alt="@e.Title"
+                             width="64"
+                             height="64"
+                             loading="lazy"
+                             decoding="async"
+                             class="w-full h-full object-cover"
+                             onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';" />
+
+                        <div class="absolute -bottom-1 -left-1 px-1.5 py-0.5 rounded-md font-black text-[10px] leading-tight text-center border border-black/10 shadow"
+                             style="background: @pastel; color: var(--ink);">
+                            <span>@e.StartDate.Day</span><br />
+                            <span class="text-[8px] uppercase">@e.StartDate.ToString("MMM")</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col min-w-0 flex-1">
+                        <b class="text-sm font-black text-[var(--ink)] truncate leading-snug">@e.Title</b>
+                        <span class="text-xs text-[var(--muted)] truncate">@e.Location &bull; @e.RemainingDaysText</span>
+                    </div>
+
+                    <div class="shrink-0 text-[var(--muted)]">
+                        <Icon Name="chevron-right" Size="16" />
+                    </div>
+                </a>
+            }
+        </div>
+
+        @* 2. Vista escritorio (>=768px): Tarjetas pastel con día gigante *@
+        <div class="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-6">
+            @for (var i = 0; i < Events.Count; i++)
+            {
+                var e = Events[i];
+                var pastel = GetPastelColor(i);
+
+                <div class="group flex flex-col p-6 rounded-[24px] min-h-[240px] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border border-black/5"
+                     style="background: @pastel; color: var(--ink);"
+                     role="listitem">
+                    @* Cabecera visual *@
+                    <div class="w-[calc(100%+48px)] h-28 -mx-6 -mt-6 mb-3 overflow-hidden bg-black/10">
+                        <img src="@(string.IsNullOrWhiteSpace(e.ImageUrl) ? GetDefaultEventImage(i) : e.ImageUrl)"
+                             alt="@e.Title"
+                             width="300"
+                             height="120"
+                             loading="lazy"
+                             decoding="async"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                             onerror="this.onerror=null; this.src='/images/defaults/evento-default.svg';" />
+                    </div>
+
+                    <span class="text-xs font-black uppercase tracking-[0.12em] opacity-80">
+                        @e.RemainingDaysText
+                    </span>
+
+                    <div class="flex items-baseline gap-1 my-1">
+                        <b class="text-5xl font-black leading-none tracking-[-0.05em]">@e.StartDate.Day</b>
+                        <span class="text-base font-black uppercase tracking-wider opacity-85">@e.StartDate.ToString("MMM")</span>
+                    </div>
+
+                    <h3 class="text-base font-black tracking-[-0.02em] leading-snug mt-auto line-clamp-2">
+                        @e.Title
+                    </h3>
+                    <p class="text-xs text-[var(--muted)] truncate m-0 mt-0.5 font-medium">
+                        @e.Location
+                    </p>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<BoardGameEventDto> Events { get; set; } = [];
+
+    private static string GetPastelColor(int index) => (index % 4) switch
+    {
+        0 => "var(--p-blue)",
+        1 => "var(--p-pink)",
+        2 => "var(--p-peach)",
+        _ => "var(--p-mint)"
+    };
+
+    private static string GetDefaultEventImage(int index) => (index % 3) switch
+    {
+        0 => "/images/home/hero-ambiente-eurogame.webp",
+        1 => "/images/home/hero-ambiente-mesa-amigos.webp",
+        _ => "/images/home/hero-ilustracion.webp"
+    };
+}

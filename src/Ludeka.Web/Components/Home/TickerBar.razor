@@ -1,0 +1,86 @@
+@using System.Threading
+@using Ludeka.Application.DTOs
+@using Ludeka.Web.Components.Shared
+@implements IDisposable
+
+<div class="w-full bg-[var(--inverse)] text-[var(--ticker)] border-y border-[var(--line)]/20" role="region" aria-label="Avisos y actualidad editorial">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 py-3 sm:py-3.5 flex flex-wrap items-center gap-x-6 sm:gap-x-8 gap-y-2 text-xs sm:text-sm font-black">
+        @if (UrgentGiveaway != null)
+        {
+            <a href="/sorteos/@UrgentGiveaway.Id"
+               class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)]"
+               title="Ver sorteo que finaliza pronto">
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0 animate-pulse" aria-hidden="true"></span>
+                <span class="inline-flex items-center gap-1.5"><Icon Name="timer" Size="13" /><span>@GetUrgentGiveawayLabel(UrgentGiveaway)</span></span>
+            </a>
+        }
+        else
+        {
+            <a href="/sorteos"
+               class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)]">
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+                <span>Sorteos activos de juegos de mesa en la comunidad</span>
+            </a>
+        }
+
+        <a href="/catalogo"
+           class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)]">
+            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+            <span>Mínimos históricos y ofertas detectadas en radar</span>
+        </a>
+
+        <a href="/novedades"
+           class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)]">
+            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+            <span>Calendario de lanzamientos confirmados en tiendas</span>
+        </a>
+
+        <a href="/tendencias"
+           class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)]">
+            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+            <span>Top 50 del momento y BGG Hotness</span>
+        </a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public GiveawayDto? UrgentGiveaway { get; set; }
+
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        // Actualizador periódico determinista cada 30 segundos para refrescar la cuenta atrás reactiva
+        _timer = new Timer(_ =>
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private static string GetUrgentGiveawayLabel(GiveawayDto giveaway)
+    {
+        var deadline = giveaway.DeadlineAt;
+        var now = DateTimeOffset.UtcNow;
+        var diff = deadline - now;
+
+        if (diff <= TimeSpan.Zero)
+        {
+            return $"¡Últimos minutos!: {giveaway.Title}";
+        }
+
+        if (diff.TotalHours < 24)
+        {
+            var hours = Math.Max(1, (int)diff.TotalHours);
+            return $"Sorteo inminente: {giveaway.Title} (cierra en ~{hours}h)";
+        }
+
+        var days = (int)diff.TotalDays;
+        return $"Sorteo destacado: {giveaway.Title} (cierra en {days}d)";
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+}
