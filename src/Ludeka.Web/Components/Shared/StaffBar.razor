@@ -13,9 +13,9 @@
     <div class="bg-[var(--paper-2)] border-b-2 border-dashed border-[var(--mustard)] transition-colors"
          role="region"
          aria-label="Barra de gestión staff">
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-2 items-center text-xs">
+        <div class="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex flex-wrap gap-1.5 sm:gap-2 items-center text-xs">
             @* Badge identificador de rol *@
-            <span class="px-2.5 py-1 rounded-full bg-[var(--mustard)] text-[#22180F] text-[11px] font-extrabold uppercase tracking-wider shadow-xs shrink-0">
+            <span class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-[var(--mustard)] text-[#22180F] text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider shadow-xs shrink-0">
                 Gestión · @RoleLabel
             </span>
 
@@ -23,7 +23,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
             {
                 <a href="/moderacion/reportes"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Reportes de Catálogo">
                     <Icon Name="flag" Size="13" />
                     <span>Reportes</span>
@@ -33,7 +33,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
             {
                 <a href="/admin/cola-catalogacion"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Cola BGG & Catalogación">
                     <Icon Name="moon" Size="13" />
                     <span>Cola BGG</span>
@@ -43,7 +43,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
             {
                 <a href="/admin/afiliados"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Feeds & Afiliados">
                     <Icon Name="shopping-bag" Size="13" />
                     <span>Feeds & Afiliados</span>
@@ -53,7 +53,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
             {
                 <a href="/admin/ingesta-social"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Bandeja de Ingesta Social">
                     <Icon Name="sparkles" Size="13" />
                     <span>Ingesta Social</span>
@@ -63,7 +63,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanPublishInstagram))
             {
                 <a href="/admin/instagram"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Publicador de Instagram">
                     <Icon Name="camera" Size="13" />
                     <span>Instagram</span>
@@ -73,7 +73,7 @@
             @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers))
             {
                 <a href="/admin/usuarios"
-                   class="h-[34px] px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
                    title="Gestión de Usuarios">
                     <Icon Name="users" Size="13" />
                     <span>Usuarios</span>

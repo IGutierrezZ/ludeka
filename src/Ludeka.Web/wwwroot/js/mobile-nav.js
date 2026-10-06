@@ -18,9 +18,22 @@
         closeNavIfOutside(e.target);
     });
 
-    // Escucha en click para eventos de teclado o disparadores sin puntero directo
+    // Escucha en click para eventos de teclado o disparadores sin puntero directo,
+    // y cierre diferido en enlaces para permitir que WebKit/iOS Safari complete la navegación.
     document.addEventListener('click', function (e) {
-        closeNavIfOutside(e.target);
+        var nav = getMobileNav();
+        if (nav && nav.hasAttribute('open')) {
+            var link = e.target.closest('a');
+            if (link && nav.contains(link)) {
+                setTimeout(function () {
+                    if (nav && nav.hasAttribute('open')) {
+                        nav.removeAttribute('open');
+                    }
+                }, 80);
+                return;
+            }
+            closeNavIfOutside(e.target);
+        }
     });
 
     // Tecla Escape para cumplimiento WCAG 2.2 AA (cierre accesible y retorno de foco)
