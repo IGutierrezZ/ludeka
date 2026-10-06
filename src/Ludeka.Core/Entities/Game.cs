@@ -199,6 +199,12 @@ public partial class Game
         LudistRating = Math.Clamp(Math.Round(newAverageRating, 1), 0.0, 10.0);
     }
 
+    public void UpdateBggId(int bggId)
+    {
+        if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
+        BggId = bggId;
+    }
+
     public void UpdateImages(string? coverImageUrl, string? thumbnailUrl = null)
     {
         CoverImageUrl = coverImageUrl?.Trim();

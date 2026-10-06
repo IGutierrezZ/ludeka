@@ -15,4 +15,9 @@ public interface IGameEditorService
     Task<IReadOnlyList<GameEditLogDto>> GetEditLogsAsync(
         Guid gameId,
         CancellationToken ct = default);
+
+    Task<GameDetailDto> AssociateBggIdAsync(
+        Guid gameId,
+        int bggId,
+        CancellationToken ct = default);
 }

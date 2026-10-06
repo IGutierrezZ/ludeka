@@ -184,6 +184,13 @@ public class GameEditorService : IGameEditorService
             game.UpdateEan(command.Ean);
         }
 
+        if (command.BggId.HasValue && command.BggId.Value > 0 && command.BggId.Value != game.BggId)
+        {
+            changes.Add($"BGG ID: '{game.BggId}' -> '{command.BggId.Value}'");
+            fieldChanges.Add(new FieldChangeDto("BggId", game.BggId.ToString(), command.BggId.Value.ToString()));
+            game.UpdateBggId(command.BggId.Value);
+        }
+
         // 6. Persistir en repositorio
         await _gameRepository.UpdateAsync(game, ct);
 
@@ -227,6 +234,65 @@ public class GameEditorService : IGameEditorService
         }
 
         // 10. Invalidar caché L1 de catálogo
+        if (_catalogService is CachedCatalogService cached)
+        {
+            cached.Invalidate(game.Slug);
+        }
+
+        return GameDetailDto.FromEntity(game);
+    }
+
+    public async Task<GameDetailDto> AssociateBggIdAsync(Guid gameId, int bggId, CancellationToken ct = default)
+    {
+        string editorUserId = SessionIdentity.Require(_currentUserService);
+
+        if (!_currentUserService.IsFoundingTeam)
+        {
+            if (!_currentUserService.IsInRole("Moderator") || !_currentUserService.HasPermission(ModeratorPermission.CanEditGames))
+            {
+                throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanEditGames' para asociar el BGG ID del juego.");
+            }
+        }
+
+        if (bggId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bggId), "El BGG ID debe ser un entero positivo.");
+        }
+
+        var game = await _gameRepository.GetByIdAsync(gameId, ct);
+        if (game == null)
+        {
+            throw new KeyNotFoundException($"No se encontró ningún juego con ID '{gameId}'.");
+        }
+
+        int oldBggId = game.BggId;
+        game.UpdateBggId(bggId);
+        await _gameRepository.UpdateAsync(game, ct);
+
+        var summary = $"Asociado nuevo BGG ID: '{oldBggId}' -> '{bggId}'";
+        var log = new GameEditLog(
+            game.Id,
+            editorUserId,
+            _currentUserService.UserName,
+            summary,
+            null
+        );
+        await _editLogRepository.AddAsync(log, ct);
+
+        if (_auditService != null)
+        {
+            await _auditService.RecordChangeAsync(new RecordAuditCommand(
+                UserId: editorUserId,
+                UserName: _currentUserService.UserName,
+                Action: AuditAction.Updated,
+                EntityType: AuditEntityType.Game,
+                EntityId: game.Slug,
+                EntityName: game.SpanishTitle,
+                Summary: summary,
+                Changes: [new FieldChangeDto("BggId", oldBggId.ToString(), bggId.ToString())]
+            ), ct);
+        }
+
         if (_catalogService is CachedCatalogService cached)
         {
             cached.Invalidate(game.Slug);
