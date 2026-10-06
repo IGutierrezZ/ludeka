@@ -1,0 +1,181 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.ValueObjects
+@inject ICurrentUserService CurrentUserService
+
+@*
+    Panel Flotante e In-Situ de Herramientas para Moderadores y Mesa Fundadora (INC-117).
+*@
+
+@if (IsStaff)
+{
+    @* Panel Flotante en la esquina inferior derecha *@
+    @if (ShowFloatingTrigger)
+    {
+        <div class="fixed bottom-20 right-4 sm:right-6 z-40 flex flex-col items-end">
+            @if (_isFloatingMenuOpen)
+            {
+                <div class="mb-3 w-72 rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-4 shadow-2xl space-y-3 animate-fade-in text-[var(--ink)]"
+                     role="dialog"
+                     aria-label="Panel rápido de moderación">
+                    <div class="flex items-center justify-between border-b border-[var(--line)] pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-[var(--mustard)] text-[#22180F] flex items-center justify-center font-black text-xs">
+                                <Icon Name="zap" Size="12" />
+                            </span>
+                            <span class="text-xs font-black uppercase tracking-wider text-[var(--ink)]">
+                                Herramientas Staff
+                            </span>
+                        </div>
+                        <button type="button"
+                                @onclick="() => _isFloatingMenuOpen = false"
+                                class="text-[var(--muted)] hover:text-[var(--ink)] text-lg font-black p-0.5"
+                                aria-label="Cerrar panel">
+                            &times;
+                        </button>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs font-black">
+                        <button type="button"
+                                @onclick="HandleEditMetadata"
+                                class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors">
+                            <Icon Name="pen-line" Size="14" />
+                            <span>Editar Metadatos</span>
+                        </button>
+
+                        <button type="button"
+                                @onclick="HandleRequestAiSummary"
+                                disabled="@IsGeneratingAiSummary"
+                                class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors disabled:opacity-50">
+                            @if (IsGeneratingAiSummary)
+                            {
+                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
+                                <span>Sintetizando...</span>
+                            }
+                            else
+                            {
+                                <Icon Name="bot" Size="14" />
+                                <span>@(AiSummary != null ? "Forzar Resíntesis IA" : "Generar con IA")</span>
+                            }
+                        </button>
+
+                        <button type="button"
+                                @onclick="HandleAssociateBgg"
+                                class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors">
+                            <Icon Name="globe" Size="14" />
+                            <span>Asociar BGG (@Game.BggId)</span>
+                        </button>
+
+                        @if (CurrentUserService.IsFoundingTeam)
+                        {
+                            <button type="button"
+                                    @onclick="HandleEditVerdict"
+                                    class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors">
+                                <Icon Name="award" Size="14" />
+                                <span>Veredicto Fundador</span>
+                            </button>
+                        }
+
+                        <button type="button"
+                                @onclick="HandleSocialCard"
+                                class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors">
+                            <Icon Name="palette" Size="14" />
+                            <span>Cartel para Redes</span>
+                        </button>
+
+                        <button type="button"
+                                @onclick="HandleOpenReports"
+                                class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors">
+                            <Icon Name="flag" Size="14" />
+                            <span>Incidencias / Erratas</span>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <button type="button"
+                    @onclick="() => _isFloatingMenuOpen = !_isFloatingMenuOpen"
+                    title="Herramientas de gestión y moderación de esta ficha"
+                    class="h-11 px-4 rounded-full font-black text-xs bg-[var(--inverse)] text-[var(--ticker)] border-2 border-[var(--mustard)] shadow-2xl hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2">
+                <Icon Name="zap" Size="14" />
+                <span class="hidden sm:inline">Staff Tools</span>
+                <span class="sm:hidden">Staff</span>
+            </button>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public GameDetailDto Game { get; set; } = null!;
+
+    [Parameter]
+    public AiGameSummaryDto? AiSummary { get; set; }
+
+    [Parameter]
+    public FoundingVerdictDto? FoundingVerdict { get; set; }
+
+    [Parameter]
+    public bool IsGeneratingAiSummary { get; set; }
+
+    [Parameter]
+    public EventCallback OnEditMetadata { get; set; }
+
+    [Parameter]
+    public EventCallback OnRequestAiSummary { get; set; }
+
+    [Parameter]
+    public EventCallback OnAssociateBgg { get; set; }
+
+    [Parameter]
+    public EventCallback OnEditVerdict { get; set; }
+
+    [Parameter]
+    public EventCallback OnSocialCard { get; set; }
+
+    [Parameter]
+    public EventCallback OnOpenReports { get; set; }
+
+    [Parameter]
+    public bool ShowFloatingTrigger { get; set; } = true;
+
+    private bool _isFloatingMenuOpen;
+
+    private bool IsStaff => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
+
+    private async Task HandleEditMetadata()
+    {
+        _isFloatingMenuOpen = false;
+        await OnEditMetadata.InvokeAsync();
+    }
+
+    private async Task HandleRequestAiSummary()
+    {
+        _isFloatingMenuOpen = false;
+        await OnRequestAiSummary.InvokeAsync();
+    }
+
+    private async Task HandleAssociateBgg()
+    {
+        _isFloatingMenuOpen = false;
+        await OnAssociateBgg.InvokeAsync();
+    }
+
+    private async Task HandleEditVerdict()
+    {
+        _isFloatingMenuOpen = false;
+        await OnEditVerdict.InvokeAsync();
+    }
+
+    private async Task HandleSocialCard()
+    {
+        _isFloatingMenuOpen = false;
+        await OnSocialCard.InvokeAsync();
+    }
+
+    private async Task HandleOpenReports()
+    {
+        _isFloatingMenuOpen = false;
+        await OnOpenReports.InvokeAsync();
+    }
+}

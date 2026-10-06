@@ -8,98 +8,64 @@
 @inject ICurrentUserService CurrentUserService
 @inject IUserPreferenceService PreferenceService
 @inject IExpansionService ExpansionService
+@inject IGameEditorService GameEditorService
 @inject NavigationManager Navigation
 @inject ILogger<GameDetail> Logger
 
-<PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Inteligente | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
+<PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Editorial | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
 
 @if (_isLoading)
 {
-    <div class="container-ludeka py-20 text-center text-[var(--text-muted)]">
-        <div class="inline-block animate-spin mb-3"><Icon Name="dices" Size="36" /></div>
-        <p class="text-base font-semibold">Cargando ficha lúdica inteligente...</p>
+    <div class="container-ludeka py-20 text-center text-[var(--muted)]">
+        <div class="inline-block animate-spin mb-3 text-[var(--brand)]"><Icon Name="dices" Size="36" /></div>
+        <p class="text-base font-extrabold text-[var(--ink)]">Cargando ficha editorial en 5 bloques...</p>
     </div>
 }
 else if (Game == null)
 {
     <div class="container-ludeka py-20 text-center max-w-lg mx-auto">
-        <span class="inline-block mb-4"><Icon Name="search" Size="40" /></span>
-        <h1 class="text-2xl font-black text-[var(--text-primary)] mb-2">Juego no encontrado</h1>
-        <p class="text-sm text-[var(--text-muted)] mb-6">
-            El juego que buscas con identificador <code class="text-[var(--text-primary)] font-mono">@Slug</code> aún no está en nuestro catálogo base.
+        <span class="inline-block mb-4 text-[var(--brand)]"><Icon Name="search" Size="40" /></span>
+        <h1 class="text-3xl font-black text-[var(--ink)] mb-2">Juego no encontrado</h1>
+        <p class="text-sm text-[var(--muted)] mb-6">
+            El juego que buscas con identificador <code class="text-[var(--ink)] font-mono font-bold">@Slug</code> no figura en el catálogo de Ludeka.
         </p>
-        <a href="/catalogo" class="filter-btn active inline-block text-sm">
+        <a href="/catalogo" class="h-11 px-6 rounded-full font-black text-xs bg-[var(--brand)] text-[var(--on-brand)] inline-flex items-center gap-2 hover:opacity-90 transition-opacity">
             &larr; Volver al Catálogo
         </a>
     </div>
 }
 else
 {
-    @* Back bar y Acciones de Cabecera (INC-36 DD-08: fila envolvente flex-wrap, navegación a
-       la izquierda y bloque de moderación agrupado como unidad en subcontenedor con borde) *@
-    <div class="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    @* Migas de navegación y acceso a erratas *@
+    <div class="border-b border-[var(--line)] bg-[var(--paper-2)]">
+        <div class="container-ludeka py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-black text-[var(--muted)]">
             <div class="flex items-center gap-4">
-                <a href="/catalogo" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
+                <a href="/catalogo" class="hover:text-[var(--accent)] transition-colors inline-flex items-center gap-1.5">
                     <span>&larr;</span> Volver al catálogo
                 </a>
-                <a href="/cuenta/ludoteca" class="hidden sm:inline-flex text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] items-center gap-1">
+                <a href="/cuenta/ludoteca" class="hidden sm:inline-flex hover:text-[var(--ink)] items-center gap-1">
                     <Icon Name="library" Size="12" /> Ir a Mi Ludoteca
                 </a>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        @onclick="OpenSocialCardModal"
+                        title="Generar cartel visual para compartir en redes"
+                        class="px-3 py-1 rounded-full bg-[var(--card)] hover:bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-2xs">
+                    <Icon Name="palette" Size="12" /> Cartel para Redes
+                </button>
                 <button type="button"
                         @onclick="() => _isReportModalOpen = true"
                         title="Reportar una errata, imagen incorrecta o problema en esta ficha"
-                        class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--state-error-bg)] hover:text-[var(--state-error)] hover:border-[var(--state-error-border)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="flag" Size="12" /> Reportar problema
+                        class="px-3 py-1 rounded-full bg-[var(--card)] hover:bg-[var(--state-error-bg)] hover:text-[var(--state-error)] text-[var(--muted)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-2xs">
+                    <Icon Name="flag" Size="12" /> Reportar errata
                 </button>
                 @if (Game.PurchaseLinks != null && Game.PurchaseLinks.Count > 0)
                 {
                     <a href="#donde-comprar"
-                       class="px-3 py-1 rounded-lg bg-[var(--brand-primary)]/10 hover:bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                       class="px-3 py-1 rounded-full bg-[var(--green)]/15 hover:bg-[var(--green)]/25 text-[var(--green)] border border-[var(--green)]/30 font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-2xs">
                         <Icon Name="shopping-cart" Size="12" /> Comprar (@Game.PurchaseLinks.Count)
                     </a>
-                }
-                @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
-                {
-                    <button type="button"
-                            @onclick="OpenSocialCardModal"
-                            class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="palette" Size="12" /> Cartel para Redes
-                    </button>
-                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
-                        <button type="button"
-                                @onclick="() => _isEditorModalOpen = true"
-                                title="Editar ficha del catálogo y carátula"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="pen-line" Size="12" /> Editar Ficha
-                        </button>
-                        <button type="button"
-                                @onclick="HandleRequestAiSummary"
-                                disabled="@_isGeneratingAiSummary"
-                                title="@(_aiSummary != null ? "Regenerar la síntesis con IA para esta ficha" : "Generar la síntesis con IA bajo demanda")"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-info-bg)] hover:bg-[var(--state-info-border)] text-[var(--state-info)] border border-[var(--state-info-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50">
-                            @if (_isGeneratingAiSummary)
-                            {
-                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
-                                <span>Sintetizando...</span>
-                            }
-                            else
-                            {
-                                <Icon Name="bot" Size="12" />
-                                <span>@(_aiSummary != null ? "Regenerar con IA" : "Generar con IA")</span>
-                            }
-                        </button>
-                        @if (CurrentUserService.IsFoundingTeam)
-                        {
-                            <button type="button"
-                                    @onclick="() => _isFoundingModalOpen = true"
-                                    class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                                <Icon Name="shield" Size="12" /> Gestionar Veredicto Fundador
-                            </button>
-                        }
-                    </div>
                 }
             </div>
         </div>
@@ -112,192 +78,461 @@ else
         </div>
     }
 
-    @* Maquetación Editorial a Dos Columnas (INC-85) *@
-    <div class="container-ludeka py-6">
+    @* BLOQUE 01: CABECERA EDITORIAL Y ACCIONES DE COLECCIÓN *@
+    <section id="bloque-01-cabecera" class="container-ludeka pt-6 pb-8" aria-label="Bloque 01: Cabecera editorial y acciones">
+        <div class="flex items-baseline gap-3 mb-4">
+            <b class="text-4xl sm:text-5xl font-black text-[var(--accent-green)] tracking-[-0.06em] leading-none">01</b>
+            <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight uppercase">En la Mesa &amp; Colección</h2>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            @* Columna Izquierda: Metadatos, Título gigante, 3 Cifras, Badges, Botonera *@
+            <div class="lg:col-span-7 flex flex-col gap-5">
+                <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                    @Game.Style.ToString() &bull; @Game.YearPublished &bull; @Game.Duration.EstimatedPerPlayerMinutes MIN/JUGADOR
+                </span>
+
+                <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-[var(--ink)] tracking-[-0.05em] leading-[0.92] text-balance">
+                    @TitleForCountry
+                </h1>
+
+                @if (!string.Equals(TitleForCountry, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                {
+                    <p class="text-sm text-[var(--muted)] italic -mt-2">
+                        Título original: @Game.OriginalTitle
+                    </p>
+                }
+
+                <p class="text-base text-[var(--muted)] leading-relaxed">
+                    Diseñado por <span class="text-[var(--text-primary)] font-bold">@Game.Designer</span>, editado en España por
+                    @if (HasLocalPublisher)
+                    {
+                        <a href="@($"/editoriales/{LocalPubSlug}")" class="text-[var(--ink)] font-black border-b-2 border-[var(--accent)] hover:opacity-80 transition-opacity">@PublisherForCountry</a>
+                    }
+                    else
+                    {
+                        <strong class="text-[var(--ink)] font-black">@(string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher)</strong>
+                    }
+                    @if (DiffersFromOriginal && !string.IsNullOrWhiteSpace(Game.Publisher))
+                    {
+                        <span class="text-xs text-[var(--muted)] ml-1">(Orig.: <a href="@($"/editoriales/{OrigPubSlug}")" class="underline">@Game.Publisher</a>)</span>
+                    }
+                    .
+                </p>
+
+                @* Franja de 3 Cifras Clave *@
+                <div class="flex flex-wrap items-center gap-x-8 gap-y-4 py-4 border-t-[3px] border-[var(--rule)] border-b border-[var(--line)]">
+                    <div class="flex flex-col">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-[var(--ink)]">@Game.BggRating.ToString("0.0")</b>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] mt-1">Rating BGG</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-[var(--accent)]">@Game.LudistRating.ToString("0.0")</b>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] mt-1">Consenso Ludeka</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <b class="text-4xl sm:text-5xl font-black tracking-tight leading-none text-[var(--accent-green)]">@(string.IsNullOrWhiteSpace(Game.IdealPlayerCountText) ? GetPlayerRangeText() : Game.IdealPlayerCountText)</b>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--muted)] mt-1">Jugadores ideales</span>
+                    </div>
+                </div>
+
+                @* Badges rápidos de 3 segundos *@
+                <div class="pt-1">
+                    <QuickBadges
+                        Confrontation="@Game.Confrontation"
+                        Style="@Game.Style"
+                        IsOfficialSolo="@Game.IsOfficialSolo"
+                        Age="@Game.Age"
+                        Language="@Game.Language"
+                        EstimatedMinutesPerPlayer="@Game.Duration.EstimatedPerPlayerMinutes"
+                        Footprint="@Game.Footprint" />
+                </div>
+
+                @* Botonera de Ludoteca en Píldoras al alcance del pulgar *@
+                <div class="flex flex-wrap items-center gap-2.5 pt-2">
+                    <button type="button"
+                            @onclick="() => HandleStatusSelected(CollectionStatus.InCollection)"
+                            class="h-[50px] px-5 sm:px-6 rounded-full font-black text-sm inline-flex items-center gap-2 transition-transform active:scale-95 shadow-sm @(_collectionItem?.Status == CollectionStatus.InCollection ? "bg-[var(--accent-green)] text-[#FFF8EE]" : "bg-[var(--brand)] text-[var(--on-brand)] hover:opacity-90")">
+                        <Icon Name="@(_collectionItem?.Status == CollectionStatus.InCollection ? "check" : "library")" Size="18" />
+                        <span>@(_collectionItem?.Status == CollectionStatus.InCollection ? "En mi ludoteca" : "Añadir a mi ludoteca")</span>
+                    </button>
+
+                    <button type="button"
+                            @onclick="() => HandleStatusSelected(CollectionStatus.WantToBuy)"
+                            class="h-[50px] px-4 sm:px-5 rounded-full font-black text-sm border-2 inline-flex items-center gap-2 transition-colors @(_collectionItem?.Status == CollectionStatus.WantToBuy ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                        <Icon Name="heart" Size="18" />
+                        <span>@(_collectionItem?.Status == CollectionStatus.WantToBuy ? "En lista de deseos" : "Lo quiero")</span>
+                    </button>
+
+                    <button type="button"
+                            @onclick="HandleTogglePlayed"
+                            class="h-[50px] px-4 sm:px-5 rounded-full font-black text-sm border-2 inline-flex items-center gap-2 transition-colors @(_collectionItem?.IsPlayed == true ? "border-[var(--accent-green)] bg-[var(--accent-green)]/10 text-[var(--accent-green)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                        <Icon Name="check" Size="18" />
+                        <span>@(_collectionItem?.IsPlayed == true ? "Jugado" : "Marcar jugado")</span>
+                    </button>
+
+                    @if (_collectionItem?.Status == CollectionStatus.InCollection)
+                    {
+                        <button type="button"
+                                @onclick="() => _isLoanModalOpen = true"
+                                class="h-[50px] px-4 sm:px-5 rounded-full font-black text-sm border-2 inline-flex items-center gap-2 transition-colors @(_activeLoan != null ? "border-[var(--mustard)] bg-[var(--mustard)]/15 text-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                            <Icon Name="package" Size="18" />
+                            <span>@(_activeLoan != null ? $"Prestado a {_activeLoan.BorrowerName}" : "Prestar")</span>
+                        </button>
+                    }
+
+                    <button type="button"
+                            @onclick="() => _isRecordPlayModalOpen = true"
+                            class="h-[50px] px-5 rounded-full font-black text-sm border-2 border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)] inline-flex items-center gap-2 transition-colors">
+                        <Icon Name="dices" Size="18" />
+                        <span>+ Registrar partida @(_userPlaysCount > 0 ? $"({_userPlaysCount})" : "")</span>
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_actionFeedbackMessage))
+                {
+                    <div class="p-3 rounded-2xl border flex items-center justify-between text-xs transition-all @(_actionFeedbackType == "error" ? "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)]" : "bg-[var(--state-success-bg)] border-[var(--state-success-border)] text-[var(--state-success)]")">
+                        <div class="flex items-center gap-2">
+                            <Icon Name="@(_actionFeedbackType == "error" ? "alert-circle" : "check-circle-2")" Size="16" />
+                            <span>@_actionFeedbackMessage</span>
+                        </div>
+                        <button type="button" @onclick="() => _actionFeedbackMessage = null" class="p-1" aria-label="Cerrar">&times;</button>
+                    </div>
+                }
+            </div>
+
+            @* Columna Derecha: Bloque Terracota con Carrusel Fotográfico y Pegatina Veredicto *@
+            <div class="lg:col-span-5 bg-[var(--brand)] p-6 sm:p-10 rounded-3xl relative flex flex-col items-center justify-center gap-5 min-h-[420px] shadow-2xl">
+                <div class="w-full flex flex-col items-center">
+                    <GameImageCarousel
+                        CoverImageUrl="@Game.CoverImageUrl"
+                        BackCoverImageUrl="@Game.BackCoverImageUrl"
+                        TableImageUrl="@Game.TableImageUrl"
+                        GameTitle="@Game.SpanishTitle"
+                        IsExpansion="@Game.IsExpansion"
+                        @bind-SelectedKey="_selectedHeroImageKey" />
+                </div>
+
+                <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-[#FFF8EE] text-xs font-black border-b-2 border-[#FFF8EE] hover:opacity-85 transition-opacity inline-flex items-center gap-1">
+                    <span>Ver en BoardGameGeek</span>
+                    <span>↗</span>
+                </a>
+
+                @* Pegatina circular mostaza girada a -12° *@
+                <div class="absolute left-2 sm:-left-6 top-6 sm:top-8 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--mustard)] text-[var(--on-mustard)] shadow-2xl flex flex-col items-center justify-center text-center p-2.5 transform -rotate-12 pointer-events-none select-none border-2 border-black/10">
+                    <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider leading-none">Mesa Fundadora</span>
+                    <b class="text-sm sm:text-base font-black leading-tight mt-1">@GetFoundingBadgeText()</b>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* CINTA INVERSA DE MERCADO *@
+    <div class="bg-[var(--inverse)] text-[var(--ticker)] border-y border-[var(--line)]">
+        <div class="container-ludeka py-3 px-4 sm:px-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-black">
+            <span>Mejor precio hoy: @GetBestPriceLabel()</span>
+            <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+            <span>Mínimo histórico: @GetHistoricalLowLabel()</span>
+            <span class="hidden sm:inline-block w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+            <span>@(_mediaHub?.TotalCount ?? 0) vídeos &bull; @(Game.Sleeves?.Count ?? 0) formatos de fundas</span>
+        </div>
+    </div>
+
+    @* CUERPO PRINCIPAL A DOS COLUMNAS (12 cols: 8 contenido, 4 fija lateral) *@
+    <div class="container-ludeka py-10">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            @* Columna Principal: Bloques 02, 03, 04, 05 *@
+            <div class="lg:col-span-8 space-y-14">
 
-            @* Columna Principal (Izquierda, 8 cols en desktop): Inmersión lúdica y mesa *@
-            <div class="lg:col-span-8 space-y-6">
+                @* BLOQUE 02: VEREDICTO DE LA MESA / SÍNTESIS CON IA *@
+                <section id="bloque-02-veredicto" class="space-y-6" aria-label="Bloque 02: Veredicto y síntesis">
+                    <div class="flex items-baseline gap-3">
+                        <b class="text-4xl sm:text-5xl font-black text-[var(--mustard)] tracking-[-0.06em] leading-none">02</b>
+                        <h2 class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">El Veredicto de la Mesa</h2>
+                    </div>
 
-                @* Cabecera de Título y Metadatos *@
-                <div class="space-y-3">
-                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-5">
+                        <blockquote class="text-2xl sm:text-3xl font-black italic tracking-tight leading-snug text-[var(--ink)] text-pretty border-l-4 border-[var(--accent)] pl-4">
+                            «@GetHighImpactQuote()»
+                        </blockquote>
+
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-[var(--muted)]">
+                            <span class="font-extrabold flex items-center gap-1.5">
+                                <Icon Name="shield" Size="14" />
+                                <span>@GetVerdictSourceLabel()</span>
+                            </span>
+                            @if (_foundingVerdict != null)
+                            {
+                                <span class="px-2.5 py-1 rounded-full bg-[var(--mustard)]/20 text-[var(--ink)] font-black text-[11px]">
+                                    @_foundingVerdict.RecommendationLabel
+                                </span>
+                            }
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-[var(--line)]">
+                            <div class="p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-2">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-[var(--accent-green)] flex items-center gap-1.5">
+                                    <Icon Name="thumbs-up" Size="14" /> Lo Mejor (Pros)
+                                </h3>
+                                <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                                    @GetVerdictPros()
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-2">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-[var(--alert)] flex items-center gap-1.5">
+                                    <Icon Name="alert-triangle" Size="14" /> A Considerar (Contras)
+                                </h3>
+                                <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                                    @GetVerdictCons()
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-2">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-[var(--sky)] flex items-center gap-1.5">
+                                    <Icon Name="users" Size="14" /> Perfil Recomendado
+                                </h3>
+                                <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                                    @GetVerdictTargetAudience()
+                                </p>
+                            </div>
+                        </div>
+
+                        @* Herramientas Staff In-Situ *@
+                        @if (IsStaff)
+                        {
+                            <div class="p-4 rounded-2xl border-2 border-dashed border-[var(--mustard)] bg-[var(--paper-2)] space-y-2 mt-4">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <span class="text-xs font-black uppercase tracking-wider text-[var(--ink)] flex items-center gap-1.5">
+                                        <Icon Name="shield" Size="14" /> Herramientas Staff In-Situ
+                                    </span>
+                                    <span class="text-[11px] text-[var(--muted)]">Solo moderadores y mesa fundadora</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2 pt-1">
+                                    <button type="button"
+                                            @onclick="HandleRequestAiSummary"
+                                            disabled="@_isGeneratingAiSummary"
+                                            class="h-10 px-4 rounded-full font-black text-xs bg-[var(--inverse)] text-[var(--on-inverse)] hover:opacity-90 transition-opacity disabled:opacity-50 inline-flex items-center gap-1.5">
+                                        @if (_isGeneratingAiSummary)
+                                        {
+                                            <span class="animate-spin"><Icon Name="settings" Size="12" /></span>
+                                            <span>Generando síntesis...</span>
+                                        }
+                                        else
+                                        {
+                                            <Icon Name="bot" Size="12" />
+                                            <span>@(_aiSummary != null ? "Regenerar síntesis con IA" : "Generar síntesis con IA")</span>
+                                        }
+                                    </button>
+                                    <button type="button"
+                                            @onclick="() => _isEditorModalOpen = true"
+                                            class="h-10 px-4 rounded-full font-black text-xs border border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--card)] transition-colors inline-flex items-center gap-1.5">
+                                        <Icon Name="pen-line" Size="12" /> Editar Ficha
+                                    </button>
+                                    <button type="button"
+                                            @onclick="() => _isAssociateBggModalOpen = true"
+                                            class="h-10 px-4 rounded-full font-black text-xs border border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--card)] transition-colors inline-flex items-center gap-1.5">
+                                        <Icon Name="globe" Size="12" /> Asociar BGG (@Game.BggId)
+                                    </button>
+                                    @if (CurrentUserService.IsFoundingTeam)
+                                    {
+                                        <button type="button"
+                                                @onclick="() => _isFoundingModalOpen = true"
+                                                class="h-10 px-4 rounded-full font-black text-xs border border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--card)] transition-colors inline-flex items-center gap-1.5">
+                                            <Icon Name="award" Size="12" /> Editar Veredicto Fundador
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                @* BLOQUE 03: FICHA TÉCNICA DETALLADA, ESCALABILIDAD REAL Y FUNDAS *@
+                <section id="bloque-03-ficha-tecnica" class="space-y-6" aria-label="Bloque 03: Ficha técnica y escalabilidad">
+                    <div class="flex items-baseline gap-3">
+                        <b class="text-4xl sm:text-5xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">03</b>
+                        <h2 class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">Ficha Técnica &amp; Escalabilidad</h2>
+                    </div>
+
+                    @* 1. Semáforo Dinámico de Escalabilidad en 7 Columnas *@
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-4">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-black text-[var(--ink)] tracking-tight">¿A cuántos se disfruta? (Escalabilidad 1 a 7+)</h3>
+                            <p class="text-xs text-[var(--muted)]">Basado en miles de partidas y votaciones del hobby para saber si el juego realmente escala bien en mesa.</p>
+                        </div>
+                        <ScalabilityTrafficLight Entries="@Game.Scalability" IdealText="@Game.IdealPlayerCountText" />
+                    </div>
+
+                    @* 2. ADN Lúdico en Cuadrícula Compacta *@
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-4">
+                        <h3 class="text-lg font-black text-[var(--ink)] tracking-tight">ADN Lúdico</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">DISEÑADOR</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@(string.IsNullOrWhiteSpace(Game.Designer) ? "Desconocido" : Game.Designer)</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">EDITORIAL ES</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@(HasLocalPublisher ? PublisherForCountry : (string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher))</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">AÑO</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@Game.YearPublished</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">JUGADORES</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@GetPlayerRangeText()</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">DURACIÓN</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@Game.Duration.EstimatedPerPlayerMinutes min/jug</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">EDAD MÍNIMA</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@Game.Age.BoxAge+ años</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">IDIOMA</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@GetLanguageText(Game.Language)</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">HUELLA MESA</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@GetFootprintText(Game.Footprint)</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">CONFRONTACIÓN</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@GetConfrontationText(Game.Confrontation)</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">ESTILO</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@GetStyleText(Game.Style)</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">SOLO OFICIAL</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)]">@(Game.IsOfficialSolo ? "Sí" : "No")</b>
+                            </div>
+                            <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-1">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">RANKING BGG</span>
+                                <b class="text-base sm:text-lg text-[var(--ink)] inline-flex items-center gap-1.5">
+                                    @if (Game.BggRank.HasValue)
+                                    {
+                                        <Icon Name="trophy" Size="14" class="text-[var(--mustard)]" />
+                                        <span>#@Game.BggRank.Value Global BGG</span>
+                                    }
+                                    else
+                                    {
+                                        <span>N/D</span>
+                                    }
+                                </b>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* 3. Desglose de Fundas de Cartas con Enlaces de Compra *@
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-4">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="space-y-0.5">
+                                <h3 class="text-lg font-black text-[var(--ink)] tracking-tight">Guía de Fundas de Cartas</h3>
+                                <p class="text-xs text-[var(--muted)]">Especificaciones exactas para proteger tu juego con enlaces directos a tiendas.</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-black bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)]">
+                                @(Game.Sleeves?.Count ?? 0) @(Game.Sleeves?.Count == 1 ? "tipo" : "tipos") de fundas
+                            </span>
+                        </div>
+
+                        <SleeveGuideCard Sleeves="@Game.Sleeves" />
+                    </div>
+                </section>
+
+                @* BLOQUE 04: EXPANSIONES OFICIALES Y DÓNDE COMPRAR *@
+                <section id="bloque-04-expansiones-tiendas" class="space-y-6" aria-label="Bloque 04: Expansiones y tiendas">
+                    <div class="flex items-baseline gap-3">
+                        <b class="text-4xl sm:text-5xl font-black text-[var(--sky)] tracking-[-0.06em] leading-none">04</b>
+                        <h2 class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">Expansiones &amp; Dónde Comprar</h2>
+                    </div>
+
+                    @* 1. Expansiones Oficiales Vinculadas *@
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-4">
+                        <h3 class="text-lg font-black text-[var(--ink)] tracking-tight">Expansiones Oficiales del Ecosistema</h3>
                         @if (Game.IsExpansion)
                         {
-                            <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30 flex items-center gap-1">
-                                <Icon Name="puzzle" Size="12" /> Expansión Oficial
-                            </span>
-                        }
-                        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                            @Game.YearPublished
-                        </span>
-                        @if (Game.BggRank.HasValue)
-                        {
-                            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center gap-1">
-                                <Icon Name="trophy" Size="12" /> #@Game.BggRank Global BGG
-                            </span>
-                        }
-                        @if (Game.BggId > 0)
-                        {
-                            <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               title="Ver en BoardGameGeek"
-                               class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--brand-primary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1">
-                                <Icon Name="globe" Size="12" /> Ver en BGG
-                            </a>
-                        }
-                    </div>
+                            <ExpansionAporteCard
+                                ExpansionId="@Game.Id"
+                                Necessity="@Game.ExpansionNecessity"
+                                ImpactTags="@Game.ImpactTags"
+                                WhatItBringsSummary="@Game.WhatItBringsSummary"
+                                ExtraPlayerCount="@Game.ExtraPlayerCount"
+                                ExtraDurationMinutes="@Game.ExtraDurationMinutes"
+                                OnAporteGenerated="HandleExpansionAporteUpdated" />
 
-                    @{
-                        var titleForCountry = Game.GetTitleForCountry(_userCountryCode);
-                        var publisherForCountry = Game.GetPublisherForCountry(_userCountryCode);
-                        bool hasLocalPublisher = !string.IsNullOrWhiteSpace(publisherForCountry);
-                        bool differsFromOriginal = hasLocalPublisher && !string.Equals(publisherForCountry, Game.Publisher, StringComparison.OrdinalIgnoreCase);
-                        var localPubSlug = hasLocalPublisher ? Ludeka.Core.Entities.Game.GenerateSlug(publisherForCountry) : null;
-                        var origPubSlug = !string.IsNullOrWhiteSpace(Game.Publisher) ? Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher) : null;
-                    }
-
-                    <div>
-                        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
-                            @titleForCountry
-                        </h1>
-
-                        @if (!string.Equals(titleForCountry, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
+                            @if (_sisterExpansions.Count > 0)
+                            {
+                                <div class="pt-4">
+                                    <ExpansionSisterList
+                                        CurrentExpansionId="@Game.Id"
+                                        BaseGameTitle="@(_parentGame?.SpanishTitle ?? "Juego Base")"
+                                        Sisters="@_sisterExpansions"
+                                        Synergies="@_sisterSynergies" />
+                                </div>
+                            }
+                        }
+                        else if (_expansions.Count > 0)
                         {
-                            <p class="text-sm text-[var(--text-secondary)] italic mt-1">
-                                Título original: @Game.OriginalTitle
+                            <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
+                        }
+                        else
+                        {
+                            <p class="text-sm text-[var(--muted)] italic py-2">
+                                No hay expansiones oficiales registradas para este juego todavía.
                             </p>
                         }
-
-                        <p class="text-xs text-[var(--text-secondary)] mt-2">
-                            Diseñado por
-                            @if (!string.IsNullOrWhiteSpace(Game.Designer))
-                            {
-                                <span class="text-[var(--text-primary)] font-bold">@Game.Designer</span>
-                            }
-                            else
-                            {
-                                <span class="text-[var(--text-primary)] font-bold">Desconocido</span>
-                            }
-                            &bull; Editorial en @(_userCountryName):
-                            @if (hasLocalPublisher)
-                            {
-                                <a href="@($"/editoriales/{localPubSlug}")" class="text-[var(--text-primary)] font-bold hover:text-[var(--brand-primary)] hover:underline" title="Ver catálogo de la editorial @publisherForCountry">
-                                    @publisherForCountry
-                                </a>
-                            }
-                            else
-                            {
-                                <span class="text-[var(--text-primary)] font-bold">@(string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher)</span>
-                            }
-
-                            @if (differsFromOriginal && !string.IsNullOrWhiteSpace(Game.Publisher))
-                            {
-                                <span class="text-[var(--text-muted)] ml-1">
-                                    (Orig.: <a href="@($"/editoriales/{origPubSlug}")" class="hover:underline">@Game.Publisher</a>)
-                                </span>
-                            }
-                        </p>
                     </div>
-                </div>
 
-                @* Carrusel Fotográfico Interactivo (INC-85) *@
-                <GameImageCarousel
-                    CoverImageUrl="@Game.CoverImageUrl"
-                    BackCoverImageUrl="@Game.BackCoverImageUrl"
-                    TableImageUrl="@Game.TableImageUrl"
-                    GameTitle="@Game.SpanishTitle"
-                    IsExpansion="@Game.IsExpansion"
-                    @bind-SelectedKey="_selectedHeroImageKey" />
+                    @* 2. Dónde Comprar (En móvil se muestra también en flujo) *@
+                    <div class="block lg:hidden">
+                        <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameSlug="@Game.Slug" GameId="@Game.Id" IsSidebar="false" />
+                    </div>
+                </section>
 
-                @* Mensaje de IA si aplica *@
-                @if (!string.IsNullOrWhiteSpace(_aiSummaryMessage))
-                {
-                    <div class="p-3 rounded-xl bg-[var(--state-info-bg)] border border-[var(--state-info-border)] text-xs text-[var(--state-info)] flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <Icon Name="bot" Size="14" />
-                            <span>@_aiSummaryMessage</span>
+                @* BLOQUE 05: HUB MULTIMEDIA Y COMUNIDAD *@
+                <section id="bloque-05-multimedia-comunidad" class="space-y-6" aria-label="Bloque 05: Multimedia y opiniones">
+                    <div class="flex items-baseline gap-3">
+                        <b class="text-4xl sm:text-5xl font-black text-[var(--pink)] tracking-[-0.06em] leading-none">05</b>
+                        <h2 class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">Multimedia &amp; Comunidad</h2>
+                    </div>
+
+                    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-6">
+                        <div class="flex items-center border-b border-[var(--line)] pb-3 gap-2 overflow-x-auto">
+                            <button type="button"
+                                    @onclick='() => _activeSecondaryTab = "media"'
+                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "media" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                                <Icon Name="play-circle" Size="14" />
+                                <span>Hub Multimedia (@(_mediaHub?.TotalCount ?? 0))</span>
+                            </button>
+                            <button type="button"
+                                    @onclick='() => _activeSecondaryTab = "sleeves"'
+                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "sleeves" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                                <Icon Name="shield" Size="14" />
+                                <span>Guía de Fundas (@(Game.Sleeves?.Count ?? 0))</span>
+                            </button>
+                            <button type="button"
+                                    @onclick='() => _activeSecondaryTab = "rules"'
+                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "rules" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                                <Icon Name="help-circle" Size="14" />
+                                <span>Consultorio de Reglas</span>
+                            </button>
+                            <button type="button"
+                                    @onclick='() => _activeSecondaryTab = "reviews"'
+                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "reviews" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                                <Icon Name="star" Size="14" />
+                                <span>Tu Valoración</span>
+                            </button>
                         </div>
-                        <button type="button" @onclick="() => _aiSummaryMessage = null" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">&times;</button>
-                    </div>
-                }
 
-                @* Semáforo Dinámico de Escalabilidad *@
-                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
-                    <h2 class="text-lg font-black text-[var(--text-primary)] mb-1">
-                        Semáforo Dinámico de Escalabilidad (1 a 7+ jugadores)
-                    </h2>
-                    <p class="text-xs text-[var(--text-secondary)] mb-4">
-                        Basado en miles de partidas y votaciones del hobby para saber si el juego realmente escala bien antes de sacarlo a mesa.
-                    </p>
-                    <ScalabilityTrafficLight Entries="@Game.Scalability" IdealText="@Game.IdealPlayerCountText" />
-                </div>
-
-                @* MÓDULO DE EXPANSIÓN / ECOSISTEMA *@
-                @if (Game.IsExpansion)
-                {
-                    <ExpansionAporteCard
-                        ExpansionId="@Game.Id"
-                        Necessity="@Game.ExpansionNecessity"
-                        ImpactTags="@Game.ImpactTags"
-                        WhatItBringsSummary="@Game.WhatItBringsSummary"
-                        ExtraPlayerCount="@Game.ExtraPlayerCount"
-                        ExtraDurationMinutes="@Game.ExtraDurationMinutes"
-                        OnAporteGenerated="HandleExpansionAporteUpdated" />
-
-                    @if (_sisterExpansions.Count > 0)
-                    {
-                        <ExpansionSisterList
-                            CurrentExpansionId="@Game.Id"
-                            BaseGameTitle="@(_parentGame?.SpanishTitle ?? "Juego Base")"
-                            Sisters="@_sisterExpansions"
-                            Synergies="@_sisterSynergies" />
-                    }
-                }
-                else if (_expansions.Count > 0)
-                {
-                    <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
-                }
-
-                @* Módulo de Pestañas Secundarias (Vídeos, Fundas, Reglas) *@
-                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
-                    @* Barra de Pestañas *@
-                    <div class="flex items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-1.5 gap-1 overflow-x-auto">
-                        <button type="button"
-                                @onclick='() => _activeSecondaryTab = "media"'
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "media" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                            <Icon Name="play-circle" Size="14" />
-                            <span>Hub Multimedia</span>
-                            @if (_mediaHub != null && _mediaHub.TotalCount > 0)
-                            {
-                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
-                                    @_mediaHub.TotalCount
-                                </span>
-                            }
-                        </button>
-                        <button type="button"
-                                @onclick='() => _activeSecondaryTab = "sleeves"'
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "sleeves" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                            <Icon Name="shield" Size="14" />
-                            <span>Guía de Fundas</span>
-                            @if (Game.Sleeves != null && Game.Sleeves.Count > 0)
-                            {
-                                <span class="px-1.5 py-0.2 rounded-full text-[0.65rem] bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
-                                    @Game.Sleeves.Count
-                                </span>
-                            }
-                        </button>
-                        <button type="button"
-                                @onclick='() => _activeSecondaryTab = "rules"'
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(_activeSecondaryTab == "rules" ? "bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm border border-[var(--border-subtle)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                            <Icon Name="help-circle" Size="14" />
-                            <span>Consultorio de Reglas</span>
-                        </button>
-                    </div>
-
-                    @* Contenido de la Pestaña Activa *@
-                    <div class="p-2 sm:p-4">
                         @if (_activeSecondaryTab == "media")
                         {
                             <MultimediaHub MediaHub="@_mediaHub" GameId="@Game.Id" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
@@ -310,144 +545,69 @@ else
                         {
                             <RuleQuestionsSection GameId="@Game.Id" GameTitle="@Game.SpanishTitle" />
                         }
+                        else if (_activeSecondaryTab == "reviews")
+                        {
+                            <UserReviewCard
+                                Review="@_userReview"
+                                CanReview="@CanUserReview()"
+                                DisabledReviewReason="@GetDisabledReviewReason()"
+                                OnEditClicked="OpenReviewModal" />
+                        }
                     </div>
-                </div>
-
-                @* Bloque Editorial: Veredicto Fundador o Resumen IA *@
-                @if (_foundingVerdict != null)
-                {
-                    <FoundingVerdictCard Verdict="@_foundingVerdict" />
-                }
-                else if (_aiSummary != null)
-                {
-                    <AiSummaryCard Summary="@_aiSummary" />
-                }
-                else if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanEditGames)))
-                {
-                    <div class="rounded-xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] p-5 text-center space-y-3">
-                        <div><Icon Name="bot" Size="24" /></div>
-                        <h3 class="text-sm font-bold text-[var(--text-primary)]">Ficha pendiente de síntesis editorial</h3>
-                        <p class="text-xs text-[var(--text-muted)] max-w-md mx-auto">
-                            Este título aún no cuenta con síntesis de IA ni veredicto de la mesa fundadora. Puedes generar su síntesis ahora bajo demanda.
-                        </p>
-                        <button type="button"
-                                @onclick="HandleRequestAiSummary"
-                                disabled="@_isGeneratingAiSummary"
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-[var(--on-brand)] hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50">
-                            @if (_isGeneratingAiSummary)
-                            {
-                                <span class="animate-spin"><Icon Name="settings" Size="14" /></span>
-                                <span>Generando síntesis con IA...</span>
-                            }
-                            else
-                            {
-                                <Icon Name="zap" Size="12" />
-                                <span>Generar Síntesis con IA Ahora</span>
-                            }
-                        </button>
-                    </div>
-                }
-
+                </section>
             </div>
 
-            @* Columna Lateral Fija (Derecha, 4 cols en desktop): Acción y Compra *@
-            <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
-
-                @* 1. Tu Ludoteca Personal (Acciones) *@
-                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4 sm:p-5 shadow-sm space-y-3">
-                    <h3 class="text-xs font-extrabold text-[var(--text-secondary)] uppercase tracking-wider">Tu Ludoteca Personal</h3>
-                    <CollectionActionBar
-                        CurrentItem="@_collectionItem"
-                        ActiveLoan="@_activeLoan"
-                        PlayCount="@_userPlaysCount"
-                        IsSessionActive="@HasSession"
-                        OnStatusSelected="HandleStatusSelected"
-                        OnTogglePlayed="HandleTogglePlayed"
-                        OnRecordPlayClicked="() => _isRecordPlayModalOpen = true"
-                        OnLoanClicked="() => _isLoanModalOpen = true" />
-
-                    @if (!string.IsNullOrWhiteSpace(_actionFeedbackMessage))
-                    {
-                        <div class="p-3 rounded-xl border flex items-center justify-between text-xs transition-all @(_actionFeedbackType == "error" ? "bg-[var(--state-error-bg)] border-[var(--state-error-border)] text-[var(--state-error)]" : "bg-[var(--state-success-bg)] border-[var(--state-success-border)] text-[var(--state-success)]")">
-                            <div class="flex items-center gap-2">
-                                <Icon Name="@(_actionFeedbackType == "error" ? "alert-circle" : "check-circle-2")" Size="16" />
-                                <span>@_actionFeedbackMessage</span>
-                            </div>
-                            <button type="button" @onclick="() => _actionFeedbackMessage = null" class="opacity-75 hover:opacity-100 p-1" aria-label="Cerrar notificación">
-                                <Icon Name="x" Size="14" />
-                            </button>
-                        </div>
-                    }
-
-                    @if (_activeLoan != null)
-                    {
-                        <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                            <div class="flex items-center gap-2">
-                                <Icon Name="package" Size="14" />
-                                <span>Prestado a <strong class="text-[var(--text-primary)]">@_activeLoan.BorrowerName</strong></span>
-                            </div>
-                            <button type="button"
-                                    @onclick="() => _isLoanModalOpen = true"
-                                    class="px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-primary)] font-bold text-[0.65rem] border border-[var(--border-subtle)]">
-                                Ver &rarr;
-                            </button>
-                        </div>
-                    }
-                </div>
-
-                @* 2. Dónde Comprar & Radar de Precios (SIEMPRE VISIBLE) *@
+            @* Columna Lateral Fija (Derecha): Dónde comprar y Tu valoración *@
+            <aside class="hidden lg:flex lg:col-span-4 flex-col gap-6 lg:sticky lg:top-20">
                 <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameSlug="@Game.Slug" GameId="@Game.Id" IsSidebar="true" />
 
-                @* 3. Ficha Técnica Express (ADN Lúdico y Ratings) *@
-                <div class="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 space-y-4 shadow-sm">
-                    @* Doble Rating (BGG vs Ludist) *@
-                    <div>
-                        <span class="text-[0.68rem] uppercase font-bold text-[var(--text-muted)] block mb-1.5">Puntuación & Consenso</span>
-                        <div class="flex items-center gap-4 py-2 px-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]">
-                            <div class="flex-1">
-                                <span class="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Rating BGG</span>
-                                <div class="flex items-baseline gap-1 text-[var(--brand-primary)]">
-                                    <span class="text-xl font-black">★ @Game.BggRating.ToString("0.0")</span>
-                                    <span class="text-xs text-[var(--text-muted)]">/ 10</span>
-                                </div>
-                            </div>
-                            <div class="w-px h-8 bg-[var(--border-subtle)]"></div>
-                            <div class="flex-1">
-                                <span class="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Consenso Ludeka</span>
-                                <div class="flex items-baseline gap-1 text-[var(--text-primary)]">
-                                    <span class="text-xl font-black">★ @Game.LudistRating.ToString("0.0")</span>
-                                    <span class="text-xs text-[var(--text-muted)]">/ 10</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    @* ADN Lúdico *@
-                    <div>
-                        <span class="text-[0.68rem] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">ADN Lúdico</span>
-                        <QuickBadges
-                            Confrontation="@Game.Confrontation"
-                            Style="@Game.Style"
-                            IsOfficialSolo="@Game.IsOfficialSolo"
-                            Age="@Game.Age"
-                            Language="@Game.Language"
-                            EstimatedMinutesPerPlayer="@Game.Duration.EstimatedPerPlayerMinutes"
-                            Footprint="@Game.Footprint" />
-                    </div>
-                </div>
-
-                @* 4. Tu Valoración y Reseña *@
                 <UserReviewCard
                     Review="@_userReview"
                     CanReview="@CanUserReview()"
                     DisabledReviewReason="@GetDisabledReviewReason()"
                     OnEditClicked="OpenReviewModal" />
-
-            </div>
+            </aside>
         </div>
     </div>
 
-    @* Modales *@
+    @* BARRA INFERIOR MÓVIL FIJA (STICKY BOTTOM MOBILE BAR) *@
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--inverse)] text-[var(--on-inverse)] px-4 py-3 border-t border-[var(--line)] shadow-2xl flex items-center justify-between gap-3">
+        <div class="flex flex-col">
+            <span class="text-[11px] font-extrabold uppercase text-[var(--muted)] leading-tight">Mejor precio hoy</span>
+            <b class="text-lg font-black text-[var(--ticker)] leading-tight">@GetBestPriceLabel()</b>
+        </div>
+        <button type="button"
+                @onclick="() => HandleStatusSelected(CollectionStatus.InCollection)"
+                class="h-11 px-5 rounded-full font-black text-xs inline-flex items-center gap-1.5 transition-transform active:scale-95 shadow-md @(_collectionItem?.Status == CollectionStatus.InCollection ? "bg-[var(--accent-green)] text-[#FFF8EE]" : "bg-[var(--brand)] text-[var(--on-brand)]")">
+            <Icon Name="@(_collectionItem?.Status == CollectionStatus.InCollection ? "check" : "library")" Size="14" />
+            <span>@(_collectionItem?.Status == CollectionStatus.InCollection ? "En mi ludoteca" : "Añadir a mi ludoteca")</span>
+        </button>
+    </div>
+
+    @* PANEL FLOTANTE DE HERRAMIENTAS STAFF *@
+    @if (IsStaff)
+    {
+        <GameStaffToolsPanel
+            Game="@Game"
+            AiSummary="@_aiSummary"
+            FoundingVerdict="@_foundingVerdict"
+            IsGeneratingAiSummary="@_isGeneratingAiSummary"
+            OnEditMetadata="() => _isEditorModalOpen = true"
+            OnRequestAiSummary="HandleRequestAiSummary"
+            OnAssociateBgg="() => _isAssociateBggModalOpen = true"
+            OnEditVerdict="() => _isFoundingModalOpen = true"
+            OnSocialCard="OpenSocialCardModal"
+            OnOpenReports="() => _isReportModalOpen = true" />
+    }
+
+    @* Modales del Ecosistema *@
+    <AssociateBggModal
+        @bind-IsOpen="_isAssociateBggModalOpen"
+        GameId="@Game.Id"
+        GameTitle="@Game.SpanishTitle"
+        CurrentBggId="@Game.BggId"
+        OnBggAssociated="HandleBggAssociated" />
+
     <SocialCardModal
         IsOpen="@_isSocialCardModalOpen"
         Data="@_socialCardData"
@@ -495,31 +655,31 @@ else
 
     @if (_isPlayedPromptModalOpen && Game != null)
     {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
              role="dialog"
              aria-modal="true"
              aria-labelledby="played-prompt-title">
-            <div class="w-full max-w-sm rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 shadow-2xl space-y-4 text-center">
-                <div class="w-12 h-12 mx-auto rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+            <div class="w-full max-w-sm rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-6 shadow-2xl space-y-4 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center">
                     <Icon Name="dices" Size="24" />
                 </div>
                 <div class="space-y-1">
-                    <h3 id="played-prompt-title" class="text-base font-extrabold text-[var(--text-primary)]">
+                    <h3 id="played-prompt-title" class="text-base font-black text-[var(--ink)]">
                         ¿Has jugado al juego @Game.SpanishTitle?
                     </h3>
-                    <p class="text-xs text-[var(--text-secondary)]">
+                    <p class="text-xs text-[var(--muted)]">
                         Para mantener tu ludoteca al día, indícanos si ya lo has probado en mesa.
                     </p>
                 </div>
                 <div class="flex items-center gap-3 pt-2">
                     <button type="button"
                             @onclick="HandlePlayedPromptNo"
-                            class="flex-1 py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs transition-colors">
+                            class="flex-1 py-2.5 px-4 rounded-full border border-[var(--line)] hover:bg-[var(--paper-2)] text-[var(--muted)] hover:text-[var(--ink)] font-black text-xs transition-colors">
                         No
                     </button>
                     <button type="button"
                             @onclick="HandlePlayedPromptYes"
-                            class="flex-1 py-2.5 px-4 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--on-brand)] font-extrabold text-xs shadow-md transition-colors">
+                            class="flex-1 py-2.5 px-4 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] font-black text-xs shadow-md transition-colors">
                         Sí
                     </button>
                 </div>
@@ -540,7 +700,6 @@ else
     private AiGameSummaryDto? _aiSummary;
     private GameMediaHubDto? _mediaHub;
 
-    // Incremento 8: Expansiones, Sinergias y Ecosistema
     private IReadOnlyList<ExpansionSummaryDto> _expansions = [];
     private IReadOnlyList<ExpansionSummaryDto> _sisterExpansions = [];
     private IReadOnlyList<ExpansionSynergyDto> _sisterSynergies = [];
@@ -554,6 +713,7 @@ else
     private bool _isSocialCardModalOpen;
     private bool _isReportModalOpen;
     private bool _isEditorModalOpen;
+    private bool _isAssociateBggModalOpen;
     private SocialCardDataDto? _socialCardData;
     private bool _isGeneratingAiSummary;
     private string? _aiSummaryMessage;
@@ -562,9 +722,6 @@ else
     private string? _actionFeedbackMessage;
     private string _actionFeedbackType = "success";
     private string _selectedHeroImageKey = "cover";
-    private string? _userCountryCode;
-    private string _userCountryName = "España";
-    private string _activeSecondaryTab = "media";
 
     private string CurrentHeroImageUrl => _selectedHeroImageKey switch
     {
@@ -573,20 +730,104 @@ else
         _ => Game?.CoverImageUrl ?? string.Empty
     };
 
-    private string GetHeroImageAlt() => _selectedHeroImageKey switch
-    {
-        "back" => $"Contraportada de {Game?.SpanishTitle}",
-        "table" => $"Componentes en mesa de {Game?.SpanishTitle}",
-        _ => $"Carátula oficial de {Game?.SpanishTitle}"
-    };
+    private string? _userCountryCode;
+    private string _userCountryName = "España";
+    private string _activeSecondaryTab = "media";
 
-    /// <summary>Indica si hay sesión iniciada: las acciones con identidad la exigen (INC-46 F4).</summary>
+    private bool IsStaff => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
+    private string GetFoundingBadgeText()
+    {
+        if (_foundingVerdict != null)
+        {
+            return _foundingVerdict.Recommendation switch
+            {
+                FoundingRecommendation.MustPlay => "Imprescindible",
+                FoundingRecommendation.RecommendedWithAdaptations => "Recomendado",
+                _ => "Prescindible"
+            };
+        }
+        return Game != null && Game.LudistRating > 0 ? $"★ {Game.LudistRating:0.0}" : "Pendiente";
+    }
+
+    private string GetBestPriceLabel()
+    {
+        if (Game?.PurchaseLinks == null || Game.PurchaseLinks.Count == 0) return "Consultar tiendas";
+        var min = Game.PurchaseLinks.Where(p => p.Price.HasValue).MinBy(p => p.Price!.Value);
+        return min != null ? $"{min.FormattedPrice} en {min.StoreName}" : "Consultar tiendas";
+    }
+
+    private string GetHistoricalLowLabel()
+    {
+        if (Game?.PurchaseLinks == null || Game.PurchaseLinks.Count == 0) return "Sin datos";
+        var min = Game.PurchaseLinks.Where(p => p.Price.HasValue).MinBy(p => p.Price!.Value);
+        return min?.Price.HasValue == true ? $"{min.Price.Value:0.00} €" : "Sin datos";
+    }
+
+    private string GetHighImpactQuote()
+    {
+        if (!string.IsNullOrWhiteSpace(_foundingVerdict?.OverallVerdict))
+            return _foundingVerdict.OverallVerdict;
+        if (!string.IsNullOrWhiteSpace(_aiSummary?.GeneralVerdict))
+            return _aiSummary.GeneralVerdict;
+        if (!string.IsNullOrWhiteSpace(Game?.Description))
+        {
+            var desc = Game.Description.Trim();
+            return desc.Length > 220 ? desc[..217] + "..." : desc;
+        }
+        return "Ficha en evaluación editorial por la Mesa Fundadora.";
+    }
+
+    private string GetVerdictSourceLabel()
+    {
+        if (_foundingVerdict != null)
+            return $"Mesa Fundadora de Ludeka &bull; por {_foundingVerdict.AuthorName}";
+        if (_aiSummary != null)
+            return $"Síntesis estructurada con IA ({_aiSummary.Model})";
+        return "En evaluación por el equipo editorial de Ludeka";
+    }
+
+    private string GetVerdictPros()
+    {
+        if (_foundingVerdict != null && !string.IsNullOrWhiteSpace(_foundingVerdict.TwoPlayerVerdict))
+            return _foundingVerdict.TwoPlayerVerdict;
+        if (_aiSummary != null && !string.IsNullOrWhiteSpace(_aiSummary.ScalabilitySummary))
+            return _aiSummary.ScalabilitySummary;
+        return "Mecánicas pulidas y alta rejugabilidad según el consenso lúdico.";
+    }
+
+    private string GetVerdictCons()
+    {
+        if (_foundingVerdict != null && _foundingVerdict.Recommendation == FoundingRecommendation.RecommendedWithAdaptations)
+            return "Requiere pequeñas adaptaciones o curva de aprendizaje pronunciada en primeras partidas.";
+        if (_aiSummary != null && !string.IsNullOrWhiteSpace(_aiSummary.FootprintSummary))
+            return _aiSummary.FootprintSummary;
+        return "Exige espacio en mesa o tiempo de despliegue según el número de participantes.";
+    }
+
+    private string GetVerdictTargetAudience()
+    {
+        if (_foundingVerdict != null && !string.IsNullOrWhiteSpace(_foundingVerdict.FamilyVerdict))
+            return _foundingVerdict.FamilyVerdict;
+        if (_aiSummary != null && !string.IsNullOrWhiteSpace(_aiSummary.AgeSummary))
+            return _aiSummary.AgeSummary;
+        return $"Recomendado para mesas a partir de {Game?.Age?.BoxAge ?? 10} años y grupos afines al estilo {Game?.Style}.";
+    }
 
     private void HandleGameUpdated(GameDetailDto updated)
     {
         Game = updated;
         StateHasChanged();
+    }
+
+    private async Task HandleBggAssociated(int newBggId)
+    {
+        if (Game != null)
+        {
+            Game = await CatalogService.GetGameBySlugAsync(Slug);
+            StateHasChanged();
+        }
     }
 
     private async Task HandleExpansionAporteUpdated()
@@ -717,7 +958,6 @@ else
 
         try
         {
-            // Carga de datos de expansiones
             if (Game.IsExpansion)
             {
                 _parentGame = Game.BaseGame ?? (Game.BaseGameId.HasValue ? await ExpansionService.GetParentGameForExpansionAsync(Game.Id) : null);
@@ -851,12 +1091,10 @@ else
             return;
         }
 
-        // Flujo UX para 'En mi ludoteca': si se añade por primera vez o cambia a este estado
         if (status == CollectionStatus.InCollection && _collectionItem != null && prevStatus != status)
         {
             if (!_collectionItem.IsPlayed)
             {
-                // Si no tiene marcado jugado, preguntamos con Sí / No
                 _isPlayedPromptModalOpen = true;
                 return;
             }
@@ -877,7 +1115,7 @@ else
         {
             _collectionItem = await LibraryService.SetPlayedStateAsync(Game.Id, true);
             await RefreshPlaysCountAsync();
-            _isReviewModalOpen = true; // Salta la valoración
+            _isReviewModalOpen = true;
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -958,7 +1196,6 @@ else
             _actionFeedbackType = "success";
             _actionFeedbackMessage = "¡Valoración guardada correctamente!";
 
-            // Refrescar ficha del juego para reflejar el consenso actualizado
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             await LoadUserDataAsync();
         }
@@ -986,8 +1223,6 @@ else
         try
         {
             await FoundingService.SaveVerdictAsync(req);
-
-            // Refrescar ficha y datos del veredicto
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             await LoadUserDataAsync();
         }
@@ -1032,4 +1267,53 @@ else
             StateHasChanged();
         }
     }
+
+    private string TitleForCountry => Game?.GetTitleForCountry(_userCountryCode) ?? string.Empty;
+    private string PublisherForCountry => Game?.GetPublisherForCountry(_userCountryCode) ?? string.Empty;
+    private bool HasLocalPublisher => !string.IsNullOrWhiteSpace(PublisherForCountry);
+    private bool DiffersFromOriginal => HasLocalPublisher && !string.Equals(PublisherForCountry, Game?.Publisher, StringComparison.OrdinalIgnoreCase);
+    private string? LocalPubSlug => HasLocalPublisher ? Ludeka.Core.Entities.Game.GenerateSlug(PublisherForCountry) : null;
+    private string? OrigPubSlug => !string.IsNullOrWhiteSpace(Game?.Publisher) ? Ludeka.Core.Entities.Game.GenerateSlug(Game.Publisher) : null;
+
+    private string GetPlayerRangeText()
+    {
+        if (Game == null || Game.Scalability.Count == 0) return "1–4";
+        var min = Game.Scalability.Min(s => s.PlayerCount);
+        var max = Game.Scalability.Max(s => s.PlayerCount);
+        return min == max ? $"{min}" : $"{min}–{max}";
+    }
+
+    private static string GetLanguageText(LanguageDependence lang) => lang switch
+    {
+        LanguageDependence.None => "Nulo (solo iconografía)",
+        LanguageDependence.Low => "Bajo (texto breve)",
+        LanguageDependence.High => "Alto (dependiente)",
+        _ => lang.ToString()
+    };
+
+    private static string GetFootprintText(TableFootprint footprint) => footprint switch
+    {
+        TableFootprint.SmallTable => "Mesa pequeña / Cafetería",
+        TableFootprint.StandardTable => "Mesa estándar",
+        TableFootprint.TableMonster => "Mesa grande / Despliegue amplio",
+        _ => footprint.ToString()
+    };
+
+    private static string GetConfrontationText(ConfrontationType confrontation) => confrontation switch
+    {
+        ConfrontationType.Cooperative => "Cooperativo",
+        ConfrontationType.SemiCooperative => "Semi-cooperativo",
+        ConfrontationType.HiddenRolesOrTeams => "Roles Ocultos / Equipos",
+        ConfrontationType.Competitive => "Competitivo",
+        _ => confrontation.ToString()
+    };
+
+    private static string GetStyleText(GameStyle style) => style switch
+    {
+        GameStyle.Eurogame => "Eurogame / Gestión",
+        GameStyle.Ameritrash => "Temático / Ameritrash",
+        GameStyle.PartyGame => "Party Game / Social",
+        GameStyle.FillerAbstract => "Filler / Abstracto",
+        _ => "Narrativo / Rol"
+    };
 }
