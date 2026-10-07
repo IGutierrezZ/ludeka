@@ -1201,4 +1201,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Módulo del Sistema:** [`sistema/53-portadas-es-imagenes-top3000.md`](sistema/53-portadas-es-imagenes-top3000.md).
 - **Pruebas unitarias:** 2.604 verificadas al 100%.
 
+---
+
+## Incremento 123: Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica)
+- **Identificador SDD:** `ficha-juego-revista`
+- **Objetivo Principal:**
+  1. **Cabecera Envolvente Terracota (`bg-[var(--brand)] text-[var(--on-brand)]`):** Banda envolvente en escritorio y móvil, marco polaroid físico rotado 2° con carrusel fotográfico (portada, trasera, en mesa), selector numérico y pegatina de mejor precio girada -6°.
+  2. **Botonera de Colección Depurada:** Desplegable split (`En mi ludoteca`, `Lo quiero`, `Jugado`), botón contorneado de «Registrar partida» y compartir en portapapeles. Se retira «Avisar si baja de precio» (pospuesto a alertas) y «Prestar» (ubicado en Mi Ludoteca). «Cartel para redes» exclusivo de herramientas de moderación/staff.
+  3. **Barra Pegajosa de Pestañas (Sticky Nav):** 5 pestañas reactivas (`Resumen`, `Vídeos`, `Dudas`, `Fundas`, `Expansiones`) con sincronización bidireccional y preservación de la columna lateral fija de tiendas y reseñas (`IsSidebar="true"`).
+  4. **Panel Lateral Deslizable de Veredicto (Slide-Over / Bottom Sheet):** Modal lateral interactivo para lectura del veredicto íntegro de la Mesa Fundadora, pros, contras, contexto ideal y herramientas de staff.
+  5. **Adaptación Móvil:** Carátula 4:3 con controles táctiles y paginación por puntos, fila fluida de píldoras y barra fija inferior de mejor precio y colección al alcance del pulgar.
+- **Estado:** ⏳ **En progreso / Verificado** (2.617 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/inc-123-ficha-juego-revista.md`](../increments/inc-123-ficha-juego-revista.md).
+
+
 
