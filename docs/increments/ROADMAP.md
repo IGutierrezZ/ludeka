@@ -134,6 +134,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-119** | Backoffice Editorial «Ludeka Gestión»: AdminLayout, 11 Módulos de Mesa y Atajos de Teclado | ✅ Archivado | [inc-119-backoffice-ludeka-gestion-adminlayout.md](archive/inc-119-backoffice-ludeka-gestion-adminlayout.md) |
 | **INC-120** | Extracción de Portadas en Español desde Snapshots y Sincronización de Imágenes Comunitarias Top 3.000 BGG | ✅ Archivado | [inc-120-portadas-es-imagenes-top3000.md](archive/inc-120-portadas-es-imagenes-top3000.md) |
 | **INC-121** | Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos) | ✅ Archivado | [inc-121-alineacion-editorial-claude-p1.md](archive/inc-121-alineacion-editorial-claude-p1.md) |
+| **INC-122** | Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa) | ✅ Archivado | [inc-122-reparacion-imagenes-bgg.md](archive/inc-122-reparacion-imagenes-bgg.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -162,6 +163,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 *(Ninguno activo en este momento).*
+
+*(INC-122 entregó su verificación con 2.604 pruebas unitarias en verde al 100%, y quedó archivada el 2026-10-07. Corrige la extracción de imágenes en alta resolución [imageurl_lg de 1024px] en GeekDo descartando micro-miniaturas de 64px, introduce consulta dirigida con tag=BoxBack para contraportadas, blinda la jerarquía de portadas preservando la carátula raíz oficial de BGG ante la ausencia de versión en español, sanea URLs corruptas y adapta el visor de GameImageCarousel a proporción aspect-square sm:aspect-[4/3] con fondo oscuro editorial).*
 
 *(INC-121 entregó su PR #214, verificada con 2.599 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-07. Implementa la Parte 1 de alineación editorial de Claude Design: retirada de campana en cabecera superior, tintado terracota en /tendencias, depuración de pie de página, barra contextual StaffBar con mediador IStaffActionService, 3 destacados configurables en portada con HomeFeaturedModal, cuentas atrás concisas sin "Queda/Quedan", numerales 01-02 en catálogo liberados de recorte, paginación accesible de 10 elementos en Sorteos y Ofertas, icono de lápiz para edición directa de sorteos, retorno a «← Todos los sorteos» y modal comunitario de reporte de sorteos).*
 

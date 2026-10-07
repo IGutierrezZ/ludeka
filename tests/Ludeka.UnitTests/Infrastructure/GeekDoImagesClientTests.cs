@@ -110,4 +110,97 @@ public class GeekDoImagesClientTests
         Assert.NotNull(result.BackCoverUrl);
         Assert.NotNull(result.TableOrGameplayUrl);
     }
+
+    [Fact]
+    public void ParseGeekDoImagesJson_WithRealGeekDoSchema_ExtractsImageUrlLg_AndIgnoresMicro()
+    {
+        // Arrange: Esquema real de la API de GeekDo (imageurl_lg, numrecommend, micro thumbnail)
+        string json = """
+        {
+          "images": [
+            {
+              "imageid": "3756288",
+              "caption": "Nemesis box front cover official",
+              "numrecommend": 110,
+              "imageurl_lg": "https://cf.geekdo-images.com/front__large/pic3756288.jpg",
+              "imageurl": "https://cf.geekdo-images.com/front__micro/fit-in/64x64/pic3756288.jpg"
+            },
+            {
+              "imageid": "4706239",
+              "caption": "Retail edition back of the box",
+              "numrecommend": 25,
+              "imageurl_lg": "https://cf.geekdo-images.com/back__large/pic4706239.jpg",
+              "imageurl": "https://cf.geekdo-images.com/back__micro/fit-in/64x64/pic4706239.jpg"
+            },
+            {
+              "imageid": "5482520",
+              "caption": "Game in play on table with all components",
+              "numrecommend": 42,
+              "imageurl_lg": "https://cf.geekdo-images.com/table__large/pic5482520.jpg",
+              "imageurl": "https://cf.geekdo-images.com/table__micro/fit-in/64x64/pic5482520.jpg"
+            }
+          ]
+        }
+        """;
+
+        // Act
+        var result = GeekDoImagesClient.ParseGeekDoImagesJson(json, 167355);
+
+        // Assert: Todas las URLs deben ser __large en alta definición, nunca __micro
+        Assert.Equal("https://cf.geekdo-images.com/front__large/pic3756288.jpg", result.FrontCoverUrl);
+        Assert.Equal("https://cf.geekdo-images.com/back__large/pic4706239.jpg", result.BackCoverUrl);
+        Assert.Equal("https://cf.geekdo-images.com/table__large/pic5482520.jpg", result.TableOrGameplayUrl);
+    }
+
+    [Fact]
+    public void ParseGeekDoCategoryJson_ExtractsTopVotedHighResImage()
+    {
+        // Arrange
+        string json = """
+        {
+          "images": [
+            {
+              "imageid": "10",
+              "numrecommend": 3,
+              "imageurl_lg": "https://cf.geekdo-images.com/back1__large.jpg"
+            },
+            {
+              "imageid": "20",
+              "numrecommend": 45,
+              "imageurl_lg": "https://cf.geekdo-images.com/back2__large.jpg"
+            }
+          ]
+        }
+        """;
+
+        // Act
+        var result = GeekDoImagesClient.ParseGeekDoCategoryJson(json);
+
+        // Assert: debe tomar la de 45 recomendaciones
+        Assert.Equal("https://cf.geekdo-images.com/back2__large.jpg", result);
+    }
+
+    [Fact]
+    public void ParseGeekDoImagesJson_WhenOnlyMicroUrlExists_RejectsAndReturnsNull()
+    {
+        // Arrange: elemento que solo dispone de miniatura micro de 64px
+        string json = """
+        {
+          "images": [
+            {
+              "imageid": "99",
+              "caption": "Front box",
+              "numrecommend": 10,
+              "imageurl": "https://cf.geekdo-images.com/uhFK8tUbz7in96NAQoqpxw__micro/img/pic99.jpg"
+            }
+          ]
+        }
+        """;
+
+        // Act
+        var result = GeekDoImagesClient.ParseGeekDoImagesJson(json, 99);
+
+        // Assert: se rechaza la miniatura micro para evitar imágenes borrosas
+        Assert.Null(result.FrontCoverUrl);
+    }
 }
