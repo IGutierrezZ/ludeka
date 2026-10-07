@@ -16,56 +16,58 @@
        aria-label="Ver ficha de @Game.SpanishTitle">
         
         @* Carátula cuadrada 1:1 con sombra profunda y numeral ciclálico *@
-        <div class="relative aspect-square w-full rounded overflow-hidden bg-[var(--paper-2)] shadow-[0_12px_24px_var(--shadow)]">
+        <div class="relative w-full">
             @if (PositionNumber.HasValue)
             {
-                <span class="absolute -top-3.5 -left-1.5 z-20 text-3xl sm:text-[42px] font-black tracking-[-0.06em] select-none pointer-events-none leading-none"
+                <span class="absolute -top-3.5 -left-1.5 sm:-top-4 sm:-left-2 z-20 text-3xl sm:text-[42px] font-black tracking-[-0.06em] select-none pointer-events-none leading-none"
                       style="color: @colorVar; text-shadow: 0 2px 0 var(--paper, #FFF8EE);">
-                    @PositionNumber.Value
+                    @PositionNumber.Value.ToString("00")
                 </span>
             }
 
-            @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
-            {
-                <img src="@effectiveImageUrl"
-                     alt="Carátula oficial de @Game.SpanishTitle"
-                     loading="lazy"
-                     decoding="async"
-                     width="240"
-                     height="240"
-                     onerror="this.onerror=null; this.src='@placeholderUrl';"
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            }
-            else
-            {
-                <img src="@placeholderUrl"
-                     alt="Carátula de @Game.SpanishTitle no disponible"
-                     loading="lazy"
-                     decoding="async"
-                     width="240"
-                     height="240"
-                     class="w-full h-full object-cover opacity-80" />
-            }
+            <div class="relative aspect-square w-full rounded overflow-hidden bg-[var(--paper-2)] shadow-[0_12px_24px_var(--shadow)]">
+                @if (!string.IsNullOrWhiteSpace(effectiveImageUrl))
+                {
+                    <img src="@effectiveImageUrl"
+                         alt="Carátula oficial de @Game.SpanishTitle"
+                         loading="lazy"
+                         decoding="async"
+                         width="240"
+                         height="240"
+                         onerror="this.onerror=null; this.src='@placeholderUrl';"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                }
+                else
+                {
+                    <img src="@placeholderUrl"
+                         alt="Carátula de @Game.SpanishTitle no disponible"
+                         loading="lazy"
+                         decoding="async"
+                         width="240"
+                         height="240"
+                         class="w-full h-full object-cover opacity-80" />
+                }
 
-            @* Badge de Expansión *@
-            @if (Game.IsExpansion)
-            {
-                <div class="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[10px] font-black text-purple-200 flex items-center gap-1">
-                    <Icon Name="puzzle" Size="11" />
-                    <span>Expansión</span>
-                </div>
-            }
+                @* Badge de Expansión *@
+                @if (Game.IsExpansion)
+                {
+                    <div class="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-[10px] font-black text-purple-200 flex items-center gap-1">
+                        <Icon Name="puzzle" Size="11" />
+                        <span>Expansión</span>
+                    </div>
+                }
 
-            @* Botón de acción rápida: Colección / Jugado *@
-            <button type="button"
-                    @onclick="HandleQuickActionClick"
-                    @onclick:stopPropagation="true"
-                    @onclick:preventDefault="true"
-                    title="Añadir a mi ludoteca / jugado"
-                    aria-label="Añadir @Game.SpanishTitle a tu colección o jugado"
-                    class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-[var(--brand)] text-[#FFF8EE] backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                <Icon Name="plus" Size="15" />
-            </button>
+                @* Botón de acción rápida: Colección / Jugado *@
+                <button type="button"
+                        @onclick="HandleQuickActionClick"
+                        @onclick:stopPropagation="true"
+                        @onclick:preventDefault="true"
+                        title="Añadir a mi ludoteca / jugado"
+                        aria-label="Añadir @Game.SpanishTitle a tu colección o jugado"
+                        class="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-[var(--brand)] text-[#FFF8EE] backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    <Icon Name="plus" Size="15" />
+                </button>
+            </div>
         </div>
 
         @* Detalle editorial con regla superior de 2px *@
