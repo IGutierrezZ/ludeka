@@ -319,7 +319,7 @@ public class WebMarkupContractTests
         // el shell del modal permanece montado (sin @if) para restaurar el foco al cerrar.
         { "News (sin emojis)", "src/Ludeka.Web/Components/Pages/News.razor",
           new[] { "BadgeIcon=\"newspaper\"", "<Icon Name=\"plus\"", "<Icon Name=\"search\"", "<Icon Name=\"package\"", "<Icon Name=\"refresh-cw\"", "<Icon Name=\"camera\"", "<Icon Name=\"calendar-days\"",
-                  "<PageHeaderEditorial", "<EditorialModal", "DefaultImage", "DefaultImageDomain.Novedad", "novedad-default.svg", "onerror", "this.onerror=null", "width=", "height=", "rail-card" },
+                  "<PageHeaderEditorial", "<EditorialModal", "DefaultImage", "DefaultImageDomain.Novedad", "novedad-default.svg", "onerror", "this.onerror=null", "width=", "height=" },
           new[] { "📰", "➕", "🔍", "📦", "🔄", "🆕", "🗓", "📸", "dark:", "text-pink-500", "text-rose-600", "hover:scale-105", "fixed inset-0 z-50", "@if (_isCreateModalOpen)" } },
 
         // NotFound: spinner/hero del 404 por icono Lucide

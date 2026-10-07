@@ -31,7 +31,7 @@
 
         <div class="flex flex-wrap justify-between items-end gap-6">
             <div class="flex flex-col gap-4 max-w-2xl">
-                <h1 class="text-5xl sm:text-7xl lg:text-[88px] font-black leading-[0.88] tracking-[-0.055em] m-0 page-header-title">
+                <h1 class="text-5xl sm:text-7xl lg:text-[88px] font-black leading-[0.88] tracking-[-0.055em] m-0 text-[#FFF8EE]">
                     Novedades<br>en <i class="text-[var(--mustard)] not-italic">tiendas</i>
                 </h1>
                 <p class="text-sm sm:text-base leading-relaxed opacity-85 m-0 max-w-xl">
@@ -240,7 +240,7 @@
                             var dayText = release.ReleaseDate.HasValue ? (release.IsMonthOnly ? "—" : release.ReleaseDate.Value.Day.ToString("00")) : "—";
                             var monthText = GetMonthAbbr(release.ReleaseDate);
 
-                            <div class="rail-card flex flex-wrap items-center gap-3.5 sm:gap-6 py-4 sm:py-5 hover:bg-[var(--paper-2)]/40 transition-colors px-1 group">
+                            <div class="flex flex-wrap items-center gap-3.5 sm:gap-6 py-4 sm:py-5 hover:bg-[var(--paper-2)]/40 transition-colors px-1 sm:px-2 group">
                                 @* Columna de fecha *@
                                 <div class="w-14 sm:w-16 shrink-0 flex flex-col leading-none text-center">
                                     <b class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.05em] text-[var(--ink)] tabular-nums">
