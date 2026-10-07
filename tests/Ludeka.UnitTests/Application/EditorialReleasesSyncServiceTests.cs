@@ -106,11 +106,15 @@ public class EditorialReleasesSyncServiceTests
     [Fact]
     public async Task SyncAllEditorialReleasesAsync_IsIdempotent_UpdatesExistingReleaseWithoutDuplicating()
     {
-        // Ya existe una novedad registrada previamente sin PVP
+        var floeGame = CreateSampleGame(2001, "floe", "Floe", "Floe", yearPublished: 2026);
+        _gameRepo.Add(floeGame);
+
+        // Ya existe una novedad registrada previamente sin PVP y vinculada
         var initialRelease = new WeeklyRelease(
             title: "Floe",
             publisher: "Maldito Games",
             releaseDate: new DateOnly(2027, 1, 1),
+            gameId: floeGame.Id,
             coverImageUrl: "https://maldito.es/floe.jpg",
             estimatedPvp: null);
         _weeklyReleaseRepo.Releases.Add(initialRelease);
@@ -118,7 +122,7 @@ public class EditorialReleasesSyncServiceTests
         // Maldito ahora devuelve Floe con PVP confirmado
         _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
         {
-            new("Floe", "Maldito Games", new DateOnly(2027, 1, 1), "2027", 49.95m, null, "https://maldito.es/floe.jpg", Notes: "Preventa abierta")
+            new("Floe", "Maldito Games", new DateOnly(2027, 1, 1), "2027", 49.95m, null, "https://maldito.es/floe.jpg", Notes: "Preventa abierta", IsMonthOnly: true)
         };
 
         var service = CreateService();
@@ -135,6 +139,49 @@ public class EditorialReleasesSyncServiceTests
         var updated = _weeklyReleaseRepo.Releases.First();
         Assert.Equal("Floe", updated.Title);
         Assert.Equal(49.95m, updated.EstimatedPvp);
+        Assert.True(updated.IsMonthOnly);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_DiscardsReleasesWhenNoMatchingBoardGameFound()
+    {
+        // Devir devuelve un suplemento de rol o título no existente en catálogo ni en BGG
+        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new("VHS - SED DE SANGRE", "Devir", new DateOnly(2026, 10, 1), "Octubre 2026", 25m, null, "https://devir.es/vhs.jpg")
+        };
+
+        var service = CreateService();
+
+        // Act
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        // Assert: se detecta 1 item extraído pero se DESCARTA por no corresponder a un juego de mesa de BGG
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(0, summary.CreatedCount);
+        Assert.Equal(0, summary.GamesLinkedCount);
+        Assert.Empty(_weeklyReleaseRepo.Releases);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_PurgesPreexistingOrphanReleasesWithoutGameId()
+    {
+        // Supongamos que en una ejecución anterior se guardó un suplemento de rol huérfano sin GameId
+        var orphanRelease = new WeeklyRelease(
+            title: "VHS - INFESTACIÓN",
+            publisher: "Devir",
+            releaseDate: new DateOnly(2026, 10, 1),
+            gameId: null);
+        _weeklyReleaseRepo.Releases.Add(orphanRelease);
+
+        var service = CreateService();
+
+        // Act: Devir devuelve 0 items en esta pasada
+        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>();
+        await service.SyncPublisherReleasesAsync("Devir");
+
+        // Assert: la novedad huérfana ha sido purgada automáticamente
+        Assert.Empty(_weeklyReleaseRepo.Releases);
     }
 
     private static Game CreateSampleGame(int bggId, string slug, string originalTitle, string spanishTitle, int yearPublished)

@@ -58,4 +58,70 @@ public class DevirReleasesExtractorTests
         Assert.Equal(2026, abismo.ReleaseDate!.Value.Year);
         Assert.Equal(11, abismo.ReleaseDate!.Value.Month);
     }
+
+    [Fact]
+    public void ParseHtml_ExtractsDetailedReleasesWithPriceAndDiscardsRoleplayingGames()
+    {
+        var sampleHtml = @"
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Noviembre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-single-image-wrapper"">
+                <a href=""https://devir.es/hanging-gardens"">
+                    <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/product/8436625610973-1200-face3d.jpg"" alt=""Hanging Gardens"" />
+                </a>
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>THE HANGING GARDENS</span></strong></span> <strong>NOVEDAD</strong></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 25€</p>
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-single-image-wrapper"">
+                <a href=""https://devir.es/lacrimosa"">
+                    <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/product/8436625611111-1200.jpg"" alt=""Lacrimosa"" />
+                </a>
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>LACRIMOSA</span></strong></span> <strong>REIMPRESIÓN</strong></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 65,50 €</p>
+            </div>
+        </div>
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Noviembre 2026 - Juegos de rol</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-single-image-wrapper"">
+                <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/product/8436625619999-1200.jpg"" alt=""Rol Book"" />
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>EL ANILLO ÚNICO</span></strong></span></p>
+                <p><strong>Juego de rol</strong><br /><strong>Precio:</strong> 50€</p>
+            </div>
+        </div>
+        ";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var results = extractor.ParseHtml(sampleHtml);
+
+        // Solo los 2 juegos de mesa deben extraerse, el de rol debe descartarse
+        Assert.Equal(2, results.Count);
+        var gardens = results.First(r => r.Title == "THE HANGING GARDENS");
+        Assert.Equal("Devir", gardens.Publisher);
+        Assert.Equal("8436625610973", gardens.Ean);
+        Assert.Equal(25m, gardens.EstimatedPvp);
+        Assert.False(gardens.IsReprint);
+        Assert.True(gardens.IsMonthOnly);
+        Assert.Equal("https://devir.es/hanging-gardens", gardens.SourceUrl);
+
+        var lacrimosa = results.First(r => r.Title == "LACRIMOSA");
+        Assert.Equal("Devir", lacrimosa.Publisher);
+        Assert.Equal("8436625611111", lacrimosa.Ean);
+        Assert.Equal(65.50m, lacrimosa.EstimatedPvp);
+        Assert.True(lacrimosa.IsReprint);
+        Assert.True(lacrimosa.IsMonthOnly);
+    }
 }
