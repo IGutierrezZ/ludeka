@@ -30,12 +30,16 @@ public class MainLayoutContractTests
         Assert.Contains("HeaderColors.Fg", source, StringComparison.Ordinal);
         Assert.Contains("HeaderColors.Accent", source, StringComparison.Ordinal);
 
-        // Secciones contratadas en INC-114
+        // Secciones contratadas en INC-114 e INC-121
         Assert.Contains("catalogo", source, StringComparison.Ordinal);
+        Assert.Contains("tendencias", source, StringComparison.Ordinal);
         Assert.Contains("sorteos", source, StringComparison.Ordinal);
         Assert.Contains("novedades", source, StringComparison.Ordinal);
         Assert.Contains("eventos", source, StringComparison.Ordinal);
         Assert.Contains("clasificaciones", source, StringComparison.Ordinal);
+
+        // En INC-121 la campana se retira de la cabecera pública superior
+        Assert.DoesNotContain("href=\"/admin/notificaciones\"", source, StringComparison.Ordinal);
     }
 
     [Fact]
