@@ -1,6 +1,7 @@
 @page "/sorteos/{Id:guid}"
 @page "/sorteo/{Id:guid}"
 @rendermode InteractiveServer
+@implements IDisposable
 @using System.IO
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
@@ -11,6 +12,7 @@
 @inject IGiveawayService GiveawayService
 @inject IImageStorageService ImageStorageService
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 @inject IGameRepository GameRepository
 @inject NavigationManager Navigation
 @inject ILogger<GiveawayDetail> Logger
@@ -38,7 +40,7 @@ else if (_giveaway == null)
         </p>
         <a href="/sorteos" class="h-11 px-6 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-2 shadow-sm">
             <span>&larr;</span>
-            <span>Volver al radar de sorteos</span>
+            <span>Todos los sorteos</span>
         </a>
     </div>
 }
@@ -47,14 +49,14 @@ else
     @* HERO MOSTAZA DE CLAUDE DESIGN *@
     <section data-screen-label="Ficha de sorteo" class="bg-[#FFC145] text-[#22180F] border-b-[3px] border-[var(--rule)]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-10 flex flex-col gap-6 sm:gap-8">
-            @* Barra superior de navegación y acciones de moderación *@
+            @* Barra superior de navegación y acciones comunitarias *@
             <div class="flex flex-wrap justify-between items-center gap-3 text-xs sm:text-sm font-extrabold">
                 <a href="/sorteos" class="hover:underline inline-flex items-center gap-1.5 text-[#22180F]">
                     <span>&larr;</span>
-                    <span>Volver al radar de sorteos</span>
+                    <span>Todos los sorteos</span>
                 </a>
 
-                <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-4 flex-wrap">
                     @if (_giveaway.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(_giveaway.InstagramPermalink))
                     {
                         <a href="@_giveaway.InstagramPermalink"
@@ -66,21 +68,12 @@ else
                         </a>
                     }
 
-                    @if (CanModerate)
-                    {
-                        <button type="button"
-                                @onclick="OpenEditModal"
-                                class="h-8 px-3 rounded-full bg-[#22180F] text-[#FFC145] text-xs font-extrabold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shadow-xs">
-                            <Icon Name="pen-line" Size="12" />
-                            <span>Editar</span>
-                        </button>
-                        <button type="button"
-                                @onclick="() => _isDeleteConfirmOpen = true"
-                                class="h-8 px-3 rounded-full bg-red-700 text-white text-xs font-extrabold hover:bg-red-800 transition-colors inline-flex items-center gap-1.5 shadow-xs">
-                            <Icon Name="trash-2" Size="12" />
-                            <span>Eliminar</span>
-                        </button>
-                    }
+                    <button type="button"
+                            @onclick="OpenReportModal"
+                            class="opacity-80 hover:opacity-100 font-extrabold text-xs sm:text-sm text-[#22180F] underline hover:no-underline inline-flex items-center gap-1">
+                        <Icon Name="flag" Size="13" />
+                        <span>Reportar sorteo</span>
+                    </button>
                 </div>
             </div>
 
@@ -402,6 +395,78 @@ else
     </div>
 }
 
+@* Modal de Reportar Sorteo *@
+<EditorialModal Open="@_isReportModalOpen"
+                Title="Reportar Sorteo"
+                TitleIcon="flag"
+                OnClose="@(() => _isReportModalOpen = false)">
+    <ChildContent>
+        @if (_reportSubmitted)
+        {
+            <div class="p-6 text-center flex flex-col items-center gap-3 text-xs">
+                <span class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <Icon Name="circle-check" Size="24" />
+                </span>
+                <b class="text-base font-black text-[var(--ink)]">Reporte recibido</b>
+                <p class="text-[var(--muted)] max-w-sm">
+                    Gracias por colaborar. El equipo de moderación revisará la publicación a la mayor brevedad.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-3.5 text-xs">
+                <p class="text-[var(--muted)] leading-relaxed m-0">
+                    Si este sorteo contiene datos incorrectos, ha concluido o vulnera las bases comunitarias, indícanos el motivo:
+                </p>
+
+                <div>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Motivo del reporte *</label>
+                    <select @bind="_reportReason"
+                            class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm">
+                        <option value="Datos incorrectos">Datos incorrectos</option>
+                        <option value="Ya ha terminado">Ya ha terminado</option>
+                        <option value="Sorteo falso o spam">Sorteo falso o spam</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Comentario adicional (Opcional)</label>
+                    <textarea @bind="_reportComment"
+                              rows="3"
+                              placeholder="Cuéntanos qué has visto o aporta detalles para la revisión..."
+                              class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm resize-none"></textarea>
+                </div>
+            </div>
+        }
+    </ChildContent>
+
+    <Footer>
+        @if (_reportSubmitted)
+        {
+            <button type="button"
+                    @onclick="@(() => _isReportModalOpen = false)"
+                    class="px-5 py-2.5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] text-xs font-black hover:opacity-90 transition-opacity">
+                Cerrar
+            </button>
+        }
+        else
+        {
+            <button type="button"
+                    @onclick="@(() => _isReportModalOpen = false)"
+                    class="px-5 py-2.5 rounded-full border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)] text-xs font-bold transition-colors">
+                Cancelar
+            </button>
+            <button type="button"
+                    @onclick="HandleSubmitReport"
+                    class="px-5 py-2.5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] text-xs font-black hover:opacity-90 transition-opacity shadow-xs">
+                Enviar reporte
+            </button>
+        }
+    </Footer>
+</EditorialModal>
+
 @* Modal de Edición de Sorteo (Solo Administradores / Moderadores) *@
 @if (CanModerate)
 {
@@ -410,45 +475,45 @@ else
                     TitleIcon="pen-line"
                     OnClose="@(() => _isEditModalOpen = false)">
         <ChildContent>
-            <div class="space-y-4 text-xs">
+            <div class="space-y-3.5 text-xs">
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Título del Sorteo *</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Título del Sorteo *</label>
                     <input type="text"
                            @bind="_editTitle"
                            placeholder="Ej. Sorteo Brass Birmingham + Monedas"
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Organizador (Editorial / Tienda) *</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">Organizador (Editorial / Tienda) *</label>
                         <input type="text"
                                @bind="_editOrganizer"
                                placeholder="Ej. Maldito Games"
-                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                     </div>
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Colaborador (Influencer / Canal)</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">Colaborador (Influencer / Canal)</label>
                         <input type="text"
                                @bind="_editCollaborator"
                                placeholder="Ej. Análisis Parálisis"
-                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace Oficial al Sorteo *</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Enlace Oficial al Sorteo *</label>
                     <input type="url"
                            @bind="_editUrl"
                            placeholder="https://www.instagram.com/p/..."
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Plataforma</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">Plataforma</label>
                         <select @bind="_editPlatform"
-                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm">
                             <option value="@GiveawayPlatform.Instagram">Instagram</option>
                             <option value="@GiveawayPlatform.TwitterX">Twitter / X</option>
                             <option value="@GiveawayPlatform.YouTube">YouTube</option>
@@ -457,9 +522,9 @@ else
                     </div>
 
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">País / Ámbito Territorial</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">País / Ámbito Territorial</label>
                         <select @bind="_editCountry"
-                                class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm">
                             <option value="Internacional">Internacional (Válido para todos)</option>
                             @foreach (var c in CountryCatalog.GetAllCountries())
                             {
@@ -471,21 +536,21 @@ else
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Fecha Límite</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">Fecha Límite</label>
                         <input type="date"
                                @bind="_editDeadlineDate"
-                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                     </div>
                     <div>
-                        <label class="font-semibold text-[var(--text-secondary)] block mb-1">Hora Límite (UTC)</label>
+                        <label class="font-bold text-[var(--ink)] block mb-1">Hora Límite (UTC)</label>
                         <input type="time"
                                @bind="_editDeadlineTime"
-                               class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                               class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                     </div>
                 </div>
 
-                <div class="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
-                    <label class="font-semibold text-[var(--text-secondary)] block">Imagen de Portada / Cartel</label>
+                <div class="p-3.5 rounded-xl bg-[var(--paper-2)] border border-[var(--rule)] space-y-2.5">
+                    <label class="font-bold text-[var(--ink)] block">Imagen de Portada / Cartel</label>
 
                     <div class="flex items-center gap-3">
                         @if (!string.IsNullOrWhiteSpace(_editThumbnailUrl))
@@ -494,17 +559,17 @@ else
                                  alt="Miniatura actual"
                                  width="50"
                                  height="50"
-                                 class="w-12 h-12 rounded-lg object-cover border border-[var(--border-subtle)] shrink-0" />
+                                 class="w-12 h-12 rounded-lg object-cover border border-[var(--rule)] shrink-0" />
                         }
 
                         <div class="flex-1 space-y-1">
                             <InputFile OnChange="HandleCoverFileUpload"
                                        accept="image/*"
                                        disabled="@_isUploadingImage"
-                                       class="block w-full text-xs text-[var(--text-secondary)] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--brand-primary)] file:text-[var(--on-brand)] hover:file:opacity-90 cursor-pointer" />
+                                       class="block w-full text-xs text-[var(--ink)] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[var(--brand)] file:text-[var(--on-brand)] hover:file:opacity-90 cursor-pointer" />
                             @if (_isUploadingImage)
                             {
-                                <span class="text-[0.68rem] text-[var(--brand-primary)] font-semibold inline-flex items-center gap-1">
+                                <span class="text-[0.68rem] text-[var(--brand)] font-semibold inline-flex items-center gap-1">
                                     <span class="animate-spin"><Icon Name="refresh-cw" Size="10" /></span>
                                     <span>Optimizando y subiendo a R2...</span>
                                 </span>
@@ -513,20 +578,20 @@ else
                     </div>
 
                     <div>
-                        <label class="text-[0.68rem] text-[var(--text-muted)] block mb-0.5">O introducir URL directa de imagen:</label>
+                        <label class="text-[0.68rem] text-[var(--muted)] block mb-0.5">O introducir URL directa de imagen:</label>
                         <input type="url"
                                @bind="_editThumbnailUrl"
                                placeholder="https://... o /images/..."
-                               class="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] text-xs" />
+                               class="w-full px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-xs" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Nombre del Juego Asociado (Opcional)</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Nombre del Juego Asociado (Opcional)</label>
                     <input type="text"
                            @bind="_editGameTitle"
                            placeholder="Ej. Brass: Birmingham"
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
 
                 <div class="space-y-2 pt-1">
@@ -534,18 +599,18 @@ else
                         <input type="checkbox"
                                id="editCommExcl"
                                @bind="_editIsCommunityExclusive"
-                               class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
-                        <label for="editCommExcl" class="text-[var(--text-secondary)] font-medium cursor-pointer">
+                               class="rounded bg-[var(--card)] border-[var(--rule)] text-[var(--brand)] focus:ring-0" />
+                        <label for="editCommExcl" class="text-[var(--ink)] font-semibold cursor-pointer">
                             Sorteo exclusivo para miembros de la comunidad Ludeka
                         </label>
                     </div>
 
-                    <div class="flex items-center gap-2 p-2 rounded-xl bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)]">
+                    <div class="flex items-center gap-2 p-3 rounded-xl bg-[#FFF8EE] border border-[#FFC145] text-[#22180F]">
                         <input type="checkbox"
                                id="editIsPromoted"
                                @bind="_editIsPromoted"
-                               class="rounded bg-[var(--bg-surface-elevated)] border-[var(--state-warning-border)] text-[var(--state-warning)] focus:ring-0" />
-                        <label for="editIsPromoted" class="text-[var(--state-warning)] font-bold cursor-pointer">
+                               class="rounded bg-[var(--card)] border-[#FFC145] text-[#B23A12] focus:ring-0" />
+                        <label for="editIsPromoted" class="text-[#22180F] font-bold cursor-pointer">
                             Destacar como Sorteo Promocionado (Top de cabecera)
                         </label>
                     </div>
@@ -553,7 +618,7 @@ else
 
                 @if (!string.IsNullOrWhiteSpace(_editError))
                 {
-                    <div class="p-2.5 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+                    <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
                         @_editError
                     </div>
                 }
@@ -564,13 +629,13 @@ else
             <button type="button"
                     @onclick="() => _isEditModalOpen = false"
                     disabled="@_isSaving"
-                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                    class="px-5 py-2.5 rounded-full border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)] text-xs font-bold transition-colors">
                 Cancelar
             </button>
             <button type="button"
                     @onclick="HandleSaveGiveaway"
                     disabled="@_isSaving"
-                    class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                    class="px-5 py-2.5 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] text-xs font-black transition-opacity inline-flex items-center gap-1.5 shadow-xs disabled:opacity-50">
                 @if (_isSaving)
                 {
                     <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
@@ -594,11 +659,11 @@ else
                     OnClose="@(() => _isDeleteConfirmOpen = false)">
         <ChildContent>
             <div class="space-y-3 text-xs">
-                <p class="text-[var(--text-primary)] font-semibold">
+                <p class="text-[var(--ink)] font-bold text-sm">
                     ¿Estás seguro de que deseas eliminar definitivamente este sorteo?
                 </p>
-                <div class="p-3 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
-                    Esta acción eliminará el sorteo del radar y de las portadas de Ludeka. La operación no se puede deshacer.
+                <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    Esta acción retirará el sorteo del radar y de las portadas de Ludeka. La operación no se puede deshacer.
                 </div>
             </div>
         </ChildContent>
@@ -607,13 +672,13 @@ else
             <button type="button"
                     @onclick="() => _isDeleteConfirmOpen = false"
                     disabled="@_isDeleting"
-                    class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                    class="px-5 py-2.5 rounded-full border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)] text-xs font-bold transition-colors">
                 Cancelar
             </button>
             <button type="button"
                     @onclick="HandleDeleteGiveaway"
                     disabled="@_isDeleting"
-                    class="px-4 py-2 rounded-xl bg-[var(--state-error)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                    class="px-5 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition-opacity inline-flex items-center gap-1.5 shadow-xs disabled:opacity-50">
                 @if (_isDeleting)
                 {
                     <span class="animate-spin"><Icon Name="refresh-cw" Size="12" /></span>
@@ -637,6 +702,10 @@ else
     private bool _isLoading = true;
     private bool _isEditModalOpen;
     private bool _isDeleteConfirmOpen;
+    private bool _isReportModalOpen;
+    private bool _reportSubmitted;
+    private string _reportReason = "Datos incorrectos";
+    private string? _reportComment;
     private bool _isSaving;
     private bool _isDeleting;
     private bool _isUploadingImage;
@@ -672,6 +741,38 @@ else
         }
     }
 
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!CanModerate || _giveaway == null) return;
+        StaffActionService.SetCustomActions(
+        [
+            new StaffActionItem(
+                Label: "Editar sorteo",
+                Icon: "pen-line",
+                OnClick: () =>
+                {
+                    OpenEditModal();
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Eliminar sorteo",
+                Icon: "trash-2",
+                IsDestructive: true,
+                OnClick: () =>
+                {
+                    _isDeleteConfirmOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                })
+        ]);
+    }
+
     private async Task LoadGiveawayAsync()
     {
         _isLoading = true;
@@ -682,6 +783,7 @@ else
             {
                 _associatedGame = await GameRepository.GetByIdAsync(_giveaway.GameId.Value);
             }
+            RegisterStaffActions();
         }
         catch (Exception ex)
         {
@@ -692,6 +794,20 @@ else
         {
             _isLoading = false;
         }
+    }
+
+    private void OpenReportModal()
+    {
+        _reportSubmitted = false;
+        _reportReason = "Datos incorrectos";
+        _reportComment = null;
+        _isReportModalOpen = true;
+    }
+
+    private void HandleSubmitReport()
+    {
+        Logger.LogInformation("Reporte de sorteo emitido para {GiveawayId}: Motivo={Reason}, Comentarios={Comment}", Id, _reportReason, _reportComment);
+        _reportSubmitted = true;
     }
 
     private void OpenEditModal()
