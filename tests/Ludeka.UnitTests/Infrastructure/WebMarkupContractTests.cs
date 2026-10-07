@@ -985,4 +985,16 @@ public class WebMarkupContractTests
         Assert.True(bloque.Contains("-webkit-backdrop-filter:", StringComparison.Ordinal),
             $"El bloque .header-nav debe incluir '-webkit-backdrop-filter:'; contenido actual: {bloque}");
     }
+
+    [Fact]
+    public void RadarGiveaways_HeroTitle_UsesSansSerifTypographyMatchingClaudeDesign()
+    {
+        // En el diseño final de Claude (Ludeka Final.dc.html), el título de sorteos
+        // utiliza tipografía sans-serif (Plus Jakarta Sans extrabold 800) y no la clase
+        // .page-header-title que fuerza la fuente serif Fraunces.
+        var source = ReadSource("src/Ludeka.Web/Components/Pages/Radar.razor");
+        Assert.Contains("Sorteos<br>de juegos<br><i class=\"text-[#B23A12] italic\">de mesa</i>", source, StringComparison.Ordinal);
+        Assert.Contains("font-extrabold font-sans", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("page-header-title", source.Substring(source.IndexOf("data-screen-label=\"Sorteos\"", StringComparison.Ordinal)), StringComparison.Ordinal);
+    }
 }
