@@ -123,11 +123,10 @@ public class AccountAreaContractTests
     [Theory]
     [InlineData(AccountMenuPath)]
     [InlineData("src/Ludeka.Web/Components/Pages/GameDetail.razor")]
-    [InlineData("src/Ludeka.Web/Components/Pages/Radar.razor")]
     public void RewrittenLinks_ShouldTargetTheAccountArea(string relativePath)
     {
         // INC-50 e INC-62: reescritura selectiva del menú de cuenta en cabecera y de los enlaces
-        // de GameDetail/Radar hacia la ruta canónica /cuenta/ludoteca. El alias sigue vivo, por lo
+        // de GameDetail hacia la ruta canónica /cuenta/ludoteca. El alias sigue vivo, por lo
         // que esta reescritura es solo de enlaces, no de rutas.
         var source = ReadSource(relativePath);
 
