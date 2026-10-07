@@ -11,36 +11,47 @@
 
 <PageTitle>Directorio de Creadores de Contenido — Ludeka</PageTitle>
 
-<div class="container-ludeka py-8 space-y-8">
-    @* Cabecera con Buscador y Acción de Moderación *@
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
-        <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold">
-                <Icon Name="pen-line" Size="14" /> Creadores de Contenido &bull; Divulgadores del Hobby
-            </div>
-            <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                Creadores de Contenido
-            </h1>
-            <p class="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                Descubre a los divulgadores y creadores de contenido referentes del hobby hispanohablante.
-            </p>
+<section data-screen-label="Directorio" class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-14 flex flex-col gap-6 font-sans">
+    <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] inline-flex items-center gap-1.5">
+        <Icon Name="pen-line" Size="14" />
+        <span>Creadores de Contenido &bull; Divulgadores del Hobby</span>
+    </span>
+    <h1 class="m-0 text-[54px] sm:text-[76px] lg:text-[104px] leading-[0.86] font-extrabold tracking-[-0.06em] text-[var(--ink)]">
+        Creadores
+    </h1>
+    <p class="m-0 text-base sm:text-[17px] leading-relaxed text-[var(--muted)] max-w-2xl">
+        Canales, podcasts y proyectos editoriales que impulsan la difusión y divulgación de juegos de mesa en el hobby hispanohablante.
+    </p>
+
+    @* Barra de Búsqueda y Acciones de Staff *@
+    <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+        <div class="flex-1 min-w-[280px] max-w-md h-[52px] rounded-full bg-[var(--card)] border-2 border-[var(--rule)] flex items-center gap-3 px-5 shadow-sm">
+            <span class="text-[var(--muted)] flex-shrink-0">
+                <Icon Name="search" Size="18" />
+            </span>
+            <input type="text"
+                   @bind="_searchTerm"
+                   @bind:event="oninput"
+                   @bind:after="FilterCreators"
+                   placeholder="Buscar por nombre o nacionalidad..."
+                   class="flex-1 min-w-0 border-0 outline-none bg-transparent text-sm sm:text-base text-[var(--ink)] placeholder-[var(--muted)]" />
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 flex-wrap">
             @if (CurrentUserService.IsFoundingTeam)
             {
                 <button type="button"
                         @onclick="SyncDirectoryAsync"
                         disabled="@_isSyncing"
-                        class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        class="h-11 px-4 rounded-full bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer">
                     @if (_isSyncing)
                     {
-                        <span class="animate-spin inline-block"><Icon Name="loader" Size="12" /></span>
+                        <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
                         <span>Sincronizando...</span>
                     }
                     else
                     {
-                        <Icon Name="refresh-cw" Size="12" />
+                        <Icon Name="refresh-cw" Size="14" />
                         <span>Sincronizar Padrón</span>
                     }
                 </button>
@@ -49,117 +60,121 @@
             {
                 <button type="button"
                         @onclick="OpenCreateModal"
-                        class="px-4 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="plus" Size="12" /> Nuevo Creador
+                        class="h-11 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs transition-opacity hover:opacity-90 flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <Icon Name="plus" Size="14" />
+                    <span>Nuevo Creador</span>
                 </button>
             }
         </div>
     </div>
+</section>
 
-    @* Buscador reactivo *@
-    <div class="max-w-md">
-        <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Icon Name="search" Size="16" /></span>
-            <input type="text"
-                   @bind="_searchTerm"
-                   @bind:event="oninput"
-                   @bind:after="FilterCreators"
-                   placeholder="Buscar por nombre o nacionalidad..."
-                   class="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-colors shadow-sm" />
-        </div>
-    </div>
+<section class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 pb-20 flex flex-col gap-5 font-sans">
+    <span class="text-sm font-extrabold text-[var(--muted)]">
+        @_creators.Count @(_creators.Count == 1 ? "creador registrado" : "creadores registrados")
+    </span>
 
-    @* Listado en Grid *@
     @if (_loading)
     {
-        <div class="py-16 text-center text-sm text-[var(--text-secondary)] flex items-center justify-center gap-2">
-            <span class="animate-spin"><Icon Name="dices" Size="20" /></span>
+        <div class="py-16 text-center text-sm text-[var(--muted)] flex items-center justify-center gap-2">
+            <span class="animate-spin inline-block"><Icon Name="dices" Size="22" /></span>
             <span>Cargando directorio de creadores...</span>
         </div>
     }
     else if (_creators.Count == 0)
     {
-        <div class="p-12 text-center rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-            <span class="inline-block"><Icon Name="user" Size="40" /></span>
-            <h2 class="text-base font-bold text-[var(--text-primary)]">No se encontraron creadores</h2>
-            <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+        <div class="p-12 text-center rounded-[24px] bg-[var(--paper-2)] border-2 border-[var(--rule)] space-y-3">
+            <span class="inline-block text-[var(--muted)]"><Icon Name="user" Size="36" /></span>
+            <h2 class="text-lg font-extrabold text-[var(--ink)]">No se encontraron creadores</h2>
+            <p class="text-xs sm:text-sm text-[var(--muted)] max-w-sm mx-auto">
                 No hay resultados para el término de búsqueda introducido.
             </p>
         </div>
     }
     else
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            @foreach (var creator in _creators)
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            @for (int i = 0; i < _creators.Count; i++)
             {
-                <div class="p-5 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] transition-all flex flex-col justify-between gap-4 group">
-                    <div class="space-y-3">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                @if (!string.IsNullOrWhiteSpace(creator.AvatarUrl))
-                                {
+                var creator = _creators[i];
+                string pastelBg = GetPastelBg(i);
+                string rotation = GetRotationClass(i);
+
+                <div class="flex flex-col gap-3.5 pt-4 border-t-[3px] border-[var(--rule)] justify-between group">
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-4">
+                            @if (!string.IsNullOrWhiteSpace(creator.AvatarUrl))
+                            {
+                                <div class="w-16 h-16 rounded-[16px] object-cover @pastelBg p-1 border border-[var(--line)] shadow-sm shrink-0 flex items-center justify-center @rotation overflow-hidden">
                                     <img src="@creator.AvatarUrl"
                                          alt="Avatar de @creator.Name"
                                          loading="lazy"
-                                         class="w-12 h-12 rounded-full object-cover bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)]"
+                                         class="w-full h-full object-cover rounded-[14px]"
                                          onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
-                                }
-                                else
-                                {
-                                    <div class="w-12 h-12 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-lg text-purple-400 font-black">
-                                        @creator.Name[..Math.Min(2, creator.Name.Length)].ToUpper()
-                                    </div>
-                                }
-                                <div>
-                                    <a href="/creadores/@creator.Slug"
-                                       class="font-black text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">
-                                        @creator.Name
-                                    </a>
-                                    @if (!string.IsNullOrWhiteSpace(creator.Nationality))
-                                    {
-                                        <span class="text-xs text-[var(--text-muted)] block">
-                                            <Icon Name="globe" Size="12" /> @creator.Nationality
-                                        </span>
-                                    }
                                 </div>
-                            </div>
+                            }
+                            else
+                            {
+                                <div class="w-16 h-16 rounded-[16px] @pastelBg text-[var(--ink)] border border-[var(--line)] flex items-center justify-center text-2xl font-extrabold tracking-[-0.03em] shadow-sm shrink-0 @rotation">
+                                    @creator.Name[..Math.Min(2, creator.Name.Length)].ToUpper()
+                                </div>
+                            }
 
-                            <LikeButton TargetType="LikeTargetType.Creator" TargetId="@creator.Id" InitialLikesCount="@creator.LikesCount" Compact="true" />
+                            <div class="flex flex-col min-w-0">
+                                <a href="/creadores/@creator.Slug"
+                                   class="text-xl sm:text-[21px] font-extrabold tracking-[-0.025em] leading-[1.15] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors line-clamp-1">
+                                    @creator.Name
+                                </a>
+                                @if (!string.IsNullOrWhiteSpace(creator.Nationality))
+                                {
+                                    <span class="text-xs sm:text-[13px] text-[var(--muted)] mt-0.5 inline-flex items-center gap-1">
+                                        <Icon Name="globe" Size="12" />
+                                        <span>@creator.Nationality</span>
+                                    </span>
+                                }
+                            </div>
                         </div>
 
                         @if (!string.IsNullOrWhiteSpace(creator.Bio))
                         {
-                            <p class="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                            <p class="m-0 text-sm leading-[1.5] text-[var(--muted)] line-clamp-2">
                                 @creator.Bio
                             </p>
                         }
 
                         @if (creator.SocialLinks != null && creator.SocialLinks.Count > 0)
                         {
-                            <SocialLinksList Links="@creator.SocialLinks" />
+                            <div class="pt-1">
+                                <SocialLinksList Links="@creator.SocialLinks" />
+                            </div>
                         }
                     </div>
 
-                    <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
-                        <a href="/creadores/@creator.Slug" class="font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1">
-                            <span>Ver obras diseñadas</span>
+                    <div class="pt-2.5 mt-auto border-t border-[var(--line)] flex items-center justify-between gap-3 text-sm">
+                        <a href="/creadores/@creator.Slug" class="font-extrabold text-sm text-[var(--accent)] hover:opacity-80 transition-opacity inline-flex items-center gap-1">
+                            <span>Ver ficha y proyectos</span>
                             <span>&rarr;</span>
                         </a>
 
-                        @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
-                        {
-                            <button type="button"
-                                    @onclick="() => OpenEditModal(creator)"
-                                    class="text-[var(--text-muted)] hover:text-purple-400 font-semibold text-[0.7rem] px-2 py-1 rounded bg-[var(--bg-surface-elevated)] transition-colors">
-                                <Icon Name="pen-line" Size="12" /> Editar
-                            </button>
-                        }
+                        <div class="flex items-center gap-2">
+                            <LikeButton TargetType="LikeTargetType.Creator" TargetId="@creator.Id" InitialLikesCount="@creator.LikesCount" Compact="true" />
+
+                            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
+                            {
+                                <button type="button"
+                                        @onclick="() => OpenEditModal(creator)"
+                                        class="text-[var(--muted)] hover:text-amber-500 font-bold text-xs p-1.5 rounded-lg hover:bg-[var(--paper-2)] transition-colors cursor-pointer"
+                                        title="Editar creador">
+                                    <Icon Name="pencil" Size="14" />
+                                </button>
+                            }
+                        </div>
                     </div>
                 </div>
             }
         </div>
     }
-</div>
+</section>
 
 @* Modal de Edición / Creación *@
 <CreatorEditModal
@@ -169,7 +184,6 @@
     Nationality="@_modalNationality"
     Bio="@_modalBio"
     AvatarUrl="@_modalAvatarUrl"
-    BggPersonId="@_modalBggPersonId"
     WebsiteUrl="@_modalWebsiteUrl"
     InitialSocialLinks="@_modalSocialLinks"
     OnClose="() => _isModalOpen = false"
@@ -186,7 +200,6 @@
     private string? _modalNationality;
     private string? _modalBio;
     private string? _modalAvatarUrl;
-    private int? _modalBggPersonId;
     private string? _modalWebsiteUrl;
     private List<SocialNetworkLinkDto>? _modalSocialLinks;
 
@@ -233,7 +246,6 @@
         _modalNationality = null;
         _modalBio = null;
         _modalAvatarUrl = null;
-        _modalBggPersonId = null;
         _modalWebsiteUrl = null;
         _modalSocialLinks = new List<SocialNetworkLinkDto>();
         _isModalOpen = true;
@@ -246,9 +258,25 @@
         _modalNationality = creator.Nationality;
         _modalBio = creator.Bio;
         _modalAvatarUrl = creator.AvatarUrl;
-        _modalBggPersonId = creator.BggPersonId;
         _modalWebsiteUrl = creator.WebsiteUrl;
         _modalSocialLinks = creator.SocialLinks.ToList();
         _isModalOpen = true;
     }
+
+    private static string GetPastelBg(int index) => (index % 4) switch
+    {
+        0 => "bg-[var(--p-peach)]",
+        1 => "bg-[var(--p-blue)]",
+        2 => "bg-[var(--p-mint)]",
+        _ => "bg-[var(--p-pink)]"
+    };
+
+    private static string GetRotationClass(int index) => (index % 5) switch
+    {
+        0 => "rotate-2",
+        1 => "-rotate-2",
+        2 => "rotate-1",
+        3 => "-rotate-1",
+        _ => "rotate-0"
+    };
 }

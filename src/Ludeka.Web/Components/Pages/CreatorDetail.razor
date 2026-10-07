@@ -9,126 +9,131 @@
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
-<PageTitle>@(_creator != null ? $"{_creator.Name} — Redes y Ficha del Creador de Contenido" : "Creador") — Ludeka</PageTitle>
+<PageTitle>@(_creator != null ? $"{_creator.Name} — Ficha del Creador de Contenido" : "Creador") — Ludeka</PageTitle>
 
 @if (_loading)
 {
-    <div class="container-ludeka py-16 text-center text-sm text-[var(--text-secondary)] flex items-center justify-center gap-2">
-        <span class="animate-spin"><Icon Name="dices" Size="20" /></span>
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 py-20 text-center text-sm text-[var(--muted)] flex items-center justify-center gap-2 font-sans">
+        <span class="animate-spin inline-block"><Icon Name="dices" Size="22" /></span>
         <span>Cargando ficha del creador...</span>
     </div>
 }
 else if (_creator == null)
 {
-    <div class="container-ludeka py-16 text-center space-y-4">
-        <span class="inline-block"><Icon Name="search" Size="40" /></span>
-        <h1 class="text-2xl font-black text-[var(--text-primary)]">Creador no encontrado</h1>
-        <p class="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
-            No encontramos ningún creador de contenido registrado con el slug especificado.
+    <div class="max-w-md mx-auto my-20 p-8 rounded-[24px] bg-[var(--paper-2)] border-2 border-[var(--rule)] text-center space-y-4 font-sans">
+        <span class="inline-block text-[var(--muted)]"><Icon Name="search" Size="36" /></span>
+        <h1 class="text-2xl font-extrabold text-[var(--ink)]">Creador no encontrado</h1>
+        <p class="text-sm text-[var(--muted)]">
+            No encontramos ningún perfil registrado con el slug especificado.
         </p>
-        <a href="/creadores" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold">
+        <a href="/creadores" class="h-11 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-2 hover:opacity-90 shadow-sm">
             &larr; Volver al Directorio
         </a>
     </div>
 }
 else
 {
-    <div class="container-ludeka py-8 space-y-8">
-        @* Navegación y Acciones Superiores *@
-        <div class="flex items-center justify-between gap-4 flex-wrap">
-            <a href="/creadores" class="text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] inline-flex items-center gap-1 transition-colors">
-                &larr; Volver al Directorio de Creadores
-            </a>
+    @* Retroceso a Directorio *@
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-6 text-xs sm:text-[13px] font-extrabold text-[var(--muted)] font-sans">
+        <a href="/creadores" class="hover:text-[var(--ink)] transition-colors inline-flex items-center gap-1">
+            &larr; Todos los creadores
+        </a>
+    </div>
+
+    @* FICHA DE DIRECTORIO HERO (INC-125) *@
+    <section data-screen-label="Ficha de directorio" class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-10 flex flex-wrap gap-8 items-end font-sans">
+        @if (!string.IsNullOrWhiteSpace(_creator.AvatarUrl))
+        {
+            <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-[28px] bg-[var(--p-peach)] p-1.5 border border-[var(--line)] shadow-[0_12px_24px_var(--shadow)] -rotate-4 shrink-0 flex items-center justify-center overflow-hidden">
+                <img src="@_creator.AvatarUrl"
+                     alt="Avatar de @_creator.Name"
+                     class="w-full h-full object-cover rounded-[24px]"
+                     onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+            </div>
+        }
+        else
+        {
+            <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-[28px] bg-[var(--p-peach)] text-[var(--ink)] border border-[var(--line)] flex items-center justify-center text-4xl sm:text-6xl font-extrabold tracking-[-0.04em] shadow-[0_12px_24px_var(--shadow)] -rotate-4 shrink-0">
+                @_creator.Name[..Math.Min(2, _creator.Name.Length)].ToUpper()
+            </div>
+        }
+
+        <div class="flex-1 min-w-[280px] sm:min-w-[360px] flex flex-col gap-3">
+            <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] inline-flex items-center gap-1.5">
+                <Icon Name="pen-line" Size="14" />
+                <span>Creador de contenido</span>
+            </span>
+            <h1 class="m-0 text-4xl sm:text-6xl lg:text-[76px] leading-[0.88] font-extrabold tracking-[-0.06em] text-[var(--ink)] text-balance">
+                @_creator.Name
+            </h1>
+
+            @if (!string.IsNullOrWhiteSpace(_creator.Bio))
+            {
+                <p class="m-0 text-base sm:text-[17px] leading-relaxed text-[var(--muted)] max-w-2xl">
+                    @_creator.Bio
+                </p>
+            }
+
+            <div class="flex flex-wrap gap-2 items-center pt-1">
+                @if (!string.IsNullOrWhiteSpace(_creator.Nationality))
+                {
+                    <span class="px-3 py-1 rounded-full bg-[var(--paper-2)] border border-[var(--line)] text-xs font-extrabold text-[var(--ink)] inline-flex items-center gap-1">
+                        <Icon Name="globe" Size="13" /> @_creator.Nationality
+                    </span>
+                }
+                <span class="px-3 py-1 rounded-full bg-[var(--paper-2)] border border-[var(--line)] text-xs font-extrabold text-[var(--ink)] inline-flex items-center gap-1">
+                    <Icon Name="clapperboard" Size="13" /> Divulgación y proyectos
+                </span>
+            </div>
+
+            @if (_creator.SocialLinks != null && _creator.SocialLinks.Count > 0)
+            {
+                <div class="pt-1">
+                    <SocialLinksList Links="@_creator.SocialLinks" />
+                </div>
+            }
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            @if (!string.IsNullOrWhiteSpace(_creator.WebsiteUrl))
+            {
+                <a href="@_creator.WebsiteUrl"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="h-12 px-6 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-sm inline-flex items-center gap-2 hover:opacity-90 shadow-sm transition-opacity">
+                    <span>Web oficial</span>
+                    <span>&nearr;</span>
+                </a>
+            }
+
+            @if (_creator.BggPersonId.HasValue)
+            {
+                <a href="@($"https://boardgamegeek.com/boardgamedesigner/{_creator.BggPersonId}")"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="h-12 px-6 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-sm inline-flex items-center gap-2 hover:bg-[var(--paper-2)] transition-colors shadow-sm">
+                    <Icon Name="dices" Size="16" />
+                    <span>Perfil en BGG</span>
+                    <span>&nearr;</span>
+                </a>
+            }
+
+            <LikeButton TargetType="LikeTargetType.Creator"
+                        TargetId="@_creator.Id"
+                        InitialLikesCount="@_creator.LikesCount"
+                        OnLikesCountChanged="(cnt) => _creator = _creator with { LikesCount = cnt }" />
 
             @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
             {
                 <button type="button"
                         @onclick="() => _isEditModalOpen = true"
-                        class="px-3.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="pen-line" Size="12" /> Editar Creador
+                        class="h-12 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-xs inline-flex items-center gap-1.5 hover:bg-[var(--paper-2)] transition-colors shadow-sm cursor-pointer">
+                    <Icon Name="pencil" Size="14" />
+                    <span>Editar</span>
                 </button>
             }
         </div>
-
-        @* Hero de Creador *@
-        <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-6">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                @if (!string.IsNullOrWhiteSpace(_creator.AvatarUrl))
-                {
-                    <img src="@_creator.AvatarUrl"
-                         alt="Avatar de @_creator.Name"
-                         class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover bg-[var(--bg-surface-elevated)] border-2 border-[var(--border-subtle)] shrink-0"
-                         onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
-                }
-                else
-                {
-                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-3xl text-purple-400 font-black shrink-0">
-                        @_creator.Name[..Math.Min(2, _creator.Name.Length)].ToUpper()
-                    </div>
-                }
-
-                <div class="space-y-2 flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 text-xs font-black">
-                            <Icon Name="clapperboard" Size="12" /> Creador de contenido
-                        </span>
-                        @if (!string.IsNullOrWhiteSpace(_creator.Nationality))
-                        {
-                            <span class="text-xs font-bold text-[var(--text-secondary)]">
-                                <Icon Name="globe" Size="12" /> @_creator.Nationality
-                            </span>
-                        }
-                        <LikeButton TargetType="LikeTargetType.Creator"
-                                    TargetId="@_creator.Id"
-                                    InitialLikesCount="@_creator.LikesCount"
-                                    OnLikesCountChanged="(cnt) => _creator = _creator with { LikesCount = cnt }" />
-                    </div>
-
-                    <h1 class="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                        @_creator.Name
-                    </h1>
-
-                    <div class="flex items-center gap-4 flex-wrap pt-1 text-xs">
-                        @if (!string.IsNullOrWhiteSpace(_creator.WebsiteUrl))
-                        {
-                            <a href="@_creator.WebsiteUrl"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                <Icon Name="globe" Size="12" /> Web oficial &nearr;
-                            </a>
-                        }
-                        @if (_creator.BggPersonId.HasValue)
-                        {
-                            <a href="@($"https://boardgamegeek.com/boardgamedesigner/{_creator.BggPersonId}")"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="font-semibold text-amber-400 hover:underline inline-flex items-center gap-1">
-                                <Icon Name="dices" Size="12" /> Perfil en BoardGameGeek &nearr;
-                            </a>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(_creator.Bio))
-            {
-                <div class="pt-4 border-t border-[var(--border-subtle)] text-sm text-[var(--text-secondary)] leading-relaxed space-y-2">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Biografía y Trayectoria</h2>
-                    <p>@((MarkupString)_creator.Bio.Replace("\n", "<br />"))</p>
-                </div>
-            }
-
-            @* Redes y Foco Audiovisual *@
-            @if (_creator.SocialLinks != null && _creator.SocialLinks.Count > 0)
-            {
-                <div class="pt-4 border-t border-[var(--border-subtle)] space-y-2">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Redes sociales y canales</h2>
-                    <SocialLinksList Links="@_creator.SocialLinks" />
-                </div>
-            }
-        </div>
-    </div>
+    </section>
 
     @* Modal de Edición *@
     <CreatorEditModal
