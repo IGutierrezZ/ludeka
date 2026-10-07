@@ -1,107 +1,104 @@
 @page "/transparencia"
 @inject Microsoft.Extensions.Options.IOptions<Ludeka.Application.Options.CommunityNotificationOptions> CommunityOptions
 
-<PageTitle>Manifiesto de Transparencia de Fondos — Ludeka</PageTitle>
+<PageTitle>Transparencia y Afiliados — Ludeka</PageTitle>
 
-<div class="container-ludeka py-12 max-w-4xl space-y-10">
-    @* Encabezado de la Declaración *@
-    <div class="text-center space-y-3">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold">
-            <Icon Name="shield" Size="14" /> Compromiso Ético &bull; Independencia Lúdica
-        </div>
-        <h1 class="text-3xl sm:text-5xl font-black text-[var(--text-primary)] tracking-tight">
-            Manifiesto de Transparencia
+<section data-screen-label="Transparencia" class="max-w-[960px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-14 pb-20 flex flex-col gap-11 font-sans">
+    @* Encabezado de la Pantalla *@
+    <div class="flex flex-col gap-3.5">
+        <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] inline-flex items-center gap-1.5">
+            <Icon Name="shield" Size="14" />
+            <span>Cómo funciona Ludeka</span>
+        </span>
+        <h1 class="m-0 text-[52px] sm:text-[76px] lg:text-[100px] leading-[0.86] font-extrabold tracking-[-0.06em] text-[var(--ink)]">
+            Transparencia<br />
+            y <i class="italic text-[var(--accent)] font-serif font-normal">afiliados</i>
         </h1>
-        <p class="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
-            Sin banners invasivos, sin publirreportajes pagados y con total claridad sobre cómo se sostiene y reinvierte cada euro en el hobby.
+        <p class="m-0 text-base sm:text-[17px] leading-relaxed text-[var(--muted)] max-w-2xl">
+            Sin banners invasivos, sin publirreportajes pagados y con total claridad sobre cómo se sostiene y reinvierte cada euro en la comunidad de juegos de mesa.
         </p>
     </div>
 
-    @* Declaración de Principios *@
-    <div class="p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-        <h2 class="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2.5">
-            <Icon Name="dices" Size="18" /> Nacido de jugones para jugones
-        </h2>
-        <p class="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-            <strong>Ludeka</strong> es una plataforma web independiente construida para la comunidad hispanohablante de juegos de mesa. Rechazamos los modelos tradicionales saturados de publicidad ruidosa o reseñas compradas. Todo el catálogo, rankings, semáforos de escalabilidad, dudas de reglamento y sorteos son <strong>100% de libre acceso</strong>.
-        </p>
-        <p class="text-sm text-[var(--text-muted)] leading-relaxed">
-            Nuestras únicas vías de ingreso provienen de enlaces de compra contextuales (afiliación con tiendas de confianza y Amazon) y aportaciones voluntarias de mecenazgo en Ko-fi.
-        </p>
-    </div>
-
-    @* Los 3 Pilares Éticos de Reinversión *@
-    <div class="space-y-4">
-        <div class="text-center">
-            <span class="text-xs uppercase font-bold tracking-wider text-[var(--brand-primary)]">Destino de los Fondos</span>
-            <h3 class="text-2xl font-bold text-[var(--text-primary)] mt-1">¿A qué se destina el dinero recaudado?</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            @* Pilar 1 *@
-            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <div class="space-y-3">
-                    <Icon Name="zap" Size="30" />
-                    <h4 class="text-base font-bold text-[var(--text-primary)]">1. Servidores y Mantenimiento</h4>
-                    <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-                        Cubrir los costes mensuales de hosting, dominio, base de datos de alta velocidad y certificados, garantizando tiempos de respuesta ultrarrápidos y alta disponibilidad.
-                    </p>
-                </div>
-                <div class="mt-4 pt-3 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
-                    Coste eficiente &bull; 0 € en anuncios
+    @* Bloques Editoriales Numerados (01 a 04) *@
+    <div class="flex flex-col gap-10">
+        @* 01 *@
+        <div class="flex flex-col gap-3">
+            <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
+                <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--accent)] font-extrabold">01</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--accent)]"><Icon Name="zap" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Cómo se financia Ludeka</b>
                 </div>
             </div>
-
-            @* Pilar 2 *@
-            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <div class="space-y-3">
-                    <Icon Name="camera" Size="30" />
-                    <h4 class="text-base font-bold text-[var(--text-primary)]">2. Copias para Mesa Real</h4>
-                    <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-                        Adquirir novedades y expansiones para que la Mesa Fundadora pueda probarlas a fondo a 2 personas (parejas) y con niños/familias, aportando fotos reales y veredictos honestos.
-                    </p>
-                </div>
-                <div class="mt-4 pt-3 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
-                    Análisis rigurosos &bull; Fotos sin trampa
-                </div>
-            </div>
-
-            @* Pilar 3 *@
-            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <div class="space-y-3">
-                    <Icon Name="gift" Size="30" />
-                    <h4 class="text-base font-bold text-[var(--text-primary)]">3. Sorteos Comunitarios</h4>
-                    <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-                        Financiar periódicamente sorteos de juegos top adquiridos expresamente para devolver el apoyo a los miembros que aportan micro-reseñas y resuelven dudas en la web.
-                    </p>
-                </div>
-                <div class="mt-4 pt-3 border-t border-[var(--border-subtle)] text-[0.7rem] text-[var(--text-muted)]">
-                    Premios para usuarios activos
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @* Bloque de Apoyo y Canales Comunitarios *@
-    <div class="p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-        <div class="space-y-2 text-center sm:text-left">
-            <h3 class="text-xl font-bold text-[var(--text-primary)]">
-                ¿Quieres apoyar el proyecto?
-            </h3>
-            <p class="text-xs sm:text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
-                Puedes colaborar como mecenas en Ko-fi (obtendrás la insignia dorada de <strong class="text-amber-500 font-bold">Mecenas</strong>) o unirte a nuestros canales de Discord y Telegram para debatir reglas, partidas y sugerir mejoras.
+            <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
+                Ludeka se mantiene con enlaces de afiliado a tiendas especializadas de confianza y con aportaciones voluntarias de mecenazgo en Ko-fi. Los enlaces de afiliado no tienen ningún coste adicional para ti y no influyen en el orden del catálogo, en las valoraciones ni en los veredictos.
             </p>
         </div>
 
-        <div class="flex items-center gap-3 shrink-0 flex-wrap justify-center sm:justify-start">
+        @* 02 *@
+        <div class="flex flex-col gap-3">
+            <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
+                <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--mustard)] font-extrabold">02</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--mustard)]"><Icon Name="dices" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Valoraciones y veredictos</b>
+                </div>
+            </div>
+            <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
+                El rating BGG procede directamente de BoardGameGeek. El consenso Ludeka combina las valoraciones de la comunidad registrada. Los veredictos los firma la Mesa Fundadora tras partidas reales; cuando aún no hay veredicto disponible, se muestra una síntesis asistida, indicada honestamente como tal.
+            </p>
+        </div>
+
+        @* 03 *@
+        <div class="flex flex-col gap-3">
+            <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
+                <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--accent-green)] font-extrabold">03</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--accent-green)]"><Icon Name="camera" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Datos de BoardGameGeek</b>
+                </div>
+            </div>
+            <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
+                Los datos técnicos de los juegos (jugadores recomendados, duración, autoría, ilustradores y año) se sincronizan con la XMLAPI2 de BoardGameGeek. Si detectas cualquier errata o desajuste en una edición española, puedes reportarla desde la propia ficha del juego.
+            </p>
+        </div>
+
+        @* 04 *@
+        <div class="flex flex-col gap-3">
+            <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
+                <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--sky)] font-extrabold">04</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--sky)]"><Icon Name="gift" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Sorteos y moderación</b>
+                </div>
+            </div>
+            <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
+                Los sorteos propuestos por la comunidad o detectados en redes se revisan antes de publicarse para evitar spam y cuentas fraudulentas. Ludeka no organiza los sorteos de terceros: la participación y las bases legales se completan siempre en la publicación original del organizador.
+            </p>
+        </div>
+    </div>
+
+    @* Bloque de Apoyo Comunitario y Canales *@
+    <div class="p-6 sm:p-8 rounded-[24px] bg-[var(--paper-2)] border-2 border-[var(--rule)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-[0_12px_24px_var(--shadow)]">
+        <div class="space-y-2">
+            <h3 class="text-xl sm:text-2xl font-extrabold text-[var(--ink)] tracking-tight">
+                ¿Quieres apoyar el proyecto?
+            </h3>
+            <p class="text-sm leading-relaxed text-[var(--muted)] max-w-lg">
+                Puedes colaborar como mecenas voluntario en Ko-fi o unirte a nuestros canales oficiales de Discord y Telegram para debatir sobre juegos, reglas y sugerir mejoras.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0 flex-wrap">
             @if (!string.IsNullOrWhiteSpace(CommunityOptions?.Value?.KofiUrl))
             {
                 <a href="@CommunityOptions.Value.KofiUrl"
                    target="_blank"
                    rel="noopener noreferrer"
                    title="Apoyar el proyecto en Ko-fi"
-                   class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                    <Icon Name="coffee" Size="14" /> Apoyar en Ko-fi
+                   class="h-11 px-5 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]">
+                    <Icon Name="coffee" Size="15" />
+                    <span>Apoyar en Ko-fi</span>
                 </a>
             }
 
@@ -111,8 +108,9 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    title="Unirse al servidor oficial de Discord de Ludeka"
-                   class="px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]">
-                    <Icon Name="message-circle" Size="14" /> Discord Oficial
+                   class="h-11 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] hover:bg-[var(--paper-2)] font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sky)]">
+                    <Icon Name="message-circle" Size="15" />
+                    <span>Discord Oficial</span>
                 </a>
             }
 
@@ -122,10 +120,11 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    title="Unirse al canal oficial de Telegram de Ludeka"
-                   class="px-4 py-2.5 rounded-xl bg-[#229ED9] hover:bg-[#1e8dbf] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#229ED9]">
-                    <Icon Name="send" Size="14" /> Canal Telegram
+                   class="h-11 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] hover:bg-[var(--paper-2)] font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sky)]">
+                    <Icon Name="send" Size="15" />
+                    <span>Canal Telegram</span>
                 </a>
             }
         </div>
     </div>
-</div>
+</section>

@@ -137,6 +137,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-122** | Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa) | ✅ Archivado | [inc-122-reparacion-imagenes-bgg.md](archive/inc-122-reparacion-imagenes-bgg.md) |
 | **INC-123** | Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica) | ✅ Archivado | [inc-123-ficha-juego-revista.md](archive/inc-123-ficha-juego-revista.md) |
 | **INC-124** | Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual | ✅ Archivado | [inc-124-ajustes-ficha-editorial.md](archive/inc-124-ajustes-ficha-editorial.md) |
+| **INC-125** | Rediseño Editorial de Clasificación, Directorios (Editoriales, Creadores, Tiendas) y Transparencia | ⏳ En progreso | [inc-125-clasificacion-directorios-transparencia.md](inc-125-clasificacion-directorios-transparencia.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
