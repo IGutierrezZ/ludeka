@@ -135,7 +135,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-120** | Extracción de Portadas en Español desde Snapshots y Sincronización de Imágenes Comunitarias Top 3.000 BGG | ✅ Archivado | [inc-120-portadas-es-imagenes-top3000.md](archive/inc-120-portadas-es-imagenes-top3000.md) |
 | **INC-121** | Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos) | ✅ Archivado | [inc-121-alineacion-editorial-claude-p1.md](archive/inc-121-alineacion-editorial-claude-p1.md) |
 | **INC-122** | Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa) | ✅ Archivado | [inc-122-reparacion-imagenes-bgg.md](archive/inc-122-reparacion-imagenes-bgg.md) |
-| **INC-123** | Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica) | ⏳ En progreso | [inc-123-ficha-juego-revista.md](inc-123-ficha-juego-revista.md) |
+| **INC-123** | Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica) | ✅ Archivado | [inc-123-ficha-juego-revista.md](archive/inc-123-ficha-juego-revista.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
