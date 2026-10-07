@@ -6,8 +6,9 @@
 <section data-screen-label="Transparencia" class="max-w-[960px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-14 pb-20 flex flex-col gap-11 font-sans">
     @* Encabezado de la Pantalla *@
     <div class="flex flex-col gap-3.5">
-        <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">
-            Cómo funciona Ludeka
+        <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] inline-flex items-center gap-1.5">
+            <Icon Name="shield" Size="14" />
+            <span>Cómo funciona Ludeka</span>
         </span>
         <h1 class="m-0 text-[52px] sm:text-[76px] lg:text-[100px] leading-[0.86] font-extrabold tracking-[-0.06em] text-[var(--ink)]">
             Transparencia<br />
@@ -24,7 +25,10 @@
         <div class="flex flex-col gap-3">
             <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
                 <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--accent)] font-extrabold">01</b>
-                <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Cómo se financia Ludeka</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--accent)]"><Icon Name="zap" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Cómo se financia Ludeka</b>
+                </div>
             </div>
             <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
                 Ludeka se mantiene con enlaces de afiliado a tiendas especializadas de confianza y con aportaciones voluntarias de mecenazgo en Ko-fi. Los enlaces de afiliado no tienen ningún coste adicional para ti y no influyen en el orden del catálogo, en las valoraciones ni en los veredictos.
@@ -35,7 +39,10 @@
         <div class="flex flex-col gap-3">
             <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
                 <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--mustard)] font-extrabold">02</b>
-                <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Valoraciones y veredictos</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--mustard)]"><Icon Name="dices" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Valoraciones y veredictos</b>
+                </div>
             </div>
             <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
                 El rating BGG procede directamente de BoardGameGeek. El consenso Ludeka combina las valoraciones de la comunidad registrada. Los veredictos los firma la Mesa Fundadora tras partidas reales; cuando aún no hay veredicto disponible, se muestra una síntesis asistida, indicada honestamente como tal.
@@ -46,7 +53,10 @@
         <div class="flex flex-col gap-3">
             <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
                 <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--accent-green)] font-extrabold">03</b>
-                <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Datos de BoardGameGeek</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--accent-green)]"><Icon Name="camera" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Datos de BoardGameGeek</b>
+                </div>
             </div>
             <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
                 Los datos técnicos de los juegos (jugadores recomendados, duración, autoría, ilustradores y año) se sincronizan con la XMLAPI2 de BoardGameGeek. Si detectas cualquier errata o desajuste en una edición española, puedes reportarla desde la propia ficha del juego.
@@ -57,7 +67,10 @@
         <div class="flex flex-col gap-3">
             <div class="flex items-baseline gap-4 border-b-[3px] border-[var(--rule)] pb-3">
                 <b class="text-4xl sm:text-[44px] leading-none tracking-[-0.06em] text-[var(--sky)] font-extrabold">04</b>
-                <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Sorteos y moderación</b>
+                <div class="flex items-center gap-2">
+                    <span class="text-[var(--sky)]"><Icon Name="gift" Size="20" /></span>
+                    <b class="text-xl sm:text-[26px] tracking-[-0.03em] text-[var(--ink)] font-extrabold">Sorteos y moderación</b>
+                </div>
             </div>
             <p class="m-0 text-base sm:text-[17px] leading-[1.6] text-[var(--muted)]">
                 Los sorteos propuestos por la comunidad o detectados en redes se revisan antes de publicarse para evitar spam y cuentas fraudulentas. Ludeka no organiza los sorteos de terceros: la participación y las bases legales se completan siempre en la publicación original del organizador.

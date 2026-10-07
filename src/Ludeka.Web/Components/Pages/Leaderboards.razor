@@ -459,6 +459,6 @@
 
     private async Task LoadLeaderboardAsync()
     {
-        _leaderboard = await LeaderboardService.GetMonthlyLeaderboardAsync(_selectedYear, _selectedMonth, CurrentUserService.UserId);
+        _leaderboard = await LeaderboardService.GetMonthlyLeaderboardAsync(_selectedYear, _selectedMonth);
     }
 }
