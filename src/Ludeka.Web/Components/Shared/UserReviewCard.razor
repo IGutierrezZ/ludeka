@@ -1,84 +1,62 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 
-<div class="rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 shadow-sm">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-            <span class="text-[0.68rem] uppercase font-bold tracking-wider text-[var(--text-muted)] block mb-1">
-                Tu Opinión y Veredicto
-            </span>
-
-            @if (Review != null)
+<div class="flex flex-wrap justify-between items-center gap-3 p-4 sm:px-4.5 rounded-[18px] border-2 border-[var(--rule)] bg-transparent transition-colors hover:border-[var(--line-strong)]">
+    <div class="flex flex-col gap-0.5 min-w-0">
+        <b class="text-[15px] font-extrabold text-[var(--ink)]">Tu valoración</b>
+        <span class="text-xs text-[var(--muted)]">
+            @if (!CanReview && Review == null)
             {
-                <div class="flex items-center gap-3">
-                    <div class="flex items-baseline gap-1 text-amber-500">
-                        <span class="text-2xl font-black">★ @Review.Score.ToString("0.0")</span>
-                        <span class="text-xs text-[var(--text-muted)]">/ 10</span>
-                    </div>
-
-                    @if (Review.PlayContext.HasValue)
-                    {
-                        <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                            @GetContextBadge(Review.PlayContext.Value)
-                        </span>
-                    }
-
-                    @if (Review.FamilyExperience?.PlayedWithChildren == true)
-                    {
-                        <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-md bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                            <span class="inline-flex items-center gap-1">
-                                <Icon Name="baby" Size="12" /> @(Review.FamilyExperience.SuggestedMinAge.HasValue ? $"{Review.FamilyExperience.SuggestedMinAge}+" : "Familiar")
-                            </span>
-                        </span>
-                    }
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(Review.MicroReview))
-                {
-                    <p class="text-xs text-[var(--text-primary)] mt-2.5 italic">
-                        &ldquo;@Review.MicroReview&rdquo;
-                    </p>
-                }
-
-                @if (Review.PlayerCountRatings.Count > 0)
-                {
-                    <div class="flex flex-wrap gap-1.5 mt-3">
-                        @foreach (var vote in Review.PlayerCountRatings.OrderBy(v => v.PlayerCount))
-                        {
-                            <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-md @GetVoteStyle(vote.Status)">
-                                @vote.DisplayText: @GetVoteStatusName(vote.Status)
-                            </span>
-                        }
-                    </div>
-                }
+                <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Icon Name="lock" Size="12" /> @(DisabledReviewReason ?? "Debes haber jugado al juego para poder puntuarlo y valorarlo.")
+                </span>
+            }
+            else if (Review != null)
+            {
+                <span>Tu nota: <strong class="text-[var(--ink)] font-black">@Review.Score.ToString("0.0")</strong> / 10 &bull; <button type="button" @onclick="OnEditClicked" class="underline hover:text-[var(--accent)] font-bold cursor-pointer inline-flex items-center gap-1"><Icon Name="@(Review != null ? "pencil" : "star")" Size="11" />Editar</button></span>
             }
             else
             {
-                <p class="text-xs text-[var(--text-secondary)]">
-                    Aún no has valorado este juego. ¡Tu nota y semáforo personal ayudan a enriquecer el catálogo en español!
-                </p>
+                <span>Toca una estrella para valorar el juego.</span>
             }
-        </div>
+        </span>
+    </div>
 
-        @if (!CanReview && Review == null)
+    <div class="flex items-center gap-0.5">
+        @for (int i = 1; i <= 5; i++)
         {
-            <div class="w-full sm:w-auto p-2.5 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2 shrink-0">
-                <Icon Name="lock" Size="14" />
-                <span class="max-w-xs leading-snug">@(DisabledReviewReason ?? "Debes haber jugado al juego para poder puntuarlo y valorarlo.")</span>
-            </div>
-        }
-        else
-        {
+            var starIndex = i;
+            var isFilled = Review != null && (Review.Score >= starIndex * 2 - 1);
             <button type="button"
                     @onclick="OnEditClicked"
-                    class="w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--brand-primary)] hover:opacity-90 text-white shadow-sm flex items-center justify-center gap-1.5 shrink-0">
-                <span class="inline-flex items-center gap-1.5">
-                    <Icon Name="@(Review != null ? "pencil" : "star")" Size="14" />
-                    @(Review != null ? "Editar mi valoración" : "Valorar este juego")
-                </span>
+                    aria-label="@($"Valorar con {starIndex * 2} de 10")"
+                    class="bg-transparent border-0 p-0.5 text-2xl leading-none transition-transform hover:scale-115 cursor-pointer @(isFilled ? "text-[#FFC145]" : "text-[var(--line)] hover:text-[#FFC145]")">
+                ★
             </button>
         }
     </div>
+
+    @if (Review != null && (!string.IsNullOrWhiteSpace(Review.MicroReview) || Review.PlayContext.HasValue || Review.FamilyExperience?.PlayedWithChildren == true))
+    {
+        <div class="w-full pt-2 mt-1 border-t border-[var(--line)] flex items-center justify-between text-xs text-[var(--muted)] gap-2 flex-wrap">
+            @if (!string.IsNullOrWhiteSpace(Review.MicroReview))
+            {
+                <span class="italic truncate max-w-xs">&ldquo;@Review.MicroReview&rdquo;</span>
+            }
+            <div class="flex items-center gap-1.5 ml-auto">
+                @if (Review.PlayContext.HasValue)
+                {
+                    <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold">@GetContextBadge(Review.PlayContext.Value)</span>
+                }
+                @if (Review.FamilyExperience?.PlayedWithChildren == true)
+                {
+                    <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold inline-flex items-center gap-1">
+                        <Icon Name="baby" Size="11" /> @(Review.FamilyExperience.SuggestedMinAge.HasValue ? $"{Review.FamilyExperience.SuggestedMinAge}+" : "Familiar")
+                    </span>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
