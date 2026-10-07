@@ -21,6 +21,7 @@ using Ludeka.Application.Features.Maintenance;
 using Ludeka.Application.Features.Media;
 using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
+using Ludeka.Application.Features.Releases;
 using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Staff;
@@ -29,6 +30,7 @@ using Ludeka.Application.Options;
 using Ludeka.Infrastructure.Affiliates.Amazon;
 using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
+using Ludeka.Infrastructure.Extractors;
 using Ludeka.Infrastructure.Notifications;
 using Ludeka.Infrastructure.Options;
 using Ludeka.Infrastructure.Repositories;
@@ -218,6 +220,7 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IGiveawayService, GiveawayService>();
         services.AddScoped<IWeeklyReleaseRepository, SqliteWeeklyReleaseRepository>();
         services.AddScoped<IWeeklyReleaseService, WeeklyReleaseService>();
+        services.AddScoped<IEditorialReleasesSyncService, EditorialReleasesSyncService>();
         services.AddScoped<IRuleQARepository, SqliteRuleQARepository>();
         services.AddScoped<IRuleQAService, RuleQAService>();
         services.AddScoped<ISocialCardService, SocialCardService>();
@@ -448,6 +451,18 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<RssBlogFeedCollector>());
         services.AddScoped<ISocialChannelCollector>(sp => sp.GetRequiredService<InstagramFeedCollector>());
         // ISocialCollectorService ya vive en AddLudekaDomainServices (INC-47 R2a, diseño §4.1 fila 307-318).
+
+        // Novedades Editoriales Oficiales (Devir y Maldito Games)
+        services.AddHttpClient<IDevirReleasesExtractor, DevirReleasesExtractor>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+        });
+        services.AddHttpClient<IMalditoReleasesExtractor, MalditoReleasesExtractor>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+        });
 
         return services;
     }

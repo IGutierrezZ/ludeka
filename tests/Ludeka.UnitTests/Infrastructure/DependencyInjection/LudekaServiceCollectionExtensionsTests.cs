@@ -81,6 +81,9 @@ public class LudekaServiceCollectionExtensionsTests
         Assert.IsAssignableFrom<ISocialCollectorService>(sp.GetRequiredService<ISocialCollectorService>());
         Assert.IsAssignableFrom<ICommunityNotificationService>(sp.GetRequiredService<ICommunityNotificationService>());
         Assert.IsAssignableFrom<ICommunityNotificationQueue>(sp.GetRequiredService<ICommunityNotificationQueue>());
+        Assert.IsAssignableFrom<IEditorialReleasesSyncService>(sp.GetRequiredService<IEditorialReleasesSyncService>());
+        Assert.IsAssignableFrom<IDevirReleasesExtractor>(sp.GetRequiredService<IDevirReleasesExtractor>());
+        Assert.IsAssignableFrom<IMalditoReleasesExtractor>(sp.GetRequiredService<IMalditoReleasesExtractor>());
 
         // Diseño §4.6: los 4 AddHostedService literales de Program.cs no participan de esta
         // composición (siguen registrados hasta R7, pero fuera de las cuatro extensiones).
