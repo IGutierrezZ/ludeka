@@ -4,53 +4,71 @@
 @implements IDisposable
 
 <div class="w-full bg-[var(--inverse)] text-[var(--ticker)] border-y border-[var(--line)]/20" role="region" aria-label="Avisos y actualidad editorial">
-    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 py-3 sm:py-3.5 flex items-center gap-x-5 sm:gap-x-7 text-xs sm:text-sm font-black whitespace-nowrap overflow-x-auto scrollbar-none">
-        @if (UrgentGiveaway != null)
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 md:px-12 py-3 sm:py-3.5 flex items-center gap-x-6 sm:gap-x-8 text-xs sm:text-sm font-black whitespace-nowrap overflow-x-auto scrollbar-none">
+        @if (FeaturedItems != null && FeaturedItems.Count > 0)
         {
-            <a href="/sorteos/@UrgentGiveaway.Id"
-               class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0"
-               title="Ver sorteo que finaliza pronto">
-                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0 animate-pulse" aria-hidden="true"></span>
-                <span class="inline-flex items-center gap-1.5"><Icon Name="timer" Size="13" /><span>@GetUrgentGiveawayLabel(UrgentGiveaway)</span></span>
-            </a>
+            @foreach (var item in FeaturedItems.Take(3))
+            {
+                <a href="@item.Url"
+                   class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0 animate-pulse" aria-hidden="true"></span>
+                    <span class="inline-flex items-center gap-1.5">
+                        <Icon Name="@item.Icon" Size="13" />
+                        <span>@item.Title @(!string.IsNullOrWhiteSpace(item.Subtitle) ? $"· {item.Subtitle}" : "")</span>
+                    </span>
+                </a>
+            }
         }
         else
         {
-            <a href="/sorteos"
+            @if (UrgentGiveaway != null)
+            {
+                <a href="/sorteos/@UrgentGiveaway.Id"
+                   class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0"
+                   title="Ver sorteo que finaliza pronto">
+                    <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0 animate-pulse" aria-hidden="true"></span>
+                    <span class="inline-flex items-center gap-1.5"><Icon Name="timer" Size="13" /><span>@GetUrgentGiveawayLabel(UrgentGiveaway)</span></span>
+                </a>
+            }
+            else
+            {
+                <a href="/sorteos"
+                   class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+                    <span>Sorteos activos en la comunidad</span>
+                </a>
+            }
+
+            <a href="/novedades"
                class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
                 <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
-                <span>Sorteos activos en la comunidad</span>
+                <span>Calendario de lanzamientos confirmados</span>
+            </a>
+
+            <a href="/eventos"
+               class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+                <span>Ferias y grandes citas del sector</span>
+            </a>
+
+            <a href="/tendencias"
+               class="hidden xl:inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+                <span>Tendencias de la comunidad</span>
+            </a>
+
+            <a href="/catalogo"
+               class="hidden 2xl:inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
+                <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
+                <span>Catálogo completo</span>
             </a>
         }
-
-        <a href="/novedades"
-           class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
-            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
-            <span>Calendario de lanzamientos confirmados</span>
-        </a>
-
-        <a href="/eventos"
-           class="inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
-            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
-            <span>Ferias y grandes citas del sector</span>
-        </a>
-
-        <a href="/tendencias"
-           class="hidden xl:inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
-            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
-            <span>Tendencias de la comunidad</span>
-        </a>
-
-        <a href="/catalogo"
-           class="hidden 2xl:inline-flex items-center gap-2 hover:underline transition-opacity hover:opacity-90 text-[var(--ticker)] shrink-0">
-            <span class="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true"></span>
-            <span>Catálogo completo</span>
-        </a>
     </div>
 </div>
 
 @code {
     [Parameter] public GiveawayDto? UrgentGiveaway { get; set; }
+    [Parameter] public IReadOnlyList<HomeFeaturedItem>? FeaturedItems { get; set; }
 
     private Timer? _timer;
 

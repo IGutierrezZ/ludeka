@@ -1,10 +1,13 @@
 @page "/"
 @rendermode InteractiveServer
+@implements IDisposable
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Web.Components.Home
 @using Ludeka.Web.Components.Shared
 @inject IHomeDashboardService DashboardService
+@inject IStaffActionService StaffActionService
+@inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 
 <PageTitle>Ludeka — Juegos, sorteos, eventos y opiniones de verdad</PageTitle>
@@ -28,7 +31,7 @@ else
                            OnQuickCollection="@OpenQuickModal" />
 
         @* 2. Cinta de Avisos Inversa: Barra --inverse con texto mostaza y cuenta atrás en vivo *@
-        <TickerBar UrgentGiveaway="@_urgentGiveaway" />
+        <TickerBar UrgentGiveaway="@_urgentGiveaway" FeaturedItems="@_featuredItems" />
 
         @* 3. El Top de la semana: Pestañas interactivas, numerales ciclálicos y lista móvil táctil *@
         <WeeklyTopSection TopGames="@_dashboard.TopGames"
@@ -161,6 +164,13 @@ else
     <QuickCollectionModal Game="@_quickCollectionGame"
                           IsOpen="@_isQuickModalOpen"
                           OnClose="@CloseQuickModal" />
+
+    @* Modal de Gestión de Destacados de Portada (INC-121) *@
+    <HomeFeaturedModal IsOpen="@_isFeaturedModalOpen"
+                       OnClose="@(() => _isFeaturedModalOpen = false)"
+                       Dashboard="@_dashboard"
+                       CurrentItems="@_featuredItems"
+                       OnSave="@HandleSaveFeaturedItems" />
 }
 
 @code {
@@ -172,6 +182,9 @@ else
 
     private bool _isQuickModalOpen;
     private GameSummaryDto? _quickCollectionGame;
+
+    private bool _isFeaturedModalOpen;
+    private List<HomeFeaturedItem> _featuredItems = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,11 +202,125 @@ else
 
             // Sorteo más urgente para la cinta reactiva TickerBar
             _urgentGiveaway = _dashboard.Giveaways.FirstOrDefault();
+
+            // Inicializar los 3 destacados predeterminados del día
+            InitializeDefaultFeaturedItems();
+
+            // Registrar acción contextual en la StaffBar
+            RegisterStaffActions();
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator"))
+        {
+            StaffActionService.SetCustomActions([
+                new StaffActionItem("Editar destacados de portada", () =>
+                {
+                    _isFeaturedModalOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }, "sparkles")
+            ]);
+        }
+    }
+
+    private void InitializeDefaultFeaturedItems()
+    {
+        _featuredItems = [];
+
+        // 1. Sorteo a punto de acabar
+        var g = _dashboard.Giveaways.FirstOrDefault(x => !x.IsExpired) ?? _dashboard.Giveaways.FirstOrDefault();
+        if (g != null)
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Sorteo,
+                Id = g.Id.ToString(),
+                Title = $"Sorteo {g.Title}",
+                Subtitle = g.RemainingTimeText,
+                Url = $"/sorteos/{g.Id}",
+                Icon = "timer"
+            });
+        }
+        else
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Sorteo,
+                Id = "sorteos",
+                Title = "Sorteos de la comunidad",
+                Subtitle = "Vigentes",
+                Url = "/sorteos",
+                Icon = "gift"
+            });
+        }
+
+        // 2. Última novedad publicada
+        var r = _dashboard.RecentReleases.FirstOrDefault();
+        if (r != null)
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Novedad,
+                Id = r.Id.ToString(),
+                Title = r.Title,
+                Subtitle = r.Publisher,
+                Url = $"/novedades/{r.Id}",
+                Icon = "newspaper"
+            });
+        }
+        else
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Novedad,
+                Id = "novedades",
+                Title = "Calendario de novedades",
+                Subtitle = "Confirmadas",
+                Url = "/novedades",
+                Icon = "newspaper"
+            });
+        }
+
+        // 3. Próximo evento que llega
+        var e = _dashboard.UpcomingEvents.FirstOrDefault();
+        if (e != null)
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Evento,
+                Id = e.Id.ToString(),
+                Title = e.Title,
+                Subtitle = e.Location,
+                Url = "/eventos",
+                Icon = "tent"
+            });
+        }
+        else
+        {
+            _featuredItems.Add(new HomeFeaturedItem
+            {
+                Type = HomeFeaturedSlotType.Evento,
+                Id = "eventos",
+                Title = "Ferias y grandes citas",
+                Subtitle = "Agenda",
+                Url = "/eventos",
+                Icon = "tent"
+            });
+        }
+    }
+
+    private Task HandleSaveFeaturedItems(List<HomeFeaturedItem> items)
+    {
+        _featuredItems = items;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void OpenQuickModal(GameSummaryDto game)
@@ -206,5 +333,10 @@ else
     {
         _isQuickModalOpen = false;
         _quickCollectionGame = null;
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 }

@@ -1,11 +1,14 @@
 @using Ludeka.Application.Contracts
 @using Ludeka.Core.ValueObjects
+@implements IDisposable
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
+@inject NavigationManager Navigation
 
 @*
-    Barra Contextual de Staff (INC-114).
+    Barra Contextual de Staff (INC-114, INC-121).
     Visible exclusivamente cuando el usuario tiene roles de administración o moderación.
-    Proporciona acceso rápido a los módulos principales de moderación y enlace al panel central.
+    Proporciona acciones contextuales específicas por pantalla y enlace al panel central de gestión.
 *@
 
 @if (IsStaff)
@@ -13,74 +16,89 @@
     <div class="bg-[var(--paper-2)] border-b-2 border-dashed border-[var(--mustard)] transition-colors"
          role="region"
          aria-label="Barra de gestión staff">
-        <div class="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex flex-wrap gap-1.5 sm:gap-2 items-center text-xs">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-2 items-center text-xs">
             @* Badge identificador de rol *@
-            <span class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-[var(--mustard)] text-[#22180F] text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider shadow-xs shrink-0">
+            <span class="px-2.5 py-1 rounded-full bg-[var(--mustard)] text-[#22180F] text-[11px] font-extrabold uppercase tracking-wider shadow-xs shrink-0">
                 Gestión · @RoleLabel
             </span>
 
-            @* Atajos a los módulos de gestión según permisos *@
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
+            @* 1. Acciones contextuales publicadas activamente por la pantalla en curso *@
+            @if (StaffActionService.CustomActions.Count > 0)
             {
-                <a href="/moderacion/reportes"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Reportes de Catálogo">
-                    <Icon Name="flag" Size="13" />
-                    <span>Reportes</span>
-                </a>
+                @foreach (var action in StaffActionService.CustomActions)
+                {
+                    <button type="button"
+                            @onclick="action.OnClick"
+                            class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] @(action.IsDestructive ? "bg-red-700 text-white" : "bg-[var(--card)] text-[var(--ink)]") font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0">
+                        @if (!string.IsNullOrWhiteSpace(action.Icon))
+                        {
+                            <Icon Name="@action.Icon" Size="13" />
+                        }
+                        <span>@action.Label</span>
+                    </button>
+                }
+            }
+            else
+            {
+                @* 2. Acciones contextuales por defecto basadas en la ruta actual *@
+                @if (IsCurrentPage("catalogo"))
+                {
+                    <button type="button"
+                            @onclick="() => _showBggModal = true"
+                            class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0">
+                        <Icon Name="plus" Size="13" />
+                        <span>+ Añadir juego desde BGG</span>
+                    </button>
+
+                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
+                    {
+                        <a href="/admin/cola-catalogacion"
+                           class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                           title="Cola BGG & Catalogación">
+                            <Icon Name="moon" Size="13" />
+                            <span>Cola BGG</span>
+                        </a>
+                    }
+                }
+                else if (IsCurrentPage("sorteos"))
+                {
+                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
+                    {
+                        <a href="/admin/ingesta-social"
+                           class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                           title="Bandeja de Ingesta Social">
+                            <Icon Name="sparkles" Size="13" />
+                            <span>Ingesta Social</span>
+                        </a>
+                    }
+                }
+                else if (IsCurrentPage("tiendas"))
+                {
+                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
+                    {
+                        <a href="/admin/afiliados"
+                           class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                           title="Feeds & Afiliados">
+                            <Icon Name="shopping-bag" Size="13" />
+                            <span>Feeds & Afiliados</span>
+                        </a>
+                    }
+                }
+                else if (IsCurrentPage("moderacion") || IsCurrentPage("juegos"))
+                {
+                    @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
+                    {
+                        <a href="/moderacion/reportes"
+                           class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
+                           title="Reportes de Catálogo">
+                            <Icon Name="flag" Size="13" />
+                            <span>Reportes</span>
+                        </a>
+                    }
+                }
             }
 
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
-            {
-                <a href="/admin/cola-catalogacion"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Cola BGG & Catalogación">
-                    <Icon Name="moon" Size="13" />
-                    <span>Cola BGG</span>
-                </a>
-            }
-
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
-            {
-                <a href="/admin/afiliados"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Feeds & Afiliados">
-                    <Icon Name="shopping-bag" Size="13" />
-                    <span>Feeds & Afiliados</span>
-                </a>
-            }
-
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
-            {
-                <a href="/admin/ingesta-social"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Bandeja de Ingesta Social">
-                    <Icon Name="sparkles" Size="13" />
-                    <span>Ingesta Social</span>
-                </a>
-            }
-
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanPublishInstagram))
-            {
-                <a href="/admin/instagram"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Publicador de Instagram">
-                    <Icon Name="camera" Size="13" />
-                    <span>Instagram</span>
-                </a>
-            }
-
-            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageUsers))
-            {
-                <a href="/admin/usuarios"
-                   class="h-7 sm:h-[34px] px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-[11px] sm:text-xs inline-flex items-center gap-1.5 shadow-xs hover:opacity-85 transition-opacity shrink-0"
-                   title="Gestión de Usuarios">
-                    <Icon Name="users" Size="13" />
-                    <span>Usuarios</span>
-                </a>
-            }
-
-            @* Enlace al panel de control central de administración *@
+            @* Enlace al panel de control central de administración (siempre a la derecha) *@
             <a href="/admin"
                class="ml-auto text-xs font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 shrink-0 py-1"
                title="Ir al panel de gestión">
@@ -91,7 +109,12 @@
     </div>
 }
 
+<BggSearchModal IsVisible="_showBggModal"
+                OnClose="() => _showBggModal = false" />
+
 @code {
+    private bool _showBggModal;
+
     private bool IsStaff => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
 
     private string RoleLabel
@@ -110,5 +133,33 @@
 
             return "Staff";
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        StaffActionService.OnActionsChanged += HandleActionsChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleActionsChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsCurrentPage(string segment)
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+        return relative.StartsWith(segment, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.OnActionsChanged -= HandleActionsChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
     }
 }
