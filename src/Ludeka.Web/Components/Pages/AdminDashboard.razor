@@ -14,6 +14,7 @@
 @inject IBggCatalogQueueService QueueService
 @inject IAffiliateEanDiscrepancyRepository DiscrepancyRepository
 @inject IAuditService AuditService
+@inject IEditorialReleasesSyncService EditorialSyncService
 
 <PageTitle>Resumen de Operaciones — Ludeka Gestión</PageTitle>
 
@@ -34,6 +35,13 @@
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
+            <button type="button"
+                    @onclick="HandleSyncEditorialReleases"
+                    disabled="@_isSyncingEditorial"
+                    class="px-4 py-2.5 rounded-full bg-[var(--card)] border border-[var(--line)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-2 hover:bg-[var(--paper-2)] transition-colors shadow-xs disabled:opacity-50">
+                <Icon Name="refresh-cw" Size="14" Class="@(_isSyncingEditorial ? "animate-spin text-[var(--accent)]" : "text-[var(--muted)]")" />
+                <span>@(_isSyncingEditorial ? "Sincronizando..." : "Sincronizar Editoriales")</span>
+            </button>
             <a href="/admin/ingesta-social"
                class="px-4 py-2.5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-2 hover:opacity-90 transition-opacity shadow-xs">
                 <Icon Name="sparkles" Size="14" />
@@ -46,6 +54,19 @@
             </a>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(_editorialSyncMessage))
+    {
+        <div class="p-4 rounded-2xl border @(_editorialSyncIsError ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300") flex items-center justify-between gap-3 text-xs font-bold animate-fadeIn">
+            <div class="flex items-center gap-2 min-w-0">
+                <Icon Name="@(_editorialSyncIsError ? "alert-triangle" : "check-circle-2")" Size="16" Class="shrink-0" />
+                <span class="truncate">@_editorialSyncMessage</span>
+            </div>
+            <button type="button" @onclick="() => _editorialSyncMessage = null" class="text-xs opacity-75 hover:opacity-100 shrink-0">
+                <Icon Name="x" Size="14" />
+            </button>
+        </div>
+    }
 
     @* Rejilla de 6 Tarjetas de Métricas de Resumen *@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
@@ -213,6 +234,23 @@
                         <span>&rarr;</span>
                     </span>
                 </a>
+
+                <div class="py-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                        <div>
+                            <p class="text-xs font-bold text-[var(--ink)]">Novedades Editoriales (Devir / Maldito)</p>
+                            <p class="text-[11px] text-[var(--muted)]">Extracción oficial de calendarios, PVP y cruce BGG</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="HandleSyncEditorialReleases"
+                            disabled="@_isSyncingEditorial"
+                            class="px-3 py-1.5 rounded-full text-xs font-bold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors inline-flex items-center gap-1 disabled:opacity-50">
+                        <Icon Name="refresh-cw" Size="12" Class="@(_isSyncingEditorial ? "animate-spin" : "")" />
+                        <span>@(_isSyncingEditorial ? "Sincronizando..." : "Sincronizar ahora")</span>
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -322,4 +360,34 @@
         AuditAction.Published => "bg-[var(--mustard)]/15 text-[var(--mustard)] border border-[var(--mustard)]/30",
         _ => "bg-stone-500/15 text-stone-400 border border-stone-500/30"
     };
+
+    private bool _isSyncingEditorial;
+    private string? _editorialSyncMessage;
+    private bool _editorialSyncIsError;
+
+    private async Task HandleSyncEditorialReleases()
+    {
+        if (_isSyncingEditorial) return;
+        _isSyncingEditorial = true;
+        _editorialSyncMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var summary = await EditorialSyncService.SyncAllEditorialReleasesAsync();
+            _editorialSyncIsError = summary.Errors.Count > 0 && summary.TotalFound == 0;
+            _editorialSyncMessage = $"Sincronización completada: {summary.TotalFound} novedades encontradas, {summary.CreatedCount} creadas, {summary.UpdatedCount} actualizadas, {summary.GamesLinkedCount} vinculadas a catálogo, {summary.GamesImportedFromBggCount} importadas de BGG." +
+                (summary.Errors.Count > 0 ? $" (Avisos: {string.Join(", ", summary.Errors)})" : string.Empty);
+        }
+        catch (Exception ex)
+        {
+            _editorialSyncIsError = true;
+            _editorialSyncMessage = $"Error durante la sincronización: {ex.Message}";
+        }
+        finally
+        {
+            _isSyncingEditorial = false;
+            StateHasChanged();
+        }
+    }
 }

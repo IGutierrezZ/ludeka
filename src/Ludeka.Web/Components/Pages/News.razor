@@ -7,6 +7,7 @@
 @using Ludeka.Web.Components.Shared
 @inject IWeeklyReleaseService ReleaseService
 @inject ICurrentUserService CurrentUserService
+@inject IEditorialReleasesSyncService EditorialSyncService
 @inject NavigationManager Navigation
 
 <PageTitle>Novedades y Estrenos Editoriales — Ludeka</PageTitle>
@@ -42,6 +43,13 @@
                 @if (IsModerator)
                 {
                     <button type="button"
+                            @onclick="HandleSyncEditorialReleases"
+                            disabled="@_isSyncingEditorial"
+                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                        <Icon Name="refresh-cw" Size="14" Class="@(_isSyncingEditorial ? "animate-spin text-[var(--mustard)]" : "")" />
+                        <span>@(_isSyncingEditorial ? "Sincronizando..." : "Sincronizar Editoriales")</span>
+                    </button>
+                    <button type="button"
                             @onclick="() => _isExpressModalOpen = true"
                             class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors">
                         <Icon Name="zap" Size="14" />
@@ -56,6 +64,19 @@
                 }
             </div>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(_syncFeedbackMessage))
+        {
+            <div class="p-3.5 rounded-2xl border @(_syncFeedbackIsError ? "bg-rose-500/20 border-rose-500/40 text-rose-200" : "bg-emerald-500/20 border-emerald-500/40 text-emerald-200") flex items-center justify-between gap-3 text-xs font-bold animate-fadeIn">
+                <div class="flex items-center gap-2 min-w-0">
+                    <Icon Name="@(_syncFeedbackIsError ? "alert-triangle" : "check-circle-2")" Size="16" Class="shrink-0" />
+                    <span class="truncate">@_syncFeedbackMessage</span>
+                </div>
+                <button type="button" @onclick="() => _syncFeedbackMessage = null" class="text-xs opacity-75 hover:opacity-100 shrink-0">
+                    <Icon Name="x" Size="14" />
+                </button>
+            </div>
+        }
 
         @* Barra de filtros y buscador *@
         <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-[rgba(255,248,238,0.15)]">
@@ -359,6 +380,10 @@
     private string? _selectedPublisher;
     private string _typeFilter = "all";
 
+    private bool _isSyncingEditorial;
+    private string? _syncFeedbackMessage;
+    private bool _syncFeedbackIsError;
+
     private bool _isExpressModalOpen;
     private bool _isCreateModalOpen;
     private string _formTitle = string.Empty;
@@ -419,6 +444,33 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task HandleSyncEditorialReleases()
+    {
+        if (_isSyncingEditorial) return;
+        _isSyncingEditorial = true;
+        _syncFeedbackMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var summary = await EditorialSyncService.SyncAllEditorialReleasesAsync();
+            _syncFeedbackIsError = summary.Errors.Count > 0 && summary.TotalFound == 0;
+            _syncFeedbackMessage = $"Sincronización completada: {summary.TotalFound} novedades encontradas ({summary.CreatedCount} creadas, {summary.UpdatedCount} actualizadas, {summary.GamesLinkedCount} enlazadas al catálogo)." +
+                (summary.Errors.Count > 0 ? $" (Avisos: {string.Join(", ", summary.Errors)})" : string.Empty);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _syncFeedbackIsError = true;
+            _syncFeedbackMessage = $"Error al sincronizar: {ex.Message}";
+        }
+        finally
+        {
+            _isSyncingEditorial = false;
+            StateHasChanged();
         }
     }
 
