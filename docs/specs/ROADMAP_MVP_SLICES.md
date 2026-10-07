@@ -1211,8 +1211,9 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   3. **Barra Pegajosa de Pestañas (Sticky Nav):** 5 pestañas reactivas (`Resumen`, `Vídeos`, `Dudas`, `Fundas`, `Expansiones`) con sincronización bidireccional y preservación de la columna lateral fija de tiendas y reseñas (`IsSidebar="true"`).
   4. **Panel Lateral Deslizable de Veredicto (Slide-Over / Bottom Sheet):** Modal lateral interactivo para lectura del veredicto íntegro de la Mesa Fundadora, pros, contras, contexto ideal y herramientas de staff.
   5. **Adaptación Móvil:** Carátula 4:3 con controles táctiles y paginación por puntos, fila fluida de píldoras y barra fija inferior de mejor precio y colección al alcance del pulgar.
-- **Estado:** ⏳ **En progreso / Verificado** (2.617 pruebas unitarias en verde al 100%).
-- **Documento:** [`../increments/inc-123-ficha-juego-revista.md`](../increments/inc-123-ficha-juego-revista.md).
+- **Estado:** ✅ **Completado y Archivado** (INC-123 · 2.617 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/archive/inc-123-ficha-juego-revista.md`](../increments/archive/inc-123-ficha-juego-revista.md).
+- **Módulo del Sistema:** [`sistema/55-alineacion-editorial-ficha-juego-revista.md`](sistema/55-alineacion-editorial-ficha-juego-revista.md).
 
 
 
