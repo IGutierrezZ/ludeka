@@ -148,6 +148,18 @@ public class LudekaPersistenceAndDomainServicesTests
         public Task<IReadOnlyList<MediaItemDto>> AutoSuggestAndIngestConsolidatedForGameAsync(Guid gameId, bool autoApprove = false, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
+    private sealed class FakeDevirReleasesExtractor : IDevirReleasesExtractor
+    {
+        public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeMalditoReleasesExtractor : IMalditoReleasesExtractor
+    {
+        public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? catalogHtml = null) => throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Registra dobles mínimos de los límites de <c>AddLudekaExternalIntegrations</c> (R2b) que los
     /// servicios de dominio de R2a exigen como dependencia dura de constructor. Ninguno se invoca:
@@ -171,7 +183,9 @@ public class LudekaPersistenceAndDomainServicesTests
             .AddSingleton<ISocialMetadataExtractor, FakeSocialMetadataExtractor>()
             .AddSingleton<ISocialAiAnalysisService, FakeSocialAiAnalysisService>()
             .AddSingleton<IImageStorageService, FakeImageStorageService>()
-            .AddSingleton<IYouTubeSearchService, FakeYouTubeSearchService>();
+            .AddSingleton<IYouTubeSearchService, FakeYouTubeSearchService>()
+            .AddSingleton<IDevirReleasesExtractor, FakeDevirReleasesExtractor>()
+            .AddSingleton<IMalditoReleasesExtractor, FakeMalditoReleasesExtractor>();
 
     [Fact]
     public void AddLudekaPersistenceAndAddLudekaDomainServices_ResolveExpectedDomainServices()
@@ -203,6 +217,7 @@ public class LudekaPersistenceAndDomainServicesTests
         Assert.IsAssignableFrom<IGiveawayService>(sp.GetRequiredService<IGiveawayService>());
         Assert.IsAssignableFrom<IUserLibraryService>(sp.GetRequiredService<IUserLibraryService>());
         Assert.IsAssignableFrom<IYouTubeCatalogAutoIngestService>(sp.GetRequiredService<IYouTubeCatalogAutoIngestService>());
+        Assert.IsAssignableFrom<IEditorialReleasesSyncService>(sp.GetRequiredService<IEditorialReleasesSyncService>());
     }
 
     // Nota de alcance (tasks.md 2.5, cerrada por R2b): el riesgo 2 de la propuesta (orden de registro
