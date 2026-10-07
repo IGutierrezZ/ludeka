@@ -118,8 +118,8 @@ public class BggImagesSyncService : IBggImagesSyncService
                 : null;
 
             bool isCorruptedCover = IsCorruptedOrSimulatedCover(game.CoverImageUrl);
-            bool isMissingBack = string.IsNullOrWhiteSpace(game.BackCoverImageUrl);
-            bool isMissingTable = string.IsNullOrWhiteSpace(game.TableImageUrl);
+            bool isMissingBack = string.IsNullOrWhiteSpace(game.BackCoverImageUrl) || IsCorruptedOrSimulatedCover(game.BackCoverImageUrl);
+            bool isMissingTable = string.IsNullOrWhiteSpace(game.TableImageUrl) || IsCorruptedOrSimulatedCover(game.TableImageUrl);
             bool hasSpanishCoverAvailable = vInfo != null &&
                                             !string.IsNullOrWhiteSpace(vInfo.CoverImageUrl) &&
                                             game.CoverImageUrl != vInfo.CoverImageUrl;
@@ -150,8 +150,9 @@ public class BggImagesSyncService : IBggImagesSyncService
                 string? targetBack = game.BackCoverImageUrl;
                 string? targetTable = game.TableImageUrl;
 
-                // 1. Portada frontal: Prioridad absoluta para edición en español
-                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.CoverImageUrl))
+                // 1. Portada frontal:
+                // Prioridad 1: Portada oficial de edición en español
+                if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.CoverImageUrl) && !IsCorruptedOrSimulatedCover(vInfo.CoverImageUrl))
                 {
                     targetCover = vInfo.CoverImageUrl;
                     if (!string.IsNullOrWhiteSpace(vInfo.ThumbnailUrl))
@@ -161,29 +162,35 @@ public class BggImagesSyncService : IBggImagesSyncService
                 }
                 else if (isCorruptedCover || string.IsNullOrWhiteSpace(targetCover))
                 {
-                    if (gallery != null && !string.IsNullOrWhiteSpace(gallery.FrontCoverUrl))
-                    {
-                        targetCover = gallery.FrontCoverUrl;
-                    }
-                    else if (snapshot != null)
+                    // Prioridad 2: Portada oficial canónica de caja desde snapshot raíz
+                    if (snapshot != null)
                     {
                         var (rootCover, rootThumb) = BggRawSnapshotParser.ExtractRootImagesFromJson(snapshot.RawJson);
-                        if (!string.IsNullOrWhiteSpace(rootCover))
+                        if (!string.IsNullOrWhiteSpace(rootCover) && !IsCorruptedOrSimulatedCover(rootCover))
                         {
                             targetCover = rootCover;
-                            targetThumb ??= rootThumb;
+                            targetThumb = rootThumb ?? targetThumb;
                         }
+                    }
+
+                    // Prioridad 3: Foto comunitaria frontal de GeekDo solo si la raíz era nula/corrupta
+                    if ((string.IsNullOrWhiteSpace(targetCover) || IsCorruptedOrSimulatedCover(targetCover)) &&
+                        gallery != null && !string.IsNullOrWhiteSpace(gallery.FrontCoverUrl))
+                    {
+                        targetCover = gallery.FrontCoverUrl;
                     }
                 }
 
                 // 2. Contraportada
-                if (string.IsNullOrWhiteSpace(targetBack) && gallery != null && !string.IsNullOrWhiteSpace(gallery.BackCoverUrl))
+                if ((string.IsNullOrWhiteSpace(targetBack) || IsCorruptedOrSimulatedCover(targetBack)) &&
+                    gallery != null && !string.IsNullOrWhiteSpace(gallery.BackCoverUrl))
                 {
                     targetBack = gallery.BackCoverUrl;
                 }
 
                 // 3. Fotografía en mesa / componentes
-                if (string.IsNullOrWhiteSpace(targetTable) && gallery != null && !string.IsNullOrWhiteSpace(gallery.TableOrGameplayUrl))
+                if ((string.IsNullOrWhiteSpace(targetTable) || IsCorruptedOrSimulatedCover(targetTable)) &&
+                    gallery != null && !string.IsNullOrWhiteSpace(gallery.TableOrGameplayUrl))
                 {
                     targetTable = gallery.TableOrGameplayUrl;
                 }
@@ -268,7 +275,10 @@ public class BggImagesSyncService : IBggImagesSyncService
     {
         if (string.IsNullOrWhiteSpace(url)) return true;
         return url.Contains(".r2.dev/games/", StringComparison.OrdinalIgnoreCase) ||
-               url.Contains("/images/game-placeholder.svg", StringComparison.OrdinalIgnoreCase);
+               url.Contains("/images/game-placeholder.svg", StringComparison.OrdinalIgnoreCase) ||
+               url.Contains("/images/expansion-placeholder.svg", StringComparison.OrdinalIgnoreCase) ||
+               url.Contains("__micro", StringComparison.OrdinalIgnoreCase) ||
+               url.Contains("fit-in/64x64", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsR2Url(string url)

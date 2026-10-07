@@ -220,6 +220,115 @@ public class BggImagesSyncServiceTests : IDisposable
         Assert.False(res2.HasMore);
     }
 
+    [Fact]
+    public async Task SyncTopRankedImagesBatchAsync_WhenSpanishCoverMissing_ShouldPrioritizeRootCoverOverGeekDoGallery()
+    {
+        // Arrange: Juego como Nemesis (BGG #400) sin portada previa y sin versión específica en español en versions
+        var game = CreateGame(400, "Nemesis", bggRank: 20);
+        game.UpdateImages(null);
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Snapshot con root cover oficial pero sin versions en español
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""400"">
+    <name type=""primary"" value=""Nemesis"" />
+    <image>https://cf.geekdo-images.com/nemesis-official-root-cover.jpg</image>
+    <thumbnail>https://cf.geekdo-images.com/nemesis-official-root-thumb.jpg</thumbnail>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(400, json));
+
+        // En GeekDo, la foto comunitaria FrontCoverUrl es una miniatura pintada por un usuario
+        _geekDoClient.SetupGallery(400, new GeekDoGalleryImagesDto(
+            FrontCoverUrl: "https://cf.geekdo-images.com/user-miniature-painted.jpg",
+            BackCoverUrl: "https://cf.geekdo-images.com/nemesis-back.jpg",
+            TableOrGameplayUrl: "https://cf.geekdo-images.com/nemesis-table.jpg"
+        ));
+
+        var r2Options = Options.Create(new CloudflareR2Options { Simulate = true });
+        var service = new BggImagesSyncService(
+            _factory,
+            _snapshotRepo,
+            _geekDoClient,
+            _storageService,
+            r2Options,
+            new HttpClient(),
+            NullLogger<BggImagesSyncService>.Instance
+        );
+
+        // Act
+        var result = await service.SyncTopRankedImagesBatchAsync(afterRank: 0, batchSize: 10, maxRank: 3000, delayMs: 0);
+
+        // Assert
+        Assert.Equal(1, result.UpdatedCount);
+        var updated = await _context.Games.AsNoTracking().FirstAsync(g => g.BggId == 400);
+
+        // La portada DEBE ser la oficial del rootCover, NUNCA la foto comunitaria de miniaturas
+        Assert.Equal("https://cf.geekdo-images.com/nemesis-official-root-cover.jpg", updated.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/nemesis-official-root-thumb.jpg", updated.ThumbnailUrl);
+        Assert.Equal("https://cf.geekdo-images.com/nemesis-back.jpg", updated.BackCoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/nemesis-table.jpg", updated.TableImageUrl);
+    }
+
+    [Fact]
+    public async Task SyncTopRankedImagesBatchAsync_WhenGameHasMicroThumbnails_ShouldTreatAsCorruptAndRepairWithHighRes()
+    {
+        // Arrange: Juego que en la BD quedó con URLs degradadas a 64px (__micro)
+        var game = CreateGame(500, "Corrupted Game", bggRank: 50);
+        game.UpdateMediaUrls(
+            coverImageUrl: "https://cf.geekdo-images.com/__micro/img/xxx/fit-in/64x64/pic123.jpg",
+            thumbnailUrl: "https://cf.geekdo-images.com/__micro/img/xxx/fit-in/64x64/pic123_thumb.jpg",
+            backCoverImageUrl: "https://cf.geekdo-images.com/__micro/img/yyy/fit-in/64x64/pic456.jpg",
+            tableImageUrl: "https://cf.geekdo-images.com/__micro/img/zzz/fit-in/64x64/pic789.jpg"
+        );
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""500"">
+    <name type=""primary"" value=""Corrupted Game"" />
+    <image>https://cf.geekdo-images.com/c500-clean-root.jpg</image>
+    <thumbnail>https://cf.geekdo-images.com/c500-clean-thumb.jpg</thumbnail>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        await _snapshotRepo.UpsertAsync(new BggRawSnapshot(500, json));
+
+        _geekDoClient.SetupGallery(500, new GeekDoGalleryImagesDto(
+            FrontCoverUrl: null,
+            BackCoverUrl: "https://cf.geekdo-images.com/c500-clean-back-lg.jpg",
+            TableOrGameplayUrl: "https://cf.geekdo-images.com/c500-clean-table-lg.jpg"
+        ));
+
+        var r2Options = Options.Create(new CloudflareR2Options { Simulate = true });
+        var service = new BggImagesSyncService(
+            _factory,
+            _snapshotRepo,
+            _geekDoClient,
+            _storageService,
+            r2Options,
+            new HttpClient(),
+            NullLogger<BggImagesSyncService>.Instance
+        );
+
+        // Act: No debe ser saltado (skipped) pese a tener los 4 campos rellenos, pues están corruptos
+        var result = await service.SyncTopRankedImagesBatchAsync(afterRank: 0, batchSize: 10, maxRank: 3000, delayMs: 0);
+
+        // Assert
+        Assert.Equal(1, result.UpdatedCount);
+        Assert.Equal(0, result.SkippedCount);
+
+        var updated = await _context.Games.AsNoTracking().FirstAsync(g => g.BggId == 500);
+        Assert.Equal("https://cf.geekdo-images.com/c500-clean-root.jpg", updated.CoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/c500-clean-thumb.jpg", updated.ThumbnailUrl);
+        Assert.Equal("https://cf.geekdo-images.com/c500-clean-back-lg.jpg", updated.BackCoverImageUrl);
+        Assert.Equal("https://cf.geekdo-images.com/c500-clean-table-lg.jpg", updated.TableImageUrl);
+    }
+
     private static Game CreateGame(int bggId, string title, int? bggRank = 100)
     {
         return new Game(
