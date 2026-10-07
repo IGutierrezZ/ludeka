@@ -1,8 +1,10 @@
 # INC-126: Ficha Editorial Limpia (Alineación Claude Design)
 
-**Estado:** ⏳ En progreso  
+**Estado:** ✅ Archivado  
 **Rama:** `inc/ficha-editorial-limpia`  
-**Worktree:** `F:\repos\ludeka-wt\ficha-editorial-limpia`
+**PR:** #229 (Fusionado con squash en `main` el 2026-10-07)  
+**Pruebas unitarias:** 2.627 superadas al 100% (2.637 con integración)  
+**Despliegue:** Google Cloud Run en verde (Run 37659940078)
 
 ---
 
