@@ -136,6 +136,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-121** | Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos) | ✅ Archivado | [inc-121-alineacion-editorial-claude-p1.md](archive/inc-121-alineacion-editorial-claude-p1.md) |
 | **INC-122** | Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa) | ✅ Archivado | [inc-122-reparacion-imagenes-bgg.md](archive/inc-122-reparacion-imagenes-bgg.md) |
 | **INC-123** | Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica) | ✅ Archivado | [inc-123-ficha-juego-revista.md](archive/inc-123-ficha-juego-revista.md) |
+| **INC-124** | Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual | ⏳ En progreso | [inc-124-ajustes-ficha-editorial.md](inc-124-ajustes-ficha-editorial.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -163,7 +164,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Ninguno activo en este momento).*
+- **INC-124** (`inc/ajustes-ficha-editorial`) — Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual. En curso en `F:\repos\ludeka-wt\ajustes-ficha-editorial`.
 
 *(INC-122 entregó su verificación con 2.604 pruebas unitarias en verde al 100%, y quedó archivada el 2026-10-07. Corrige la extracción de imágenes en alta resolución [imageurl_lg de 1024px] en GeekDo descartando micro-miniaturas de 64px, introduce consulta dirigida con tag=BoxBack para contraportadas, blinda la jerarquía de portadas preservando la carátula raíz oficial de BGG ante la ausencia de versión en español, sanea URLs corruptas y adapta el visor de GameImageCarousel a proporción aspect-square sm:aspect-[4/3] con fondo oscuro editorial).*
 

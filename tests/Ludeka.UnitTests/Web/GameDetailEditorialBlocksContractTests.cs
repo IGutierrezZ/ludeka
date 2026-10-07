@@ -165,4 +165,25 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("AssociateBggIdAsync", source, StringComparison.Ordinal);
         Assert.Contains("Asociar BGG ID", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_ShouldFilterStockInBestPriceAndExcludePolaroidSticker()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // La pegatina flotante girada -6° sobre la carátula ha sido retirada
+        Assert.DoesNotContain("-rotate-6 flex flex-col shadow-2xl pointer-events-none", source, StringComparison.Ordinal);
+
+        // Filtrado riguroso de stock en la obtención del mejor precio del día
+        Assert.Contains("p.InStock", source, StringComparison.Ordinal);
+        Assert.Contains("Agotado en tiendas", source, StringComparison.Ordinal);
+
+        // Píldora de jugadores limpia sin duplicidad de prefijo 'Ideal a Ideal:'
+        Assert.Contains("GetCleanIdealPlayerText()", source, StringComparison.Ordinal);
+
+        // Veredicto estructurado como slide-over drawer modal
+        Assert.Contains("id=\"bloque-02-veredicto\"", source, StringComparison.Ordinal);
+        Assert.Contains("z-[100]", source, StringComparison.Ordinal);
+        Assert.Contains("z-[90]", source, StringComparison.Ordinal);
+    }
 }
