@@ -13,83 +13,74 @@
 @inject IGameRepository GameRepository
 @inject ICurrentUserService CurrentUserService
 
-<PageTitle>Gestión de Feeds Comerciales & Afiliados | Ludeka</PageTitle>
+<PageTitle>Feeds de Tiendas & Discrepancias EAN | Ludeka Gestión</PageTitle>
 
-<div class="container-ludeka py-8 space-y-6">
+<div class="max-w-[1280px] mx-auto py-2 sm:py-4 space-y-6">
     @if (!CanManageAffiliates)
     {
         <div class="max-w-md mx-auto py-16 text-center space-y-4">
-            <span class="inline-block text-amber-400"><Icon Name="shopping-bag" Size="48" /></span>
-            <h1 class="text-2xl font-bold text-[var(--text-primary)]">Acceso Restringido a Gestión de Tiendas</h1>
-            <p class="text-sm text-[var(--text-secondary)]">
+            <span class="inline-block text-amber-500"><Icon Name="shopping-bag" Size="48" /></span>
+            <h1 class="text-2xl font-black text-[var(--ink)]">Acceso Restringido a Gestión de Tiendas</h1>
+            <p class="text-sm text-[var(--muted)]">
                 La configuración de feeds comerciales y resolución de discrepancias EAN requiere el permiso de gestión de tiendas y afiliados.
             </p>
-            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
-                <p>
-                    <Icon Name="info" Size="14" /> El permiso se asigna granularmente a moderadores o al equipo fundador.
-                </p>
-            </div>
-            <a href="/" class="inline-block text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline">
+            <a href="/" class="inline-block text-xs font-bold text-[var(--accent)] underline">
                 &larr; Volver al Catálogo
             </a>
         </div>
     }
     else
     {
-        @* Cabecera Editorial *@
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
-            <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="px-2 py-0.5 rounded text-[0.65rem] font-black uppercase tracking-wider bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30">
-                        Catálogo Comercial
+        @* Cabecera Editorial Segun Diseno de Claude (Screenshot 1) *@
+        <div class="space-y-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div class="space-y-1">
+                    <span class="text-xs font-black uppercase tracking-[0.14em] text-[var(--accent)]">
+                        Comercial
                     </span>
-                    <span class="text-xs text-[var(--text-muted)]">Fases 2 & 3: Ingesta & Mapeo EAN</span>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-[-0.035em] text-[var(--ink)]">
+                        Feeds y afiliados
+                    </h1>
+                    <p class="text-xs sm:text-sm text-[var(--muted)] max-w-2xl">
+                        Ingesta de catálogos de tiendas (Google Shopping XML, Shopify JSON o CSV) y discrepancias EAN.
+                    </p>
                 </div>
-                <h1 class="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
-                    Feeds de Tiendas & Discrepancias EAN
-                </h1>
-                <p class="text-xs text-[var(--text-muted)]">
-                    Ingesta desatendida en streaming de catálogos comerciales (Google Shopping XML, Shopify JSON o CSV), cruce determinista por código de barras y moderación de códigos.
-                </p>
-            </div>
-
-            <div class="flex items-center gap-2.5 flex-wrap">
-                <button type="button"
-                        @onclick="SyncAllActiveAsync"
-                        disabled="@_isSyncingAll"
-                        class="px-3.5 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-white text-xs font-semibold transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    @if (_isSyncingAll)
-                    {
-                        <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="14" /></span>
-                        <span>Sincronizando Todo...</span>
-                    }
-                    else
-                    {
+                <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+                    <button type="button"
+                            @onclick="() => { _isFormVisible = !_isFormVisible; if (!_isFormVisible) ResetForm(); }"
+                            class="h-10 px-4 rounded-full border-2 border-[var(--rule)] bg-transparent text-[var(--ink)] font-extrabold text-xs hover:bg-[var(--paper-2)] transition-all">
+                        + Registrar feed
+                    </button>
+                    <button type="button"
+                            @onclick="SyncAllActiveAsync"
+                            disabled="@_isSyncingAll"
+                            class="h-10 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs hover:opacity-90 transition-opacity disabled:opacity-50">
+                        @if (_isSyncingAll)
+                        {
+                            <span class="inline-flex items-center gap-2">
+                                <Icon Name="refresh-cw" Size="14" class="animate-spin" />
+                                <span>Sincronizando...</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <span>Sincronizar Feeds Activos</span>
+                        }
+                    </button>
+                    <button type="button"
+                            @onclick="LoadDataAsync"
+                            title="Refrescar datos"
+                            class="h-10 w-10 rounded-full border border-[var(--line)] bg-[var(--card)] hover:bg-[var(--paper-2)] text-[var(--muted)] hover:text-[var(--ink)] flex items-center justify-center transition-colors">
                         <Icon Name="refresh-cw" Size="14" />
-                        <span>Sincronizar Feeds Activos</span>
-                    }
-                </button>
-
-                <button type="button"
-                        @onclick="() => _isFormVisible = !_isFormVisible"
-                        class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] text-xs font-semibold transition-colors flex items-center gap-2 border border-[var(--border-subtle)] shadow-sm">
-                    <Icon Name="plus" Size="14" />
-                    <span>@(_isFormVisible ? "Cerrar Formulario" : "Nuevo Feed")</span>
-                </button>
-
-                <button type="button"
-                        @onclick="LoadDataAsync"
-                        title="Refrescar datos"
-                        class="p-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
-                    <Icon Name="refresh-cw" Size="14" />
-                </button>
+                    </button>
+                </div>
             </div>
         </div>
 
         @* Notificación de Feedback *@
         @if (!string.IsNullOrEmpty(_feedbackMessage))
         {
-            <div class="p-4 rounded-xl text-xs font-semibold flex items-center justify-between transition-all @(_isFeedbackError ? "bg-rose-500/15 text-rose-400 border border-rose-500/30" : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30")">
+            <div class="p-3.5 mb-5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all @(_isFeedbackError ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25")" role="alert">
                 <div class="flex items-center gap-2">
                     @if (_isFeedbackError)
                     {
@@ -101,358 +92,280 @@
                     }
                     <span>@_feedbackMessage</span>
                 </div>
-                <button type="button" @onclick="() => _feedbackMessage = null" class="opacity-60 hover:opacity-100 text-sm">
+                <button type="button" @onclick="() => _feedbackMessage = null" class="opacity-60 hover:opacity-100 text-sm font-black">
                     &times;
                 </button>
             </div>
         }
 
-        @* Pestañas de Navegación *@
-        <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] pb-1">
+        @* Pestañas en Píldora (Screenshot 1) *@
+        <div class="inline-flex p-1 rounded-full bg-[var(--paper-2)] gap-1 mb-5">
             <button type="button"
                     @onclick="() => _activeTab = TabFeeds"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 @(_activeTab == TabFeeds ? "bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
-                <Icon Name="shopping-bag" Size="14" />
-                <span>Fuentes de Catálogo</span>
-                <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
-                    @_sources.Count
-                </span>
+                    class="h-8.5 px-4 rounded-full text-xs font-extrabold transition-all @(_activeTab == TabFeeds ? "bg-[var(--ink)] text-[var(--paper)] shadow-xs" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                Fuentes de Catálogo
             </button>
-
             <button type="button"
                     @onclick="() => _activeTab = TabDiscrepancies"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 @(_activeTab == TabDiscrepancies ? "bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")">
-                <Icon Name="tag" Size="14" />
-                <span>Discrepancias EAN</span>
-                @if (_discrepancies.Count > 0)
-                {
-                    <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-amber-500/20 text-amber-400 font-extrabold border border-amber-500/30">
-                        @_discrepancies.Count
-                    </span>
-                }
-                else
-                {
-                    <span class="px-1.5 py-0.5 rounded-full text-[0.65rem] bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]">
-                        0
-                    </span>
-                }
+                    class="h-8.5 px-4 rounded-full text-xs font-extrabold transition-all @(_activeTab == TabDiscrepancies ? "bg-[var(--ink)] text-[var(--paper)] shadow-xs" : "text-[var(--muted)] hover:text-[var(--ink)]")">
+                Discrepancias EAN @(_discrepancies.Count > 0 ? $"· {_discrepancies.Count}" : "")
             </button>
         </div>
 
-        @* Contenido de Pestaña: Fuentes de Catálogo *@
-        @if (_activeTab == TabFeeds)
+        @* Formulario de Registro o Edición *@
+        @if (_isFormVisible)
         {
-            @* Formulario de Alta / Edición *@
-            @if (_isFormVisible)
-            {
-                <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-md space-y-4 animate-fade-in">
-                    <div class="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-                        <h2 class="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                            <Icon Name="shopping-bag" Size="16" />
-                            <span>@(_editingSourceId.HasValue ? "Editar Fuente de Feed" : "Registrar Nueva Fuente de Feed")</span>
-                        </h2>
-                        <button type="button" @onclick="ResetForm" class="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                            Cancelar
-                        </button>
+            <div class="p-6 mb-6 rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] shadow-xl space-y-4 animate-fade-in">
+                <div class="flex items-center justify-between pb-3 border-b border-[var(--line)]">
+                    <h2 class="text-sm font-black text-[var(--ink)] flex items-center gap-2">
+                        <Icon Name="shopping-bag" Size="16" />
+                        <span>@(_editingSourceId.HasValue ? "Editar Fuente de Catálogo" : "Registrar Nueva Fuente de Catálogo")</span>
+                    </h2>
+                    <button type="button" @onclick="ResetForm" class="text-xs font-bold text-[var(--muted)] hover:text-[var(--ink)]">
+                        Cancelar
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div class="space-y-1">
+                        <label class="font-extrabold text-[var(--ink)]">Nombre de la Tienda *</label>
+                        <input type="text"
+                               @bind="_formStoreName"
+                               placeholder="Ej: Meeple Express, Dados & Café, Zacatrus"
+                               class="w-full h-10 px-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-bold text-xs" />
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                        <div class="space-y-1">
-                            <label class="font-bold text-[var(--text-secondary)]">Nombre de la Tienda *</label>
-                            <input type="text"
-                                   @bind="_formStoreName"
-                                   placeholder="Ej: Zacatrus, Jugamos Otra, Dungeon Marvels"
-                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
-                        </div>
-
-                        <div class="space-y-1 md:col-span-2">
-                            <label class="font-bold text-[var(--text-secondary)]">URL del Feed Comercial *</label>
-                            <input type="url"
-                                   @bind="_formFeedUrl"
-                                   placeholder="https://tienda.es/feeds/google-shopping.xml o https://tienda.es/products.json"
-                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] font-mono text-[0.75rem]" />
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="font-bold text-[var(--text-secondary)]">Formato del Feed</label>
-                            <select @bind="_formFormat"
-                                    class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
-                                <option value="@FeedFormat.GoogleShoppingXml">Google Shopping XML (Merchant)</option>
-                                <option value="@FeedFormat.ShopifyJson">Shopify Catálogo JSON (/products.json)</option>
-                                <option value="@FeedFormat.GenericCsv">CSV Genérico (Delimitado)</option>
-                            </select>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="font-bold text-[var(--text-secondary)]">Tag / Parámetro de Afiliado</label>
-                            <input type="text"
-                                   @bind="_formAffiliateTag"
-                                   placeholder="Ej: tag=ludeka-21 o ref=ludeka"
-                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="font-bold text-[var(--text-secondary)]">País / Región</label>
-                            <input type="text"
-                                   @bind="_formCountry"
-                                   placeholder="España"
-                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="font-bold text-[var(--text-secondary)]">Intervalo de Sincronización (horas)</label>
-                            <input type="number"
-                                   min="1"
-                                   max="168"
-                                   @bind="_formSyncIntervalHours"
-                                   class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
-                        </div>
-
-                        <div class="flex items-center gap-2 pt-5">
-                            <input type="checkbox"
-                                   id="feedIsEnabled"
-                                   @bind="_formIsEnabled"
-                                   class="rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--brand-primary)]" />
-                            <label for="feedIsEnabled" class="font-bold text-[var(--text-primary)] cursor-pointer">
-                                Habilitar ingesta automática
-                            </label>
-                        </div>
+                    <div class="space-y-1 md:col-span-2">
+                        <label class="font-extrabold text-[var(--ink)]">URL del Feed Comercial *</label>
+                        <input type="url"
+                               @bind="_formFeedUrl"
+                               placeholder="https://tienda.es/feeds/google-shopping.xml o https://tienda.es/products.json"
+                               class="w-full h-10 px-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-mono text-[11px]" />
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                        <button type="button"
-                                @onclick="ResetForm"
-                                class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] text-xs font-semibold transition-colors">
-                            Cancelar
-                        </button>
-                        <button type="button"
-                                @onclick="SaveSourceAsync"
-                                disabled="@_isSaving"
-                                class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-white text-xs font-bold transition-opacity disabled:opacity-50">
-                            @(_isSaving ? "Guardando..." : (_editingSourceId.HasValue ? "Actualizar Fuente" : "Guardar Fuente"))
-                        </button>
+                    <div class="space-y-1">
+                        <label class="font-extrabold text-[var(--ink)]">Formato del Feed</label>
+                        <select @bind="_formFormat"
+                                class="w-full h-10 px-3 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-bold text-xs">
+                            <option value="@FeedFormat.GoogleShoppingXml">Google Shopping XML (Merchant)</option>
+                            <option value="@FeedFormat.ShopifyJson">Shopify Catálogo JSON (/products.json)</option>
+                            <option value="@FeedFormat.GenericCsv">CSV Genérico (Delimitado)</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="font-extrabold text-[var(--ink)]">Tag / Parámetro de Afiliado</label>
+                        <input type="text"
+                               @bind="_formAffiliateTag"
+                               placeholder="Ej: tag=ludeka-21 o ref=ludeka"
+                               class="w-full h-10 px-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-bold text-xs" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="font-extrabold text-[var(--ink)]">País / Ámbito</label>
+                        <input type="text"
+                               @bind="_formCountry"
+                               placeholder="España"
+                               class="w-full h-10 px-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-bold text-xs" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="font-extrabold text-[var(--ink)]">Intervalo de Sincronización (horas)</label>
+                        <input type="number"
+                               min="1"
+                               max="168"
+                               @bind="_formSyncIntervalHours"
+                               class="w-full h-10 px-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] font-bold text-xs" />
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-4">
+                        <input type="checkbox"
+                               id="feedIsEnabled"
+                               @bind="_formIsEnabled"
+                               class="rounded bg-[var(--paper)] border-[var(--line)] text-[var(--brand)] w-4 h-4" />
+                        <label for="feedIsEnabled" class="font-extrabold text-[var(--ink)] cursor-pointer text-xs">
+                            Habilitar ingesta periódica automática
+                        </label>
                     </div>
                 </div>
-            }
 
-            @* Listado de Fuentes *@
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
+                    <button type="button"
+                            @onclick="ResetForm"
+                            class="h-9 px-4 rounded-full border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--line)] text-[var(--ink)] text-xs font-bold transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button"
+                            @onclick="SaveSourceAsync"
+                            disabled="@_isSaving"
+                            class="h-9 px-5 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] text-xs font-black transition-opacity disabled:opacity-50">
+                        @(_isSaving ? "Guardando..." : (_editingSourceId.HasValue ? "Actualizar Fuente" : "Guardar Fuente"))
+                    </button>
+                </div>
+            </div>
+        }
+
+        @* Pestaña 1: Fuentes de Catálogo *@
+        @if (_activeTab == TabFeeds)
+        {
             @if (_isLoading)
             {
-                <div class="p-12 text-center text-xs text-[var(--text-muted)] space-y-2">
+                <div class="p-12 text-center text-xs text-[var(--muted)] space-y-2">
                     <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="20" /></span>
                     <p>Cargando fuentes de catálogo...</p>
                 </div>
             }
             else if (_sources.Count == 0)
             {
-                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-                    <span class="text-[var(--text-muted)] inline-block"><Icon Name="shopping-bag" Size="36" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)]">No hay fuentes de catálogo configuradas</h3>
-                    <p class="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
-                        Registra la URL del feed Google Shopping XML, Shopify JSON o CSV provisto por una tienda asociada para comenzar la sincronización de ofertas comerciales.
+                <div class="p-12 text-center rounded-3xl bg-[var(--card)] border border-[var(--line)] space-y-3">
+                    <span class="text-[var(--muted)] inline-block"><Icon Name="shopping-bag" Size="36" /></span>
+                    <h3 class="text-sm font-bold text-[var(--ink)]">No hay fuentes de catálogo configuradas</h3>
+                    <p class="text-xs text-[var(--muted)] max-w-sm mx-auto">
+                        Registra la URL del feed Google Shopping XML, Shopify JSON o CSV provisto por una tienda asociada para comenzar la sincronización.
                     </p>
                     <button type="button"
                             @onclick="() => _isFormVisible = true"
-                            class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity">
+                            class="h-10 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] text-xs font-bold hover:opacity-90 transition-opacity">
                         Registrar Primer Feed
                     </button>
                 </div>
             }
             else
             {
-                <div class="grid grid-cols-1 gap-4">
-                    @foreach (var source in _sources)
+                <div class="flex flex-col gap-2">
+                    @foreach (var feed in _sources)
                     {
-                        <div class="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-3">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm @(source.IsEnabled ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]")">
-                                        <Icon Name="shopping-bag" Size="18" />
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h3 class="text-sm font-extrabold text-[var(--text-primary)]">@source.StoreName</h3>
-                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-bold @(source.IsEnabled ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]")">
-                                                @(source.IsEnabled ? "Activo" : "Pausado")
-                                            </span>
-                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
-                                                @GetFormatDisplayName(source.Format)
-                                            </span>
-                                            <span class="px-2 py-0.5 rounded text-[0.6rem] font-medium bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)]">
-                                                @source.Country
-                                            </span>
-                                        </div>
-                                        <div class="text-xs font-mono text-[var(--text-muted)] truncate max-w-xl mt-0.5" title="@source.FeedUrl">
-                                            @source.FeedUrl
-                                        </div>
-                                    </div>
-                                </div>
+                        var isSyncing = _syncingSourceId == feed.Id;
+                        var isFailed = !string.IsNullOrWhiteSpace(feed.LastSyncStatus) &&
+                            (feed.LastSyncStatus.Contains("error", StringComparison.OrdinalIgnoreCase) ||
+                             feed.LastSyncStatus.Contains("fall", StringComparison.OrdinalIgnoreCase));
+                        var dotColor = !feed.IsEnabled ? "bg-zinc-400" : (isFailed ? "bg-red-500" : "bg-emerald-500");
+                        var opacityClass = feed.IsEnabled ? "opacity-100" : "opacity-60";
 
-                                <div class="flex items-center gap-2 flex-wrap self-end sm:self-auto">
-                                    <button type="button"
-                                            @onclick="() => SyncFeedAsync(source.Id)"
-                                            disabled="@(_syncingSourceId == source.Id)"
-                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--brand-primary)] text-xs font-semibold transition-colors flex items-center gap-1.5 border border-[var(--border-subtle)] disabled:opacity-50">
-                                        @if (_syncingSourceId == source.Id)
-                                        {
-                                            <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="12" /></span>
-                                            <span>Sincronizando...</span>
-                                        }
-                                        else
-                                        {
-                                            <Icon Name="refresh-cw" Size="12" />
-                                            <span>Sincronizar</span>
-                                        }
-                                    </button>
+                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border border-[var(--line)] bg-[var(--card)] transition-all @opacityClass">
+                            <span class="w-2.5 h-2.5 rounded-full @dotColor shrink-0"></span>
 
-                                    <button type="button"
-                                            @onclick="() => ToggleSourceEnabledAsync(source)"
-                                            title="@(source.IsEnabled ? "Pausar ingesta" : "Activar ingesta")"
-                                            class="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] text-xs font-medium border border-[var(--border-subtle)]">
-                                        @(source.IsEnabled ? "Pausar" : "Activar")
-                                    </button>
-
-                                    <button type="button"
-                                            @onclick="() => StartEditSource(source)"
-                                            class="p-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]"
-                                            title="Editar fuente">
-                                        <Icon Name="pencil" Size="14" />
-                                    </button>
-
-                                    <button type="button"
-                                            @onclick="() => DeleteSourceAsync(source.Id)"
-                                            class="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20"
-                                            title="Eliminar fuente">
-                                        <Icon Name="trash-2" Size="14" />
-                                    </button>
-                                </div>
+                            <div class="flex-1 min-w-[200px] flex flex-col min-w-0">
+                                <b class="text-sm font-bold text-[var(--ink)] truncate">@feed.StoreName</b>
+                                <span class="text-xs text-[var(--muted)] truncate max-w-md">
+                                    @GetFormatDisplayName(feed.Format) &bull; @feed.FeedUrl
+                                </span>
                             </div>
 
-                            <div class="flex items-center gap-4 text-xs text-[var(--text-secondary)] pt-2 border-t border-[var(--border-subtle)]/60">
-                                <div>
-                                    <span class="text-[var(--text-muted)]">Última sinc:</span>
-                                    <span class="font-semibold text-[var(--text-primary)]">
-                                        @(source.LastSyncUtc.HasValue ? source.LastSyncUtc.Value.LocalDateTime.ToString("dd/MM/yyyy HH:mm") : "Nunca")
-                                    </span>
-                                </div>
-                                <div>
-                                    <span class="text-[var(--text-muted)]">Resultado:</span>
-                                    <span class="font-semibold @(source.LastSyncStatus == "Success" ? "text-emerald-400" : (source.LastSyncStatus != null ? "text-rose-400" : "text-[var(--text-muted)]"))">
-                                        @(source.LastSyncStatus ?? "Pendiente")
-                                    </span>
-                                </div>
-                                <div>
-                                    <span class="text-[var(--text-muted)]">Juegos enlazados:</span>
-                                    <span class="font-bold text-[var(--text-primary)]">@source.MatchedProductsCount</span>
-                                </div>
-                                @if (!string.IsNullOrEmpty(source.AffiliateTag))
+                            <span class="w-40 text-xs font-semibold text-[var(--muted)] shrink-0">
+                                @if (!feed.IsEnabled)
                                 {
-                                    <div>
-                                        <span class="text-[var(--text-muted)]">Tag:</span>
-                                        <span class="font-mono text-[var(--text-secondary)]">@source.AffiliateTag</span>
-                                    </div>
+                                    <span>Desactivado</span>
                                 }
+                                else if (isFailed)
+                                {
+                                    <span class="text-rose-500 font-bold truncate block">Error: @feed.LastSyncStatus</span>
+                                }
+                                else if (feed.LastSyncUtc.HasValue)
+                                {
+                                    <span>@FormatSyncDate(feed.LastSyncUtc.Value)</span>
+                                }
+                                else
+                                {
+                                    <span>Pendiente</span>
+                                }
+                            </span>
+
+                            <span class="w-24 text-xs font-extrabold text-[var(--ink)] shrink-0">
+                                @feed.MatchedProductsCount ofertas
+                            </span>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button"
+                                        @onclick="() => SyncFeedAsync(feed.Id)"
+                                        disabled="@(isSyncing || !feed.IsEnabled)"
+                                        class="h-8.5 px-3.5 rounded-full border border-[var(--rule)] bg-transparent font-extrabold text-xs text-[var(--ink)] hover:bg-[var(--paper-2)] transition-all disabled:opacity-40">
+                                    @(isSyncing ? "Sincronizando..." : "Sincronizar")
+                                </button>
+
+                                <button type="button"
+                                        @onclick="() => ToggleSourceEnabledAsync(feed)"
+                                        role="switch"
+                                        aria-checked="@feed.IsEnabled"
+                                        aria-label="Activar o desactivar feed"
+                                        class="w-12 h-7 rounded-full p-0.5 transition-colors relative shrink-0 @(feed.IsEnabled ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700")">
+                                    <span class="block w-6 h-6 rounded-full bg-white shadow-xs transition-transform @(feed.IsEnabled ? "translate-x-5" : "translate-x-0")"></span>
+                                </button>
+
+                                <button type="button"
+                                        @onclick="() => StartEditSource(feed)"
+                                        title="Editar feed"
+                                        class="p-2 rounded-full text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors">
+                                    <Icon Name="pen-line" Size="14" />
+                                </button>
+                                <button type="button"
+                                        @onclick="() => DeleteSourceAsync(feed.Id)"
+                                        title="Eliminar feed"
+                                        class="p-2 rounded-full text-[var(--muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                                    <Icon Name="trash-2" Size="14" />
+                                </button>
                             </div>
                         </div>
                     }
                 </div>
             }
         }
-        else if (_activeTab == TabDiscrepancies)
-        {
-            @* Explicación de la Cola de Discrepancias *@
-            <div class="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex items-start gap-3">
-                <span class="text-amber-400 mt-0.5"><Icon Name="info" Size="16" /></span>
-                <div class="space-y-1">
-                    <p class="font-bold text-[var(--text-primary)]">
-                        ¿Cómo funciona la detección de discrepancias de códigos de barras?
-                    </p>
-                    <p class="text-[var(--text-muted)]">
-                        Cuando un feed de una tienda física o nacional reporta un juego cuyo título coincide con nuestro catálogo pero tiene un código EAN distinto al que Ludeka tiene registrado (frecuentemente proveniente de ediciones internacionales de BGG), el sistema almacena el nuevo EAN en los códigos adicionales del juego para no perder la oferta comercial y levanta esta alerta.
-                    </p>
-                    <p class="text-[var(--text-muted)]">
-                        Pulsa <strong>"Promover a EAN principal"</strong> si el código provisto por la tienda nacional corresponde a la edición oficial en castellano. El EAN previo se conservará como código adicional.
-                    </p>
-                </div>
-            </div>
 
-            @* Listado de Discrepancias Pendientes *@
+        @* Pestaña 2: Discrepancias EAN *@
+        @if (_activeTab == TabDiscrepancies)
+        {
+            <span class="block text-xs sm:text-sm text-[var(--muted)] leading-relaxed mb-3 max-w-3xl">
+                Cuando un feed reporta un juego que coincide con el catálogo pero con un EAN distinto, el sistema lo guarda como código adicional y levanta esta alerta.
+            </span>
+
             @if (_isLoading)
             {
-                <div class="p-12 text-center text-xs text-[var(--text-muted)] space-y-2">
+                <div class="p-12 text-center text-xs text-[var(--muted)] space-y-2">
                     <span class="animate-spin inline-block"><Icon Name="refresh-cw" Size="20" /></span>
-                    <p>Consultando discrepancias pendientes...</p>
+                    <p>Cargando discrepancias EAN...</p>
                 </div>
             }
             else if (_discrepancies.Count == 0)
             {
-                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2">
-                    <span class="text-emerald-400 inline-block"><Icon Name="check" Size="36" /></span>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)]">No hay discrepancias EAN pendientes</h3>
-                    <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-                        Todos los juegos cruzados desde los feeds comerciales coinciden con los códigos principales o secundarios del catálogo de Ludeka.
+                <div class="p-12 text-center rounded-3xl bg-[var(--card)] border border-[var(--line)]">
+                    <p class="text-xs sm:text-sm font-bold text-[var(--muted)]">
+                        Todos los juegos de los feeds coinciden con los códigos del catálogo.
                     </p>
                 </div>
             }
             else
             {
-                <div class="grid grid-cols-1 gap-3">
-                    @foreach (var item in _discrepancies)
+                <div class="flex flex-col gap-2">
+                    @foreach (var disc in _discrepancies)
                     {
-                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-3">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="text-sm font-bold text-[var(--text-primary)]">@item.GameTitle</h3>
-                                        <a href="/juegos/@item.GameSlug"
-                                           target="_blank"
-                                           class="text-[0.7rem] text-[var(--brand-primary)] hover:underline flex items-center gap-1">
-                                            <span>Ver ficha</span>
-                                            <Icon Name="arrow-up-right" Size="12" />
-                                        </a>
-                                    </div>
-                                    <div class="text-xs text-[var(--text-muted)] mt-0.5">
-                                        Reportado por la tienda <span class="font-semibold text-[var(--text-secondary)]">@item.StoreName</span> el @item.DetectedAtUtc.LocalDateTime.ToString("dd/MM/yyyy HH:mm")
-                                    </div>
-                                </div>
+                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border border-[var(--line)] bg-[var(--card)]">
+                            <b class="flex-1 min-w-[180px] text-sm font-extrabold text-[var(--ink)]">
+                                @disc.GameTitle
+                            </b>
 
-                                <div class="flex items-center gap-2 self-end md:self-auto">
-                                    <button type="button"
-                                            @onclick="() => PromoteDiscrepancyAsync(item)"
-                                            disabled="@_isProcessingDiscrepancy"
-                                            class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold transition-colors border border-emerald-500/30 flex items-center gap-1.5 disabled:opacity-50">
-                                        <Icon Name="check" Size="13" />
-                                        <span>Promover a EAN principal</span>
-                                    </button>
-
-                                    <button type="button"
-                                            @onclick="() => DismissDiscrepancyAsync(item)"
-                                            disabled="@_isProcessingDiscrepancy"
-                                            class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium border border-[var(--border-subtle)] disabled:opacity-50">
-                                        <span>Descartar</span>
-                                    </button>
-                                </div>
+                            <div class="flex flex-col text-xs w-40 shrink-0">
+                                <span class="text-[var(--muted)] text-[11px]">EAN actual en Ludeka</span>
+                                <b class="font-mono font-bold text-[var(--ink)]">@(string.IsNullOrWhiteSpace(disc.CurrentEan) ? "—" : disc.CurrentEan)</b>
                             </div>
 
-                            @* Comparativa de Códigos *@
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-[var(--border-subtle)]/60">
-                                <div class="p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
-                                    <div class="text-[0.65rem] font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                                        EAN Actual en Ludeka (BGG / Ficha)
-                                    </div>
-                                    <div class="font-mono font-bold text-[var(--text-primary)] text-sm">
-                                        @(string.IsNullOrEmpty(item.CurrentEan) ? "(Sin EAN asignado)" : item.CurrentEan)
-                                    </div>
-                                </div>
+                            <div class="flex flex-col text-xs w-48 shrink-0">
+                                <span class="text-[var(--muted)] text-[11px]">EAN en feed &bull; @disc.StoreName</span>
+                                <b class="font-mono font-bold text-[var(--accent)]">@disc.FeedEan</b>
+                            </div>
 
-                                <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                                    <div class="text-[0.65rem] font-bold text-amber-400 uppercase tracking-wider">
-                                        EAN Detectado en Feed Comercial (@item.StoreName)
-                                    </div>
-                                    <div class="font-mono font-bold text-amber-300 text-sm">
-                                        @item.FeedEan
-                                    </div>
-                                </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button"
+                                        @onclick="() => DismissDiscrepancyAsync(disc)"
+                                        disabled="@_isProcessingDiscrepancy"
+                                        class="h-8.5 px-3.5 rounded-full border border-[var(--rule)] bg-transparent font-extrabold text-xs text-[var(--ink)] hover:bg-[var(--paper-2)] transition-all">
+                                    Descartar
+                                </button>
+                                <button type="button"
+                                        @onclick="() => PromoteDiscrepancyAsync(disc)"
+                                        disabled="@_isProcessingDiscrepancy"
+                                        class="h-8.5 px-3.5 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs hover:opacity-90 transition-opacity">
+                                    Promover a EAN principal
+                                </button>
                             </div>
                         </div>
                     }
@@ -747,6 +660,20 @@
         {
             _isProcessingDiscrepancy = false;
         }
+    }
+
+    private static string FormatSyncDate(DateTimeOffset date)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (date.Date == now.Date)
+        {
+            return $"Hoy {date:HH:mm}";
+        }
+        if (date.Date == now.Date.AddDays(-1))
+        {
+            return $"Ayer {date:HH:mm}";
+        }
+        return date.ToString("dd/MM HH:mm");
     }
 
     private void SetFeedback(string message, bool isError = false)
