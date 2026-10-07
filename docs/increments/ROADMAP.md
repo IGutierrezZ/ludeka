@@ -133,7 +133,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-118** | Ludoteca Integral: 7 Pestañas, Modales de Partida/Préstamo, Radar de Precios y PWA Offline | ✅ Archivado | [inc-118-ludoteca-completa-radar-pwa-offline.md](archive/inc-118-ludoteca-completa-radar-pwa-offline.md) |
 | **INC-119** | Backoffice Editorial «Ludeka Gestión»: AdminLayout, 11 Módulos de Mesa y Atajos de Teclado | ✅ Archivado | [inc-119-backoffice-ludeka-gestion-adminlayout.md](archive/inc-119-backoffice-ludeka-gestion-adminlayout.md) |
 | **INC-120** | Extracción de Portadas en Español desde Snapshots y Sincronización de Imágenes Comunitarias Top 3.000 BGG | ✅ Archivado | [inc-120-portadas-es-imagenes-top3000.md](archive/inc-120-portadas-es-imagenes-top3000.md) |
-| **INC-121** | Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos) | ⏳ En progreso | [inc-121-alineacion-editorial-claude-p1.md](inc-121-alineacion-editorial-claude-p1.md) |
+| **INC-121** | Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos) | ✅ Archivado | [inc-121-alineacion-editorial-claude-p1.md](archive/inc-121-alineacion-editorial-claude-p1.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -161,7 +161,9 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-- **INC-121** (slug: `ajustes-editorial-claude-p1`, rama: `inc/ajustes-editorial-claude-p1`, worktree: `F:\repos\ludeka-wt\ajustes-editorial-claude-p1`) — Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos). ⏳ En progreso.
+*(Ninguno activo en este momento).*
+
+*(INC-121 entregó su PR #214, verificada con 2.599 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-07. Implementa la Parte 1 de alineación editorial de Claude Design: retirada de campana en cabecera superior, tintado terracota en /tendencias, depuración de pie de página, barra contextual StaffBar con mediador IStaffActionService, 3 destacados configurables en portada con HomeFeaturedModal, cuentas atrás concisas sin "Queda/Quedan", numerales 01-02 en catálogo liberados de recorte, paginación accesible de 10 elementos en Sorteos y Ofertas, icono de lápiz para edición directa de sorteos, retorno a «← Todos los sorteos» y modal comunitario de reporte de sorteos).*
 
 *(Épica «Rediseño Revista Lúdica & Ludeka Gestión» [INC-113 a INC-119] entregó su verificación con 2.583 pruebas unitarias en verde al 100%, y quedó archivada el 2026-10-06. Transforma integralmente la experiencia visual y operativa de Ludeka: INC-113 establece el sistema tipográfico y tokens con Plus Jakarta Sans y paleta terracota/salvia en modo claro/oscuro; INC-114 implementa el nuevo Shell global con cabecera reactiva, barra móvil con hoja «Más» y barra contextual de staff; INC-115 despliega la portada editorial de revista con Hero en arco, cintas horizontales y Top semanal; INC-116 renueva el catálogo con frase reactiva conversacional, panel multiselección y chips activos; INC-117 estructura la ficha de juego en 5 bloques editoriales [01-05], veredicto editorial y herramientas staff; INC-118 unifica la ludoteca en 7 pestañas [Tengo, Jugado, Deseado, Prestar, Partidas, Radar y Offline PWA] con modales interactivos; e INC-119 dota a la plataforma de «Ludeka Gestión», backoffice editorial con AdminLayout, navegación lateral por las 11 bandejas operativas, atajos de teclado globales [Cmd/Ctrl+K y 1-9], consola de operaciones en /admin y adaptación a paleta oscura de alta densidad).*
 

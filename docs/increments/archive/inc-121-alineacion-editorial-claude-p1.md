@@ -1,9 +1,10 @@
 # Incremento 121: Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos)
 
-> **Estado:** ⏳ Verificado (Listo para PR y CI/CD)  
-> **Rama:** `inc/ajustes-editorial-claude-p1`  
-> **Worktree:** `F:\repos\ludeka-wt\ajustes-editorial-claude-p1`  
+> **Estado:** ✅ Completado y Archivado  
+> **Rama:** `inc/ajustes-editorial-claude-p1` (Mergeada en PR #214)  
 > **Fecha:** 2026-10-07  
+> **Despliegue:** Google Cloud Run (En producción)  
+> **Módulo del Sistema:** [54. Alineación Editorial de Claude (Parte 1)](../specs/sistema/54-alineacion-editorial-claude-p1.md)  
 > **Autor:** Antigravity  
 
 ---
@@ -22,14 +23,15 @@ Refinamiento visual y de interacción alineando la implementación web con el di
 ---
 
 ## 2. Artefactos del Incremento
-- [Propuesta SDD](file:///F:/repos/ludeka-wt/ajustes-editorial-claude-p1/openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/proposal.md)
-- [Especificación SDD](file:///F:/repos/ludeka-wt/ajustes-editorial-claude-p1/openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/spec.md)
-- [Diseño SDD](file:///F:/repos/ludeka-wt/ajustes-editorial-claude-p1/openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/design.md)
-- [Tareas SDD](file:///F:/repos/ludeka-wt/ajustes-editorial-claude-p1/openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/tasks.md)
-- [Informe de Verificación](file:///F:/repos/ludeka-wt/ajustes-editorial-claude-p1/openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/verification-report.md)
+- [Propuesta SDD](../../openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/proposal.md)
+- [Especificación SDD](../../openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/spec.md)
+- [Diseño SDD](../../openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/design.md)
+- [Tareas SDD](../../openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/tasks.md)
+- [Informe de Verificación](../../openspec/changes/2026-10-07-inc-121-alineacion-editorial-claude-p1/verification-report.md)
 
 ---
 
 ## 3. Pruebas y Certificación
 - Suite unitaria: **2.599 tests superados (100% verde)**.
-- Compilación sin errores.
+- Integración continua (PR #214): Verde.
+- CI/CD `main` y despliegue a Google Cloud Run: Verde.
