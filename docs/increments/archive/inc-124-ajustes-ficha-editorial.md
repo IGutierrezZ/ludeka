@@ -1,13 +1,16 @@
-# INC-124: Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual
+# Incremento 124: Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual
 
-## Estado
-⏳ En progreso (Verificado localmente con 2.619 pruebas unitarias en verde al 100% en `F:\repos\ludeka-wt\ajustes-ficha-editorial`)
-
-## Rama y Worktree
+- **ID del Incremento:** `INC-124`
+- **Slug:** `ajustes-ficha-editorial`
 - **Rama:** `inc/ajustes-ficha-editorial`
-- **Worktree:** `F:\repos\ludeka-wt\ajustes-ficha-editorial`
+- **Pull Request:** [#224](https://github.com/IGutierrezZ/ludeka/pull/224) (Mergeado a `main` vía squash en commit `d5e4d16`)
+- **Fecha:** 2026-10-07
+- **Estado:** ✅ Archivado (2.619 pruebas unitarias en verde al 100%, desplegado en producción en Google Cloud Run)
+- **Épica / Contexto:** Revista Lúdica (Alineación con el prototipo de Claude Design `Ludeka Final.dc.html` y `Ludeka Final Movil.dc.html`).
 
-## Descripción del Problema
+---
+
+## 1. Descripción del Problema
 A partir del análisis visual con los pantallazos del usuario y el prototipo interactivo de referencia de Claude (`Ludeka Final.dc.html` y `Ludeka Final Movil.dc.html`), se detectaron varias inconsistencias funcionales y visuales en la ficha editorial del juego (`src/Ludeka.Web/Components/Pages/GameDetail.razor`):
 1. **Mejor Precio sin Stock:** La función `GetBestPriceLabel()` seleccionaba la tienda con el precio más bajo sin verificar disponibilidad (`InStock`). En consecuencia, se mostraban como «mejor precio» ofertas agotadas o sin stock disponible.
 2. **Pegatina Flotante sobre la Imagen:** La cabecera polaroid incluía una pegatina de precio girada `-6°` encima de la carátula, sobrecargando visualmente la composición fotográfica.
@@ -17,7 +20,9 @@ A partir del análisis visual con los pantallazos del usuario y el prototipo int
 6. **Márgenes y Cajas Beige Pesadas en Resumen:** Las secciones de escalabilidad, ADN lúdico y vídeos destacados estaban encapsuladas en contenedores beige pesados (`bg-[var(--paper-2)] border p-6`), alejándose del diseño plano, nítido y editorial del prototipo.
 7. **Pestaña de Fundas sin Contenido:** La pestaña `Fundas` en la barra pegajosa superior y el contador en la cinta inversa se mostraban incluso cuando el juego no tenía especificaciones de fundas disponibles.
 
-## Alcance de la Solución
+---
+
+## 2. Alcance de la Solución Implementada
 1. **Lógica de Mejor Precio con Disponibilidad Real (`GameDetail.razor`):**
    - Actualizado `GetBestPriceLabel()` para filtrar estrictamente `p.InStock && p.Price.HasValue && p.Price.Value > 0`.
    - Si no hay tiendas con stock pero sí con precios registrados, devuelve honestamente `Agotado en tiendas`.
