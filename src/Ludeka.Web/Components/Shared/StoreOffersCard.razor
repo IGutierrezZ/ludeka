@@ -6,7 +6,121 @@
 @inject IAffiliateUrlResolver AffiliateResolver
 @inject IPriceRadarService PriceRadarService
 
-<div id="donde-comprar" class="@(IsSidebar ? "p-5 sm:p-6 rounded-[24px] bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3 shadow-md" : "p-6 rounded-[24px] bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm")">
+@if (IsSidebar)
+{
+    <div id="donde-comprar" class="flex flex-col">
+        <div class="flex items-center justify-between pb-2.5 border-b-[3px] border-[var(--rule)]">
+            <b class="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[var(--ink)]">Dónde comprar</b>
+            @if (_priceMetrics?.AllTimeLowPrice.HasValue == true)
+            {
+                <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1" title="@($"Mínimo histórico registrado: {_priceMetrics.AllTimeLowPrice:0.00} €")">
+                    <Icon Name="trending-down" Size="11" />
+                    <span>Mínimo: @_priceMetrics.AllTimeLowPrice.Value.ToString("0.00") €</span>
+                </span>
+            }
+        </div>
+
+        @if (!_isReferenceFallback && _displayedOffers != null && _displayedOffers.Count > 0)
+        {
+            <div class="flex flex-col">
+                @foreach (var offer in _displayedOffers)
+                {
+                    var stock = GetOfferStock(offer);
+                    var isOutOfStock = stock != null && stock.IsOutOfStock;
+                    var storeSlug = Ludeka.Core.Entities.Game.GenerateSlug(offer.StoreName);
+                    var targetPurchaseUrl = !string.IsNullOrWhiteSpace(GameSlug)
+                        ? $"/r/comprar/{GameSlug}/{storeSlug}"
+                        : AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
+
+                    <a href="@targetPurchaseUrl"
+                       target="_blank"
+                       rel="noopener noreferrer sponsored"
+                       aria-label="Comprar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
+                       class="flex justify-between items-center gap-3 py-3 border-b border-[var(--line)] group transition-colors hover:bg-[var(--paper-2)]/60 -mx-1 px-1 rounded-lg">
+                        <span class="flex flex-col gap-0.5 min-w-0">
+                            <b class="text-[15px] font-extrabold text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors truncate">
+                                @offer.StoreName
+                            </b>
+                            <span class="text-xs text-[var(--muted)] flex items-center gap-1.5 flex-wrap">
+                                @if (isOutOfStock)
+                                {
+                                    <span class="text-rose-500 font-bold">Agotado en tienda</span>
+                                }
+                                else if (stock?.IsInStock == true)
+                                {
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold">En stock@(stock.AvailableQuantity.HasValue ? $" ({stock.AvailableQuantity} uds)" : "")</span>
+                                }
+                                else if (!offer.Price.HasValue)
+                                {
+                                    <span>Buscar en catálogo</span>
+                                }
+                                else
+                                {
+                                    <span>Verificar stock</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(offer.Badge))
+                                {
+                                    <span>&bull; @offer.Badge</span>
+                                }
+                            </span>
+                        </span>
+                        <div class="text-right shrink-0">
+                            @if (stock?.CurrentPrice.HasValue == true)
+                            {
+                                <b class="text-xl font-black tracking-[-0.02em] text-[var(--accent)]">
+                                    @($"{stock.CurrentPrice.Value:0.00} {offer.Currency}")
+                                </b>
+                            }
+                            else if (offer.Price.HasValue)
+                            {
+                                <b class="text-xl font-black tracking-[-0.02em] text-[var(--accent)]">
+                                    @offer.FormattedPrice
+                                </b>
+                            }
+                            else
+                            {
+                                <span class="text-xs font-extrabold text-[var(--ink)] underline">Buscar &nearr;</span>
+                            }
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else if (_isReferenceFallback && _displayedOffers != null && _displayedOffers.Count > 0)
+        {
+            <div class="flex flex-col">
+                <span class="py-2 text-xs text-[var(--muted)]">Sin precios ni stock confirmados. Busca en:</span>
+                @foreach (var offer in _displayedOffers)
+                {
+                    var storeSlug = Ludeka.Core.Entities.Game.GenerateSlug(offer.StoreName);
+                    var targetPurchaseUrl = !string.IsNullOrWhiteSpace(GameSlug)
+                        ? $"/r/comprar/{GameSlug}/{storeSlug}"
+                        : AffiliateResolver.ResolveAffiliateUrl(offer.AffiliateUrl, offer.StoreName);
+
+                    <a href="@targetPurchaseUrl"
+                       target="_blank"
+                       rel="noopener noreferrer sponsored"
+                       aria-label="Buscar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
+                       class="flex justify-between items-center gap-3 py-2.5 border-b border-[var(--line)] group transition-colors hover:bg-[var(--paper-2)]/60 -mx-1 px-1 rounded-lg">
+                        <span class="text-sm font-bold text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors">
+                            Buscar en @offer.StoreName
+                        </span>
+                        <span class="text-sm text-[var(--muted)] group-hover:text-[var(--accent)]">&nearr;</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <span class="py-3 text-xs text-[var(--muted)]">Sin ofertas disponibles por el momento.</span>
+        }
+
+        <span class="mt-2.5 text-xs text-[var(--muted)]">Enlaces de afiliado sin coste adicional para ti.</span>
+    </div>
+}
+else
+{
+<div id="donde-comprar" class="p-6 rounded-[24px] bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm">
     <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2.5">
             <Icon Name="shopping-cart" Size="20" />
@@ -315,6 +429,7 @@
         </a>
     </div>
 </div>
+}
 
 @code {
     [Parameter]

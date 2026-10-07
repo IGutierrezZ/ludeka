@@ -306,7 +306,9 @@
             return ("var(--brand)", "var(--on-brand)", "var(--mustard)");
         if (path == "tendencias" || path.StartsWith("tendencias/"))
             return ("var(--brand)", "var(--on-brand)", "var(--mustard)");
-        if (path == "catalogo" || path.StartsWith("catalogo/") || path.StartsWith("juegos"))
+        if (path == "juegos" || path.StartsWith("juegos/"))
+            return ("var(--brand)", "var(--on-brand)", "var(--mustard)");
+        if (path == "catalogo" || path.StartsWith("catalogo/"))
             return ("var(--green)", "var(--on-green)", "var(--mustard)");
         if (path == "sorteos" || path.StartsWith("sorteos/"))
             return ("var(--mustard)", "var(--on-mustard)", "#C9481C");
@@ -323,6 +325,8 @@
     private bool IsPageActive(string section)
     {
         var path = CurrentRelativePath.ToLowerInvariant();
+        if (section == "catalogo" && (path == "juegos" || path.StartsWith("juegos/")))
+            return true;
         return path == section || path.StartsWith(section + "/");
     }
 

@@ -38,6 +38,12 @@ else if (Game == null)
 else
 {
     @* CABECERA EDITORIAL EN BANDA TERRACOTA A TODO EL ANCHO *@
+    <style>
+        #bloque-01-cabecera .text-\[var\(--text-primary\)\] {
+            color: var(--on-brand) !important;
+            border-bottom: 2px solid rgba(255, 248, 238, 0.5);
+        }
+    </style>
     <section id="bloque-01-cabecera"
              data-screen-label="Ficha de juego"
              aria-label="En la Mesa &amp; Colección"
@@ -82,10 +88,10 @@ else
             @* Columna Izquierda: Metadatos, Titular, Píldoras, Veredicto y Botonera *@
             <div class="flex flex-col gap-4.5 min-w-0">
                 <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--mustard)]">
-                    @Game.Style.ToString() &bull; @Game.YearPublished &bull; @Game.Duration.EstimatedPerPlayerMinutes MIN/JUGADOR
+                    @GetStyleShortText(Game.Style).ToUpperInvariant() &bull; @Game.YearPublished
                 </span>
 
-                <h1 class="m-0 text-5xl xl:text-6xl 2xl:text-7xl font-black leading-[0.9] tracking-[-0.055em] text-balance text-[var(--on-brand)]">
+                <h1 class="m-0 text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.04] sm:leading-[1.0] lg:leading-[0.98] tracking-[-0.035em] sm:tracking-[-0.04em] text-balance text-[var(--on-brand)]">
                     @TitleForCountry
                 </h1>
 
@@ -120,21 +126,21 @@ else
                     <span class="py-1.5 px-3.5 rounded-full bg-[#FFC145] text-[#22180F] text-xs font-extrabold" title="Consenso Ludeka">
                         Ludeka @Game.LudistRating.ToString("0.0")
                     </span>
-                    @if (Game.BggRank.HasValue)
+                    @if (Game.BggRank.HasValue && Game.BggRank.Value <= 500)
                     {
-                        <span class="py-1.5 px-3.5 rounded-full border border-white/60 text-xs font-extrabold text-[var(--on-brand)] flex items-center gap-1.5" title="Ranking BGG">
+                        <span class="py-1.5 px-3 rounded-full border border-white/60 text-xs font-extrabold text-[var(--on-brand)] inline-flex items-center gap-1" title="Ranking BGG">
                             <Icon Name="trophy" Size="12" class="text-[var(--mustard)]" />
-                            <span>#@Game.BggRank.Value Global</span>
+                            <span>#@Game.BggRank.Value</span>
                         </span>
                     }
                     <span class="py-1.5 px-3.5 rounded-full border border-white/60 text-xs font-extrabold text-[var(--on-brand)]" title="Jugadores ideales">
-                        @GetCleanIdealPlayerText()
+                        Ideal a @GetIdealShortPlayerText()
                     </span>
                     <span class="py-1.5 px-3.5 rounded-full border border-white/60 text-xs font-extrabold text-[var(--on-brand)]">
-                        @Game.Duration.EstimatedPerPlayerMinutes min/jugador
+                        @GetDurationDisplayText()
                     </span>
                     <span class="py-1.5 px-3.5 rounded-full border border-white/60 text-xs font-extrabold text-[var(--on-brand)]">
-                        @GetStyleText(Game.Style) &bull; @Game.Age.BoxAge+ años
+                        @GetComplexityShortText() &bull; @Game.Age.BoxAge+
                     </span>
                 </div>
 
@@ -325,10 +331,10 @@ else
             @* Metadatos y título *@
             <div class="flex flex-col gap-2.5">
                 <span class="text-[11px] font-black uppercase tracking-wider text-[var(--mustard)]">
-                    @Game.Style.ToString() &bull; @Game.YearPublished &bull; @(string.IsNullOrWhiteSpace(Game.Publisher) ? "" : Game.Publisher)
+                    @GetStyleShortText(Game.Style).ToUpperInvariant() &bull; @Game.YearPublished@(string.IsNullOrWhiteSpace(PublisherForCountry) ? "" : $" &bull; {PublisherForCountry}")
                 </span>
 
-                <h1 class="m-0 text-3xl sm:text-4xl font-black leading-[0.92] tracking-[-0.05em] text-balance text-[var(--on-brand)]">
+                <h1 class="m-0 text-3xl sm:text-4xl font-black leading-[1.05] tracking-[-0.03em] text-balance text-[var(--on-brand)]">
                     @TitleForCountry
                 </h1>
 
@@ -336,16 +342,16 @@ else
                 <div class="flex flex-wrap items-center gap-1.5">
                     <span class="py-1 px-2.5 rounded-full bg-[#FFF8EE] text-[#22180F] text-[11px] font-extrabold">BGG @Game.BggRating.ToString("0.0")</span>
                     <span class="py-1 px-2.5 rounded-full bg-[#FFC145] text-[#22180F] text-[11px] font-extrabold">Ludeka @Game.LudistRating.ToString("0.0")</span>
-                    @if (Game.BggRank.HasValue)
+                    @if (Game.BggRank.HasValue && Game.BggRank.Value <= 500)
                     {
-                        <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)] flex items-center gap-1">
+                        <span class="py-1 px-2 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)] inline-flex items-center gap-1">
                             <Icon Name="trophy" Size="10" class="text-[var(--mustard)]" />
                             <span>#@Game.BggRank.Value</span>
                         </span>
                     }
-                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">@GetCleanIdealPlayerText()</span>
-                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">@Game.Duration.EstimatedPerPlayerMinutes min</span>
-                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">@GetStyleText(Game.Style) &bull; @Game.Age.BoxAge+</span>
+                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">Ideal a @GetIdealShortPlayerText()</span>
+                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">@GetDurationDisplayText()</span>
+                    <span class="py-1 px-2.5 rounded-full border border-white/60 text-[11px] font-extrabold text-[var(--on-brand)]">@GetComplexityShortText() &bull; @Game.Age.BoxAge+</span>
                 </div>
 
                 @* Veredicto breve *@
@@ -762,7 +768,7 @@ else
             </div>
 
             @* Columna Lateral Fija (Desktop / Sticky top-20) *@
-            <aside id="donde-comprar" class="hidden lg:flex lg:col-span-4 flex-col gap-6 lg:sticky lg:top-20">
+            <aside id="donde-comprar" class="flex flex-col gap-7 lg:col-span-4 lg:sticky lg:top-20">
                 <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameSlug="@Game.Slug" GameId="@Game.Id" IsSidebar="true" />
 
                 <UserReviewCard
@@ -1020,7 +1026,60 @@ else
                 _ => "Prescindible"
             };
         }
-        return Game != null && Game.LudistRating > 0 ? $"★ {Game.LudistRating:0.0}" : "Pendiente";
+        if (Game != null)
+        {
+            if (Game.LudistRating >= 8.5) return "Imprescindible";
+            if (Game.LudistRating >= 7.5) return "Recomendado";
+            if (Game.LudistRating >= 6.0) return "Interesante";
+        }
+        return "Pendiente";
+    }
+
+    private static string GetStyleShortText(GameStyle style) => style switch
+    {
+        GameStyle.Eurogame => "Euro",
+        GameStyle.Ameritrash => "Temático",
+        GameStyle.PartyGame => "Party",
+        GameStyle.FillerAbstract => "Filler",
+        _ => "Narrativo"
+    };
+
+    private string GetComplexityShortText()
+    {
+        if (Game == null) return "Medio";
+        if (Game.Style == GameStyle.PartyGame || Game.Style == GameStyle.FillerAbstract || (Game.Duration.MaxMinutes <= 30 && Game.Age.CommunityAge <= 10))
+            return "Ligero";
+        if (Game.Duration.MaxMinutes >= 120 || Game.Age.CommunityAge >= 14 || (Game.Duration.MaxMinutes >= 90 && Game.Style == GameStyle.Eurogame))
+            return "Duro";
+        return "Medio";
+    }
+
+    private string GetDurationDisplayText()
+    {
+        if (Game == null) return "60 min";
+        if (Game.Duration.MinMinutes > 0 && Game.Duration.MaxMinutes > 0)
+        {
+            return Game.Duration.MinMinutes == Game.Duration.MaxMinutes
+                ? $"{Game.Duration.MinMinutes} min"
+                : $"{Game.Duration.MinMinutes}–{Game.Duration.MaxMinutes} min";
+        }
+        return $"{Game.Duration.EstimatedPerPlayerMinutes} min";
+    }
+
+    private string GetIdealShortPlayerText()
+    {
+        var raw = string.IsNullOrWhiteSpace(Game?.IdealPlayerCountText) ? GetPlayerRangeText() : Game.IdealPlayerCountText;
+        if (string.IsNullOrWhiteSpace(raw)) return "1-4";
+        var clean = raw.Trim();
+        if (clean.StartsWith("Ideal:", StringComparison.OrdinalIgnoreCase))
+            clean = clean["Ideal:".Length..].Trim();
+        if (clean.StartsWith("Ideal a", StringComparison.OrdinalIgnoreCase))
+            clean = clean["Ideal a".Length..].Trim();
+        if (clean.StartsWith("a ", StringComparison.OrdinalIgnoreCase))
+            clean = clean[2..].Trim();
+        if (clean.EndsWith(" jugadores", StringComparison.OrdinalIgnoreCase))
+            clean = clean[..^" jugadores".Length].Trim();
+        return clean;
     }
 
     private string GetShortVerdictSnippet()
