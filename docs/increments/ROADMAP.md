@@ -137,8 +137,9 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-122** | Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa) | ✅ Archivado | [inc-122-reparacion-imagenes-bgg.md](archive/inc-122-reparacion-imagenes-bgg.md) |
 | **INC-123** | Rediseño Editorial de Ficha de Juego (Escritorio y Móvil - Revista Lúdica) | ✅ Archivado | [inc-123-ficha-juego-revista.md](archive/inc-123-ficha-juego-revista.md) |
 | **INC-124** | Ajustes Editoriales de Ficha: Stock en Mejor Precio, Retirada de Pegatina Polaroid, Veredicto en Drawer y Limpieza Visual | ✅ Archivado | [inc-124-ajustes-ficha-editorial.md](archive/inc-124-ajustes-ficha-editorial.md) |
-| **INC-125** | Rediseño Editorial de Clasificación, Directorios (Editoriales, Creadores, Tiendas) y Transparencia | ⏳ En progreso | [inc-125-clasificacion-directorios-transparencia.md](inc-125-clasificacion-directorios-transparencia.md) |
+| **INC-125** | Rediseño Editorial de Clasificación, Directorios (Editoriales, Creadores, Tiendas) y Transparencia | ✅ Archivado | [inc-125-clasificacion-directorios-transparencia.md](archive/inc-125-clasificacion-directorios-transparencia.md) |
 | **INC-126** | Ficha Editorial Limpia (Alineación Claude Design: 4 Columnas, Veredicto Integrado y Filtro Estricto de Stock) | ✅ Archivado | [inc-126-ficha-editorial-limpia.md](archive/inc-126-ficha-editorial-limpia.md) |
+| **INC-127** | Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design) | ⏳ En progreso (Verificado 2.627 tests) | [inc-127-cuenta-movil-gestion.md](inc-127-cuenta-movil-gestion.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -165,6 +166,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 ## 🌿 Incrementos en Curso (Worktrees / PRs)
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
+
+- **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
 
 *(INC-126 entregó su PR #229, verificada con 2.627 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-07. Incorpora el rediseño del Hero con 4 columnas editoriales de números gigantes [Ludeka, BGG, Jugadores recomendados y Duración], simplificación del eyebrow móvil suprimiendo el solapamiento visual, eliminación de la cinta de mercado y de la barra fija móvil duplicada, veredicto fundacional integrado en pestaña limpia y bloque en línea suprimiendo el modal drawer, dónde comprar con lista plana de puntos de stock, selector de valoración 1-10 en rejilla de 5 columnas con vista de 44px, traslado del cartel de redes a la barra de staff y ocultación de la pestaña de fundas vacía).*
 

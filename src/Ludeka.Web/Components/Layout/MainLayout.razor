@@ -99,26 +99,6 @@
                 </div>
             </nav>
 
-            @* Menú móvil superior desplegable (SSR puro, accesible, details/summary) *@
-            <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative shrink-0">
-                <summary aria-label="Menú de navegación"
-                         class="cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none focus-visible:ring-2 focus-visible:ring-current rounded-full">
-                    <span class="h-8 sm:h-9 px-2.5 rounded-full border border-current/30 bg-black/5 dark:bg-white/5 hover:border-current text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-xs pointer-events-none">
-                        <Icon Name="menu" Size="14" />
-                        <span>Menú</span>
-                    </span>
-                </summary>
-                <div class="absolute left-0 top-full mt-2 w-52 sm:w-56 rounded-2xl border-2 border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] shadow-2xl p-2 z-50">
-                    <a href="/catalogo" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Catálogo</a>
-                    <a href="/editoriales" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Editoriales</a>
-                    <a href="/creadores" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Creadores</a>
-                    <a href="/tiendas" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Tiendas</a>
-                    <a href="/sorteos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Sorteos</a>
-                    <a href="/novedades" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Novedades</a>
-                    <a href="/eventos" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Eventos</a>
-                    <a href="/clasificaciones" onclick="this.closest('details')?.removeAttribute('open')" class="block px-3 py-2 rounded-xl text-xs font-semibold hover:bg-[var(--paper-2)] transition-colors">Clasificación</a>
-                </div>
-            </details>
 
             @* Logotipo editorial central *@
             <a href="/" class="flex items-center gap-2 sm:gap-2.5 shrink-0 transition-opacity hover:opacity-85" title="Ludeka — Inicio">

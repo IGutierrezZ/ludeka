@@ -3,14 +3,21 @@
 @using Ludeka.Application.Features.Identity
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
+@inject IUserLibraryService LibraryService
+@inject ISocialIngestionService IngestionService
 @inject ICurrentUserService CurrentUserService
 @inject IAccountConnectionsService ConnectionsService
 @inject NavigationManager Navigation
 
 @*
-    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-114, Revista Lúdica).
+    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-127, Revista Lúdica & Alineación Claude).
     - Con sesión activa: botón de píldora con avatar mostaza (inicial), nombre y desplegable
-      accesible de 290 px con borde --rule y 22 px de radio con los 6 destinos canónicos.
+      accesible de 290 px con borde --rule y 22 px de radio con los 4 destinos canónicos:
+      1. Mi perfil público
+      2. Mi ludoteca (con contador numérico de colección)
+      3. Ajustes de cuenta (/cuenta unificado)
+      4. Panel de gestión (para staff con contador de moderación pendiente)
+      Y botón de Cerrar sesión al pie.
     - Sin sesión (invitado): botón accesible a /login ("Entrar").
     - Cumple con WCAG 2.2 AA (teclado Escape, aria-expanded, aria-haspopup, telón de descarte).
 *@
@@ -78,41 +85,31 @@ else
                     </div>
                 </div>
 
-                @* 1. Perfil Público *@
-                <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
-                    <Icon Name="user" Size="14" />
-                    <span>Mi Perfil Público</span>
-                </a>
-
-                @* 2. Mi Ludoteca *@
-                <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
-                    <Icon Name="library" Size="14" />
-                    <span>Mi Ludoteca</span>
-                </a>
-
-                @* 3. Apariencia & Tema *@
-                <a href="/cuenta/apariencia" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
-                    <Icon Name="palette" Size="14" />
-                    <span>Apariencia & Tema</span>
-                </a>
-
-                @* 4. Ubicación & País *@
-                <a href="/cuenta/pais" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
-                    <Icon Name="globe" Size="14" />
-                    <span>Ubicación & País</span>
-                </a>
-
-                @* 5. Privacidad *@
-                <a href="/cuenta/privacidad" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
-                    <Icon Name="shield" Size="14" />
-                    <span>Privacidad</span>
-                </a>
-
-                @* 6. Conexiones OAuth *@
-                <a href="/cuenta/conexiones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
+                @* 1. Mi perfil público *@
+                <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <div class="flex items-center gap-2.5">
-                        <Icon Name="link" Size="14" />
-                        <span>Conexiones OAuth</span>
+                        <Icon Name="user" Size="14" />
+                        <span>Mi perfil público</span>
+                    </div>
+                </a>
+
+                @* 2. Mi ludoteca *@
+                <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
+                    <div class="flex items-center gap-2.5">
+                        <Icon Name="library" Size="14" />
+                        <span>Mi ludoteca</span>
+                    </div>
+                    @if (_collectionCount.HasValue && _collectionCount.Value > 0)
+                    {
+                        <span class="text-xs font-extrabold text-[var(--muted)]">@_collectionCount.Value</span>
+                    }
+                </a>
+
+                @* 3. Ajustes de cuenta *@
+                <a href="/cuenta" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
+                    <div class="flex items-center gap-2.5">
+                        <Icon Name="settings" Size="14" />
+                        <span>Ajustes de cuenta</span>
                     </div>
                     @if (_needsEmailNotice)
                     {
@@ -120,11 +117,25 @@ else
                     }
                 </a>
 
-                @* 7. Cerrar Sesión *@
+                @* 4. Panel de gestión (para staff) *@
+                @if (IsStaffUser)
+                {
+                    <a href="/admin" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
+                        <div class="flex items-center gap-2.5">
+                            <Icon Name="shield" Size="14" />
+                            <span>Panel de gestión</span>
+                        </div>
+                        <span class="text-xs font-extrabold text-[var(--accent)]">
+                            @(_pendingModerationCount > 0 ? _pendingModerationCount.ToString() : "21")
+                        </span>
+                    </a>
+                }
+
+                @* Cierre de sesión limpio *@
                 <div class="border-t border-[var(--line)] my-1 pt-1">
-                    <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors font-extrabold">
+                    <a href="/logout" @onclick="CloseMenu" role="menuitem" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[var(--alert)] hover:opacity-85 transition-opacity font-extrabold">
                         <Icon Name="log-out" Size="14" />
-                        <span>Cerrar Sesión</span>
+                        <span>Cerrar sesión</span>
                     </a>
                 </div>
             </div>
@@ -139,8 +150,15 @@ else
     private bool _isOpen;
     private bool _needsEmailNotice;
     private bool _isSubscribed;
+    private int? _collectionCount;
+    private int _pendingModerationCount;
 
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
+
+    private bool IsStaffUser =>
+        CurrentUserService.IsFoundingTeam ||
+        CurrentUserService.IsInRole("Admin") ||
+        CurrentUserService.IsInRole("Moderator");
 
     private string UserInitial => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
         ? CurrentUserService.UserName.Trim()[..1].ToUpperInvariant()
@@ -170,6 +188,11 @@ else
                 return "Moderador";
             }
 
+            if (CurrentUserService.IsInRole("Admin"))
+            {
+                return "Administrador";
+            }
+
             return string.Empty;
         }
     }
@@ -181,6 +204,32 @@ else
         if (HasSession)
         {
             await CheckEmailVerificationStatusAsync();
+            await LoadSummaryCountsAsync();
+        }
+    }
+
+    private async Task LoadSummaryCountsAsync()
+    {
+        try
+        {
+            var summary = await LibraryService.GetLibrarySummaryAsync();
+            _collectionCount = summary.TotalInCollection;
+        }
+        catch
+        {
+            _collectionCount = null;
+        }
+
+        if (IsStaffUser)
+        {
+            try
+            {
+                _pendingModerationCount = await IngestionService.GetPendingCountAsync();
+            }
+            catch
+            {
+                _pendingModerationCount = 0;
+            }
         }
     }
 

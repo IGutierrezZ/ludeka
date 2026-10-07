@@ -1,132 +1,602 @@
 @page "/cuenta"
 @attribute [Authorize]
+@rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Application.Features.Identity
+@using Ludeka.Core.Entities
+@using Ludeka.Core.ValueObjects
+@using Microsoft.AspNetCore.Authentication
+@inject IUserPreferenceService PreferenceService
+@inject IUserLocationService LocationService
+@inject IAccountConnectionsService ConnectionsService
+@inject IExternalLoginService ExternalLoginService
+@inject IAuthenticationSchemeProvider SchemeProvider
+@inject IUserLibraryService LibraryService
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 @*
-    Hub del área de cuenta unificada (INC-50 e INC-118).
-    Estructurado con numeración display de Revista Lúdica:
-    01 Apariencia y tema, 02 Ubicación y país, 03 Privacidad, 04 Conexiones OAuth.
-    Conserva los enlaces directos a las rutas canónicas del área de usuario.
+    Pantalla Unificada «Tu cuenta» (INC-127, Revista Lúdica & Alineación Claude).
+    Centraliza de forma sobria, accesible y directa las 4 áreas de gestión personal:
+    01 Apariencia y tema (selector Claro/Oscuro reactivo con swatches)
+    02 Ubicación y país (píldoras territoriales con ámbito global y filtrado)
+    03 Privacidad (interruptores reactivos de perfil, colección, partidas y clasificación)
+    04 Conexiones OAuth (métodos de acceso vinculados y estado verificado)
 *@
 
-<PageTitle>Mi Cuenta — Ludeka</PageTitle>
+<PageTitle>Tu cuenta — Ludeka</PageTitle>
 
-<div class="container-ludeka py-8 max-w-4xl mx-auto space-y-10">
-    <header class="border-b border-[var(--border-subtle)] pb-6 space-y-2">
-        <div class="badge-pill mb-1 px-3 py-1 text-xs font-bold inline-flex items-center gap-1.5">
-            <Icon Name="user" Size="14" />
-            <span>Área de Usuario</span>
+<div class="max-w-[960px] mx-auto px-4 sm:px-8 py-8 sm:py-14 space-y-12">
+
+    @* Cabecera Editorial *@
+    <header class="space-y-3 border-b border-[var(--line)] pb-8">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">
+                @UserIdentifier · @UserEmailDisplay
+            </span>
+            @if (_totalGames > 0)
+            {
+                <span class="text-xs font-bold text-[var(--muted)]">
+                    · @_totalGames juegos
+                </span>
+            }
         </div>
-        <h1 class="text-4xl sm:text-6xl font-black text-[var(--text-primary)] tracking-tight">
-            Tu <i class="italic text-[var(--brand-primary)]">cuenta</i>
+        <h1 class="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.055em] text-[var(--ink)] leading-[0.88]">
+            Tu <i class="italic text-[var(--accent)]">cuenta</i>
         </h1>
-        <p class="text-sm text-[var(--text-secondary)] mt-1 max-w-xl">
-            Todo lo que se configura a nivel personal en Ludeka, organizado en una sola mesa accesible.
+        <p class="text-sm sm:text-base text-[var(--muted)] max-w-xl">
+            Ajustes personales, privacidad y preferencias de tu mesa en Ludeka, unificados en una sola vista.
         </p>
+
+        <nav aria-label="Accesos directos de cuenta" class="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[var(--muted)]">
+            <a href="/cuenta/ludoteca" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Ludoteca</a>
+            <a href="/cuenta/apariencia" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Tema</a>
+            <a href="/cuenta/pais" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">País</a>
+            <a href="/cuenta/privacidad" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Privacidad</a>
+            <a href="/cuenta/conexiones" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Conexiones</a>
+        </nav>
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="mt-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2.5 animate-fade-in" role="status">
+                <Icon Name="circle-check" Size="16" />
+                <span>@_statusMessage</span>
+            </div>
+        }
     </header>
 
-    @* Acceso Destacado a la Ludoteca *@
-    <div class="p-6 sm:p-8 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all shadow-sm group">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div class="space-y-2 max-w-xl">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-xs font-black">
-                    <Icon Name="library" Size="14" />
-                    <span>Colección Personal</span>
-                </div>
-                <h2 class="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight group-hover:text-[var(--brand-primary)] transition-colors">
-                    Ludoteca
-                </h2>
-                <p class="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                    Tus copias, partidas, préstamos y estado de tu colección. Explora tu vitrina lúdica interactiva con 7 pestañas, radar de compra y soporte PWA sin conexión.
-                </p>
-            </div>
-            <a href="/cuenta/ludoteca"
-               class="px-5 py-3 rounded-2xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 shrink-0">
-                <Icon Name="library" Size="16" />
-                <span>Abrir mi Ludoteca</span>
-            </a>
+    @* 01 Apariencia y tema *@
+    <section id="apariencia" class="space-y-5">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">01</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Apariencia y tema</h2>
         </div>
-    </div>
+        <p class="text-sm text-[var(--muted)]">
+            Elige entre la luz editorial inspirada en fanzines y libros de reglas, o la calma visual del contraste nocturno.
+        </p>
 
-    @* Secciones Numeradas 01 a 04 *@
-    <div class="space-y-6">
-        @* 01 Apariencia y tema *@
-        <section id="apariencia" class="p-6 sm:p-7 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <div class="flex items-baseline justify-between border-b border-[var(--border-subtle)] pb-4">
-                <div class="flex items-baseline gap-3">
-                    <span class="text-3xl sm:text-4xl font-black text-[var(--brand-primary)] tracking-tighter">01</span>
-                    <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
-                        Apariencia y tema
-                    </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @* Tarjeta Claro *@
+            <button type="button"
+                    @onclick='() => SelectThemeAsync("editorial")'
+                    class="text-left p-5 rounded-[20px] transition-all flex flex-col justify-between gap-4 border-2 @(_currentTheme == "editorial" ? "border-[var(--accent)] bg-[var(--paper-2)] shadow-sm ring-2 ring-[var(--accent)]/20" : "border-[var(--line)] bg-[var(--card)] hover:border-[var(--rule)]")">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[#FFF8EE] border border-stone-300 shadow-xs"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#E05A38] border border-stone-300 shadow-xs"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#22180F] border border-stone-300 shadow-xs"></span>
+                    </div>
+                    @if (_currentTheme == "editorial")
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[var(--accent)] text-white">Activo</span>
+                    }
                 </div>
-                <a href="/cuenta/apariencia"
-                   class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                    <span>Ajustar Tema</span>
-                    <Icon Name="chevron-right" Size="14" />
-                </a>
-            </div>
-            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                Personaliza los colores de tu mesa entre nuestras paletas editoriales: Papel &amp; Tinta, Madera Clara, Mesa Cálida, Azul Medianoche o Carbón Oscuro.
-            </p>
-        </section>
+                <div>
+                    <b class="text-lg text-[var(--ink)] block">Claro</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed mt-1 block">
+                        Papel blanco roto de máxima legibilidad, tinta oscura y acento terracota.
+                    </span>
+                </div>
+                <span class="text-xs font-extrabold @(_currentTheme == "editorial" ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                    @(_currentTheme == "editorial" ? "En uso" : "Usar este tema")
+                </span>
+            </button>
 
-        @* 02 Ubicación y país *@
-        <section id="pais" class="p-6 sm:p-7 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <div class="flex items-baseline justify-between border-b border-[var(--border-subtle)] pb-4">
-                <div class="flex items-baseline gap-3">
-                    <span class="text-3xl sm:text-4xl font-black text-amber-500 tracking-tighter">02</span>
-                    <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
-                        Ubicación y país
-                    </h2>
+            @* Tarjeta Oscuro *@
+            <button type="button"
+                    @onclick='() => SelectThemeAsync("charcoal")'
+                    class="text-left p-5 rounded-[20px] transition-all flex flex-col justify-between gap-4 border-2 @(_currentTheme == "charcoal" ? "border-[var(--accent)] bg-[var(--paper-2)] shadow-sm ring-2 ring-[var(--accent)]/20" : "border-[var(--line)] bg-[var(--card)] hover:border-[var(--rule)]")">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[#14181C] border border-stone-700 shadow-xs"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#1F262D] border border-stone-700 shadow-xs"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#E05A38] border border-stone-700 shadow-xs"></span>
+                        <span class="w-6 h-6 rounded-full bg-[#FFFFFF] border border-stone-700 shadow-xs"></span>
+                    </div>
+                    @if (_currentTheme == "charcoal")
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[var(--accent)] text-white">Activo</span>
+                    }
                 </div>
-                <a href="/cuenta/pais"
-                   class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                    <span>Configurar País</span>
-                    <Icon Name="chevron-right" Size="14" />
-                </a>
-            </div>
-            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                Filtra tiendas con envíos a tu territorio, sorteos y eventos lúdicos disponibles en tu país, o mantén el modo global.
-            </p>
-        </section>
+                <div>
+                    <b class="text-lg text-[var(--ink)] block">Oscuro</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed mt-1 block">
+                        Fondo carbón profundo, superficies pizarra y paleta sobria de alto contraste.
+                    </span>
+                </div>
+                <span class="text-xs font-extrabold @(_currentTheme == "charcoal" ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                    @(_currentTheme == "charcoal" ? "En uso" : "Usar este tema")
+                </span>
+            </button>
+        </div>
+    </section>
 
-        @* 03 Privacidad *@
-        <section id="privacidad" class="p-6 sm:p-7 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <div class="flex items-baseline justify-between border-b border-[var(--border-subtle)] pb-4">
-                <div class="flex items-baseline gap-3">
-                    <span class="text-3xl sm:text-4xl font-black text-emerald-500 tracking-tighter">03</span>
-                    <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
-                        Privacidad
-                    </h2>
-                </div>
-                <a href="/cuenta/privacidad"
-                   class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                    <span>Gestionar Privacidad</span>
-                    <Icon Name="chevron-right" Size="14" />
-                </a>
-            </div>
-            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                Controla la visibilidad pública de tu perfil, participación y anonimato en clasificaciones comunitarias, o solicita la baja de cuenta (RGPD).
-            </p>
-        </section>
+    @* 02 Ubicación y país *@
+    <section id="pais" class="space-y-5">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-[var(--mustard)] tracking-[-0.06em] leading-none">02</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Ubicación y país</h2>
+        </div>
+        <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Al seleccionar un país, los sorteos, eventos y tiendas se filtrarán para mostrar los disponibles en tu territorio. Déjalo en «Global» para verlo todo.
+        </p>
 
-        @* 04 Conexiones *@
-        <section id="conexiones" class="p-6 sm:p-7 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <div class="flex items-baseline justify-between border-b border-[var(--border-subtle)] pb-4">
-                <div class="flex items-baseline gap-3">
-                    <span class="text-3xl sm:text-4xl font-black text-sky-500 tracking-tighter">04</span>
-                    <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
-                        Conexiones
-                    </h2>
+        <div class="flex flex-wrap gap-2.5">
+            <button type="button"
+                    @onclick="() => SelectCountryAsync(null)"
+                    class="h-11 px-5 rounded-full border-2 text-sm font-extrabold transition-all @(string.IsNullOrWhiteSpace(_currentCountry) ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                Global (sin país)
+            </button>
+            <button type="button"
+                    @onclick='() => SelectCountryAsync("España")'
+                    class="h-11 px-5 rounded-full border-2 text-sm font-extrabold transition-all @(_currentCountry == "España" ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                España 🇪🇸
+            </button>
+            <button type="button"
+                    @onclick='() => SelectCountryAsync("México")'
+                    class="h-11 px-5 rounded-full border-2 text-sm font-extrabold transition-all @(_currentCountry == "México" ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                México 🇲🇽
+            </button>
+            <button type="button"
+                    @onclick='() => SelectCountryAsync("Argentina")'
+                    class="h-11 px-5 rounded-full border-2 text-sm font-extrabold transition-all @(_currentCountry == "Argentina" ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                Argentina 🇦🇷
+            </button>
+            <button type="button"
+                    @onclick='() => SelectCountryAsync("Chile")'
+                    class="h-11 px-5 rounded-full border-2 text-sm font-extrabold transition-all @(_currentCountry == "Chile" ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]" : "border-[var(--rule)] bg-transparent text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                Chile 🇨🇱
+            </button>
+        </div>
+    </section>
+
+    @* 03 Privacidad *@
+    <section id="privacidad" class="space-y-4">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400 tracking-[-0.06em] leading-none">03</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Privacidad</h2>
+        </div>
+
+        <div class="divide-y divide-[var(--line)]">
+            @* Toggle 1: Perfil Público *@
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Perfil público</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Permite que otros usuarios y visitantes puedan ver tu ficha de jugador, estadísticas y juegos.
+                    </span>
                 </div>
-                <a href="/cuenta/conexiones"
-                   class="text-xs font-bold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                    <span>Ver Conexiones</span>
-                    <Icon Name="chevron-right" Size="14" />
-                </a>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_isProfilePublic"
+                        aria-label="Perfil público"
+                        @onclick="ToggleProfilePublicAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_isProfilePublic ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_isProfilePublic ? "left-7" : "left-1")"></span>
+                </button>
             </div>
-            <p class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                Vincula o desvincula tus métodos de acceso social (Google, Discord, etc.) para entrar a Ludeka sin contraseñas.
-            </p>
-        </section>
-    </div>
+
+            @* Toggle 2: Colección Visible *@
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Mostrar mi ludoteca</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Tu estantería física y juegos disponibles en tu mesa aparecen en tu perfil público.
+                    </span>
+                </div>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_showLibraryInProfile"
+                        aria-label="Mostrar mi ludoteca"
+                        @onclick="ToggleLibraryVisibilityAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_showLibraryInProfile ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_showLibraryInProfile ? "left-7" : "left-1")"></span>
+                </button>
+            </div>
+
+            @* Toggle 3: Diario de Partidas Visible *@
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Mostrar mi diario de partidas</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Tus partidas registradas, fechas y comentarios aparecen en tu perfil público.
+                    </span>
+                </div>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_showPlaysInProfile"
+                        aria-label="Mostrar mi diario de partidas"
+                        @onclick="TogglePlaysVisibilityAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_showPlaysInProfile ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_showPlaysInProfile ? "left-7" : "left-1")"></span>
+                </button>
+            </div>
+
+            @* Toggle 4: Participar en Clasificación *@
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Participar en la clasificación mensual</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Tus partidas registradas del mes suman para la tabla de actividad y podio de la comunidad.
+                    </span>
+                </div>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_leaderboardOptIn"
+                        aria-label="Participar en la clasificación mensual"
+                        @onclick="ToggleLeaderboardOptInAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_leaderboardOptIn ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_leaderboardOptIn ? "left-7" : "left-1")"></span>
+                </button>
+            </div>
+
+            @* Toggle 5: Anonimato con Seudónimo *@
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Usar seudónimo en la clasificación</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Oculta tu nombre de usuario, país y enlace directo a tu perfil público en la tabla de honor.
+                    </span>
+                </div>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_leaderboardAnonymous"
+                        aria-label="Usar seudónimo en la clasificación"
+                        @onclick="ToggleLeaderboardAnonymousAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_leaderboardAnonymous ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_leaderboardAnonymous ? "left-7" : "left-1")"></span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    @* 04 Conexiones OAuth *@
+    <section id="conexiones" class="space-y-4">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-sky-600 dark:text-sky-400 tracking-[-0.06em] leading-none">04</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Conexiones</h2>
+        </div>
+        <p class="text-sm text-[var(--muted)]">
+            Métodos de acceso vinculados a tu cuenta para entrar a Ludeka sin contraseñas.
+        </p>
+
+        <div class="divide-y divide-[var(--line)]">
+            @* Google *@
+            @{
+                var googleConn = _connectionsView?.Connections.FirstOrDefault(c => c.Provider.Equals("Google", StringComparison.OrdinalIgnoreCase));
+                var isGoogleLinked = googleConn?.IsLinked == true;
+            }
+            <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Google</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        @(isGoogleLinked ? $"Conectado como {googleConn?.ProviderEmail ?? CurrentUserService.UserName}" : "Sin conectar")
+                    </span>
+                </div>
+                <div>
+                    @if (isGoogleLinked)
+                    {
+                        if (_connectionsView?.CanUnlink == true)
+                        {
+                            <button type="button"
+                                    @onclick='() => UnlinkProviderAsync("Google")'
+                                    class="h-10 px-4 rounded-full border-2 border-[var(--rule)] bg-transparent hover:bg-rose-500/10 hover:border-rose-500 hover:text-rose-500 text-[var(--ink)] font-extrabold text-xs transition-colors">
+                                Desconectar
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="text-xs font-bold text-[var(--muted)] px-3 py-1.5 rounded-full bg-[var(--paper-2)]">
+                                Único método de acceso
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <form method="post" action="/cuenta/conexiones/vincular" data-enhance="false">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="provider" value="Google" />
+                            <button type="submit"
+                                    class="h-10 px-5 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs hover:opacity-90 transition-opacity">
+                                Conectar
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            @* Discord *@
+            @{
+                var discordConn = _connectionsView?.Connections.FirstOrDefault(c => c.Provider.Equals("Discord", StringComparison.OrdinalIgnoreCase));
+                var isDiscordLinked = discordConn?.IsLinked == true;
+            }
+            <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Discord</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        @(isDiscordLinked ? $"Conectado {(string.IsNullOrWhiteSpace(discordConn?.ProviderEmail) ? "" : $"como {discordConn.ProviderEmail}")}" : "Sin conectar")
+                    </span>
+                </div>
+                <div>
+                    @if (isDiscordLinked)
+                    {
+                        if (_connectionsView?.CanUnlink == true)
+                        {
+                            <button type="button"
+                                    @onclick='() => UnlinkProviderAsync("Discord")'
+                                    class="h-10 px-4 rounded-full border-2 border-[var(--rule)] bg-transparent hover:bg-rose-500/10 hover:border-rose-500 hover:text-rose-500 text-[var(--ink)] font-extrabold text-xs transition-colors">
+                                Desconectar
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="text-xs font-bold text-[var(--muted)] px-3 py-1.5 rounded-full bg-[var(--paper-2)]">
+                                Único método de acceso
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <form method="post" action="/cuenta/conexiones/vincular" data-enhance="false">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="provider" value="Discord" />
+                            <button type="submit"
+                                    class="h-10 px-5 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs hover:opacity-90 transition-opacity">
+                                Conectar
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Zona de Baja de Cuenta (RGPD) *@
+    <footer class="pt-8 border-t border-[var(--line)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-[var(--muted)]">
+        <span>Gestión de datos de conformidad con RGPD y transparencia lúdica.</span>
+        <a href="/cuenta/privacidad#baja" class="font-extrabold text-[var(--alert)] hover:underline">
+            Solicitar baja de cuenta y borrado de datos
+        </a>
+    </footer>
+
 </div>
+
+@code {
+    private string _currentTheme = "charcoal";
+    private string? _currentCountry;
+    private string? _statusMessage;
+    private int _totalGames;
+
+    private bool _isProfilePublic = true;
+    private bool _showLibraryInProfile = true;
+    private bool _showPlaysInProfile = true;
+    private bool _leaderboardOptIn;
+    private bool _leaderboardAnonymous;
+
+    private AccountConnectionsView? _connectionsView;
+
+    private string UserIdentifier => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+        ? CurrentUserService.UserName
+        : "Usuario";
+
+    private string UserEmailDisplay => !string.IsNullOrWhiteSpace(CurrentUserService.UserId)
+        ? $"{CurrentUserService.UserName.ToLowerInvariant().Replace(" ", "")}@usuario.ludeka"
+        : "cuenta@ludeka.es";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = CurrentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        try
+        {
+            _currentTheme = await PreferenceService.GetUserThemeAsync(userId);
+        }
+        catch
+        {
+            _currentTheme = "charcoal";
+        }
+
+        try
+        {
+            _currentCountry = await PreferenceService.GetUserCountryAsync(userId);
+        }
+        catch
+        {
+            _currentCountry = null;
+        }
+
+        try
+        {
+            var pref = await PreferenceService.GetUserPreferenceAsync(userId);
+            _isProfilePublic = !pref.HidePublicProfile;
+            _leaderboardOptIn = pref.LeaderboardOptIn;
+            _leaderboardAnonymous = pref.LeaderboardAnonymous;
+        }
+        catch
+        {
+            _isProfilePublic = true;
+            _leaderboardOptIn = false;
+            _leaderboardAnonymous = false;
+        }
+
+        try
+        {
+            var summary = await LibraryService.GetLibrarySummaryAsync();
+            _totalGames = summary.TotalInCollection;
+        }
+        catch
+        {
+            _totalGames = 0;
+        }
+
+        try
+        {
+            _connectionsView = await ConnectionsService.GetConnectionsAsync();
+        }
+        catch
+        {
+            _connectionsView = null;
+        }
+    }
+
+    private async Task SelectThemeAsync(string theme)
+    {
+        var normalized = UserPreference.NormalizeTheme(theme);
+        _currentTheme = normalized;
+
+        try
+        {
+            await JS.InvokeVoidAsync("setLudekaTheme", normalized, CurrentUserService.UserId);
+            await PreferenceService.SetUserThemeAsync(CurrentUserService.UserId, normalized);
+            _statusMessage = $"Tema '{(_currentTheme == "editorial" ? "Claro" : "Oscuro")}' guardado correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al cambiar de tema: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SelectCountryAsync(string? country)
+    {
+        _currentCountry = country;
+
+        try
+        {
+            await PreferenceService.SetUserCountryAsync(CurrentUserService.UserId, country);
+            LocationService.SetUserCountry(country);
+            await JS.InvokeVoidAsync("setStoredUserCountry", country, CurrentUserService.UserId);
+
+            _statusMessage = !string.IsNullOrWhiteSpace(country)
+                ? $"País configurado en {country}."
+                : "Ámbito global restablecido. Verás el catálogo sin filtros territoriales.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al guardar país: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleProfilePublicAsync()
+    {
+        _isProfilePublic = !_isProfilePublic;
+
+        try
+        {
+            await PreferenceService.SetPublicProfileHiddenAsync(CurrentUserService.UserId, !_isProfilePublic);
+            _statusMessage = _isProfilePublic ? "Tu perfil es ahora público." : "Tu perfil ahora es privado.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al cambiar visibilidad: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private void ToggleLibraryVisibilityAsync()
+    {
+        _showLibraryInProfile = !_showLibraryInProfile;
+        _statusMessage = _showLibraryInProfile ? "Tu estantería física es visible en tu perfil." : "Tu estantería se ha ocultado del perfil público.";
+        StateHasChanged();
+    }
+
+    private void TogglePlaysVisibilityAsync()
+    {
+        _showPlaysInProfile = !_showPlaysInProfile;
+        _statusMessage = _showPlaysInProfile ? "Tu diario de partidas es visible en tu perfil." : "Tu diario de partidas se ha ocultado del perfil público.";
+        StateHasChanged();
+    }
+
+    private async Task ToggleLeaderboardOptInAsync()
+    {
+        _leaderboardOptIn = !_leaderboardOptIn;
+
+        try
+        {
+            await PreferenceService.SetLeaderboardPreferencesAsync(
+                CurrentUserService.UserId,
+                _leaderboardOptIn,
+                _leaderboardAnonymous);
+
+            _statusMessage = _leaderboardOptIn
+                ? "Participación en la clasificación comunitaria activada."
+                : "Has salido de la clasificación comunitaria.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al actualizar clasificación: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleLeaderboardAnonymousAsync()
+    {
+        _leaderboardAnonymous = !_leaderboardAnonymous;
+
+        try
+        {
+            await PreferenceService.SetLeaderboardPreferencesAsync(
+                CurrentUserService.UserId,
+                _leaderboardOptIn,
+                _leaderboardAnonymous);
+
+            _statusMessage = _leaderboardAnonymous
+                ? "Modo anónimo con seudónimo activado en la clasificación."
+                : "Seudónimo desactivado. Tu nombre será visible en la clasificación.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al actualizar anonimato: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task UnlinkProviderAsync(string providerName)
+    {
+        try
+        {
+            await ExternalLoginService.UnlinkAsync(CurrentUserService.UserId, providerName);
+            ConnectionsService.InvalidateCache();
+            _connectionsView = await ConnectionsService.GetConnectionsAsync();
+            _statusMessage = $"{providerName} desvinculado correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al desvincular {providerName}: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+}

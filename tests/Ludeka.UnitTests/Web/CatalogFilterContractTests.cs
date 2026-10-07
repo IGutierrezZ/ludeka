@@ -119,12 +119,12 @@ public class CatalogFilterContractTests
     }
 
     [Fact]
-    public void MainLayout_MobileMenu_ShouldAutoCloseOnNavigationLinks()
+    public void MainLayout_MobileNavigation_ShouldDelegateToMobileBottomNav()
     {
         var source = ReadSource("src/Ludeka.Web/Components/Layout/MainLayout.razor");
 
-        // Cierre automático del menú móvil al pulsar enlaces
-        Assert.Contains("onclick=\"this.closest('details')?.removeAttribute('open')\"", source, StringComparison.Ordinal);
+        // INC-127: en móvil la navegación delega exclusivamente en MobileBottomNav sin menú superior
+        Assert.Contains("<MobileBottomNav", source, StringComparison.Ordinal);
         Assert.Contains("href=\"/catalogo\"", source, StringComparison.Ordinal);
     }
 

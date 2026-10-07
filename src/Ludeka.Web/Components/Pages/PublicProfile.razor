@@ -1,6 +1,9 @@
 @page "/u/{UserId}"
 @page "/perfil/{UserId}"
 @rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
 @inject IUserLibraryStatsService StatsService
 @inject IUserPreferenceService PreferenceService
 @inject ICurrentUserService CurrentUserService
@@ -8,152 +11,419 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>@(_profile != null ? $"{_profile.UserName} — Perfil y Ludoteca" : "Perfil de Jugador") — Ludeka</PageTitle>
+@*
+    Perfil Público de Jugador (INC-127, Revista Lúdica & Alineación Claude).
+    - Hero verde oliva (#3A4D39) con avatar mostaza inclinado a -6º y medalla +6º.
+    - Métricas inline sobre línea horizontal de contraste.
+    - Secciones estructuradas:
+      01 ADN lúdico (espectro de estilos, modo solitario y cooperativo)
+      02 Mesa ideal (curva de escalabilidad y sweet spot de jugadores)
+      03 Horas en estantería (autores y editoriales más jugados)
+      04 Hitos lúdicos (medallas de progreso)
+      05 Estantería física (títulos en propiedad con filtro y rotación sutil)
+*@
 
-<div class="container-ludeka py-8 space-y-8">
-    @if (_isLoading)
-    {
-        <div class="py-24 text-center text-[var(--text-secondary)]">
-            <div class="inline-block animate-spin mb-3"><Icon Name="dices" Size="36" /></div>
-            <p class="text-base font-semibold">Cargando perfil público de ludoteca...</p>
-        </div>
-    }
-    else if (_isPrivateProfile)
-    {
-        <div class="py-20 text-center max-w-lg mx-auto p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 shadow-sm animate-fade-in">
-            <span class="inline-block text-[var(--text-muted)]"><Icon Name="lock" Size="48" /></span>
-            <h1 class="text-2xl font-black text-[var(--text-primary)]">Perfil privado</h1>
-            <p class="text-sm text-[var(--text-secondary)]">
-                Este jugador ha configurado su perfil como privado. Su colección, partidas y estadísticas no están visibles públicamente.
-            </p>
-            <div class="pt-4 flex justify-center gap-3">
-                <a href="/" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] transition-all inline-flex items-center gap-2">
-                    <Icon Name="dices" Size="14" />
-                    <span>Explorar Catálogo</span>
-                </a>
-            </div>
-        </div>
-    }
-    else if (_profile == null)
-    {
-        <div class="py-20 text-center max-w-lg mx-auto p-8 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
-            <span class="inline-block"><Icon Name="search" Size="48" /></span>
-            <h1 class="text-2xl font-black text-[var(--text-primary)]">Perfil no encontrado</h1>
-            <p class="text-sm text-[var(--text-secondary)]">
-                El usuario «@UserId» aún no ha registrado títulos en su colección de Ludeka o el enlace no es válido.
-            </p>
-            <div class="pt-4 flex justify-center gap-3">
-                <a href="/" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] transition-all inline-flex items-center gap-2">
-                    <Icon Name="dices" Size="14" />
-                    <span>Explorar Catálogo</span>
-                </a>
-                <a href="/mi-ludoteca" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-2">
-                    <Icon Name="library" Size="14" />
-                    <span>Mi Ludoteca</span>
-                </a>
-            </div>
-        </div>
-    }
-    else
-    {
-        @* Cabecera del Perfil Público *@
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-6">
-            <div>
-                @if (IsOwnProfile && _isProfileHidden)
-                {
-                    <div class="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="flex items-center gap-2 font-bold">
-                            <Icon Name="eye-off" Size="16" />
-                            <span>Tu perfil público está en modo PRIVADO (solo visible para ti mientras tengas sesión activa).</span>
-                        </div>
-                        <a href="/cuenta/privacidad" class="underline font-bold hover:text-amber-700 dark:hover:text-amber-300 shrink-0">
-                            Cambiar visibilidad
-                        </a>
-                    </div>
-                }
+<PageTitle>@(_profile != null ? $"{_profile.UserName} — Perfil de Jugador" : "Perfil de Jugador") — Ludeka</PageTitle>
 
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xs font-bold px-3 py-1 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
-                        Perfil Público de Jugador
+@if (_isLoading)
+{
+    <div class="container-ludeka py-24 text-center text-[var(--muted)]">
+        <div class="inline-block animate-spin mb-3"><Icon Name="dices" Size="36" /></div>
+        <p class="text-base font-bold">Cargando perfil público de ludoteca...</p>
+    </div>
+}
+else if (_isPrivateProfile)
+{
+    <section class="max-w-[560px] mx-auto px-4 py-20 sm:py-28 flex flex-col items-center gap-4 text-center">
+        <span class="w-20 h-20 rounded-full bg-[var(--paper-2)] border-2 border-[var(--rule)] flex items-center justify-center text-[var(--muted)]">
+            <Icon Name="lock" Size="36" />
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--ink)] tracking-[-0.045em] leading-tight">Perfil privado</h1>
+        <p class="text-sm sm:text-base text-[var(--muted)] leading-relaxed">
+            Este jugador ha configurado su perfil como privado. Su colección, partidas y estadísticas no están visibles públicamente.
+        </p>
+        <a href="/" class="h-12 px-6 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-sm flex items-center justify-center hover:opacity-90 transition-opacity mt-2">
+            Explorar catálogo
+        </a>
+    </section>
+}
+else if (_profile == null)
+{
+    <section class="max-w-[560px] mx-auto px-4 py-20 sm:py-28 flex flex-col items-center gap-4 text-center">
+        <span class="w-20 h-20 rounded-full bg-[var(--paper-2)] border-2 border-[var(--rule)] flex items-center justify-center text-[var(--muted)]">
+            <Icon Name="dices" Size="36" />
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-black text-[var(--ink)] tracking-[-0.045em] leading-tight">Perfil no encontrado</h1>
+        <p class="text-sm sm:text-base text-[var(--muted)] leading-relaxed">
+            El usuario «@UserId» aún no ha registrado títulos en su colección de Ludeka o el enlace no es válido.
+        </p>
+        <div class="flex flex-wrap justify-center gap-3 mt-2">
+            <a href="/" class="h-11 px-5 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs flex items-center justify-center hover:opacity-90 transition-opacity">
+                Explorar catálogo
+            </a>
+            <a href="/mi-ludoteca" class="h-11 px-5 rounded-full bg-transparent text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-xs flex items-center justify-center hover:bg-[var(--paper-2)] transition-colors">
+                Mi ludoteca
+            </a>
+        </div>
+    </section>
+}
+else
+{
+    @* HERO VERDE EDITORIAL *@
+    <section class="bg-[#3A4D39] text-[#FFF8EE]">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8">
+            @if (IsOwnProfile && _isProfileHidden)
+            {
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-[#FFF8EE] text-[#22180F] text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                    <span>Tu perfil público está en modo PRIVADO: solo tú puedes verlo mientras tengas la sesión iniciada.</span>
+                    <a href="/cuenta" class="font-extrabold text-[var(--accent)] underline">Cambiar visibilidad</a>
+                </div>
+            }
+
+            @* Fila Principal: Avatar Mostaza rotado, Nombre y Acciones *@
+            <div class="flex flex-wrap items-center gap-5 sm:gap-8">
+                <span class="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center font-extrabold text-4xl sm:text-6xl select-none -rotate-6 shadow-md">
+                    @UserInitial
+                    <span class="absolute -right-1 -bottom-1 w-11 h-11 rounded-full bg-[#FFF8EE] text-[#22180F] flex items-center justify-center text-xl rotate-6 shadow-md border-2 border-[#3A4D39]">
+                        @_profile.Stats.Badge.IconEmoji
                     </span>
+                </span>
+
+                <div class="flex-1 min-w-[280px] flex flex-col gap-2">
+                    <span class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#FFC145]">
+                        <span>Perfil de jugador</span>
+                        @if (IsOwnProfile)
+                        {
+                            <span class="flex items-center gap-1.5 text-[#FFF8EE] tracking-[0.08em]">
+                                <span class="size-2 rounded-full bg-emerald-400 inline-block"></span>
+                                <span>Es tu perfil</span>
+                            </span>
+                        }
+                    </span>
+                    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-[-0.055em] leading-[0.88] break-words text-[#FFF8EE]">
+                        @_profile.UserName
+                    </h1>
+                    <span class="text-sm sm:text-base opacity-90 leading-snug">
+                        <b>Nivel @_profile.Stats.Badge.RankLevel • @_profile.Stats.Badge.RankName</b> · @_profile.Stats.Badge.SummaryTagline
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <button type="button"
+                            @onclick="CopyProfileUrlAsync"
+                            class="h-11 px-5 rounded-full border-2 border-[#FFF8EE] bg-transparent text-[#FFF8EE] hover:bg-[#FFF8EE]/10 font-extrabold text-xs transition-colors inline-flex items-center gap-1.5">
+                        @if (_copied)
+                        {
+                            <Icon Name="clipboard-copy" Size="14" />
+                            <span>¡Enlace copiado!</span>
+                        }
+                        else
+                        {
+                            <Icon Name="link" Size="14" />
+                            <span>Copiar enlace de mi perfil</span>
+                        }
+                    </button>
                     @if (IsOwnProfile)
                     {
-                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                            <span class="inline-block size-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
-                            <span>Es tu perfil</span>
-                        </span>
-                    }
-                </div>
-                <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-3">
-                    <span>@_profile.UserName</span>
-                    <span class="text-2xl sm:text-3xl">@_profile.Stats.Badge.IconEmoji</span>
-                </h1>
-                <p class="text-sm text-[var(--text-secondary)] mt-1">
-                    Estantería física, desglose de ADN lúdico y títulos disponibles para jugar de @_profile.UserName.
-                </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <button type="button"
-                        @onclick="CopyProfileUrlAsync"
-                        class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all inline-flex items-center gap-1.5 shadow-sm">
-                    @if (_copied)
-                    {
-                        <Icon Name="clipboard-copy" Size="14" />
+                        <a href="/cuenta"
+                           class="h-11 px-5 rounded-full bg-[#FFF8EE] text-[#22180F] hover:bg-[#FAF6EE] font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs">
+                            <Icon Name="settings" Size="14" />
+                            <span>Ajustes de cuenta</span>
+                        </a>
                     }
                     else
                     {
-                        <Icon Name="link" Size="14" />
+                        <a href="/"
+                           class="h-11 px-5 rounded-full bg-[#FFF8EE] text-[#22180F] hover:bg-[#FAF6EE] font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs">
+                            <Icon Name="dices" Size="14" />
+                            <span>Explorar catálogo</span>
+                        </a>
                     }
-                    <span>@(_copied ? "¡Enlace copiado!" : "Copiar enlace de perfil")</span>
-                </button>
+                </div>
+            </div>
 
-                @if (IsOwnProfile)
-                {
-                    <a href="/mi-ludoteca" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all inline-flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="settings" Size="14" />
-                        <span>Gestionar Mi Ludoteca</span>
-                    </a>
-                }
-                else
-                {
-                    <a href="/" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white transition-all inline-flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="dices" Size="14" />
-                        <span>Explorar Ludeka</span>
-                    </a>
-                }
+            @* 5 Métricas Planas Superiores *@
+            <div class="grid grid-cols-2 sm:grid-cols-5 border-t-2 border-[#FFF8EE]/30 pt-4 gap-4 sm:gap-2">
+                <div class="flex flex-col gap-1 pr-4">
+                    <b class="text-3xl sm:text-4xl font-black tracking-[-0.04em] leading-none text-[#FFF8EE]">
+                        @_profile.ShelfGames.Count
+                    </b>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#FFC145]">
+                        Títulos
+                    </span>
+                </div>
+                <div class="flex flex-col gap-1 pr-4">
+                    <b class="text-3xl sm:text-4xl font-black tracking-[-0.04em] leading-none text-[#FFF8EE]">
+                        @_profile.Stats.TotalPlayed
+                    </b>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#FFC145]">
+                        Partidas
+                    </span>
+                </div>
+                <div class="flex flex-col gap-1 pr-4">
+                    <b class="text-3xl sm:text-4xl font-black tracking-[-0.04em] leading-none text-[#FFF8EE]">
+                        @(_milestonesProgress?.TotalUnlocked ?? 0)/10
+                    </b>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#FFC145]">
+                        Hitos
+                    </span>
+                </div>
+                <div class="flex flex-col gap-1 pr-4">
+                    <b class="text-3xl sm:text-4xl font-black tracking-[-0.04em] leading-none text-[#FFF8EE]">
+                        @_profile.Stats.Badge.RankLevel
+                    </b>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#FFC145]">
+                        Nivel
+                    </span>
+                </div>
+                <div class="flex flex-col gap-1 pr-4">
+                    <b class="text-3xl sm:text-4xl font-black tracking-[-0.04em] leading-none text-[#FFF8EE]">
+                        @_profile.Stats.ShelfTime.TotalMinHours h
+                    </b>
+                    <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#FFC145]">
+                        Horas mesa
+                    </span>
+                </div>
             </div>
         </div>
+    </section>
 
-        @* Dashboard de Métricas y ADN Lúdico *@
-        <LibraryStatsDashboard Stats="_profile.Stats" />
+    @* CUERPO DEL PERFIL: SECCIONES 01 A 05 *@
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-10 sm:py-14 space-y-14">
 
-        @* Vitrina de Hitos y Logros del Jugador *@
-        @if (_milestonesProgress != null)
-        {
-            <MilestonesCard Progress="_milestonesProgress" />
-        }
+        @* SECCIONES 01 Y 02 (GRID DE DOS COLUMNAS) *@
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
 
-        @* Vitrina Pública de Títulos en Estantería *@
-        <div class="space-y-6 pt-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-[var(--text-primary)] flex items-center gap-2">
-                        <Icon Name="library" Size="18" />
-                        <span>Estantería Física (@_profile.ShelfGames.Count títulos)</span>
-                    </h2>
-                    <p class="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5">
+            @* 01 ADN Lúdico *@
+            <section id="adn" class="space-y-5 min-w-0">
+                <div class="space-y-1">
+                    <div class="flex items-baseline gap-4">
+                        <span class="text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">01</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">ADN lúdico</h2>
+                    </div>
+                    <p class="text-sm text-[var(--muted)] leading-relaxed">
+                        Predominio de <b>@_profile.Stats.DnaDistribution.DominantStyleName</b> en su mesa física.
+                    </p>
+                </div>
+
+                @* Tarjeta de rasgo insignia *@
+                <div class="p-4 sm:p-5 rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] flex items-start gap-4">
+                    <span class="text-3xl sm:text-4xl shrink-0">@_profile.Stats.Badge.IconEmoji</span>
+                    <div class="space-y-1">
+                        <b class="text-base text-[var(--ink)] block">@_profile.Stats.Badge.TraitName</b>
+                        <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                            @_profile.Stats.Badge.TraitDescription
+                        </p>
+                    </div>
+                </div>
+
+                @* Barra visual continua de espectro de estilos *@
+                @if (_profile.Stats.DnaDistribution.Styles.Count > 0)
+                {
+                    <div class="h-3.5 rounded-full overflow-hidden flex bg-[var(--line)] shadow-inner">
+                        @foreach (var style in _profile.Stats.DnaDistribution.Styles)
+                        {
+                            <span style="width: @(style.Percentage)%; background-color: @style.ColorHex;"
+                                  title="@style.StyleDisplayName: @style.Percentage.ToString("0.0")%"></span>
+                        }
+                    </div>
+
+                    @* Desglose detallado de estilos *@
+                    <div class="divide-y divide-[var(--line)]">
+                        @foreach (var style in _profile.Stats.DnaDistribution.Styles.Take(5))
+                        {
+                            <div class="py-2.5 flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-3 h-3 rounded-full shrink-0" style="background-color: @style.ColorHex;"></span>
+                                    <span class="font-bold text-[var(--ink)]">@style.StyleDisplayName</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="text-xs text-[var(--muted)]">@style.GameCount juegos</span>
+                                    <b class="text-sm font-extrabold text-[var(--ink)] w-12 text-right">@style.Percentage.ToString("0")%</b>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Cooperativo y Solitario *@
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="p-4 rounded-2xl border-2 border-[var(--rule)] bg-[var(--card)] flex flex-col gap-1">
+                        <b class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em]">
+                            @_profile.Stats.DnaDistribution.CooperativePercentage.ToString("0")%
+                        </b>
+                        <span class="text-xs font-extrabold text-[var(--muted)]">
+                            Cooperativos · @_profile.Stats.DnaDistribution.CooperativeGamesCount
+                        </span>
+                    </div>
+                    <div class="p-4 rounded-2xl border-2 border-[var(--rule)] bg-[var(--card)] flex flex-col gap-1">
+                        <b class="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-[-0.03em]">
+                            @_profile.Stats.DnaDistribution.SoloReadyPercentage.ToString("0")%
+                        </b>
+                        <span class="text-xs font-extrabold text-[var(--muted)]">
+                            Modo solitario · @_profile.Stats.DnaDistribution.SoloReadyGamesCount
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            @* 02 Mesa Ideal *@
+            <section id="mesa-ideal" class="space-y-5 min-w-0">
+                <div class="space-y-1">
+                    <div class="flex items-baseline gap-4">
+                        <span class="text-3xl sm:text-4xl font-black text-[var(--mustard)] tracking-[-0.06em] leading-none">02</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Mesa ideal</h2>
+                    </div>
+                    <p class="text-sm text-[var(--muted)] leading-relaxed">
+                        @_profile.Stats.Scalability.SweetSpotSummaryText
+                    </p>
+                </div>
+
+                @* Histograma de barras por número de comensales *@
+                <div class="h-44 flex items-end gap-2 pt-6 pb-2 border-b border-[var(--line)]">
+                    @{
+                        int maxGames = _profile.Stats.Scalability.Curve.Count > 0 ? _profile.Stats.Scalability.Curve.Max(c => c.OptimizedGamesCount) : 1;
+                        if (maxGames == 0) maxGames = 1;
+                    }
+                    @foreach (var count in _profile.Stats.Scalability.Curve)
+                    {
+                        var heightPct = Math.Max(8, (count.OptimizedGamesCount * 100) / maxGames);
+                        <div class="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
+                            <span class="text-[11px] font-bold text-[var(--muted)]">@count.OptimizedGamesCount</span>
+                            <span style="height: @(heightPct)%;"
+                                  class="w-full rounded-t-lg transition-all @(count.IsSweetSpot ? "bg-[var(--accent)]" : "bg-[var(--paper-2)] border border-[var(--line)]")"></span>
+                            <b class="text-xs font-extrabold text-[var(--ink)] mt-1">@count.DisplayCount</b>
+                        </div>
+                    }
+                </div>
+                <span class="text-xs text-[var(--muted)] block">
+                    Juegos de su estantería recomendados y testeados para cada número de jugadores.
+                </span>
+
+                @* 03 Horas en Estantería y Creadores favoritos *@
+                <div class="space-y-4 pt-6">
+                    <div class="flex items-baseline gap-4">
+                        <span class="text-3xl sm:text-4xl font-black text-sky-600 dark:text-sky-400 tracking-[-0.06em] leading-none">03</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Horas en estantería</h2>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl sm:text-5xl font-black text-[var(--ink)] tracking-[-0.05em] leading-none">
+                            @_profile.Stats.ShelfTime.TotalMinHours
+                        </span>
+                        <span class="text-sm font-extrabold text-[var(--muted)]">horas de juego acumuladas</span>
+                    </div>
+
+                    @* Autores y editoriales más presentes *@
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div class="space-y-2">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-[var(--muted)] border-b-2 border-[var(--rule)] pb-1 block">
+                                Autores favoritos
+                            </span>
+                            <div class="divide-y divide-[var(--line)]">
+                                @foreach (var d in _profile.Stats.TopDesigners.Take(3))
+                                {
+                                    <div class="py-1.5 flex items-center justify-between text-xs font-bold">
+                                        <span class="text-[var(--ink)] truncate">@d.Name</span>
+                                        <span class="text-[var(--muted)] shrink-0">@d.Count</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-[var(--muted)] border-b-2 border-[var(--rule)] pb-1 block">
+                                Editoriales favoritas
+                            </span>
+                            <div class="divide-y divide-[var(--line)]">
+                                @foreach (var p in _profile.Stats.TopPublishers.Take(3))
+                                {
+                                    <div class="py-1.5 flex items-center justify-between text-xs font-bold">
+                                        <span class="text-[var(--ink)] truncate">@p.Name</span>
+                                        <span class="text-[var(--muted)] shrink-0">@p.Count</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        @* 04 HITOS LÚDICOS *@
+        <section id="hitos" class="space-y-5 border-t border-[var(--line)] pt-10">
+            <div class="flex flex-wrap items-baseline justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-baseline gap-4">
+                        <span class="text-3xl sm:text-4xl font-black text-rose-500 tracking-[-0.06em] leading-none">04</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Hitos</h2>
+                    </div>
+                    <p class="text-sm text-[var(--muted)]">
+                        @(_milestonesProgress?.TotalUnlocked ?? 0) de @(_milestonesProgress?.TotalMilestones ?? 10) hitos lúdicos completados en Ludeka.
+                    </p>
+                </div>
+                <div class="w-48 h-2.5 rounded-full bg-[var(--line)] overflow-hidden">
+                    @{
+                        int msPct = _milestonesProgress != null && _milestonesProgress.TotalMilestones > 0
+                            ? (_milestonesProgress.TotalUnlocked * 100) / _milestonesProgress.TotalMilestones
+                            : 0;
+                    }
+                    <span style="width: @(msPct)%;" class="h-full bg-emerald-500 rounded-full block"></span>
+                </div>
+            </div>
+
+            @if (_milestonesProgress != null && _milestonesProgress.Milestones.Count > 0)
+            {
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    @foreach (var milestone in _milestonesProgress.Milestones)
+                    {
+                        var isUnlocked = milestone.IsUnlocked;
+                        <div class="p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between gap-2 @(isUnlocked ? "bg-[var(--card)] border-[var(--rule)]" : "bg-[var(--paper-2)]/60 border-dashed border-[var(--line)] opacity-60")">
+                            <div class="flex items-start gap-2.5">
+                                <span class="text-2xl shrink-0 select-none">@milestone.IconEmoji</span>
+                                <div class="min-w-0">
+                                    <b class="text-xs text-[var(--ink)] leading-snug block truncate">@milestone.Title</b>
+                                    <span class="text-[11px] text-[var(--muted)] leading-tight block line-clamp-2 mt-0.5">
+                                        @milestone.Description
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider @(isUnlocked ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--muted)]")">
+                                @(isUnlocked ? "Completado" : "Pendiente")
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        @* 05 ESTANTERÍA FÍSICA *@
+        <section id="estanteria" class="space-y-6 border-t border-[var(--line)] pt-10">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-baseline gap-4">
+                        <span class="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-[-0.06em] leading-none">05</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em] flex items-center gap-2">
+                            <Icon Name="library" Size="20" />
+                            <span>Estantería física · @_profile.ShelfGames.Count</span>
+                        </h2>
+                    </div>
+                    <p class="text-sm text-[var(--muted)]">
                         Juegos en propiedad física disponibles en la mesa de @_profile.UserName.
                     </p>
                 </div>
 
-                @* Buscador / Filtro rápido *@
+                @* Buscador de la estantería *@
                 <div class="w-full sm:w-72">
-                    <input type="text"
-                           @bind="_searchQuery"
-                           @bind:event="oninput"
-                           placeholder="Filtrar por título..."
-                           class="w-full px-3.5 py-2 rounded-xl text-xs bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]" />
+                    <div class="relative">
+                        <input type="text"
+                               @bind="_searchQuery"
+                               @bind:event="oninput"
+                               placeholder="Filtrar por título..."
+                               class="w-full h-11 pl-4 pr-10 rounded-full bg-[var(--card)] border-2 border-[var(--rule)] text-sm text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]" />
+                        <span class="absolute right-3.5 top-3 text-[var(--muted)] pointer-events-none">
+                            <Icon Name="search" Size="16" />
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -163,7 +433,7 @@
 
             @if (filteredGames.Count == 0)
             {
-                <div class="p-12 text-center rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
+                <div class="p-12 text-center rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] text-sm text-[var(--muted)]">
                     @if (string.IsNullOrWhiteSpace(_searchQuery))
                     {
                         <span>No hay títulos registrados en posesión física en esta estantería.</span>
@@ -176,77 +446,64 @@
             }
             else
             {
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    @foreach (var game in filteredGames)
+                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-5">
+                    @for (int i = 0; i < filteredGames.Count; i++)
                     {
-                        <div class="p-3.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between gap-3 transition-all hover:border-[var(--border-highlight)] hover:shadow-sm">
-                            <a href="/juegos/@game.GameSlug" class="block space-y-2 group">
-                                <div class="aspect-square rounded-xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] relative">
-                                    @{
-                                        string placeholder = game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(game.GameCoverUrl))
-                                    {
-                                        <img src="@game.GameCoverUrl"
-                                             alt="@game.GameTitle"
-                                             loading="lazy"
-                                             decoding="async"
-                                             width="180"
-                                             height="180"
-                                             onerror="this.onerror=null; this.src='@placeholder';"
-                                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                    }
-                                    else
-                                    {
-                                        <img src="@placeholder"
-                                             alt="@game.GameTitle"
-                                             loading="lazy"
-                                             decoding="async"
-                                             width="180"
-                                             height="180"
-                                             class="w-full h-full object-cover opacity-80" />
-                                    }
+                        var game = filteredGames[i];
+                        var rot = ((i % 5) - 2) * 1.5;
+                        <a href="/juegos/@game.GameSlug"
+                           class="flex flex-col gap-2 group transition-transform hover:-translate-y-1">
+                            <div class="relative aspect-square rounded-lg overflow-hidden bg-[var(--paper-2)] shadow-sm group-hover:shadow-md transition-all"
+                                 style="transform: rotate(@(rot)deg);">
+                                @{
+                                    string placeholder = game.IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
+                                }
+                                @if (!string.IsNullOrWhiteSpace(game.GameCoverUrl))
+                                {
+                                    <img src="@game.GameCoverUrl"
+                                         alt="@game.GameTitle"
+                                         loading="lazy"
+                                         width="180"
+                                         height="180"
+                                         onerror="this.onerror=null; this.src='@placeholder';"
+                                         class="w-full h-full object-cover" />
+                                }
+                                else
+                                {
+                                    <div class="w-full h-full flex items-center justify-center text-[var(--muted)]">
+                                        <Icon Name="dices" Size="32" />
+                                    </div>
+                                }
 
-                                    @if (game.IsExpansion)
-                                    {
-                                        <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[0.62rem] font-black bg-purple-950/85 text-purple-200 border border-purple-500/30 inline-flex items-center gap-1">
-                                            <Icon Name="puzzle" Size="10" /> Exp
-                                        </span>
-                                    }
-
-                                    @if (game.IsCurrentlyLoaned)
-                                    {
-                                        <span class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[0.62rem] font-black bg-amber-500/90 text-amber-950 inline-flex items-center gap-1">
-                                            <Icon Name="package" Size="10" /> Prestado
-                                        </span>
-                                    }
-                                </div>
-                                <div>
-                                    <h3 class="text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] line-clamp-2 leading-tight transition-colors">
-                                        @game.GameTitle
-                                    </h3>
-                                </div>
-                            </a>
-
-                            <div class="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                                <span class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-muted)]">
-                                    En estantería
-                                </span>
-                                <a href="/juegos/@game.GameSlug" class="text-[0.68rem] font-black text-[var(--brand-primary)] hover:underline">
-                                    Ficha →
-                                </a>
+                                @if (game.IsExpansion)
+                                {
+                                    <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#22180F] text-[#FFF8EE] text-[10px] font-extrabold shadow-sm flex items-center gap-1">
+                                        <Icon Name="puzzle" Size="10" />
+                                        <span>Expansión</span>
+                                    </span>
+                                }
+                                @if (game.IsCurrentlyLoaned)
+                                {
+                                    <span class="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-[#FFC145] text-[#22180F] text-[10px] font-extrabold shadow-sm flex items-center gap-1">
+                                        <Icon Name="package" Size="10" />
+                                        <span>Prestado</span>
+                                    </span>
+                                }
                             </div>
-                        </div>
+                            <b class="text-xs sm:text-sm font-bold text-[var(--ink)] leading-tight group-hover:text-[var(--accent)] line-clamp-2">
+                                @game.GameTitle
+                            </b>
+                        </a>
                     }
                 </div>
             }
-        </div>
-    }
-</div>
+        </section>
+
+    </div>
+}
 
 @code {
-    [Parameter]
-    public string UserId { get; set; } = string.Empty;
+    [Parameter] public string UserId { get; set; } = string.Empty;
 
     private PublicUserProfileDto? _profile;
     private UserMilestoneProgressDto? _milestonesProgress;
@@ -259,6 +516,10 @@
     private bool IsOwnProfile =>
         !string.IsNullOrWhiteSpace(UserId) &&
         UserId.Equals(CurrentUserService.UserId, StringComparison.OrdinalIgnoreCase);
+
+    private string UserInitial => !string.IsNullOrWhiteSpace(_profile?.UserName)
+        ? _profile.UserName.Trim()[..1].ToUpperInvariant()
+        : "U";
 
     private List<UserCollectionItemDto> FilteredShelfGames
     {

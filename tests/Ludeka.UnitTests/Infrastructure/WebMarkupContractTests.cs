@@ -192,20 +192,20 @@ public class WebMarkupContractTests
 
         // MainLayout: nav, utilidades, menú de gestión y pie con iconos Lucide (sin emojis).
         // El pie reducido (Transparencia + Discord) ya no usa pen-line (Creadores solo en nav).
-        // Tras INC-62, el acceso a biblioteca pasa al menú desplegable de cuenta.
+        // Tras INC-127, el acceso móvil delega en MobileBottomNav y se retira el hamburger superior.
         { "MainLayout (iconografia Lucide)", "src/Ludeka.Web/Components/Layout/MainLayout.razor",
-          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"", "<Icon Name=\"menu\"" },
+          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"" },
           new[] { "🎁", "📰", "🎪", "🌍", "📚", "🛡", "👤", "⚙", "🚩", "🌙", "🎬", "📸", "🔔", "👥", "📜", "🏢", "✍", "🛒", "💬", "🗙" } },
 
-        // AccountMenu: menú de cuenta con iconos Lucide (INC-61/INC-62)
+        // AccountMenu: menú de cuenta con los 4 destinos canónicos con iconos Lucide (INC-127)
         { "AccountMenu (iconografia Lucide)", "src/Ludeka.Web/Components/Shared/AccountMenu.razor",
-          new[] { "<Icon Name=\"user\"", "<Icon Name=\"library\"", "<Icon Name=\"palette\"", "<Icon Name=\"globe\"", "<Icon Name=\"shield\"", "<Icon Name=\"link\"", "<Icon Name=\"log-out\"" },
+          new[] { "<Icon Name=\"user\"", "<Icon Name=\"library\"", "<Icon Name=\"settings\"", "<Icon Name=\"shield\"", "<Icon Name=\"log-out\"" },
           new[] { "👤", "📚", "🎨", "🌍", "🛡", "🔗", "🚪" } },
 
-        // MainLayout: menú móvil desplegable (details/summary, SSR puro) con los mismos
-        // 7 destinos de la nav superior; la nav principal se oculta bajo lg (1024px).
-        { "MainLayout (menú móvil)", "src/Ludeka.Web/Components/Layout/MainLayout.razor",
-          new[] { "<details", "aria-label=\"Menú de navegación\"", "href=\"/catalogo\"", "href=\"/editoriales\"", "href=\"/creadores\"", "href=\"/tiendas\"", "href=\"/sorteos\"", "href=\"/novedades\"", "href=\"/eventos\"" },
+        // MainLayout: navegación delegada en MobileBottomNav para móvil (INC-127) y nav superior de escritorio
+        // con los 7 destinos principales de la plataforma.
+        { "MainLayout (navegación principal y móvil)", "src/Ludeka.Web/Components/Layout/MainLayout.razor",
+          new[] { "<MobileBottomNav", "aria-label=\"Navegación principal\"", "href=\"/catalogo\"", "href=\"/editoriales\"", "href=\"/creadores\"", "href=\"/tiendas\"", "href=\"/sorteos\"", "href=\"/novedades\"", "href=\"/eventos\"" },
           new string[] { } },
 
         // GameCard: badges de estilo y público con iconos Lucide (sin emoji, modo solitario en filtro avanzado en INC-90)
