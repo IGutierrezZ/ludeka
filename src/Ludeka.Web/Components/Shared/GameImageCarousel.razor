@@ -2,7 +2,7 @@
 
 <div class="space-y-3">
     @* Visor Principal del Carrusel *@
-    <div class="relative w-full aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-[var(--bg-surface-elevated)] group select-none">
+    <div class="relative w-full aspect-square sm:aspect-[4/3] max-h-[460px] rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-neutral-900/90 group select-none">
         @{
             var currentSlide = CurrentSlide;
             var placeholderUrl = IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
@@ -25,7 +25,7 @@
         </div>
 
         @* Imagen Activa con soporte Lightbox *@
-        <div class="w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-black/5 via-transparent to-black/40"
+        <div class="w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-black/10 via-transparent to-black/50"
              @onclick="OpenLightbox"
              title="Haz clic para ver en grande">
             @if (!string.IsNullOrWhiteSpace(currentSlide.ImageUrl))
@@ -37,7 +37,7 @@
                      width="320"
                      height="320"
                      onerror="this.onerror=null; this.src='@placeholderUrl';"
-                     class="max-w-full max-h-full object-contain rounded-lg drop-shadow-xl transition-all duration-300" />
+                     class="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl transition-all duration-300 group-hover:scale-[1.02]" />
             }
             else
             {
