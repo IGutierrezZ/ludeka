@@ -43,6 +43,17 @@ public class MobileNavigationContractTests
     }
 
     [Fact]
+    public void MainLayout_Header_ShouldIncludeMobileSafeTopForIosSafeArea()
+    {
+        var source = ReadSource(MainLayoutPath);
+
+        // La cabecera superior compacta reactiva debe incluir la utilidad mobile-safe-top
+        // para respetar el notch / Dynamic Island en iOS Safari con viewport-fit=cover
+        Assert.Contains("mobile-safe-top", source, StringComparison.Ordinal);
+        Assert.Contains("<header class=\"relative z-30 mobile-safe-top", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MainLayoutCss_ShouldPositionBlazorErrorUiAboveMobileNav()
     {
         var source = ReadSource(MainLayoutCssPath);
