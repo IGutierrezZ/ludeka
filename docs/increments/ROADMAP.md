@@ -165,7 +165,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
-*(Ninguno en este momento)*
+- **INC-126** (`inc/ficha-editorial-limpia`): Ficha Editorial Limpia (Alineación Claude Design). En curso.
 
 *(INC-124 entregó su PR #224, verificada con 2.619 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-07. Incorpora el filtrado estricto por stock en tiendas en GetBestPriceLabel ["Agotado en tiendas" si no hay existencias], retira la pegatina de precio flotante de la carátula polaroid, unifica la escala de jugadores ideales sin redundancias, traslada el veredicto fundacional exclusivamente al slide-over drawer modal con z-[100] suprimiendo el bloque duplicado en la pestaña Resumen, suprime envoltorios pesados beige en escalabilidad/ADN/vídeos logrando maquetación plana de revista, y oculta la pestaña de fundas y contador de cinta cuando no hay especificaciones cargadas).*
 

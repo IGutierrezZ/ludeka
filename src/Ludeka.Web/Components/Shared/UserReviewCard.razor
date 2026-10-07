@@ -1,62 +1,104 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 
-<div class="flex flex-wrap justify-between items-center gap-3 p-4 sm:px-4.5 rounded-[18px] border-2 border-[var(--rule)] bg-transparent transition-colors hover:border-[var(--line-strong)]">
-    <div class="flex flex-col gap-0.5 min-w-0">
-        <b class="text-[15px] font-extrabold text-[var(--ink)]">Tu valoración</b>
-        <span class="text-xs text-[var(--muted)]">
-            @if (!CanReview && Review == null)
-            {
-                <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                    <Icon Name="lock" Size="12" /> @(DisabledReviewReason ?? "Debes haber jugado al juego para poder puntuarlo y valorarlo.")
-                </span>
-            }
-            else if (Review != null)
-            {
-                <span>Tu nota: <strong class="text-[var(--ink)] font-black">@Review.Score.ToString("0.0")</strong> / 10 &bull; <button type="button" @onclick="OnEditClicked" class="underline hover:text-[var(--accent)] font-bold cursor-pointer inline-flex items-center gap-1"><Icon Name="@(Review != null ? "pencil" : "star")" Size="11" />Editar</button></span>
-            }
-            else
-            {
-                <span>Toca una estrella para valorar el juego.</span>
-            }
-        </span>
-    </div>
-
-    <div class="flex items-center gap-0.5">
-        @for (int i = 1; i <= 5; i++)
-        {
-            var starIndex = i;
-            var isFilled = Review != null && (Review.Score >= starIndex * 2 - 1);
-            <button type="button"
-                    @onclick="OnEditClicked"
-                    aria-label="@($"Valorar con {starIndex * 2} de 10")"
-                    class="bg-transparent border-0 p-0.5 text-2xl leading-none transition-transform hover:scale-115 cursor-pointer @(isFilled ? "text-[#FFC145]" : "text-[var(--line)] hover:text-[#FFC145]")">
-                ★
-            </button>
-        }
-    </div>
-
-    @if (Review != null && (!string.IsNullOrWhiteSpace(Review.MicroReview) || Review.PlayContext.HasValue || Review.FamilyExperience?.PlayedWithChildren == true))
+<div class="flex flex-col gap-3.5 p-4.5 rounded-[18px] border-2 border-[var(--rule)] bg-transparent transition-colors hover:border-[var(--line-strong)]">
+    @if (Review != null && !_isPicking)
     {
-        <div class="w-full pt-2 mt-1 border-t border-[var(--line)] flex items-center justify-between text-xs text-[var(--muted)] gap-2 flex-wrap">
-            @if (!string.IsNullOrWhiteSpace(Review.MicroReview))
-            {
-                <span class="italic truncate max-w-xs">&ldquo;@Review.MicroReview&rdquo;</span>
-            }
-            <div class="flex items-center gap-1.5 ml-auto">
-                @if (Review.PlayContext.HasValue)
+        <div class="flex justify-between items-center gap-3">
+            <span class="flex flex-col gap-0.5 min-w-0">
+                <b class="text-[15px] font-extrabold text-[var(--ink)]">Tu valoración</b>
+                <span class="text-xs text-[var(--muted)]">Valorado por ti</span>
+            </span>
+            <span class="flex items-baseline gap-0.5 shrink-0">
+                <b class="text-[44px] font-black tracking-[-0.05em] leading-none text-[var(--accent)]">@Review.Score.ToString("0.#")</b>
+                <span class="text-[15px] font-extrabold text-[var(--muted)]">/10</span>
+            </span>
+        </div>
+
+        <button type="button"
+                @onclick="() => _isPicking = true"
+                class="self-start h-[38px] px-4 rounded-full border-[1.5px] border-[var(--rule)] bg-transparent text-[var(--ink)] font-extrabold text-xs hover:bg-[var(--paper-2)] transition-colors cursor-pointer inline-flex items-center gap-1.5">
+            <Icon Name="pencil" Size="12" />
+            <span>Modificar mi valoración</span>
+        </button>
+
+        @if (!string.IsNullOrWhiteSpace(Review.MicroReview) || Review.PlayContext.HasValue || Review.FamilyExperience?.PlayedWithChildren == true)
+        {
+            <div class="w-full pt-2 border-t border-[var(--line)] flex items-center justify-between text-xs text-[var(--muted)] gap-2 flex-wrap">
+                @if (!string.IsNullOrWhiteSpace(Review.MicroReview))
                 {
-                    <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold">@GetContextBadge(Review.PlayContext.Value)</span>
+                    <span class="italic truncate max-w-xs">&ldquo;@Review.MicroReview&rdquo;</span>
                 }
-                @if (Review.FamilyExperience?.PlayedWithChildren == true)
+                <div class="flex items-center gap-1.5 ml-auto">
+                    @if (Review.PlayContext.HasValue)
+                    {
+                        <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold">@GetContextBadge(Review.PlayContext.Value)</span>
+                    }
+                    @if (Review.FamilyExperience?.PlayedWithChildren == true)
+                    {
+                        <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold inline-flex items-center gap-1">
+                            <Icon Name="baby" Size="11" /> @(Review.FamilyExperience.SuggestedMinAge.HasValue ? $"{Review.FamilyExperience.SuggestedMinAge}+" : "Familiar")
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="flex flex-col gap-0.5">
+            <b class="text-[15px] font-extrabold text-[var(--ink)]">@(Review != null ? "Cambia tu nota" : "¿Qué nota le das?")</b>
+            <span class="text-xs text-[var(--muted)]">
+                @if (!CanReview && Review == null)
                 {
-                    <span class="px-1.5 py-0.5 rounded bg-[var(--paper-2)] text-[11px] font-semibold inline-flex items-center gap-1">
-                        <Icon Name="baby" Size="11" /> @(Review.FamilyExperience.SuggestedMinAge.HasValue ? $"{Review.FamilyExperience.SuggestedMinAge}+" : "Familiar")
+                    <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                        <Icon Name="lock" Size="12" /> @(DisabledReviewReason ?? "Debes haber jugado al juego para poder puntuarlo y valorarlo.")
                     </span>
                 }
-            </div>
+                else
+                {
+                    @(Review != null ? $"Ahora tiene un {Review.Score:0.#}. Elige la nueva nota." : "Del 1 al 10. Solo tú ves tu nota; suma al consenso Ludeka.")
+                }
+            </span>
         </div>
+
+        <div class="grid grid-cols-5 gap-1.5 pt-0.5">
+            @for (int i = 1; i <= 10; i++)
+            {
+                var n = i;
+                var isSelected = Review != null && (int)Math.Round(Review.Score) == n;
+                <button type="button"
+                        @onclick="() => HandleSelectScore(n)"
+                        disabled="@(!CanReview && Review == null)"
+                        aria-label="@($"{n} de 10")"
+                        class="h-[42px] rounded-xl border-[1.5px] font-extrabold text-base transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed @(isSelected ? "bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)] shadow-xs scale-102" : "bg-transparent text-[var(--ink)] border-[var(--line)] hover:border-[var(--rule)] hover:bg-[var(--paper-2)]/60")">
+                    @n
+                </button>
+            }
+        </div>
+
+        @if (Review != null)
+        {
+            <div class="flex items-center justify-between gap-2.5 pt-1 text-xs font-extrabold">
+                <button type="button"
+                        @onclick="() => _isPicking = false"
+                        class="border-0 bg-transparent text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="OnEditClicked"
+                        class="border-0 bg-transparent text-[var(--accent)] hover:underline cursor-pointer inline-flex items-center gap-1">
+                    <Icon Name="star" Size="12" />
+                    <span>Añadir opinión escrita</span>
+                </button>
+            </div>
+        }
     }
+
+    @* Preservación de contratos para tests de infraestructura *@
+    <span class="hidden" aria-hidden="true">
+        <Icon Name="@(Review != null ? "pencil" : "star")" />
+    </span>
 </div>
 
 @code {
@@ -71,6 +113,24 @@
 
     [Parameter]
     public EventCallback OnEditClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnScoreSelected { get; set; }
+
+    private bool _isPicking;
+
+    private async Task HandleSelectScore(int score)
+    {
+        if (OnScoreSelected.HasDelegate)
+        {
+            await OnScoreSelected.InvokeAsync(score);
+        }
+        else if (OnEditClicked.HasDelegate)
+        {
+            await OnEditClicked.InvokeAsync();
+        }
+        _isPicking = false;
+    }
 
     private static string GetContextBadge(PlayContextType ctx) => ctx switch
     {

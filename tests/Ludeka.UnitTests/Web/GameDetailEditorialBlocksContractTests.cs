@@ -81,15 +81,11 @@ public class GameDetailEditorialBlocksContractTests
         Assert.DoesNotContain("Prestar", source, StringComparison.Ordinal);
         Assert.Contains("Registrar partida", source, StringComparison.Ordinal);
 
-        // Franja de 3 cifras clave: BGG, Consenso Ludeka y Jugadores ideales
+        // Franja de cifras clave editoriales: BGG, Consenso Ludeka, Jugadores ideales y Minutos
         Assert.Contains("Rating BGG", source, StringComparison.Ordinal);
         Assert.Contains("Consenso Ludeka", source, StringComparison.Ordinal);
         Assert.Contains("Jugadores ideales", source, StringComparison.Ordinal);
-
-        // Cinta inversa de mercado
-        Assert.Contains("var(--ticker)", source, StringComparison.Ordinal);
-        Assert.Contains("var(--inverse)", source, StringComparison.Ordinal);
-        Assert.Contains("Mejor precio hoy", source, StringComparison.Ordinal);
+        Assert.Contains("Minutos", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -110,13 +106,13 @@ public class GameDetailEditorialBlocksContractTests
     }
 
     [Fact]
-    public void GameDetail_ShouldRenderMobileFixedBottomBar()
+    public void GameDetail_ShouldRenderThumbFriendlyMobileActions()
     {
         var source = ReadSource(GameDetailPath);
 
-        // Barra inferior fija en móvil (lg:hidden fixed bottom-0 left-0 right-0)
-        Assert.Contains("lg:hidden fixed bottom-0 left-0 right-0", source, StringComparison.Ordinal);
-        Assert.Contains("GetBestPriceLabel()", source, StringComparison.Ordinal);
+        // Acciones móviles limpias integradas en cabecera sin solapamiento con MobileBottomNav
+        Assert.Contains("Registrar partida", source, StringComparison.Ordinal);
+        Assert.Contains("Compartir", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -178,12 +174,7 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("p.InStock", source, StringComparison.Ordinal);
         Assert.Contains("Agotado en tiendas", source, StringComparison.Ordinal);
 
-        // Píldora de jugadores limpia sin duplicidad de prefijo 'Ideal a Ideal:'
-        Assert.Contains("GetCleanIdealPlayerText()", source, StringComparison.Ordinal);
-
-        // Veredicto estructurado como slide-over drawer modal
+        // Veredicto estructurado como sección limpia en línea bajo pestaña dedicada
         Assert.Contains("id=\"bloque-02-veredicto\"", source, StringComparison.Ordinal);
-        Assert.Contains("z-[100]", source, StringComparison.Ordinal);
-        Assert.Contains("z-[90]", source, StringComparison.Ordinal);
     }
 }
