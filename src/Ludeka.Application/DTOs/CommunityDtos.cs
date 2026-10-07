@@ -69,7 +69,8 @@ public record WeeklyReleaseDto(
     string? InstagramPermalink = null,
     bool IsPublishedOnInstagram = false,
     string? SourceUrl = null,
-    DateTimeOffset CreatedAt = default);
+    DateTimeOffset CreatedAt = default,
+    bool IsMonthOnly = false);
 
 public record CreateWeeklyReleaseRequest(
     string Title,
@@ -80,7 +81,8 @@ public record CreateWeeklyReleaseRequest(
     decimal? EstimatedPvp = null,
     bool IsReprint = false,
     string? Notes = null,
-    string? SourceUrl = null);
+    string? SourceUrl = null,
+    bool IsMonthOnly = false);
 
 public record UpdateWeeklyReleaseRequest(
     Guid Id,
@@ -92,7 +94,8 @@ public record UpdateWeeklyReleaseRequest(
     decimal? EstimatedPvp = null,
     bool IsReprint = false,
     string? Notes = null,
-    string? SourceUrl = null);
+    string? SourceUrl = null,
+    bool IsMonthOnly = false);
 
 public record RuleAnswerDto(
     Guid Id,

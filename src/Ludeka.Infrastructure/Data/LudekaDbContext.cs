@@ -231,6 +231,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         release.Property(r => r.ReleaseDate)
             .IsRequired(false);
 
+        release.Property(r => r.IsMonthOnly)
+            .HasDefaultValue(false);
+
         release.Property(r => r.SourceUrl)
             .HasMaxLength(1000);
 

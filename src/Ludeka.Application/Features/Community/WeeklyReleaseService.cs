@@ -61,7 +61,8 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             estimatedPvp: request.EstimatedPvp,
             isReprint: request.IsReprint,
             notes: request.Notes,
-            sourceUrl: request.SourceUrl);
+            sourceUrl: request.SourceUrl,
+            isMonthOnly: request.IsMonthOnly);
 
         await _repository.AddAsync(release, ct);
         return MapToDto(release);
@@ -84,7 +85,8 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             estimatedPvp: request.EstimatedPvp,
             isReprint: request.IsReprint,
             notes: request.Notes,
-            sourceUrl: request.SourceUrl);
+            sourceUrl: request.SourceUrl,
+            isMonthOnly: request.IsMonthOnly);
 
         await _repository.UpdateAsync(existing, ct);
         return MapToDto(existing);
@@ -111,6 +113,7 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             r.InstagramPermalink,
             r.IsPublishedOnInstagram,
             r.SourceUrl,
-            r.CreatedAt);
+            r.CreatedAt,
+            r.IsMonthOnly);
     }
 }

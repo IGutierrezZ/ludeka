@@ -69,9 +69,11 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
                     continue;
 
                 DateOnly? releaseDate = null;
+                bool isMonthOnly = false;
                 if (int.TryParse(dateText, out int y) && y >= 2024 && y <= 2035)
                 {
                     releaseDate = new DateOnly(y, 1, 1);
+                    isMonthOnly = true;
                 }
 
                 itemsMap[title] = new EditorialReleaseItem(
@@ -84,7 +86,8 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
                     CoverImageUrl: imgSrc,
                     Notes: "Próximamente en Maldito Games (Se viene)",
                     SourceUrl: DefaultMalditoHomeUrl,
-                    IsReprint: false);
+                    IsReprint: false,
+                    IsMonthOnly: isMonthOnly);
             }
         }
 
@@ -126,7 +129,8 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
                         CoverImageUrl: null,
                         Notes: "Novedad en catálogo de Maldito Games",
                         SourceUrl: productUrl,
-                        IsReprint: false);
+                        IsReprint: false,
+                        IsMonthOnly: false);
                 }
             }
         }

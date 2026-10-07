@@ -8,6 +8,7 @@ public class WeeklyRelease
     public string Title { get; private set; } = string.Empty;
     public string Publisher { get; private set; } = string.Empty;
     public DateOnly? ReleaseDate { get; private set; }
+    public bool IsMonthOnly { get; private set; }
     public Guid? GameId { get; private set; }
     public string? CoverImageUrl { get; private set; }
     public decimal? EstimatedPvp { get; private set; }
@@ -34,7 +35,8 @@ public class WeeklyRelease
         decimal? estimatedPvp = null,
         bool isReprint = false,
         string? notes = null,
-        string? sourceUrl = null)
+        string? sourceUrl = null,
+        bool isMonthOnly = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("El título del lanzamiento no puede estar vacío.", nameof(title));
@@ -45,6 +47,7 @@ public class WeeklyRelease
         Title = title.Trim();
         Publisher = publisher.Trim();
         ReleaseDate = releaseDate;
+        IsMonthOnly = isMonthOnly;
         GameId = gameId;
         CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? null : coverImageUrl.Trim();
         EstimatedPvp = estimatedPvp;
@@ -63,7 +66,8 @@ public class WeeklyRelease
         decimal? estimatedPvp = null,
         bool isReprint = false,
         string? notes = null,
-        string? sourceUrl = null)
+        string? sourceUrl = null,
+        bool isMonthOnly = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("El título del lanzamiento no puede estar vacío.", nameof(title));
@@ -74,6 +78,7 @@ public class WeeklyRelease
         Title = title.Trim();
         Publisher = publisher.Trim();
         ReleaseDate = releaseDate;
+        IsMonthOnly = isMonthOnly;
         GameId = gameId;
         CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? null : coverImageUrl.Trim();
         EstimatedPvp = estimatedPvp;
