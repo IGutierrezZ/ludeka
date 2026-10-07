@@ -36,44 +36,48 @@
                        target="_blank"
                        rel="noopener noreferrer sponsored"
                        aria-label="Comprar @(string.IsNullOrWhiteSpace(GameTitle) ? "juego" : GameTitle) en @offer.StoreName"
-                       class="flex justify-between items-center gap-3 py-3 border-b border-[var(--line)] group transition-colors hover:bg-[var(--paper-2)]/60 -mx-1 px-1 rounded-lg">
-                        <span class="flex flex-col gap-0.5 min-w-0">
+                       class="flex justify-between items-center gap-3 py-3 border-b border-[var(--line)] group transition-colors hover:bg-[var(--paper-2)]/60 -mx-1 px-1 rounded-lg @(isOutOfStock ? "opacity-70" : "")">
+                        <span class="flex flex-col gap-1 min-w-0">
                             <b class="text-[15px] font-extrabold text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors truncate">
                                 @offer.StoreName
                             </b>
-                            <span class="text-xs text-[var(--muted)] flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-extrabold flex items-center gap-1.5 flex-wrap">
                                 @if (isOutOfStock)
                                 {
-                                    <span class="text-rose-500 font-bold">Agotado en tienda</span>
+                                    <span class="w-2 h-2 rounded-full bg-[var(--muted)] inline-block"></span>
+                                    <span class="text-[var(--muted)]">Sin stock</span>
                                 }
                                 else if (stock?.IsInStock == true)
                                 {
-                                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold">En stock@(stock.AvailableQuantity.HasValue ? $" ({stock.AvailableQuantity} uds)" : "")</span>
+                                    <span class="w-2 h-2 rounded-full bg-[var(--accent-green)] inline-block"></span>
+                                    <span class="text-[var(--accent-green)]">En stock@(stock.AvailableQuantity.HasValue ? $" ({stock.AvailableQuantity} uds)" : "")</span>
                                 }
                                 else if (!offer.Price.HasValue)
                                 {
-                                    <span>Buscar en catálogo</span>
+                                    <span class="w-2 h-2 rounded-full bg-[var(--muted)] inline-block"></span>
+                                    <span class="text-[var(--muted)]">Buscar en tienda</span>
                                 }
                                 else
                                 {
-                                    <span>Verificar stock</span>
+                                    <span class="w-2 h-2 rounded-full bg-[var(--mustard)] inline-block"></span>
+                                    <span class="text-[var(--mustard)]">Pocas unidades</span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(offer.Badge))
                                 {
-                                    <span>&bull; @offer.Badge</span>
+                                    <span class="text-[var(--muted)]">&bull; @offer.Badge</span>
                                 }
                             </span>
                         </span>
                         <div class="text-right shrink-0">
                             @if (stock?.CurrentPrice.HasValue == true)
                             {
-                                <b class="text-xl font-black tracking-[-0.02em] text-[var(--accent)]">
+                                <b class="text-[20px] font-black tracking-[-0.02em] leading-none @(isOutOfStock ? "text-[var(--muted)]" : "text-[var(--accent)]")">
                                     @($"{stock.CurrentPrice.Value:0.00} {offer.Currency}")
                                 </b>
                             }
                             else if (offer.Price.HasValue)
                             {
-                                <b class="text-xl font-black tracking-[-0.02em] text-[var(--accent)]">
+                                <b class="text-[20px] font-black tracking-[-0.02em] leading-none @(isOutOfStock ? "text-[var(--muted)]" : "text-[var(--accent)]")">
                                     @offer.FormattedPrice
                                 </b>
                             }
