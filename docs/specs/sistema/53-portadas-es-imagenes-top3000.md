@@ -1,19 +1,22 @@
 # 53. Portadas en Español desde Snapshots y Sincronización Top 3.000 BGG
 
 > **Módulo:** 53  
-> **Incremento origen:** INC-120  
+> **Incremento origen:** INC-120 / INC-122  
 > **Estado:** Implementado y Verificado  
-> **Pruebas unitarias:** 2.595 verificadas al 100%  
+> **Pruebas unitarias:** 2.604 verificadas al 100%  
 
 ---
 
 ## 1. Propósito y Alcance
 
-Este módulo resuelve de forma definitiva la visibilidad y localización de las imágenes del catálogo caliente de Ludeka:
+Este módulo resuelve de forma definitiva la visibilidad, resolución y localización de las imágenes del catálogo caliente de Ludeka:
 1. **Extracción y Priorización de Portadas en Español:** Si un juego cuenta con ediciones comerciales en español dentro del subárbol de versiones de BoardGameGeek (`<versions><item type="boardgameversion">`), se extraen sus URLs de imagen (`image`) y miniatura (`thumbnail`) y se promueven como la carátula principal (`CoverImageUrl`, `ThumbnailUrl`) de la ficha del juego, sustituyendo a la versión internacional en inglés.
-2. **Saneamiento Defensivo Anti-404:** Corrige y erradica los enlaces rotos originados por entornos sin almacenamiento físico (URLs efímeras simuladas `*.r2.dev/games/*` o placeholders genéricos SVG), reconstituyéndolos desde las imágenes canónicas del snapshot o las galerías comunitarias de GeekDo.
-3. **Sincronización de Medios Comunitarios (Top 3.000 BGG):** Enriquecimiento de los 3.000 juegos más relevantes del catálogo con fotos comunitarias de alta resolución de contraportada (`BackCoverImageUrl`) y partida en mesa (`TableImageUrl`), consultadas mediante `IGeekDoImagesClient`.
-4. **Estrategia Dual Zero-Cloud / Direct CDN:** En entornos con credenciales de Cloudflare R2 (`HasValidCredentials == true`), optimiza las imágenes a WebP en bucket propio. En entornos locales o sin credenciales configuradas (`HasValidCredentials == false`), almacena directamente las URLs canónicas seguras del CDN de GeekDo/BGG (`https://cf.geekdo-images.com/...`), asegurando visibilidad inmediata sin riesgo de errores 404.
+2. **Jerarquía Blindada de Carátulas:** Si no existe portada específica en español, se preserva prioritariamente la portada oficial canónica de raíz de BGG (`rootCover`), impidiendo que fotos comunitarias o miniaturas pintadas por usuarios sobreescriban la carátula oficial.
+3. **Calidad de Alta Resolución GeekDo y Descarte de Micro-Miniaturas (INC-122):** `GeekDoImagesClient` extrae URLs de alta resolución (`imageurl_lg` de 1024×1024 px) y descarta proactivamente cualquier URL con `__micro` o `fit-in/64x64`. Se sanean las URLs corruptas existentes en base de datos.
+4. **Completitud del Trío de Imágenes con Consulta Dirigida de Contraportada (INC-122):** Se garantiza la obtención de la 3ª imagen (contraportada) mediante consulta específica a `tag=BoxBack&sort=hot&showcount=5` si no estuviera presente en la muestra general de fotos más votadas.
+5. **Saneamiento Defensivo Anti-404:** Corrige y erradica los enlaces rotos originados por entornos sin almacenamiento físico (URLs efímeras simuladas `*.r2.dev/games/*` o placeholders genéricos SVG), reconstituyéndolos desde las imágenes canónicas del snapshot o las galerías comunitarias de GeekDo.
+6. **Estrategia Dual Zero-Cloud / Direct CDN:** En entornos con credenciales de Cloudflare R2 (`HasValidCredentials == true`), optimiza las imágenes a WebP en bucket propio. En entornos locales o sin credenciales configuradas (`HasValidCredentials == false`), almacena directamente las URLs canónicas seguras del CDN de GeekDo/BGG (`https://cf.geekdo-images.com/...`), asegurando visibilidad inmediata sin riesgo de errores 404.
+7. **Presentación Visual y Editorial Adaptada (INC-122):** En `GameImageCarousel.razor`, el visor fotográfico adopta la proporción equilibrada `aspect-square sm:aspect-[4/3] max-h-[460px]`, maximizando la escala visual de cajas verticales/cuadradas sobre fondo oscuro editorial de alto contraste (`bg-neutral-900/90`).
 
 ---
 

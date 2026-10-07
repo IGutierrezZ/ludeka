@@ -1187,3 +1187,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-121-alineacion-editorial-claude-p1.md`](../increments/archive/inc-121-alineacion-editorial-claude-p1.md).
 - **Módulo del Sistema:** [`sistema/54-alineacion-editorial-claude-p1.md`](sistema/54-alineacion-editorial-claude-p1.md).
 
+---
+
+## Incremento 122: Reparación de Calidad y Completitud de Imágenes BGG (Portadas, Contraportadas y En Mesa)
+- **Identificador SDD:** `reparacion-imagenes-bgg`
+- **Objetivo Principal:**
+  1. **Contrato Fiel de GeekDo (`GeekDoImagesClient`):** Deserialización nativa de `imageurl_lg` (1024×1024) y `numrecommend`, erradicando el fallback a la miniatura micro de 64×64 (`imageurl`).
+  2. **Recuperación Determinista de Contraportadas:** Consulta dirigida con `tag=BoxBack&sort=hot` garantizando la obtención de la trasera de la caja oficial para la 3ª imagen de catálogo.
+  3. **Blindaje de Portada en `BggImagesSyncService`:** Prioridad absoluta a la portada oficial del snapshot raíz (`rootCover`) si la versión española carece de carátula específica, impidiendo que fotos comunitarias caseras sobreescriban la carátula principal. Saneamiento de URLs corruptas con `__micro`.
+  4. **Encuadre Editorial en `GameImageCarousel`:** Proporción adaptable para cajas verticales y cuadradas `aspect-square sm:aspect-[4/3] max-h-[460px]`, fondo oscuro editorial de alto contraste, preservación de atributos anti-CLS y presentación nítida de las 3 imágenes.
+- **Estado:** ✅ **Completado y Archivado** (INC-122).
+- **Documento:** [`../increments/archive/inc-122-reparacion-imagenes-bgg.md`](../increments/archive/inc-122-reparacion-imagenes-bgg.md).
+- **Módulo del Sistema:** [`sistema/53-portadas-es-imagenes-top3000.md`](sistema/53-portadas-es-imagenes-top3000.md).
+- **Pruebas unitarias:** 2.604 verificadas al 100%.
+
+
