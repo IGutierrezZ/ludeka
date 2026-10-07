@@ -10,36 +10,47 @@
 
 <PageTitle>Directorio de Editoriales de Juegos de Mesa — Ludeka</PageTitle>
 
-<div class="container-ludeka py-8 space-y-8">
-    @* Cabecera con Buscador y Acción de Moderación *@
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
-        <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold">
-                <Icon Name="building-2" Size="14" /> Ecosistema Lúdico &bull; Casas de Edición
-            </div>
-            <h1 class="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                Editoriales
-            </h1>
-            <p class="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                Explora las editoriales del hobby, sus catálogos publicados en España, enlaces a webs oficiales y canales didácticos de YouTube.
-            </p>
+<section data-screen-label="Directorio" class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-14 flex flex-col gap-6 font-sans">
+    <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--accent)] inline-flex items-center gap-1.5">
+        <Icon Name="building-2" Size="14" />
+        <span>Ecosistema lúdico · Casas de edición</span>
+    </span>
+    <h1 class="m-0 text-[54px] sm:text-[76px] lg:text-[104px] leading-[0.86] font-extrabold tracking-[-0.06em] text-[var(--ink)]">
+        Editoriales
+    </h1>
+    <p class="m-0 text-base sm:text-[17px] leading-relaxed text-[var(--muted)] max-w-2xl">
+        Explora las editoriales del hobby, sus catálogos publicados en España, enlaces a webs oficiales y canales didácticos de YouTube.
+    </p>
+
+    @* Barra de Búsqueda y Acciones de Staff *@
+    <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+        <div class="flex-1 min-w-[280px] max-w-md h-[52px] rounded-full bg-[var(--card)] border-2 border-[var(--rule)] flex items-center gap-3 px-5 shadow-sm">
+            <span class="text-[var(--muted)] flex-shrink-0">
+                <Icon Name="search" Size="18" />
+            </span>
+            <input type="text"
+                   @bind="_searchTerm"
+                   @bind:event="oninput"
+                   @bind:after="FilterPublishers"
+                   placeholder="Buscar editorial por nombre, país o ciudad..."
+                   class="flex-1 min-w-0 border-0 outline-none bg-transparent text-sm sm:text-base text-[var(--ink)] placeholder-[var(--muted)]" />
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 flex-wrap">
             @if (CurrentUserService.IsFoundingTeam)
             {
                 <button type="button"
                         @onclick="SyncDirectoryAsync"
                         disabled="@_isSyncing"
-                        class="px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50">
+                        class="h-11 px-4 rounded-full bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer">
                     @if (_isSyncing)
                     {
-                        <span class="animate-spin inline-block"><Icon Name="loader" Size="12" /></span>
+                        <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
                         <span>Sincronizando...</span>
                     }
                     else
                     {
-                        <Icon Name="refresh-cw" Size="12" />
+                        <Icon Name="refresh-cw" Size="14" />
                         <span>Sincronizar Padrón</span>
                     }
                 </button>
@@ -48,120 +59,118 @@
             {
                 <button type="button"
                         @onclick="OpenCreateModal"
-                        class="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
-                    <Icon Name="plus" Size="12" /> Nueva Editorial
+                        class="h-11 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs transition-opacity hover:opacity-90 flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <Icon Name="plus" Size="14" />
+                    <span>Nueva Editorial</span>
                 </button>
             }
         </div>
     </div>
+</section>
 
-    @* Buscador reactivo *@
-    <div class="max-w-md">
-        <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Icon Name="search" Size="16" /></span>
-            <input type="text"
-                   @bind="_searchTerm"
-                   @bind:event="oninput"
-                   @bind:after="FilterPublishers"
-                   placeholder="Buscar editorial por nombre, país o ciudad..."
-                   class="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-colors shadow-sm" />
-        </div>
-    </div>
+<section class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 pb-20 flex flex-col gap-5 font-sans">
+    <span class="text-sm font-extrabold text-[var(--muted)]">
+        @_publishers.Count @(_publishers.Count == 1 ? "editorial registrada" : "editoriales registradas")
+    </span>
 
-    @* Listado de Editoriales en Grid *@
     @if (_loading)
     {
-        <div class="py-16 text-center text-sm text-[var(--text-secondary)] flex items-center justify-center gap-2">
-            <span class="animate-spin inline-block"><Icon Name="dices" Size="20" /></span>
-            <span>Cargando directorio de editoriales...</span>
+        <div class="py-16 text-center text-sm text-[var(--muted)] flex items-center justify-center gap-2">
+            <span class="animate-spin inline-block"><Icon Name="dices" Size="22" /></span>
+            <span>Cargando catálogo de editoriales...</span>
         </div>
     }
     else if (_publishers.Count == 0)
     {
-        <div class="p-12 text-center rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
-            <span class="inline-block"><Icon Name="package" Size="36" /></span>
-            <h2 class="text-base font-bold text-[var(--text-primary)]">No se encontraron editoriales</h2>
-            <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+        <div class="p-12 text-center rounded-[24px] bg-[var(--paper-2)] border-2 border-[var(--rule)] space-y-3">
+            <span class="inline-block text-[var(--muted)]"><Icon Name="package" Size="36" /></span>
+            <h2 class="text-lg font-extrabold text-[var(--ink)]">No se encontraron editoriales</h2>
+            <p class="text-xs sm:text-sm text-[var(--muted)] max-w-sm mx-auto">
                 No hay resultados para la búsqueda actual. Puedes reiniciar el filtro o dar de alta una nueva editorial si eres moderador.
             </p>
         </div>
     }
     else
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            @foreach (var pub in _publishers)
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            @for (int i = 0; i < _publishers.Count; i++)
             {
-                <div class="p-5 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-highlight)] transition-all flex flex-col justify-between gap-4 group">
-                    <div class="space-y-3">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                @if (!string.IsNullOrWhiteSpace(pub.LogoUrl))
-                                {
+                var pub = _publishers[i];
+                string pastelBg = GetPastelBg(i);
+                string rotation = GetRotationClass(i);
+
+                <div class="flex flex-col gap-3.5 pt-4 border-t-[3px] border-[var(--rule)] justify-between group">
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-4">
+                            @if (!string.IsNullOrWhiteSpace(pub.LogoUrl))
+                            {
+                                <div class="w-16 h-16 rounded-[16px] object-contain @pastelBg p-1.5 border border-[var(--line)] shadow-sm shrink-0 flex items-center justify-center @rotation">
                                     <img src="@pub.LogoUrl"
                                          alt="Logo de @pub.Name"
                                          loading="lazy"
-                                         class="w-12 h-12 rounded-2xl object-contain bg-[var(--bg-surface-elevated)] p-1.5 border border-[var(--border-subtle)]"
+                                         class="max-w-full max-h-full object-contain"
                                          onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
-                                }
-                                else
-                                {
-                                    <div class="w-12 h-12 rounded-2xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 flex items-center justify-center text-xl text-[var(--brand-primary)] font-black">
-                                        @pub.Name[..Math.Min(2, pub.Name.Length)].ToUpper()
-                                    </div>
-                                }
-                                <div>
-                                    <a href="/editoriales/@pub.Slug"
-                                       class="font-black text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">
-                                        @pub.Name
-                                    </a>
-                                    <span class="text-xs text-[var(--text-muted)] block inline-flex items-center gap-1">
-                                        <Icon Name="map-pin" Size="10" /> @pub.Country @(!string.IsNullOrWhiteSpace(pub.City) ? $"({pub.City})" : "")
-                                    </span>
                                 </div>
-                            </div>
+                            }
+                            else
+                            {
+                                <div class="w-16 h-16 rounded-[16px] @pastelBg text-[var(--ink)] border border-[var(--line)] flex items-center justify-center text-2xl font-extrabold tracking-[-0.03em] shadow-sm shrink-0 @rotation">
+                                    @pub.Name[..Math.Min(2, pub.Name.Length)].ToUpper()
+                                </div>
+                            }
 
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <span class="px-2.5 py-1 rounded-full bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--brand-primary)] text-xs font-black">
-                                    @pub.GamesCount @(pub.GamesCount == 1 ? "título" : "títulos")
+                            <div class="flex flex-col min-w-0">
+                                <a href="/editoriales/@pub.Slug"
+                                   class="text-xl sm:text-[21px] font-extrabold tracking-[-0.025em] leading-[1.15] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors line-clamp-1">
+                                    @pub.Name
+                                </a>
+                                <span class="text-xs sm:text-[13px] text-[var(--muted)] mt-0.5 inline-flex items-center gap-1">
+                                    <Icon Name="map-pin" Size="13" />
+                                    <span>@pub.Country @(!string.IsNullOrWhiteSpace(pub.City) ? $"({pub.City})" : "") · @pub.GamesCount @(pub.GamesCount == 1 ? "título" : "títulos")</span>
                                 </span>
-                                <LikeButton TargetType="LikeTargetType.Publisher" TargetId="@pub.Id" InitialLikesCount="@pub.LikesCount" Compact="true" />
                             </div>
                         </div>
 
                         @if (!string.IsNullOrWhiteSpace(pub.Description))
                         {
-                            <p class="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                            <p class="m-0 text-sm leading-[1.5] text-[var(--muted)] line-clamp-2">
                                 @pub.Description
                             </p>
                         }
 
-                        @* Redes sociales *@
                         @if (pub.SocialLinks != null && pub.SocialLinks.Count > 0)
                         {
-                            <SocialLinksList Links="@pub.SocialLinks" />
+                            <div class="pt-1">
+                                <SocialLinksList Links="@pub.SocialLinks" />
+                            </div>
                         }
                     </div>
 
-                    <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
-                        <a href="/editoriales/@pub.Slug" class="font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1">
+                    <div class="pt-2.5 mt-auto border-t border-[var(--line)] flex items-center justify-between gap-3 text-sm">
+                        <a href="/editoriales/@pub.Slug" class="font-extrabold text-sm text-[var(--accent)] hover:opacity-80 transition-opacity inline-flex items-center gap-1">
                             <span>Ver catálogo editorial</span>
                             <span>&rarr;</span>
                         </a>
 
-                        @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers)))
-                        {
-                            <button type="button"
-                                    @onclick="() => OpenEditModal(pub)"
-                                    class="text-[var(--text-muted)] hover:text-amber-400 font-semibold text-[0.7rem] px-2 py-1 rounded bg-[var(--bg-surface-elevated)] transition-colors">
-                                <span class="inline-flex items-center gap-1"><Icon Name="pencil" Size="12" /> Editar</span>
-                            </button>
-                        }
+                        <div class="flex items-center gap-2">
+                            <LikeButton TargetType="LikeTargetType.Publisher" TargetId="@pub.Id" InitialLikesCount="@pub.LikesCount" Compact="true" />
+
+                            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers)))
+                            {
+                                <button type="button"
+                                        @onclick="() => OpenEditModal(pub)"
+                                        class="text-[var(--muted)] hover:text-amber-500 font-bold text-xs p-1.5 rounded-lg hover:bg-[var(--paper-2)] transition-colors cursor-pointer"
+                                        title="Editar editorial">
+                                    <Icon Name="pencil" Size="14" />
+                                </button>
+                            }
+                        </div>
                     </div>
                 </div>
             }
         </div>
     }
-</div>
+</section>
 
 @* Modal de Edición / Creación *@
 <PublisherEditModal
@@ -253,4 +262,21 @@
         _modalSocialLinks = pub.SocialLinks.ToList();
         _isModalOpen = true;
     }
+
+    private static string GetPastelBg(int index) => (index % 4) switch
+    {
+        0 => "bg-[var(--p-blue)]",
+        1 => "bg-[var(--p-pink)]",
+        2 => "bg-[var(--p-peach)]",
+        _ => "bg-[var(--p-mint)]"
+    };
+
+    private static string GetRotationClass(int index) => (index % 5) switch
+    {
+        0 => "-rotate-2",
+        1 => "rotate-2",
+        2 => "-rotate-1",
+        3 => "rotate-1",
+        _ => "rotate-0"
+    };
 }
