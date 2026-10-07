@@ -74,11 +74,12 @@ public class GameDetailEditorialBlocksContractTests
     {
         var source = ReadSource(GameDetailPath);
 
-        // Botonera rápida de colección al alcance del pulgar
+        // Botonera rápida de colección al alcance del pulgar (Prestar trasladado a Mi Ludoteca)
         Assert.Contains("mi ludoteca", source, StringComparison.Ordinal);
         Assert.Contains("Jugado", source, StringComparison.Ordinal);
         Assert.Contains("Lo quiero", source, StringComparison.Ordinal);
-        Assert.Contains("Prestar", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Prestar", source, StringComparison.Ordinal);
+        Assert.Contains("Registrar partida", source, StringComparison.Ordinal);
 
         // Franja de 3 cifras clave: BGG, Consenso Ludeka y Jugadores ideales
         Assert.Contains("Rating BGG", source, StringComparison.Ordinal);
