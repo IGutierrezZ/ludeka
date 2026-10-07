@@ -238,7 +238,7 @@
 
                         @* Versión Móvil *@
                         <div class="flex sm:hidden items-center gap-3 py-3.5 @(s.IsExpired ? "opacity-60" : "")">
-                            <a href="/sorteos/@s.Id" class="shrink-0 w-15 h-15 rounded overflow-hidden shadow-xs border border-black/5 @rotation">
+                            <a href="/sorteos/@s.Id" class="shrink-0 w-[60px] h-[60px] rounded overflow-hidden shadow-xs border border-black/5 @rotation">
                                 @if (!string.IsNullOrWhiteSpace(s.ThumbnailUrl))
                                 {
                                     <img src="@s.ThumbnailUrl" alt="@s.Title" class="w-full h-full object-cover" />

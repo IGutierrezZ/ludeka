@@ -66,7 +66,39 @@ else
                 }
                 else
                 {
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                    @* Versión Móvil: lista compacta editorial con miniaturas de 58px *@
+                    <div class="flex flex-col sm:hidden -mt-2 divide-y divide-[rgba(34,24,15,0.2)]">
+                        @for (var i = 0; i < Math.Min(4, _dashboard.Giveaways.Count); i++)
+                        {
+                            var giveaway = _dashboard.Giveaways[i];
+                            var rot = (i % 2 == 0) ? "-rotate-1" : "rotate-2";
+                            <a href="/sorteos/@giveaway.Id" class="flex items-center gap-3.5 py-2.5 transition-opacity hover:opacity-85">
+                                <div class="w-[58px] h-[58px] shrink-0 rounded overflow-hidden border-2 border-[#FFF8EE] shadow-xs @rot">
+                                    @if (!string.IsNullOrWhiteSpace(giveaway.ThumbnailUrl))
+                                    {
+                                        <img src="@giveaway.ThumbnailUrl" alt="@giveaway.Title" class="w-full h-full object-cover" />
+                                    }
+                                    else
+                                    {
+                                        <DefaultImage Domain="DefaultImageDomain.Sorteo" CssClass="w-full h-full object-cover" />
+                                    }
+                                </div>
+                                <div class="flex-1 flex flex-col min-w-0 pr-2">
+                                    <b class="text-[15px] font-black leading-tight text-[#22180F] truncate">@giveaway.Title</b>
+                                    <span class="text-xs font-bold text-[#6B5848] truncate mt-0.5">
+                                        @giveaway.Platform &bull; @(string.IsNullOrWhiteSpace(giveaway.Country) ? "Global" : giveaway.Country)
+                                    </span>
+                                </div>
+                                <b class="text-xs text-[#B23A12] font-black shrink-0 whitespace-nowrap inline-flex items-center gap-1">
+                                    <Icon Name="timer" Size="12" />
+                                    <span>@FormatGiveawayRemainingTime(giveaway.DeadlineAt, giveaway.IsExpired)</span>
+                                </b>
+                            </a>
+                        }
+                    </div>
+
+                    @* Versión Escritorio: cuadrícula Polaroid *@
+                    <div class="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                         @for (var i = 0; i < Math.Min(4, _dashboard.Giveaways.Count); i++)
                         {
                             var giveaway = _dashboard.Giveaways[i];
@@ -333,6 +365,16 @@ else
     {
         _isQuickModalOpen = false;
         _quickCollectionGame = null;
+    }
+
+    private static string FormatGiveawayRemainingTime(DateTimeOffset deadlineAt, bool isExpired)
+    {
+        if (isExpired) return "Finalizado";
+        var diff = deadlineAt - DateTimeOffset.UtcNow;
+        if (diff <= TimeSpan.Zero) return "Finalizado";
+        if (diff.TotalHours < 24) return "Últimas horas";
+        if (diff.TotalDays < 2) return "1 día";
+        return $"{(int)diff.TotalDays} días";
     }
 
     public void Dispose()

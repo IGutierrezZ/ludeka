@@ -191,17 +191,14 @@ public class MobileNavigationContractTests
     }
 
     [Fact]
-    public void MainLayout_TopMobileNav_ShouldHaveAccessibleDetailsContract()
+    public void MainLayout_MobileNav_ShouldRelyOnBottomNavExclusively()
     {
         var source = ReadSource(MainLayoutPath);
 
-        // Menú móvil con identificador para descarte exterior accesible y semántica estándar
-        Assert.Contains("id=\"mobile-nav-details\"", source, StringComparison.Ordinal);
-        Assert.Contains("data-mobile-nav", source, StringComparison.Ordinal);
-        Assert.Contains("<summary aria-label=\"Menú de navegación\"", source, StringComparison.Ordinal);
-        Assert.Contains("href=\"/catalogo\"", source, StringComparison.Ordinal);
-        Assert.Contains("href=\"/sorteos\"", source, StringComparison.Ordinal);
-        Assert.Contains("onclick=\"this.closest('details')?.removeAttribute('open')\"", source, StringComparison.Ordinal);
+        // En móvil el menú superior redundante se elimina y la navegación se delega exclusivamente a la barra fija inferior
+        Assert.DoesNotContain("id=\"mobile-nav-details\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-mobile-nav", source, StringComparison.Ordinal);
+        Assert.Contains("<MobileBottomNav />", source, StringComparison.Ordinal);
     }
 
     [Fact]
