@@ -26,29 +26,26 @@
 <div class="container-ludeka py-8 space-y-8">
 
     @* Cabecera Editorial «Revista Lúdica» *@
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--line)] pb-6">
         <div>
             <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
-                    Colección personal
-                </span>
-                <span class="text-xs text-[var(--text-secondary)]">
-                    Sesión activa como <strong class="text-[var(--text-primary)]">@CurrentUserService.UserName</strong>
+                <span class="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">
+                    Tu espacio lúdico · @CurrentUserService.UserName
                 </span>
             </div>
-            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-[var(--text-primary)] tracking-tight leading-[0.88]">
-                Mi <i class="italic text-[var(--brand-primary)]">ludoteca</i>
+            <h1 class="text-5xl sm:text-7xl lg:text-8xl font-black text-[var(--ink)] tracking-[-0.06em] leading-[0.86]">
+                Mi<br><i class="italic text-[var(--accent)]">ludoteca</i>
             </h1>
-            <p class="text-sm text-[var(--text-secondary)] mt-2 max-w-xl">
+            <p class="text-sm text-[var(--muted)] mt-3 max-w-xl leading-relaxed">
                 Gestiona tus copias físicas en propiedad, títulos jugados, lista de compra y tu diario de partidas y préstamos.
             </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2.5">
             <button type="button"
                     disabled="@_isOfflineMode"
                     @onclick="OpenBggImportModal"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-600 text-zinc-300" : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white") transition-all inline-flex items-center gap-1.5 shadow-sm"
+                    class="h-11 px-5 rounded-full text-xs font-extrabold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-600 text-zinc-300" : "bg-[var(--ink)] hover:opacity-90 text-[var(--paper)]") transition-all inline-flex items-center gap-2 shadow-xs"
                     title="@(_isOfflineMode ? "La importación de BGG requiere conexión a internet" : "")">
                 <Icon Name="download" Size="14" />
                 <span>Importar de BGG</span>
@@ -56,52 +53,56 @@
             <button type="button"
                     disabled="@_isOfflineMode"
                     @onclick="OpenBggSearchModal"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-700 text-zinc-400" : "bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)]") transition-colors inline-flex items-center gap-1.5 shadow-sm"
+                    class="h-11 px-5 rounded-full text-xs font-extrabold @(_isOfflineMode ? "opacity-50 cursor-not-allowed bg-zinc-700 text-zinc-400" : "bg-transparent text-[var(--ink)] border-2 border-[var(--rule)] hover:bg-[var(--paper-2)]") transition-colors inline-flex items-center gap-2 shadow-xs"
                     title="@(_isOfflineMode ? "La búsqueda asistida requiere conexión a internet" : "")">
                 <Icon Name="dices" Size="14" />
                 <span>+ Añadir por BGG</span>
             </button>
-            <a href="/" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1.5 shadow-sm">
+            <a href="/" class="h-11 px-5 rounded-full text-xs font-extrabold bg-transparent text-[var(--ink)] border-2 border-[var(--line)] hover:bg-[var(--paper-2)] transition-colors inline-flex items-center gap-2 shadow-xs">
                 <Icon Name="search" Size="14" />
                 <span>Explorar catálogo</span>
+            </a>
+            <a href="/estanteria" class="h-11 px-5 rounded-full text-xs font-extrabold bg-[var(--mustard)] text-[#22180F] hover:opacity-90 transition-all inline-flex items-center gap-2 shadow-xs">
+                <Icon Name="library" Size="14" />
+                <span>Ver como estantería</span>
             </a>
         </div>
     </div>
 
-    @* Cuatro Cifras Clave (Métricas de Colección) *@
+    @* Cuatro Cifras Clave (Métricas de Colección Planas Monumentales) *@
     @if (_summary != null)
     {
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-2 border-b border-[var(--border-subtle)]">
-            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
-                    En mi ludoteca
-                </span>
-                <span class="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-0 border-t-[3px] border-[var(--rule)] border-b border-[var(--line)] py-2">
+            <div class="py-4 pr-6 flex flex-col gap-1">
+                <span class="text-4xl sm:text-5xl font-black text-[var(--ink)] tracking-[-0.04em] leading-none">
                     @_summary.TotalInCollection
                 </span>
-            </div>
-            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
-                    Partidas
+                <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--muted)]">
+                    En mi ludoteca
                 </span>
-                <span class="text-3xl sm:text-4xl font-black text-[var(--brand-primary)]">
+            </div>
+            <div class="py-4 pr-6 flex flex-col gap-1">
+                <span class="text-4xl sm:text-5xl font-black text-[var(--accent)] tracking-[-0.04em] leading-none">
                     @(_playsStats?.TotalPlays ?? _summary.TotalPlayed)
                 </span>
-            </div>
-            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
-                    Este mes
+                <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--muted)]">
+                    Partidas
                 </span>
-                <span class="text-3xl sm:text-4xl font-black text-emerald-500">
+            </div>
+            <div class="py-4 pr-6 flex flex-col gap-1">
+                <span class="text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400 tracking-[-0.04em] leading-none">
                     @(_playsStats?.PlaysThisMonth ?? 0)
                 </span>
-            </div>
-            <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <span class="text-xs uppercase font-extrabold text-[var(--text-secondary)] tracking-wider block mb-1">
-                    Prestados
+                <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--muted)]">
+                    Este mes
                 </span>
-                <span class="text-3xl sm:text-4xl font-black text-sky-500">
+            </div>
+            <div class="py-4 pr-6 flex flex-col gap-1">
+                <span class="text-4xl sm:text-5xl font-black text-amber-500 tracking-[-0.04em] leading-none">
                     @_summary.TotalActiveLoans
+                </span>
+                <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--muted)]">
+                    Prestados
                 </span>
             </div>
         </div>
