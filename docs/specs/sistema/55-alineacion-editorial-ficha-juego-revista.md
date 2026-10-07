@@ -1,9 +1,9 @@
 # 55. Alineación Editorial de Claude (Parte 2: Ficha de Juego en Escritorio y Móvil — Revista Lúdica)
 
 > **Módulo:** 55  
-> **Incremento origen:** INC-123  
+> **Incrementos origen:** INC-123 e INC-124  
 > **Estado:** Implementado y Verificado  
-> **Pruebas unitarias:** 2.617 verificadas al 100%  
+> **Pruebas unitarias:** 2.619 verificadas al 100%  
 
 ---
 
@@ -13,8 +13,8 @@ Este módulo traslada la experiencia visual y editorial de la ficha de juego def
 
 1. **Cabecera Envolvente Terracota (`bg-[var(--brand)] text-[var(--on-brand)]`):**
    - Banda a ancho completo con migas integradas en contraste suave, títulos jerarquizados y metadatos limpios (estilo, año de publicación, editorial en España).
-   - Marco polaroid físico con inclinación sutil de 2° (con efecto hover de estabilización a 0°), carrusel fotográfico (portada, trasera de caja y foto en mesa), paginador numérico (`1 / N`), miniaturas conmutable y pegatina flotante de mejor precio girada a -6°.
-   - Fila compacta de píldoras editoriales en escritorio y móvil (`Rating BGG`, `Consenso Ludeka`, ranking mundial BGG con icono Lucide `trophy`, jugadores ideales, edad mínima y duración media por jugador).
+   - Marco polaroid físico con inclinación sutil de 2° (con efecto hover de estabilización a 0°), carrusel fotográfico (portada, trasera de caja y foto en mesa), paginador numérico (`1 / N`), miniaturas conmutables y carátula limpia sin pegatinas superpuestas (retirada la pegatina flotante de precio tras INC-124).
+   - Fila compacta de píldoras editoriales en escritorio y móvil (`Rating BGG`, `Consenso Ludeka`, ranking mundial BGG con icono Lucide `trophy`, jugadores ideales normalizados a `Ideal a X jugadores` sin redundancias, edad mínima y duración media por jugador).
    - Bloque de cita textual de alto impacto procedente del veredicto fundacional o síntesis IA con botón de acceso directo al desglose completo.
 
 2. **Botonera de Colección y Acciones Depurada:**
@@ -27,15 +27,15 @@ Este módulo traslada la experiencia visual y editorial de la ficha de juego def
      - «Cartel para redes» queda integrado exclusivamente en el panel y herramientas de moderación/staff (`GameStaffToolsPanel.razor` y slide-over modal).
 
 3. **Cinta Inversa de Mercado y Barra Pegajosa de Pestañas (Sticky Nav):**
-   - Franja invertida `--inverse` con mejor precio del día, mínimo histórico, contador de vídeos y especificaciones de fundas.
-   - Barra de navegación pegajosa superior con 5 pestañas reactivas (`Resumen`, `Vídeos`, `Dudas`, `Fundas`, `Expansiones`) sincronizadas bidireccionalmente.
+   - Franja invertida `--inverse` con mejor precio del día filtrando estrictamente ofertas con stock disponible (`InStock && Price > 0`, indicando «Agotado en tiendas» si no hay disponibilidad), mínimo histórico, contador de vídeos y especificaciones de fundas (oculto si el juego no dispone de fundas cargadas tras INC-124).
+   - Barra de navegación pegajosa superior con pestañas reactivas (`Resumen`, `Vídeos`, `Dudas`, `Fundas` —condicional a la existencia de fundas—, `Expansiones`) sincronizadas bidireccionalmente.
    - Maquetación asimétrica de 12 columnas (8 para contenido editorial y 4 fijas en columna lateral pegajosa con `StoreOffersCard` en modo `IsSidebar="true"` y `UserReviewCard`).
 
-4. **Secuencia de 5 Bloques Editoriales y Panel Lateral de Veredicto:**
+4. **Secuencia de 5 Bloques Editoriales y Slide-Over Drawer de Veredicto:**
    - Preservación estricta del orden de marcado para los 5 bloques canónicos (`bloque-01-cabecera` < `bloque-02-veredicto` < `bloque-03-ficha-tecnica` < `bloque-04-expansiones-tiendas` < `bloque-05-multimedia-comunidad`).
-   - Semáforo de escalabilidad comunitaria de 7 columnas (`ScalabilityTrafficLight`).
-   - ADN lúdico y 2 vídeos destacados en el resumen con enlace a la pestaña multimedia.
-   - Panel lateral deslizable (slide-over modal / bottom sheet) para lectura del veredicto íntegro de la Mesa Fundadora, pros, contras, contexto ideal y herramientas de staff.
+   - Tras INC-124, el `bloque-02-veredicto` reside de forma exclusiva en el panel lateral deslizable (slide-over modal accesible con `z-[100]` y backdrop `z-[90]`) que se abre con `_isVerdictSlideOverOpen`, eliminando el bloque visible duplicado en medio de la pestaña `Resumen`.
+   - Maquetación plana tipo revista en Bloque 03: suprimidas las cajas beige envolventes (`bg-[var(--paper-2)] border p-6`) alrededor del semáforo de escalabilidad comunitaria de 7 columnas, del ADN lúdico y de los vídeos destacados, adoptando líneas finas de corte (`border-t border-[var(--line)]`).
+   - Panel lateral deslizable (slide-over modal / bottom sheet) para lectura íntegra del veredicto de la Mesa Fundadora, pros, contras, contexto ideal y herramientas de staff.
 
 5. **Adaptación Móvil Extrema:**
    - Carátula 4:3 con controles táctiles y paginación por puntos (*dots*).
@@ -50,7 +50,7 @@ flowchart TD
     subgraph Header ["Cabecera Envolvente Terracota (Bloque 01)"]
         TitleBlock["Título, Estilo, Año y Editorial"]
         PillsRow["Píldoras: BGG, Ludeka, Trophy, Jugadores, Edad, Duración"]
-        PolaroidFrame["Marco Polaroid Inclinado 2° + Carrusel + Pegatina -6°"]
+        PolaroidFrame["Marco Polaroid Inclinado 2° + Carrusel Fotográfico Limpio"]
         ActionsBar["Botonera Split: Mi Ludoteca / Lo Quiero / Jugado + Registrar Partida + Compartir"]
         VerdictQuote["Cita de Impacto + Botón 'Leer veredicto'"]
     end
@@ -61,7 +61,7 @@ flowchart TD
 
     subgraph MainContent ["Cuerpo Asimétrico (12 Columnas)"]
         subgraph Col8 ["Columna Principal (8 cols)"]
-            B2["Bloque 02: Veredicto de la Mesa"]
+            B2["Bloque 02: Veredicto en Slide-Over Drawer (z-[100])"]
             B3["Bloque 03: Ficha Técnica, Semáforo Escalabilidad y Vídeos"]
             B4["Bloque 04: Expansiones y Dónde Comprar"]
             B5["Bloque 05: Hub Multimedia, Guía de Fundas y Dudas"]
