@@ -24,10 +24,10 @@
         Saltar al contenido principal
     </a>
 
-    @* Cabecera superior compacta reactiva (72 px) *@
-    <header class="relative z-30 h-16 sm:h-[72px] transition-colors duration-200 border-b border-[var(--line)] shrink-0"
+    @* Cabecera superior compacta reactiva (72 px) con soporte safe-area en iOS *@
+    <header class="relative z-30 mobile-safe-top transition-colors duration-200 border-b border-[var(--line)] shrink-0"
             style="background: @HeaderColors.Bg; color: @HeaderColors.Fg;">
-        <div class="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-2 sm:gap-4">
+        <div class="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-2 sm:gap-4">
             
             @* Navegación en escritorio (izquierda) *@
             <nav class="hidden lg:flex items-center gap-5 text-sm font-extrabold flex-1"
@@ -102,7 +102,7 @@
             @* Menú móvil superior desplegable (SSR puro, accesible, details/summary) *@
             <details id="mobile-nav-details" data-mobile-nav class="lg:hidden relative shrink-0">
                 <summary aria-label="Menú de navegación"
-                         class="cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none focus-visible:ring-2 focus-visible:ring-current rounded-full select-none">
+                         class="cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none focus-visible:ring-2 focus-visible:ring-current rounded-full">
                     <span class="h-8 sm:h-9 px-2.5 rounded-full border border-current/30 bg-black/5 dark:bg-white/5 hover:border-current text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-xs pointer-events-none">
                         <Icon Name="menu" Size="14" />
                         <span>Menú</span>
