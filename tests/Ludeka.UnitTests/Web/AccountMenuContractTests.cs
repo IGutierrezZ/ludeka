@@ -66,7 +66,7 @@ public class AccountMenuContractTests
         Assert.Contains("Icon Name=\"user\"", source, StringComparison.Ordinal);
 
         // 2. Mi ludoteca
-        Assert.Contains("href=\"/mi-ludoteca\"", source, StringComparison.Ordinal);
+        Assert.Contains("href=\"/cuenta/ludoteca\"", source, StringComparison.Ordinal);
         Assert.Contains("Mi ludoteca", source, StringComparison.Ordinal);
         Assert.Contains("Icon Name=\"library\"", source, StringComparison.Ordinal);
 

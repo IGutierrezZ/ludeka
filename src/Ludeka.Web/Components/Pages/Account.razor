@@ -50,6 +50,14 @@
             Ajustes personales, privacidad y preferencias de tu mesa en Ludeka, unificados en una sola vista.
         </p>
 
+        <nav aria-label="Accesos directos de cuenta" class="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[var(--muted)]">
+            <a href="/cuenta/ludoteca" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Ludoteca</a>
+            <a href="/cuenta/apariencia" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Tema</a>
+            <a href="/cuenta/pais" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">País</a>
+            <a href="/cuenta/privacidad" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Privacidad</a>
+            <a href="/cuenta/conexiones" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Conexiones</a>
+        </nav>
+
         @if (!string.IsNullOrWhiteSpace(_statusMessage))
         {
             <div class="mt-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2.5 animate-fade-in" role="status">
