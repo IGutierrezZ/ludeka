@@ -16,7 +16,8 @@ public record EditorialReleaseItem(
     string? CoverImageUrl = null,
     string? Notes = null,
     string? SourceUrl = null,
-    bool IsReprint = false);
+    bool IsReprint = false,
+    bool IsMonthOnly = false);
 
 /// <summary>
 /// Resultado del proceso de sincronización para una editorial concreta.
