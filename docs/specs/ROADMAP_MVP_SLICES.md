@@ -1183,6 +1183,7 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   4. **Catálogo:** Formato `01, 02...` liberado de recortes por `overflow-hidden` con sombra editorial de 44px en `GameCard.razor`.
   5. **Radar de Sorteos y Ofertas:** Paginación accesible en ambas pestañas, eliminación de botón redundante "Mis Alertas", y reasignación del icono de lápiz para abrir el modal de edición de datos.
   6. **Ficha de Sorteo:** Enlace `← Todos los sorteos`, botón comunitario de reporte y modernización del modal de edición con los tokens de Revista Lúdica.
-- **Estado:** ⏳ **En progreso** (Fase 1/2 de la Alineación Editorial de Claude).
-- **Documento:** [`../increments/inc-121-alineacion-editorial-claude-p1.md`](../increments/inc-121-alineacion-editorial-claude-p1.md).
+- **Estado:** ✅ **Completado y Archivado** (Fase 1/2 de la Alineación Editorial de Claude · 2.599 tests unitarios en verde al 100% · PR #214 desplegado en Google Cloud Run).
+- **Documento:** [`../increments/archive/inc-121-alineacion-editorial-claude-p1.md`](../increments/archive/inc-121-alineacion-editorial-claude-p1.md).
+- **Módulo del Sistema:** [`sistema/54-alineacion-editorial-claude-p1.md`](sistema/54-alineacion-editorial-claude-p1.md).
 
