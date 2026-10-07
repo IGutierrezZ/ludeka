@@ -52,8 +52,40 @@ public class GeekDoImagesClient : IGeekDoImagesClient
             );
         }
 
-        string url = $"https://api.geekdo.com/api/images?ajax=1&gallery=all&objectid={bggId}&objecttype=thing";
+        try
+        {
+            // 1. Galería general ordenada por votos comunitarios (Hot)
+            string generalUrl = $"https://api.geekdo.com/api/images?ajax=1&gallery=all&objectid={bggId}&objecttype=thing&sort=hot&showcount=25";
+            string generalJson = await FetchGeekDoJsonAsync(generalUrl, bggId, ct);
+            var generalDto = ParseGeekDoImagesJson(generalJson, bggId);
 
+            string? front = generalDto.FrontCoverUrl;
+            string? back = generalDto.BackCoverUrl;
+            string? table = generalDto.TableOrGameplayUrl;
+
+            // 2. Si no se encontró contraportada en la muestra general, consultar específicamente la categoría BoxBack
+            if (string.IsNullOrWhiteSpace(back))
+            {
+                string backUrl = $"https://api.geekdo.com/api/images?ajax=1&gallery=all&objectid={bggId}&objecttype=thing&sort=hot&tag=BoxBack&showcount=5";
+                string backJson = await FetchGeekDoJsonAsync(backUrl, bggId, ct);
+                string? specificBack = ParseGeekDoCategoryJson(backJson);
+                if (!string.IsNullOrWhiteSpace(specificBack))
+                {
+                    back = specificBack;
+                }
+            }
+
+            return new GeekDoGalleryImagesDto(front, back, table);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al consultar las fotos de GeekDo para el juego #{BggId}: {Message}", bggId, ex.Message);
+            return new GeekDoGalleryImagesDto(null, null, null);
+        }
+    }
+
+    private async Task<string> FetchGeekDoJsonAsync(string url, int bggId, CancellationToken ct)
+    {
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -63,17 +95,16 @@ public class GeekDoImagesClient : IGeekDoImagesClient
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogDebug("GeekDo API devolvió estado HTTP {Status} para el juego #{BggId}.", response.StatusCode, bggId);
-                return new GeekDoGalleryImagesDto(null, null, null);
+                _logger.LogDebug("GeekDo API devolvió estado HTTP {Status} para #{BggId} en {Url}.", response.StatusCode, bggId, url);
+                return string.Empty;
             }
 
-            string json = await response.Content.ReadAsStringAsync(ct);
-            return ParseGeekDoImagesJson(json, bggId);
+            return await response.Content.ReadAsStringAsync(ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error al consultar las fotos de GeekDo para el juego #{BggId}: {Message}", bggId, ex.Message);
-            return new GeekDoGalleryImagesDto(null, null, null);
+            _logger.LogDebug(ex, "Fallo de conexión consultando GeekDo para #{BggId} en {Url}: {Message}", bggId, url, ex.Message);
+            return string.Empty;
         }
     }
 
@@ -96,26 +127,27 @@ public class GeekDoImagesClient : IGeekDoImagesClient
 
             // 1. Portada frontal: boxartfront, front, box
             var frontCandidate = candidates
-                .Where(i => IsFrontImage(i))
-                .OrderByDescending(i => i.NumPositive)
+                .Where(IsFrontImage)
+                .OrderByDescending(i => i.NumRecommend)
                 .FirstOrDefault();
 
             // 2. Contraportada / Trasera: boxartback, boxback, back
             var backCandidate = candidates
-                .Where(i => IsBackImage(i))
-                .OrderByDescending(i => i.NumPositive)
+                .Where(IsBackImage)
+                .OrderByDescending(i => i.NumRecommend)
                 .FirstOrDefault();
 
             // 3. Foto en mesa / componentes: gameplay, creative, components, in play
             var tableCandidate = candidates
-                .Where(i => IsTableImage(i))
-                .OrderByDescending(i => i.NumPositive)
+                .Where(i => i.ImageId != frontCandidate?.ImageId && i.ImageId != backCandidate?.ImageId)
+                .Where(IsTableImage)
+                .OrderByDescending(i => i.NumRecommend)
                 .FirstOrDefault();
 
             // Fallback para portada frontal si no tiene etiqueta explícita: primera imagen con más votos
             if (frontCandidate == null && candidates.Count > 0)
             {
-                frontCandidate = candidates.OrderByDescending(i => i.NumPositive).First();
+                frontCandidate = candidates.OrderByDescending(i => i.NumRecommend).First();
             }
 
             // Fallback para mesa si no hay etiqueta explícita pero hay más fotos distintas a portada y contraportada
@@ -123,7 +155,7 @@ public class GeekDoImagesClient : IGeekDoImagesClient
             {
                 tableCandidate = candidates
                     .Where(i => i.ImageId != frontCandidate?.ImageId && i.ImageId != backCandidate?.ImageId)
-                    .OrderByDescending(i => i.NumPositive)
+                    .OrderByDescending(i => i.NumRecommend)
                     .FirstOrDefault();
             }
 
@@ -136,6 +168,24 @@ public class GeekDoImagesClient : IGeekDoImagesClient
         catch
         {
             return new GeekDoGalleryImagesDto(null, null, null);
+        }
+    }
+
+    public static string? ParseGeekDoCategoryJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        try
+        {
+            var root = JsonSerializer.Deserialize<GeekDoImagesApiResponse>(json, JsonOptions);
+            if (root?.Images == null || root.Images.Count == 0) return null;
+
+            var best = root.Images.OrderByDescending(i => i.NumRecommend).FirstOrDefault();
+            return ExtractBestUrl(best);
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -163,7 +213,12 @@ public class GeekDoImagesClient : IGeekDoImagesClient
                type.Contains("boxback") ||
                type.Contains("back") ||
                caption.Contains("box back") ||
+               caption.Contains("back of the box") ||
                caption.Contains("back cover") ||
+               caption.Contains("bottom of box") ||
+               caption.Contains("contraportada") ||
+               caption.Contains("trasera") ||
+               caption.Contains("back") ||
                name.Contains("back");
     }
 
@@ -187,17 +242,32 @@ public class GeekDoImagesClient : IGeekDoImagesClient
     {
         if (item == null) return null;
 
+        // 1. Alta resolución (1024x1024) directa de la API oficial de GeekDo
+        if (!string.IsNullOrWhiteSpace(item.ImageUrlLg))
+            return NormalizeUrl(item.ImageUrlLg);
+
+        // 2. Variantes anidadas (original / large) si estuvieran presentes
         if (item.Images?.Original?.Src != null && !string.IsNullOrWhiteSpace(item.Images.Original.Src))
             return NormalizeUrl(item.Images.Original.Src);
 
         if (item.Images?.Large?.Src != null && !string.IsNullOrWhiteSpace(item.Images.Large.Src))
             return NormalizeUrl(item.Images.Large.Src);
 
-        if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-            return NormalizeUrl(item.ImageUrl);
+        // 3. Resolución media @2x (128x128) como último recurso admisible
+        if (!string.IsNullOrWhiteSpace(item.ImageUrl2x))
+            return NormalizeUrl(item.ImageUrl2x);
 
-        if (item.Images?.Thumb?.Src != null && !string.IsNullOrWhiteSpace(item.Images.Thumb.Src))
-            return NormalizeUrl(item.Images.Thumb.Src);
+        // 4. Si solo existe ImageUrl, descartar miniaturas micro de 64x64 para evitar degradación visual
+        if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+        {
+            if (item.ImageUrl.Contains("__micro", StringComparison.OrdinalIgnoreCase) ||
+                item.ImageUrl.Contains("fit-in/64x64", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return NormalizeUrl(item.ImageUrl);
+        }
 
         return null;
     }
@@ -229,8 +299,21 @@ public class GeekDoImagesClient : IGeekDoImagesClient
         [JsonPropertyName("caption")]
         public string? Caption { get; set; }
 
+        [JsonPropertyName("numrecommend")]
+        public int NumRecommend { get; set; }
+
         [JsonPropertyName("numpositive")]
-        public int NumPositive { get; set; }
+        public int NumPositive
+        {
+            get => NumRecommend;
+            set { if (NumRecommend == 0) NumRecommend = value; }
+        }
+
+        [JsonPropertyName("imageurl_lg")]
+        public string? ImageUrlLg { get; set; }
+
+        [JsonPropertyName("imageurl@2x")]
+        public string? ImageUrl2x { get; set; }
 
         [JsonPropertyName("imageurl")]
         public string? ImageUrl { get; set; }
