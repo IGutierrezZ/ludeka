@@ -141,18 +141,25 @@ public class EditorialReleasesSyncServiceTests
     {
         return new Game(
             bggId: bggId,
-            slug: slug,
             originalTitle: originalTitle,
             spanishTitle: spanishTitle,
             designer: "Autor Test",
             publisher: "Editorial Test",
             yearPublished: yearPublished,
-            age: AgeRating.Create(10),
-            duration: GameDuration.Create(45),
+            coverImageUrl: "https://example.com/cover.jpg",
+            thumbnailUrl: "https://example.com/thumb.jpg",
+            description: "Descripción test",
+            bggRating: 7.5,
+            bggRank: 100,
+            ludistRating: 8.0,
             confrontation: ConfrontationType.Competitive,
             style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
             language: LanguageDependence.Low,
-            footprint: TableFootprint.Medium);
+            footprint: TableFootprint.StandardTable,
+            duration: new GameDuration(45, 45, 45),
+            customSlug: slug);
     }
 
     // --- Fakes ---
