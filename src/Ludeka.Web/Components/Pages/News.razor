@@ -21,7 +21,7 @@
     </PageHeaderEditorial>
 </div>
 
-@* HERO INVERSO DE CLAUDE DESIGN *@
+@* HERO INVERSO DE CLAUDE DESIGN («Revista Lúdica») *@
 <section data-screen-label="Novedades" class="bg-[var(--inverse)] text-[var(--on-inverse)] border-b-[3px] border-[var(--rule)]">
     <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-14 flex flex-col gap-6 sm:gap-7">
         <span class="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.18em] text-[var(--mustard)] flex items-center gap-2">
@@ -34,8 +34,8 @@
                 <h1 class="text-5xl sm:text-7xl lg:text-[88px] font-black leading-[0.88] tracking-[-0.055em] m-0 page-header-title">
                     Novedades<br>en <i class="text-[var(--mustard)] not-italic">tiendas</i>
                 </h1>
-                <p class="text-sm sm:text-base leading-relaxed opacity-85 m-0">
-                    Lanzamientos y reimpresiones confirmados por las editoriales con su precio estimado. Consulta cada ficha para conocer fechas, contenido y tiendas colaboradoras.
+                <p class="text-sm sm:text-base leading-relaxed opacity-85 m-0 max-w-xl">
+                    Lanzamientos y reimpresiones confirmados por las editoriales, con su precio estimado. Consulta cada ficha para conocer fechas, contenido y tiendas colaboradoras.
                 </p>
             </div>
 
@@ -45,13 +45,13 @@
                     <button type="button"
                             @onclick="HandleSyncEditorialReleases"
                             disabled="@_isSyncingEditorial"
-                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 hover:bg-white/20">
                         <Icon Name="refresh-cw" Size="14" Class="@(_isSyncingEditorial ? "animate-spin text-[var(--mustard)]" : "")" />
                         <span>@(_isSyncingEditorial ? "Sincronizando..." : "Sincronizar Editoriales")</span>
                     </button>
                     <button type="button"
                             @onclick="() => _isExpressModalOpen = true"
-                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors">
+                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors hover:bg-white/20">
                         <Icon Name="zap" Size="14" />
                         <span>Alta Exprés</span>
                     </button>
@@ -78,35 +78,48 @@
             </div>
         }
 
-        @* Barra de filtros y buscador *@
+        @* Barra de filtros píldora y buscador *@
         <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-[rgba(255,248,238,0.15)]">
             <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <button type="button"
-                        @onclick='() => _typeFilter = "all"'
-                        class="h-9 px-4 rounded-full text-xs font-bold transition-all @(_typeFilter == "all" ? "bg-[#FFF8EE] text-[#22180F]" : "border border-[#FFF8EE]/30 text-[#FFF8EE] hover:bg-white/10")">
-                    Todos los lanzamientos
+                        @onclick='() => SetFilter("all")'
+                        class="h-10 px-4 sm:px-5 rounded-full text-xs sm:text-sm font-extrabold transition-all @(_typeFilter == "all" ? "bg-[var(--mustard)] text-[#22180F] border-2 border-[var(--mustard)] shadow-sm" : "border-2 border-[rgba(255,248,238,0.35)] text-[#FFF8EE] hover:bg-white/10")">
+                    Todas (@_releases.Count)
                 </button>
                 <button type="button"
-                        @onclick='() => _typeFilter = "new"'
-                        class="h-9 px-4 rounded-full text-xs font-bold transition-all @(_typeFilter == "new" ? "bg-[#FFF8EE] text-[#22180F]" : "border border-[#FFF8EE]/30 text-[#FFF8EE] hover:bg-white/10")">
-                    Novedades
+                        @onclick='() => SetFilter("new")'
+                        class="h-10 px-4 sm:px-5 rounded-full text-xs sm:text-sm font-extrabold transition-all @(_typeFilter == "new" ? "bg-[var(--mustard)] text-[#22180F] border-2 border-[var(--mustard)] shadow-sm" : "border-2 border-[rgba(255,248,238,0.35)] text-[#FFF8EE] hover:bg-white/10")">
+                    Novedades (@_releases.Count(r => !r.IsReprint))
                 </button>
                 <button type="button"
-                        @onclick='() => _typeFilter = "reprint"'
-                        class="h-9 px-4 rounded-full text-xs font-bold transition-all @(_typeFilter == "reprint" ? "bg-[#FFF8EE] text-[#22180F]" : "border border-[#FFF8EE]/30 text-[#FFF8EE] hover:bg-white/10")">
-                    Reimpresiones
+                        @onclick='() => SetFilter("reprint")'
+                        class="h-10 px-4 sm:px-5 rounded-full text-xs sm:text-sm font-extrabold transition-all @(_typeFilter == "reprint" ? "bg-[var(--mustard)] text-[#22180F] border-2 border-[var(--mustard)] shadow-sm" : "border-2 border-[rgba(255,248,238,0.35)] text-[#FFF8EE] hover:bg-white/10")">
+                    Reimpresiones (@_releases.Count(r => r.IsReprint))
                 </button>
+
+                @if (Publishers.Count > 1)
+                {
+                    <select value="@_selectedPublisher"
+                            @onchange="HandlePublisherChanged"
+                            class="h-10 px-3.5 rounded-full border-2 border-[rgba(255,248,238,0.35)] bg-[rgba(255,248,238,0.1)] text-[#FFF8EE] text-xs sm:text-sm font-bold focus:outline-none focus:border-[var(--mustard)] cursor-pointer">
+                        <option value="" class="bg-[#22180F] text-[#FFF8EE]">Todas las editoriales</option>
+                        @foreach (var pub in Publishers)
+                        {
+                            <option value="@pub" class="bg-[#22180F] text-[#FFF8EE]">@pub</option>
+                        }
+                    </select>
+                }
             </div>
 
             <div class="relative w-full sm:w-72">
-                <span class="absolute inset-y-0 left-3 flex items-center text-[var(--muted)] pointer-events-none">
+                <span class="absolute inset-y-0 left-3.5 flex items-center text-[#FFF8EE]/60 pointer-events-none">
                     <Icon Name="search" Size="15" />
                 </span>
                 <input type="text"
-                       @bind="_searchTerm"
-                       @bind:event="oninput"
-                       placeholder="Buscar por título o editorial..."
-                       class="w-full pl-9 pr-3 py-2 rounded-full bg-[rgba(255,248,238,0.1)] border border-[rgba(255,248,238,0.2)] text-xs text-[#FFF8EE] placeholder-[#FFF8EE]/50 focus:outline-none focus:border-[var(--mustard)]" />
+                       value="@_searchTerm"
+                       @oninput="HandleSearchInput"
+                       placeholder="Buscar juego o editorial..."
+                       class="w-full pl-10 pr-4 py-2.5 rounded-full bg-[rgba(255,248,238,0.1)] border border-[rgba(255,248,238,0.25)] text-xs sm:text-sm text-[#FFF8EE] placeholder-[#FFF8EE]/50 focus:outline-none focus:border-[var(--mustard)]" />
             </div>
         </div>
     </div>
@@ -129,6 +142,15 @@
             <p class="text-xs text-[var(--muted)] mb-5">
                 No hay novedades registradas con los filtros actuales en el calendario.
             </p>
+            @if (!string.IsNullOrWhiteSpace(_searchTerm) || _typeFilter != "all" || !string.IsNullOrWhiteSpace(_selectedPublisher))
+            {
+                <button type="button"
+                        @onclick="ResetAllFilters"
+                        class="h-10 px-5 rounded-full border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors mr-2">
+                    <Icon Name="rotate-ccw" Size="14" />
+                    <span>Limpiar filtros</span>
+                </button>
+            }
             @if (IsModerator)
             {
                 <button type="button"
@@ -142,130 +164,236 @@
     }
     else
     {
-        @* Lista editorial de novedades estilo Claude Design *@
-        <div class="flex flex-col">
-            <div class="flex justify-between items-baseline gap-3 border-b-[3px] border-[var(--rule)] pb-3 mb-2">
-                <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)] m-0">
-                    Llegadas confirmadas
+        @* Barra superior de Paginación y Resumen *@
+        <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b-[3px] border-[var(--rule)]">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl sm:text-2xl font-black tracking-tight text-[var(--ink)] m-0">
+                    Lanzamientos
                 </h2>
                 <span class="text-xs sm:text-sm font-extrabold text-[var(--muted)]">
-                    @FilteredReleases.Count títulos en calendario
+                    (Mostrando @PageRangeText de @FilteredReleases.Count)
                 </span>
             </div>
 
-            <div class="flex flex-col divide-y divide-[var(--line)]">
-                @for (int i = 0; i < FilteredReleases.Count; i++)
-                {
-                    var release = FilteredReleases[i];
-                    var rotation = (i % 3) switch { 0 => "-rotate-1", 1 => "rotate-2", _ => "-rotate-2" };
-                    var dayText = release.ReleaseDate.HasValue ? release.ReleaseDate.Value.Day.ToString("00") : "--";
-                    var monthText = release.ReleaseDate.HasValue ? release.ReleaseDate.Value.ToString("MMM", new System.Globalization.CultureInfo("es-ES")) : "PRÓX";
+            @if (TotalPages > 1)
+            {
+                <div class="flex items-center gap-1.5">
+                    <button type="button"
+                            @onclick="() => GoToPage(_currentPage - 1)"
+                            disabled="@(_currentPage <= 1)"
+                            class="h-9 px-3 rounded-full border border-[var(--line)] bg-[var(--card)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        ← Anterior
+                    </button>
 
-                    <div class="rail-card flex flex-wrap items-center gap-3.5 sm:gap-6 py-4 sm:py-5 hover:bg-[var(--paper-2)]/40 transition-colors px-1 group">
-                        @* Columna de fecha de lanzamiento *@
-                        <div class="w-14 sm:w-16 shrink-0 flex flex-col leading-none">
-                            <b class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.05em] text-[var(--ink)] tabular-nums">
-                                @dayText
-                            </b>
-                            <span class="text-[10px] sm:text-[11px] font-black uppercase text-[var(--muted)] tracking-wider mt-0.5">
-                                @monthText
-                            </span>
-                        </div>
+                    @for (int p = 1; p <= TotalPages; p++)
+                    {
+                        var pageNumber = p;
+                        if (TotalPages <= 7 || pageNumber == 1 || pageNumber == TotalPages || Math.Abs(pageNumber - _currentPage) <= 1)
+                        {
+                            <button type="button"
+                                    @onclick="() => GoToPage(pageNumber)"
+                                    class="w-9 h-9 rounded-full text-xs font-black transition-all @(_currentPage == pageNumber ? "bg-[var(--mustard)] text-[#22180F] shadow-xs" : "border border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                                @pageNumber
+                            </button>
+                        }
+                        else if (pageNumber == 2 && _currentPage > 3)
+                        {
+                            <span class="px-1 text-[var(--muted)] text-xs font-black">…</span>
+                        }
+                        else if (pageNumber == TotalPages - 1 && _currentPage < TotalPages - 2)
+                        {
+                            <span class="px-1 text-[var(--muted)] text-xs font-black">…</span>
+                        }
+                    }
 
-                        @* Carátula rotada con enlace a la ficha de novedad *@
-                        <a href="/novedades/@release.Id"
-                           class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded overflow-hidden shadow-xs border border-black/5 @rotation group-hover:rotate-0 transition-transform duration-300 block">
-                            @if (string.IsNullOrWhiteSpace(release.CoverImageUrl))
-                            {
-                                <DefaultImage Domain="DefaultImageDomain.Novedad"
-                                              Alt="@($"Carátula de {release.Title}")"
-                                              CssClass="w-full h-full object-cover" />
-                            }
-                            else
-                            {
-                                <img src="@release.CoverImageUrl"
-                                     alt="Carátula de @release.Title"
-                                     width="84"
-                                     height="84"
-                                     loading="lazy"
-                                     decoding="async"
-                                     onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';"
-                                     class="w-full h-full object-cover" />
-                            }
-                        </a>
+                    <button type="button"
+                            @onclick="() => GoToPage(_currentPage + 1)"
+                            disabled="@(_currentPage >= TotalPages)"
+                            class="h-9 px-3 rounded-full border border-[var(--line)] bg-[var(--card)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        Siguiente →
+                    </button>
+                </div>
+            }
+        </div>
 
-                        @* Información editorial *@
-                        <div class="flex-1 min-w-[200px] flex flex-col gap-1">
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 @(release.IsReprint ? "bg-[var(--paper-2)] text-[var(--muted)] border border-[var(--line)]" : "bg-[#FFC145] text-[#22180F]")">
-                                    @if (release.IsReprint)
+        @* Lista agrupada por mes según diseño de Claude Design *@
+        <div class="flex flex-col gap-10">
+            @foreach (var monthGroup in GroupedCurrentPageReleases)
+            {
+                <div class="flex flex-col">
+                    @* Cabecera del mes *@
+                    <div class="flex justify-between items-baseline gap-3 border-b-2 border-[var(--rule)] pb-2.5 mb-2">
+                        <h3 class="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)] m-0 capitalize">
+                            @monthGroup.Label
+                        </h3>
+                        <span class="text-xs sm:text-sm font-extrabold text-[var(--muted)]">
+                            @monthGroup.Items.Count @(monthGroup.Items.Count == 1 ? "título" : "títulos")
+                        </span>
+                    </div>
+
+                    @* Filas de novedades *@
+                    <div class="flex flex-col divide-y divide-[var(--line)]">
+                        @for (int i = 0; i < monthGroup.Items.Count; i++)
+                        {
+                            var release = monthGroup.Items[i];
+                            var rotation = (i % 3) switch { 0 => "-rotate-1", 1 => "rotate-2", _ => "-rotate-2" };
+                            var dayText = release.ReleaseDate.HasValue ? (release.IsMonthOnly ? "—" : release.ReleaseDate.Value.Day.ToString("00")) : "—";
+                            var monthText = GetMonthAbbr(release.ReleaseDate);
+
+                            <div class="rail-card flex flex-wrap items-center gap-3.5 sm:gap-6 py-4 sm:py-5 hover:bg-[var(--paper-2)]/40 transition-colors px-1 group">
+                                @* Columna de fecha *@
+                                <div class="w-14 sm:w-16 shrink-0 flex flex-col leading-none text-center">
+                                    <b class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.05em] text-[var(--ink)] tabular-nums">
+                                        @dayText
+                                    </b>
+                                    <span class="text-[10px] sm:text-[11px] font-black uppercase text-[var(--muted)] tracking-wider mt-0.5">
+                                        @monthText
+                                    </span>
+                                </div>
+
+                                @* Carátula con ligera rotación *@
+                                <a href="/novedades/@release.Id"
+                                   class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded overflow-hidden shadow-xs border border-black/5 @rotation group-hover:rotate-0 transition-transform duration-300 block">
+                                    @if (string.IsNullOrWhiteSpace(release.CoverImageUrl))
                                     {
-                                        <Icon Name="refresh-cw" Size="10" />
-                                        <span>Reimpresión</span>
+                                        <DefaultImage Domain="DefaultImageDomain.Novedad"
+                                                      Alt="@($"Carátula de {release.Title}")"
+                                                      CssClass="w-full h-full object-cover" />
                                     }
                                     else
                                     {
-                                        <span>Novedad</span>
+                                        <img src="@release.CoverImageUrl"
+                                             alt="Carátula de @release.Title"
+                                             width="84"
+                                             height="84"
+                                             loading="lazy"
+                                             decoding="async"
+                                             onerror="this.onerror=null; this.src='/images/defaults/novedad-default.svg';"
+                                             class="w-full h-full object-cover" />
                                     }
-                                </span>
-                                @if (release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(release.InstagramPermalink))
-                                {
-                                    <a href="@release.InstagramPermalink"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="text-[10px] font-bold text-[var(--muted)] hover:text-[var(--ink)] inline-flex items-center gap-1">
-                                        <Icon Name="camera" Size="10" />
-                                        <span>Instagram</span>
-                                    </a>
-                                }
-                            </div>
-
-                            <a href="/novedades/@release.Id"
-                               class="text-base sm:text-lg lg:text-xl font-black text-[var(--ink)] tracking-tight leading-snug hover:text-[var(--accent)] transition-colors block">
-                                @release.Title
-                            </a>
-
-                            <div class="text-xs text-[var(--muted)] font-medium">
-                                <span>@release.Publisher</span>
-                                <span>·</span>
-                                <span>Fuente oficial</span>
-                            </div>
-                        </div>
-
-                        @* PVP Estimado *@
-                        <div class="shrink-0 text-right min-w-[80px]">
-                            @if (release.EstimatedPvp.HasValue)
-                            {
-                                <b class="text-lg sm:text-xl font-black text-[var(--ink)] tabular-nums">
-                                    @release.EstimatedPvp.Value.ToString("0.00") €
-                                </b>
-                            }
-                            else
-                            {
-                                <span class="text-xs font-bold text-[var(--muted)]">PVP pendiente</span>
-                            }
-                        </div>
-
-                        @* Acciones: Ver ficha y noticia *@
-                        <div class="flex items-center gap-2 shrink-0">
-                            <a href="/novedades/@release.Id"
-                               class="h-10 px-4 rounded-full bg-[var(--inverse)] text-[var(--on-inverse)] font-bold text-xs inline-flex items-center hover:opacity-90 transition-opacity shadow-xs">
-                                Ver ficha
-                            </a>
-                            @if (!string.IsNullOrWhiteSpace(release.SourceUrl))
-                            {
-                                <a href="@release.SourceUrl"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="h-10 px-4 rounded-full border border-[var(--line)] bg-[var(--card)] hover:border-[var(--ink)] text-[var(--ink)] font-bold text-xs inline-flex items-center gap-1 transition-colors">
-                                    <span>Noticia ↗</span>
                                 </a>
-                            }
-                        </div>
+
+                                @* Info editorial *@
+                                <div class="flex-1 min-w-[200px] flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 @(release.IsReprint ? "bg-[#FFE7DD] text-[#C9481C]" : "bg-[#D7F0E3] text-[#1B7D52]")">
+                                            @if (release.IsReprint)
+                                            {
+                                                <Icon Name="refresh-cw" Size="10" />
+                                                <span>Reimpresión</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Novedad</span>
+                                            }
+                                        </span>
+                                        @if (release.IsPublishedOnInstagram && !string.IsNullOrWhiteSpace(release.InstagramPermalink))
+                                        {
+                                            <a href="@release.InstagramPermalink"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               class="text-[10px] font-bold text-[var(--muted)] hover:text-[var(--ink)] inline-flex items-center gap-1">
+                                                <Icon Name="camera" Size="10" />
+                                                <span>Instagram</span>
+                                            </a>
+                                        }
+                                    </div>
+
+                                    <a href="/novedades/@release.Id"
+                                       class="text-base sm:text-lg lg:text-xl font-black text-[var(--ink)] tracking-tight leading-snug hover:text-[var(--accent)] transition-colors block">
+                                        @release.Title
+                                    </a>
+
+                                    <div class="text-xs text-[var(--muted)] font-medium">
+                                        <span>@release.Publisher</span>
+                                        <span>·</span>
+                                        <span>Fuente oficial</span>
+                                    </div>
+                                </div>
+
+                                @* PVP Estimado *@
+                                <div class="shrink-0 text-right min-w-[80px]">
+                                    @if (release.EstimatedPvp.HasValue)
+                                    {
+                                        <b class="text-lg sm:text-xl font-black text-[var(--ink)] tabular-nums">
+                                            @release.EstimatedPvp.Value.ToString("0.00") €
+                                        </b>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs font-bold text-[var(--muted)]">PVP sin confirmar</span>
+                                    }
+                                </div>
+
+                                @* Acciones *@
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <a href="/novedades/@release.Id"
+                                       class="h-10 px-4 rounded-full bg-[var(--inverse)] text-[var(--on-inverse)] font-extrabold text-xs inline-flex items-center hover:opacity-90 transition-opacity shadow-xs">
+                                        Ver ficha
+                                    </a>
+                                    @if (!string.IsNullOrWhiteSpace(release.SourceUrl))
+                                    {
+                                        <a href="@release.SourceUrl"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="h-10 px-4 rounded-full border border-[var(--line)] bg-[var(--card)] hover:border-[var(--ink)] text-[var(--ink)] font-bold text-xs inline-flex items-center gap-1 transition-colors">
+                                            <span>Noticia ↗</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
-                }
-            </div>
+                </div>
+            }
         </div>
+
+        @* Paginación inferior *@
+        @if (TotalPages > 1)
+        {
+            <div class="flex flex-wrap justify-between items-center gap-4 pt-6 border-t-[3px] border-[var(--rule)]">
+                <span class="text-xs sm:text-sm font-bold text-[var(--muted)]">
+                    Página @_currentPage de @TotalPages (@FilteredReleases.Count lanzamientos en total)
+                </span>
+
+                <div class="flex items-center gap-1.5">
+                    <button type="button"
+                            @onclick="() => GoToPage(_currentPage - 1)"
+                            disabled="@(_currentPage <= 1)"
+                            class="h-10 px-4 rounded-full border border-[var(--line)] bg-[var(--card)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        ← Anterior
+                    </button>
+
+                    @for (int p = 1; p <= TotalPages; p++)
+                    {
+                        var pageNumber = p;
+                        if (TotalPages <= 7 || pageNumber == 1 || pageNumber == TotalPages || Math.Abs(pageNumber - _currentPage) <= 1)
+                        {
+                            <button type="button"
+                                    @onclick="() => GoToPage(pageNumber)"
+                                    class="w-10 h-10 rounded-full text-xs font-black transition-all @(_currentPage == pageNumber ? "bg-[var(--mustard)] text-[#22180F] shadow-xs" : "border border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:bg-[var(--paper-2)]")">
+                                @pageNumber
+                            </button>
+                        }
+                        else if (pageNumber == 2 && _currentPage > 3)
+                        {
+                            <span class="px-1 text-[var(--muted)] text-xs font-black">…</span>
+                        }
+                        else if (pageNumber == TotalPages - 1 && _currentPage < TotalPages - 2)
+                        {
+                            <span class="px-1 text-[var(--muted)] text-xs font-black">…</span>
+                        }
+                    }
+
+                    <button type="button"
+                            @onclick="() => GoToPage(_currentPage + 1)"
+                            disabled="@(_currentPage >= TotalPages)"
+                            class="h-10 px-4 rounded-full border border-[var(--line)] bg-[var(--card)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        Siguiente →
+                    </button>
+                </div>
+            </div>
+        }
     }
 </div>
 
@@ -289,7 +417,7 @@
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">Editorial / Distribuidora *</label>
                     <input type="text"
                            @bind="_formPublisher"
-                           placeholder="Ej. Asmodee / Days of Wonder"
+                           placeholder="Ej. Devir / Maldito Games"
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
                 </div>
                 <div>
@@ -300,7 +428,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="font-semibold text-[var(--text-secondary)] block mb-1">PVP Estimado (€)</label>
                     <input type="number"
@@ -309,12 +437,18 @@
                            placeholder="Ej. 39.99"
                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
                 </div>
-                <div class="flex items-center pt-5">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 sm:pt-5">
                     <label class="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-secondary)]">
                         <input type="checkbox"
                                @bind="_formIsReprint"
                                class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
                         <span>Es Reimpresión</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer font-medium text-[var(--text-secondary)]">
+                        <input type="checkbox"
+                               @bind="_formIsMonthOnly"
+                               class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
+                        <span>Solo mes previsto</span>
                     </label>
                 </div>
             </div>
@@ -342,7 +476,7 @@
                 <label class="font-semibold text-[var(--text-secondary)] block mb-1">Notas Editoriales (Opcional)</label>
                 <textarea rows="2"
                           @bind="_formNotes"
-                          placeholder="Ej. Incluye nuevos circuitos y modo solitario mejorado..."
+                          placeholder="Ej. Edición en español confirmada..."
                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"></textarea>
             </div>
         </div>
@@ -377,8 +511,11 @@
     private bool _isLoading = true;
     private IReadOnlyList<WeeklyReleaseDto> _releases = new List<WeeklyReleaseDto>();
     private string _searchTerm = string.Empty;
-    private string? _selectedPublisher;
+    private string _selectedPublisher = string.Empty;
     private string _typeFilter = "all";
+
+    private const int PageSize = 12;
+    private int _currentPage = 1;
 
     private bool _isSyncingEditorial;
     private string? _syncFeedbackMessage;
@@ -391,12 +528,21 @@
     private DateOnly? _formReleaseDate;
     private decimal? _formPvp;
     private bool _formIsReprint;
+    private bool _formIsMonthOnly;
     private string? _formCoverImageUrl;
     private string? _formSourceUrl;
     private string? _formNotes;
     private string? _formError;
 
     private bool IsModerator => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
+
+    private IReadOnlyList<string> Publishers =>
+        _releases
+            .Select(r => r.Publisher)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(p => p)
+            .ToList();
 
     private IReadOnlyList<WeeklyReleaseDto> FilteredReleases
     {
@@ -425,7 +571,49 @@
                                          r.Publisher.Contains(term, StringComparison.OrdinalIgnoreCase));
             }
 
-            return query.OrderByDescending(r => r.CreatedAt).ToList();
+            // Orden cronológico por fecha de lanzamiento prevista (los más cercanos primero); luego los sin fecha al final
+            return query
+                .OrderBy(r => r.ReleaseDate.HasValue ? 0 : 1)
+                .ThenBy(r => r.ReleaseDate)
+                .ThenByDescending(r => r.CreatedAt)
+                .ToList();
+        }
+    }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredReleases.Count / (double)PageSize));
+
+    private IReadOnlyList<WeeklyReleaseDto> CurrentPageReleases =>
+        FilteredReleases
+            .Skip((_currentPage - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+
+    private record MonthGroup(string Label, IReadOnlyList<WeeklyReleaseDto> Items);
+
+    private IReadOnlyList<MonthGroup> GroupedCurrentPageReleases
+    {
+        get
+        {
+            var items = CurrentPageReleases;
+            var groups = new List<MonthGroup>();
+
+            foreach (var chunk in items.GroupBy(GetGroupKey))
+            {
+                groups.Add(new MonthGroup(chunk.Key, chunk.ToList()));
+            }
+
+            return groups;
+        }
+    }
+
+    private string PageRangeText
+    {
+        get
+        {
+            if (FilteredReleases.Count == 0) return "0";
+            int start = (_currentPage - 1) * PageSize + 1;
+            int end = Math.Min(_currentPage * PageSize, FilteredReleases.Count);
+            return $"{start}–{end}";
         }
     }
 
@@ -447,6 +635,59 @@
         }
     }
 
+    private void SetFilter(string type)
+    {
+        _typeFilter = type;
+        _currentPage = 1;
+    }
+
+    private void HandlePublisherChanged(ChangeEventArgs e)
+    {
+        _selectedPublisher = e.Value?.ToString() ?? string.Empty;
+        _currentPage = 1;
+    }
+
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? string.Empty;
+        _currentPage = 1;
+    }
+
+    private void ResetAllFilters()
+    {
+        _searchTerm = string.Empty;
+        _selectedPublisher = string.Empty;
+        _typeFilter = "all";
+        _currentPage = 1;
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            _currentPage = page;
+        }
+    }
+
+    private static string GetGroupKey(WeeklyReleaseDto release)
+    {
+        if (!release.ReleaseDate.HasValue)
+            return "Próximamente";
+
+        var dt = release.ReleaseDate.Value;
+        var culture = new System.Globalization.CultureInfo("es-ES");
+        var monthName = dt.ToString("MMMM", culture);
+        monthName = char.ToUpperInvariant(monthName[0]) + monthName[1..];
+        return $"{monthName} {dt.Year}";
+    }
+
+    private static string GetMonthAbbr(DateOnly? date)
+    {
+        if (!date.HasValue) return "PRÓX";
+        var culture = new System.Globalization.CultureInfo("es-ES");
+        return date.Value.ToString("MMM", culture).ToUpperInvariant().TrimEnd('.');
+    }
+
     private async Task HandleSyncEditorialReleases()
     {
         if (_isSyncingEditorial) return;
@@ -458,7 +699,7 @@
         {
             var summary = await EditorialSyncService.SyncAllEditorialReleasesAsync();
             _syncFeedbackIsError = summary.Errors.Count > 0 && summary.TotalFound == 0;
-            _syncFeedbackMessage = $"Sincronización completada: {summary.TotalFound} novedades encontradas ({summary.CreatedCount} creadas, {summary.UpdatedCount} actualizadas, {summary.GamesLinkedCount} enlazadas al catálogo)." +
+            _syncFeedbackMessage = $"Sincronización completada: {summary.TotalFound} novedades válidas encontradas ({summary.CreatedCount} creadas, {summary.UpdatedCount} actualizadas, {summary.GamesLinkedCount} enlazadas al catálogo)." +
                 (summary.Errors.Count > 0 ? $" (Avisos: {string.Join(", ", summary.Errors)})" : string.Empty);
             await LoadDataAsync();
         }
@@ -511,7 +752,8 @@
             EstimatedPvp: _formPvp,
             IsReprint: _formIsReprint,
             Notes: string.IsNullOrWhiteSpace(_formNotes) ? null : _formNotes.Trim(),
-            SourceUrl: string.IsNullOrWhiteSpace(_formSourceUrl) ? null : _formSourceUrl.Trim());
+            SourceUrl: string.IsNullOrWhiteSpace(_formSourceUrl) ? null : _formSourceUrl.Trim(),
+            IsMonthOnly: _formIsMonthOnly);
 
         try
         {
@@ -529,6 +771,7 @@
         _formReleaseDate = null;
         _formPvp = null;
         _formIsReprint = false;
+        _formIsMonthOnly = false;
         _formCoverImageUrl = null;
         _formSourceUrl = null;
         _formNotes = null;
