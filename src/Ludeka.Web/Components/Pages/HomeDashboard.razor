@@ -243,7 +243,7 @@ else
                 Type = HomeFeaturedSlotType.Sorteo,
                 Id = g.Id.ToString(),
                 Title = $"Sorteo {g.Title}",
-                Subtitle = g.RemainingTimeText,
+                Subtitle = g.IsExpired ? "Cerrado" : (g.DeadlineAt - DateTimeOffset.UtcNow).TotalHours <= 24 ? "Últimas horas" : $"Cierra el {g.DeadlineAt:dd/MM}",
                 Url = $"/sorteos/{g.Id}",
                 Icon = "timer"
             });

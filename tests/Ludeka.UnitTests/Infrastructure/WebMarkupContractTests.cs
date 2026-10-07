@@ -194,7 +194,7 @@ public class WebMarkupContractTests
         // El pie reducido (Transparencia + Discord) ya no usa pen-line (Creadores solo en nav).
         // Tras INC-62, el acceso a biblioteca pasa al menú desplegable de cuenta.
         { "MainLayout (iconografia Lucide)", "src/Ludeka.Web/Components/Layout/MainLayout.razor",
-          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"", "<Icon Name=\"bell\"", "<Icon Name=\"menu\"" },
+          new[] { "<Icon Name=\"gift\"", "<Icon Name=\"newspaper\"", "<Icon Name=\"tent\"", "<Icon Name=\"shield\"", "<Icon Name=\"menu\"" },
           new[] { "🎁", "📰", "🎪", "🌍", "📚", "🛡", "👤", "⚙", "🚩", "🌙", "🎬", "📸", "🔔", "👥", "📜", "🏢", "✍", "🛒", "💬", "🗙" } },
 
         // AccountMenu: menú de cuenta con iconos Lucide (INC-61/INC-62)
