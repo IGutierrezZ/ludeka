@@ -1,0 +1,295 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Ludeka.Application.DTOs
+@using Ludeka.Web.Components.Shared
+
+<EditorialModal Open="IsOpen"
+                Title="Gestionar destacados de portada"
+                TitleIcon="sparkles"
+                OnClose="OnClose">
+    <ChildContent>
+        <div class="space-y-5 text-xs">
+            <p class="text-[var(--muted)] leading-relaxed">
+                Selecciona los 3 elementos que saldrán hoy en la cinta de destacados de la portada. Por defecto se elige el sorteo a punto de terminar, la última novedad y el próximo evento.
+            </p>
+
+            @for (int slotIdx = 0; slotIdx < _slots.Count; slotIdx++)
+            {
+                var slot = _slots[slotIdx];
+                var slotNumber = slotIdx + 1;
+                <div class="p-3.5 rounded-xl bg-[var(--paper-2)] border border-[var(--rule)] space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-extrabold uppercase tracking-wider text-[11px] text-[var(--accent)]">
+                            Destacado @slotNumber
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            @foreach (var type in Enum.GetValues<HomeFeaturedSlotType>())
+                            {
+                                var t = type;
+                                <button type="button"
+                                        @onclick="() => ChangeSlotType(slot, t)"
+                                        class="px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors @(slot.Type == t ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-[var(--card)] text-[var(--ink)] border border-[var(--rule)]")">
+                                    @t.ToString()
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-[var(--muted)] text-[11px] mb-1">
+                            Elemento seleccionado
+                        </label>
+                        <select @bind="slot.SelectedId"
+                                @bind:after="() => OnSlotSelectionChanged(slot)"
+                                class="w-full px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] font-semibold text-xs focus:outline-none focus:border-[var(--brand)]">
+                            @foreach (var opt in GetOptionsForType(slot.Type))
+                            {
+                                <option value="@opt.Id">@opt.Label</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="text-[11px] text-[var(--muted)] flex items-center justify-between pt-1 border-t border-[var(--rule)]/50">
+                        <span class="truncate pr-2">Enlace: <span class="font-mono text-[var(--ink)]">@slot.Url</span></span>
+                        <span class="font-bold text-[var(--accent)] shrink-0">@slot.Icon</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </ChildContent>
+
+    <Footer>
+        <button type="button"
+                @onclick="ResetToDefaults"
+                class="px-3.5 py-2 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] text-xs font-bold hover:bg-[var(--paper-2)] transition-colors mr-auto">
+            Por defecto
+        </button>
+        <button type="button"
+                @onclick="OnClose"
+                class="px-4 py-2 rounded-full border border-[var(--rule)] text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper-2)] text-xs font-bold transition-colors">
+            Cancelar
+        </button>
+        <button type="button"
+                @onclick="HandleSave"
+                class="px-4 py-2 rounded-full bg-[var(--ink)] hover:opacity-90 text-[var(--paper)] text-xs font-extrabold transition-opacity shadow-xs">
+            Guardar cambios
+        </button>
+    </Footer>
+</EditorialModal>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public HomeDashboardDto? Dashboard { get; set; }
+    [Parameter] public IReadOnlyList<HomeFeaturedItem>? CurrentItems { get; set; }
+    [Parameter] public EventCallback<List<HomeFeaturedItem>> OnSave { get; set; }
+
+    private class SlotState
+    {
+        public HomeFeaturedSlotType Type { get; set; }
+        public string SelectedId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Icon { get; set; } = "sparkles";
+    }
+
+    private readonly List<SlotState> _slots =
+    [
+        new() { Type = HomeFeaturedSlotType.Sorteo },
+        new() { Type = HomeFeaturedSlotType.Novedad },
+        new() { Type = HomeFeaturedSlotType.Evento }
+    ];
+
+    protected override void OnParametersSet()
+    {
+        if (CurrentItems != null && CurrentItems.Count >= 3)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var src = CurrentItems[i];
+                _slots[i].Type = src.Type;
+                _slots[i].SelectedId = src.Id;
+                _slots[i].Title = src.Title;
+                _slots[i].Subtitle = src.Subtitle;
+                _slots[i].Url = src.Url;
+                _slots[i].Icon = src.Icon;
+            }
+        }
+        else
+        {
+            ResetToDefaults();
+        }
+    }
+
+    private void ResetToDefaults()
+    {
+        if (Dashboard == null) return;
+
+        // Slot 1: Sorteo a punto de acabar
+        var g = Dashboard.Giveaways.FirstOrDefault(x => !x.IsExpired) ?? Dashboard.Giveaways.FirstOrDefault();
+        _slots[0].Type = HomeFeaturedSlotType.Sorteo;
+        if (g != null)
+        {
+            _slots[0].SelectedId = g.Id.ToString();
+            _slots[0].Title = $"Sorteo: {g.Title}";
+            _slots[0].Subtitle = g.RemainingTimeText;
+            _slots[0].Url = $"/sorteos/{g.Id}";
+            _slots[0].Icon = "timer";
+        }
+        else
+        {
+            _slots[0].SelectedId = "default-sorteos";
+            _slots[0].Title = "Sorteos de la comunidad";
+            _slots[0].Subtitle = "Activos";
+            _slots[0].Url = "/sorteos";
+            _slots[0].Icon = "gift";
+        }
+
+        // Slot 2: Última novedad publicada
+        var r = Dashboard.RecentReleases.FirstOrDefault();
+        _slots[1].Type = HomeFeaturedSlotType.Novedad;
+        if (r != null)
+        {
+            _slots[1].SelectedId = r.Id.ToString();
+            _slots[1].Title = r.Title;
+            _slots[1].Subtitle = r.Publisher;
+            _slots[1].Url = $"/novedades/{r.Id}";
+            _slots[1].Icon = "newspaper";
+        }
+        else
+        {
+            _slots[1].SelectedId = "default-novedades";
+            _slots[1].Title = "Calendario editorial";
+            _slots[1].Subtitle = "Novedades confirmadas";
+            _slots[1].Url = "/novedades";
+            _slots[1].Icon = "newspaper";
+        }
+
+        // Slot 3: Próximo evento
+        var e = Dashboard.UpcomingEvents.FirstOrDefault();
+        _slots[2].Type = HomeFeaturedSlotType.Evento;
+        if (e != null)
+        {
+            _slots[2].SelectedId = e.Id.ToString();
+            _slots[2].Title = e.Title;
+            _slots[2].Subtitle = e.Location;
+            _slots[2].Url = "/eventos";
+            _slots[2].Icon = "tent";
+        }
+        else
+        {
+            _slots[2].SelectedId = "default-eventos";
+            _slots[2].Title = "Ferias y citas";
+            _slots[2].Subtitle = "Agenda anual";
+            _slots[2].Url = "/eventos";
+            _slots[2].Icon = "tent";
+        }
+    }
+
+    private void ChangeSlotType(SlotState slot, HomeFeaturedSlotType type)
+    {
+        slot.Type = type;
+        var options = GetOptionsForType(type);
+        if (options.Count > 0)
+        {
+            slot.SelectedId = options[0].Id;
+            OnSlotSelectionChanged(slot);
+        }
+    }
+
+    private void OnSlotSelectionChanged(SlotState slot)
+    {
+        if (Dashboard == null) return;
+
+        switch (slot.Type)
+        {
+            case HomeFeaturedSlotType.Sorteo:
+                var g = Dashboard.Giveaways.FirstOrDefault(x => x.Id.ToString() == slot.SelectedId);
+                if (g != null)
+                {
+                    slot.Title = $"Sorteo: {g.Title}";
+                    slot.Subtitle = g.RemainingTimeText;
+                    slot.Url = $"/sorteos/{g.Id}";
+                    slot.Icon = "timer";
+                }
+                break;
+
+            case HomeFeaturedSlotType.Novedad:
+                var r = Dashboard.RecentReleases.FirstOrDefault(x => x.Id.ToString() == slot.SelectedId);
+                if (r != null)
+                {
+                    slot.Title = r.Title;
+                    slot.Subtitle = r.Publisher;
+                    slot.Url = $"/novedades/{r.Id}";
+                    slot.Icon = "newspaper";
+                }
+                break;
+
+            case HomeFeaturedSlotType.Evento:
+                var e = Dashboard.UpcomingEvents.FirstOrDefault(x => x.Id.ToString() == slot.SelectedId);
+                if (e != null)
+                {
+                    slot.Title = e.Title;
+                    slot.Subtitle = e.Location;
+                    slot.Url = "/eventos";
+                    slot.Icon = "tent";
+                }
+                break;
+
+            case HomeFeaturedSlotType.Tendencia:
+                var trendingList = Dashboard.TrendingGames ?? [];
+                var t = trendingList.FirstOrDefault(x => x.Id.ToString() == slot.SelectedId);
+                if (t != null)
+                {
+                    slot.Title = $"{t.SpanishTitle} es tendencia hoy";
+                    slot.Subtitle = $"★ {t.BggRating:0.0}";
+                    slot.Url = $"/juegos/{t.Slug}";
+                    slot.Icon = "trending-up";
+                }
+                break;
+        }
+    }
+
+    private List<(string Id, string Label)> GetOptionsForType(HomeFeaturedSlotType type)
+    {
+        if (Dashboard == null) return [];
+
+        return type switch
+        {
+            HomeFeaturedSlotType.Sorteo => Dashboard.Giveaways
+                .Select(g => (g.Id.ToString(), $"{g.Title} ({g.RemainingTimeText})"))
+                .ToList(),
+
+            HomeFeaturedSlotType.Novedad => Dashboard.RecentReleases
+                .Select(r => (r.Id.ToString(), $"{r.Title} · {r.Publisher}"))
+                .ToList(),
+
+            HomeFeaturedSlotType.Evento => Dashboard.UpcomingEvents
+                .Select(e => (e.Id.ToString(), $"{e.Title} ({e.Location})"))
+                .ToList(),
+
+            HomeFeaturedSlotType.Tendencia => (Dashboard.TrendingGames ?? [])
+                .Select(t => (t.Id.ToString(), $"{t.SpanishTitle} (Tendencia)"))
+                .ToList(),
+
+            _ => []
+        };
+    }
+
+    private async Task HandleSave()
+    {
+        var result = _slots.Select(s => new HomeFeaturedItem
+        {
+            Type = s.Type,
+            Id = s.SelectedId,
+            Title = s.Title,
+            Subtitle = s.Subtitle,
+            Url = s.Url,
+            Icon = s.Icon
+        }).ToList();
+
+        await OnSave.InvokeAsync(result);
+        await OnClose.InvokeAsync();
+    }
+}

@@ -221,4 +221,24 @@ public class GiveawayServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.DeleteGiveawayAsync(Guid.NewGuid()));
     }
+
+    [Theory]
+    [InlineData(1, "1 día")]
+    [InlineData(4, "4 días")]
+    public async Task GetGiveawaysAsync_RemainingTime_ShouldNotContainQueda(int daysAhead, string expectedText)
+    {
+        // Arrange
+        var repo = new FakeGiveawayRepository();
+        var giveaway = new Giveaway("Sorteo Test", "Org", "https://test.com", GiveawayPlatform.Instagram, DateTimeOffset.UtcNow.AddDays(daysAhead).AddHours(1));
+        repo.Items.Add(giveaway);
+        var service = new GiveawayService(repo);
+
+        // Act
+        var result = await service.GetGiveawaysAsync(includeExpired: false);
+
+        // Assert
+        Assert.Single(result);
+        Assert.DoesNotContain("Queda", result[0].RemainingTimeText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(expectedText, result[0].RemainingTimeText);
+    }
 }

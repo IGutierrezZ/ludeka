@@ -23,6 +23,7 @@ using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Reports;
 using Ludeka.Application.Features.Sleeves;
+using Ludeka.Application.Features.Staff;
 using Ludeka.Application.Features.Trending;
 using Ludeka.Application.Options;
 using Ludeka.Infrastructure.Affiliates.Amazon;
@@ -234,6 +235,9 @@ public static class LudekaServiceCollectionExtensions
         // Incremento 9: Notificaciones y Webhooks de Comunidad (Discord y Telegram)
         services.AddScoped<ICommunityNotificationRepository, SqliteCommunityNotificationRepository>();
         services.AddScoped<ICommunityNotificationService, CommunityNotificationService>();
+
+        // INC-121: Mediación reactiva de acciones contextuales para la barra de moderación StaffBar
+        services.AddScoped<IStaffActionService, StaffActionService>();
 
         // INC-47 (R4a, diseño §6.1/§5.4): repositorio y opciones del outbox de notificaciones.
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));

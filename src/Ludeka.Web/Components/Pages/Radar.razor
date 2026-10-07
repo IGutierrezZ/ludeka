@@ -1,6 +1,7 @@
 @page "/sorteos"
 @page "/radar"
 @rendermode InteractiveServer
+@implements IDisposable
 @using Ludeka.Application.Contracts
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
@@ -9,6 +10,7 @@
 @inject IPriceRadarService PriceRadarService
 @inject IAffiliateUrlResolver AffiliateResolver
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 @inject IUserLocationService LocationService
 @inject NavigationManager Navigation
 
@@ -33,7 +35,7 @@
             </span>
 
             <h1 class="text-5xl sm:text-7xl lg:text-[88px] font-black leading-[0.88] tracking-[-0.055em] m-0 page-header-title">
-                Sorteos<br>de juegos<br><i class="text-[#B23A12] not-italic">de mesa</i>
+                Sorteos<br>de juegos<br><i class="text-[#B23A12]">de mesa</i>
             </h1>
 
             <p class="text-sm sm:text-base leading-relaxed max-w-[520px] opacity-90 m-0">
@@ -42,31 +44,16 @@
 
             <div class="flex flex-wrap items-center gap-3 pt-2">
                 <button type="button"
-                        @onclick="() => _isCreateModalOpen = true"
+                        @onclick="OpenCreateGiveawayModal"
                         class="h-12 sm:h-[52px] px-6 rounded-full bg-[#22180F] text-[#FFC145] font-extrabold text-xs sm:text-sm hover:opacity-95 transition-opacity flex items-center gap-2 shadow-sm">
                     <Icon Name="plus" Size="16" />
                     <span>Proponer sorteo</span>
                 </button>
                 <button type="button"
-                        @onclick="() => SwitchTab(RadarTab.Deals)"
+                        @onclick="() => SwitchTab(_currentTab == RadarTab.Deals ? RadarTab.Giveaways : RadarTab.Deals)"
                         class="h-12 sm:h-[52px] px-6 rounded-full border-2 border-[#22180F] bg-transparent text-[#22180F] font-extrabold text-xs sm:text-sm hover:bg-[#22180F]/5 transition-colors">
-                    Ver ofertas y mínimos
+                    @(_currentTab == RadarTab.Deals ? "Ver sorteos activos" : "Ver ofertas y mínimos")
                 </button>
-                <a href="/cuenta/ludoteca"
-                   class="h-12 sm:h-[52px] px-5 rounded-full border-2 border-[#22180F]/40 bg-transparent text-[#22180F] font-extrabold text-xs sm:text-sm hover:bg-[#22180F]/5 transition-colors inline-flex items-center gap-1.5"
-                   title="Gestionar mis alertas de compra y seguimiento">
-                    <Icon Name="bell" Size="14" />
-                    <span>Mis Alertas</span>
-                </a>
-                @if (IsModerator)
-                {
-                    <button type="button"
-                            @onclick="() => _isExpressModalOpen = true"
-                            class="h-12 sm:h-[52px] px-4 rounded-full border border-dashed border-[#22180F] bg-[#22180F]/10 text-[#22180F] font-extrabold text-xs flex items-center gap-1.5 transition-colors">
-                        <Icon Name="zap" Size="14" />
-                        <span>Alta Exprés</span>
-                    </button>
-                }
             </div>
         </div>
 
@@ -244,11 +231,10 @@
             {
                 @* Listado editorial de sorteos *@
                 <div class="flex flex-col divide-y divide-[var(--line)]">
-                    @for (int i = 0; i < _giveaways.Count; i++)
+                    @foreach (var s in PagedGiveaways)
                     {
-                        var s = _giveaways[i];
                         var (leftN, leftU, leftColor) = GetCountdownDisplay(s);
-                        var rotation = (i % 3) switch { 0 => "-rotate-1", 1 => "rotate-2", _ => "-rotate-2" };
+                        var rotation = (s.Id.GetHashCode() % 3) switch { 0 => "-rotate-1", 1 => "rotate-2", _ => "-rotate-2" };
 
                         @* Versión Móvil *@
                         <div class="flex sm:hidden items-center gap-3 py-3.5 @(s.IsExpired ? "opacity-60" : "")">
@@ -270,6 +256,16 @@
                                     <span>@s.RemainingTimeText</span>
                                 </b>
                             </a>
+                            @if (IsModerator)
+                            {
+                                <button type="button"
+                                        @onclick="() => OpenEditGiveawayModal(s)"
+                                        title="Editar sorteo"
+                                        aria-label="Editar sorteo"
+                                        class="w-10 h-10 shrink-0 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] font-bold text-xs flex items-center justify-center hover:bg-[var(--paper-2)]">
+                                    ✎
+                                </button>
+                            }
                             <a href="@s.Url"
                                target="_blank"
                                rel="noopener noreferrer"
@@ -337,8 +333,9 @@
                                 @if (IsModerator)
                                 {
                                     <button type="button"
-                                            @onclick="() => HandleTogglePromoted(s.Id)"
-                                            title="Destacar sorteo"
+                                            @onclick="() => OpenEditGiveawayModal(s)"
+                                            title="Editar sorteo"
+                                            aria-label="Editar sorteo"
                                             class="w-10 h-10 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] font-bold text-xs flex items-center justify-center hover:bg-[var(--paper-2)]">
                                         ✎
                                     </button>
@@ -354,6 +351,47 @@
                         </div>
                     }
                 </div>
+
+                @* Paginación accesible de sorteos *@
+                @if (TotalGiveawayPages > 1)
+                {
+                    <nav class="flex items-center justify-center gap-2 pt-8" aria-label="Paginación de sorteos">
+                        <button type="button"
+                                @onclick="() => SetGiveawayPage(_giveawayPage - 1)"
+                                disabled="@(_giveawayPage <= 1)"
+                                class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--paper-2)] transition-colors inline-flex items-center justify-center gap-1"
+                                aria-label="Página anterior de sorteos">
+                            &larr; <span class="hidden sm:inline">Anterior</span>
+                        </button>
+
+                        @foreach (var pageNumber in GetVisiblePageNumbers(_giveawayPage, TotalGiveawayPages))
+                        {
+                            if (pageNumber == -1)
+                            {
+                                <span class="px-2 text-[var(--muted)] font-black select-none">…</span>
+                            }
+                            else
+                            {
+                                var isCurrent = pageNumber == _giveawayPage;
+                                <button type="button"
+                                        @onclick="() => SetGiveawayPage(pageNumber)"
+                                        class="min-h-[44px] min-w-[44px] px-3.5 rounded-full text-xs font-black transition-all @(isCurrent ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-xs" : "bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)]")"
+                                        aria-current="@(isCurrent ? "page" : null)"
+                                        aria-label="@($"Ir a página {pageNumber}")">
+                                    @pageNumber
+                                </button>
+                            }
+                        }
+
+                        <button type="button"
+                                @onclick="() => SetGiveawayPage(_giveawayPage + 1)"
+                                disabled="@(_giveawayPage >= TotalGiveawayPages)"
+                                class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--paper-2)] transition-colors inline-flex items-center justify-center gap-1"
+                                aria-label="Página siguiente de sorteos">
+                            <span class="hidden sm:inline">Siguiente</span> &rarr;
+                        </button>
+                    </nav>
+                }
             }
         </div>
     }
@@ -361,10 +399,6 @@
     {
         @* Pestaña de Ofertas y Mínimos Históricos *@
         <div id="panel-deals" role="tabpanel" aria-labelledby="tab-deals">
-            @{
-                var displayedDeals = _onlyAllTimeLows ? _topDeals.Where(d => d.IsAllTimeLow).ToList() : _topDeals;
-            }
-
             @if (_isLoadingDeals)
             {
                 <div class="py-20 text-center text-[var(--muted)]">
@@ -372,7 +406,7 @@
                     <p class="text-sm font-semibold">Sintonizando el radar de ofertas y bajadas de precio...</p>
                 </div>
             }
-            else if (displayedDeals.Count == 0)
+            else if (FilteredDeals.Count == 0)
             {
                 <div class="p-12 text-center rounded-2xl bg-[var(--card)] border border-[var(--line)] max-w-lg mx-auto">
                     <span class="inline-block mb-3 text-[var(--muted)]"><Icon Name="trending-down" Size="40" /></span>
@@ -393,7 +427,7 @@
             else
             {
                 <div class="flex flex-col divide-y divide-[var(--line)]">
-                    @foreach (var deal in displayedDeals)
+                    @foreach (var deal in PagedDeals)
                     {
                         var targetPurchaseUrl = AffiliateResolver.ResolveAffiliateUrl(deal.AffiliateUrl, deal.StoreName);
                         <div class="flex flex-wrap items-center gap-4 sm:gap-6 py-4 hover:bg-[var(--paper-2)]/40 transition-colors px-1">
@@ -457,6 +491,47 @@
                         </div>
                     }
                 </div>
+
+                @* Paginación accesible de ofertas *@
+                @if (TotalDealsPages > 1)
+                {
+                    <nav class="flex items-center justify-center gap-2 pt-8" aria-label="Paginación de ofertas">
+                        <button type="button"
+                                @onclick="() => SetDealsPage(_dealsPage - 1)"
+                                disabled="@(_dealsPage <= 1)"
+                                class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--paper-2)] transition-colors inline-flex items-center justify-center gap-1"
+                                aria-label="Página anterior de ofertas">
+                            &larr; <span class="hidden sm:inline">Anterior</span>
+                        </button>
+
+                        @foreach (var pageNumber in GetVisiblePageNumbers(_dealsPage, TotalDealsPages))
+                        {
+                            if (pageNumber == -1)
+                            {
+                                <span class="px-2 text-[var(--muted)] font-black select-none">…</span>
+                            }
+                            else
+                            {
+                                var isCurrent = pageNumber == _dealsPage;
+                                <button type="button"
+                                        @onclick="() => SetDealsPage(pageNumber)"
+                                        class="min-h-[44px] min-w-[44px] px-3.5 rounded-full text-xs font-black transition-all @(isCurrent ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-xs" : "bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)]")"
+                                        aria-current="@(isCurrent ? "page" : null)"
+                                        aria-label="@($"Ir a página {pageNumber}")">
+                                    @pageNumber
+                                </button>
+                            }
+                        }
+
+                        <button type="button"
+                                @onclick="() => SetDealsPage(_dealsPage + 1)"
+                                disabled="@(_dealsPage >= TotalDealsPages)"
+                                class="min-h-[44px] min-w-[44px] px-3.5 rounded-full border border-[var(--rule)] bg-[var(--card)] text-[var(--ink)] font-extrabold text-xs disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--paper-2)] transition-colors inline-flex items-center justify-center gap-1"
+                                aria-label="Página siguiente de ofertas">
+                            <span class="hidden sm:inline">Siguiente</span> &rarr;
+                        </button>
+                    </nav>
+                }
             }
         </div>
     }
@@ -477,59 +552,59 @@
     </div>
 </div>
 
-@* Modal de Proponer / Crear Sorteo *@
+@* Modal de Proponer / Crear / Editar Sorteo *@
 <EditorialModal Open="@_isCreateModalOpen"
-                Title="Registrar o Proponer Sorteo"
-                TitleIcon="gift"
+                Title="@(_editingGiveawayId.HasValue ? "Editar Sorteo" : "Registrar o Proponer Sorteo")"
+                TitleIcon="@(_editingGiveawayId.HasValue ? "pen-line" : "gift")"
                 OnClose="@(() => _isCreateModalOpen = false)">
     <ChildContent>
-        <div class="space-y-3 text-xs">
+        <div class="space-y-3.5 text-xs">
             <div>
-                <label class="font-semibold text-[var(--text-secondary)] block mb-1">Título del Sorteo *</label>
+                <label class="font-bold text-[var(--ink)] block mb-1">Título del Sorteo *</label>
                 <input type="text"
                        @bind="_formTitle"
-                       placeholder="Ej. Sorteo Brass Birmingham + Monedas de Metal"
-                       class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                       placeholder="Ej. Sorteo Cascadia + Expansión"
+                       class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Organizador (Editorial / Tienda) *</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Organizador (Editorial / Tienda) *</label>
                     <input type="text"
                            @bind="_formOrganizer"
                            placeholder="Ej. Maldito Games"
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Colaborador (Influencer / Canal)</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Colaborador (Canal / Cuenta)</label>
                     <input type="text"
                            @bind="_formCollaborator"
                            placeholder="Ej. Análisis Parálisis"
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
             </div>
 
             <div>
-                <label class="font-semibold text-[var(--text-secondary)] block mb-1">Enlace Oficial al Sorteo *</label>
+                <label class="font-bold text-[var(--ink)] block mb-1">Enlace Oficial al Sorteo *</label>
                 <input type="url"
                        @bind="_formUrl"
                        placeholder="https://www.instagram.com/p/..."
-                       class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                       class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
             </div>
 
             <div>
-                <label class="font-semibold text-[var(--text-secondary)] block mb-1">URL de Imagen de Portada (Opcional)</label>
+                <label class="font-bold text-[var(--ink)] block mb-1">URL de Imagen de Portada (Opcional)</label>
                 <input type="url"
                        @bind="_formThumbnailUrl"
                        placeholder="https://... o /images/..."
-                       class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                       class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--brand)] text-sm" />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">País / Ámbito Territorial</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">País / Ámbito Territorial</label>
                     <select @bind="_formCountry"
-                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                            class="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm">
                         <option value="Internacional">Internacional (Válido para todos)</option>
                         @foreach (var c in CountryCatalog.GetAllCountries())
                         {
@@ -538,9 +613,9 @@
                     </select>
                 </div>
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Plataforma</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Plataforma</label>
                     <select @bind="_formPlatform"
-                            class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]">
+                            class="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm">
                         <option value="@GiveawayPlatform.Instagram">Instagram</option>
                         <option value="@GiveawayPlatform.TwitterX">Twitter / X</option>
                         <option value="@GiveawayPlatform.YouTube">YouTube</option>
@@ -549,35 +624,35 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="font-semibold text-[var(--text-secondary)] block mb-1">Días hasta fin de sorteo</label>
+                    <label class="font-bold text-[var(--ink)] block mb-1">Días hasta fin de sorteo</label>
                     <input type="number"
                            @bind="_formDaysUntilEnd"
                            min="1"
                            max="60"
-                           class="w-full px-3 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]" />
+                           class="w-full px-3.5 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)] text-sm" />
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 pt-2">
+            <div class="flex items-center gap-2 pt-1">
                 <input type="checkbox"
                        id="commExcl"
                        @bind="_formIsCommunityExclusive"
-                       class="rounded bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-0" />
-                <label for="commExcl" class="text-[var(--text-secondary)] font-medium cursor-pointer">
+                       class="rounded bg-[var(--card)] border-[var(--rule)] text-[var(--brand)] focus:ring-0" />
+                <label for="commExcl" class="text-[var(--ink)] font-semibold cursor-pointer">
                     Sorteo exclusivo para miembros de la comunidad Ludeka
                 </label>
             </div>
 
             @if (IsModerator)
             {
-                <div class="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--state-warning-bg)] border border-[var(--state-warning-border)]">
+                <div class="flex items-center gap-2 p-3 rounded-xl bg-[#FFF8EE] border border-[#FFC145] text-[#22180F]">
                     <input type="checkbox"
                            id="isPromotedInput"
                            @bind="_formIsPromoted"
-                           class="rounded bg-[var(--bg-surface-elevated)] border-[var(--state-warning-border)] text-[var(--state-warning)] focus:ring-0" />
-                    <label for="isPromotedInput" class="text-[var(--state-warning)] font-bold cursor-pointer">
+                           class="rounded bg-[var(--card)] border-[#FFC145] text-[#B23A12] focus:ring-0" />
+                    <label for="isPromotedInput" class="text-[#22180F] font-bold cursor-pointer">
                         Destacar como Sorteo Promocionado en cabecera
                     </label>
                 </div>
@@ -586,7 +661,7 @@
 
         @if (!string.IsNullOrWhiteSpace(_formError))
         {
-            <div class="p-2.5 rounded-xl bg-[var(--state-error-bg)] border border-[var(--state-error-border)] text-[var(--state-error)] text-xs">
+            <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold mt-3">
                 @_formError
             </div>
         }
@@ -595,13 +670,13 @@
     <Footer>
         <button type="button"
                 @onclick="() => _isCreateModalOpen = false"
-                class="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold transition-colors">
+                class="px-5 py-2.5 rounded-full border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)] text-xs font-bold transition-colors">
             Cancelar
         </button>
         <button type="button"
                 @onclick="HandleSubmitGiveaway"
-                class="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:opacity-90 text-[var(--on-brand)] text-xs font-bold transition-opacity">
-            Guardar y Publicar
+                class="px-5 py-2.5 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] text-xs font-black transition-opacity shadow-xs">
+            @(_editingGiveawayId.HasValue ? "Guardar cambios" : "Guardar y Publicar")
         </button>
     </Footer>
 </EditorialModal>
@@ -627,8 +702,13 @@
     private string? _userActiveCountry;
     private string? _countryFilter;
 
+    private const int PageSize = 10;
+    private int _giveawayPage = 1;
+    private int _dealsPage = 1;
+
     private bool _isExpressModalOpen;
     private bool _isCreateModalOpen;
+    private Guid? _editingGiveawayId;
     private string _formTitle = string.Empty;
     private string _formOrganizer = string.Empty;
     private string? _formCollaborator;
@@ -647,6 +727,13 @@
         _giveaways.FirstOrDefault(g => g.IsPromoted && !g.IsExpired) ??
         _giveaways.FirstOrDefault(g => !g.IsExpired);
 
+    private int TotalGiveawayPages => Math.Max(1, (int)Math.Ceiling(_giveaways.Count / (double)PageSize));
+    private IEnumerable<GiveawayDto> PagedGiveaways => _giveaways.Skip((_giveawayPage - 1) * PageSize).Take(PageSize);
+
+    private List<PriceDropAlertDto> FilteredDeals => _onlyAllTimeLows ? _topDeals.Where(d => d.IsAllTimeLow).ToList() : _topDeals.ToList();
+    private int TotalDealsPages => Math.Max(1, (int)Math.Ceiling(FilteredDeals.Count / (double)PageSize));
+    private IEnumerable<PriceDropAlertDto> PagedDeals => FilteredDeals.Skip((_dealsPage - 1) * PageSize).Take(PageSize);
+
     protected override async Task OnInitializedAsync()
     {
         if (Navigation.Uri.Contains("/radar", StringComparison.OrdinalIgnoreCase))
@@ -661,6 +748,29 @@
         _userActiveCountry = await LocationService.GetEffectiveCountryAsync();
         _countryFilter = _userActiveCountry;
         await LoadAllDataAsync();
+        RegisterStaffActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!IsModerator) return;
+        StaffActionService.SetCustomActions(
+        [
+            new StaffActionItem(
+                Label: "+ Alta exprés",
+                Icon: "zap",
+                OnClick: () =>
+                {
+                    _isExpressModalOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                })
+        ]);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 
     private async Task LoadAllDataAsync()
@@ -706,42 +816,107 @@
     private void ToggleOnlyAllTimeLows(bool onlyAllTimeLows)
     {
         _onlyAllTimeLows = onlyAllTimeLows;
+        _dealsPage = 1;
     }
 
     private async Task ToggleExpiredFilter(bool includeExpired)
     {
         _includeExpired = includeExpired;
+        _giveawayPage = 1;
         await LoadGiveawaysDataAsync();
     }
 
     private async Task SetCountryFilter(string? country)
     {
         _countryFilter = country;
+        _giveawayPage = 1;
+        _dealsPage = 1;
         await LoadAllDataAsync();
     }
 
     private async Task OnCountryDropdownChanged()
     {
+        _giveawayPage = 1;
+        _dealsPage = 1;
         await LoadAllDataAsync();
     }
 
-    private async Task HandleTogglePromoted(Guid giveawayId)
+    private void SetGiveawayPage(int page)
     {
-        var target = _giveaways.FirstOrDefault(g => g.Id == giveawayId);
-        if (target == null) return;
+        if (page < 1 || page > TotalGiveawayPages) return;
+        _giveawayPage = page;
+    }
 
-        bool newPromoted = !target.IsPromoted;
-        try
+    private void SetDealsPage(int page)
+    {
+        if (page < 1 || page > TotalDealsPages) return;
+        _dealsPage = page;
+    }
+
+    private static IEnumerable<int> GetVisiblePageNumbers(int current, int total)
+    {
+        if (total <= 7)
         {
-            await GiveawayService.SetPromotedAsync(giveawayId, newPromoted);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Navigation.TryRedirectToLogin(ex);
-            return;
+            return Enumerable.Range(1, total);
         }
 
-        await LoadGiveawaysDataAsync();
+        var pages = new List<int> { 1 };
+
+        if (current > 3)
+        {
+            pages.Add(-1); // Elipsis
+        }
+
+        var start = Math.Max(2, current - 1);
+        var end = Math.Min(total - 1, current + 1);
+
+        for (var i = start; i <= end; i++)
+        {
+            pages.Add(i);
+        }
+
+        if (current < total - 2)
+        {
+            pages.Add(-1); // Elipsis
+        }
+
+        pages.Add(total);
+        return pages;
+    }
+
+    private void OpenCreateGiveawayModal()
+    {
+        _editingGiveawayId = null;
+        _formTitle = string.Empty;
+        _formOrganizer = string.Empty;
+        _formCollaborator = null;
+        _formUrl = string.Empty;
+        _formThumbnailUrl = null;
+        _formCountry = "Internacional";
+        _formPlatform = GiveawayPlatform.Instagram;
+        _formDaysUntilEnd = 5;
+        _formIsCommunityExclusive = false;
+        _formIsPromoted = false;
+        _formError = null;
+        _isCreateModalOpen = true;
+    }
+
+    private void OpenEditGiveawayModal(GiveawayDto s)
+    {
+        _editingGiveawayId = s.Id;
+        _formTitle = s.Title;
+        _formOrganizer = s.Organizer;
+        _formCollaborator = s.Collaborator;
+        _formUrl = s.Url;
+        _formThumbnailUrl = s.ThumbnailUrl;
+        _formCountry = s.Country;
+        _formPlatform = s.Platform;
+        var daysLeft = Math.Max(1, (int)Math.Ceiling((s.DeadlineAt - DateTimeOffset.UtcNow).TotalDays));
+        _formDaysUntilEnd = Math.Min(60, daysLeft);
+        _formIsCommunityExclusive = s.IsCommunityExclusive;
+        _formIsPromoted = s.IsPromoted;
+        _formError = null;
+        _isCreateModalOpen = true;
     }
 
     private async Task HandleSubmitGiveaway()
@@ -768,29 +943,55 @@
 
         var deadline = DateTimeOffset.UtcNow.AddDays(_formDaysUntilEnd);
 
-        var request = new CreateGiveawayRequest(
-            Title: _formTitle,
-            Organizer: _formOrganizer,
-            Collaborator: _formCollaborator,
-            Url: _formUrl,
-            Platform: _formPlatform,
-            DeadlineAt: deadline,
-            ThumbnailUrl: string.IsNullOrWhiteSpace(_formThumbnailUrl) ? null : _formThumbnailUrl.Trim(),
-            IsCommunityExclusive: _formIsCommunityExclusive,
-            IsPromoted: IsModerator && _formIsPromoted,
-            Country: _formCountry);
-
         try
         {
-            await GiveawayService.CreateOrMergeGiveawayAsync(request);
+            if (_editingGiveawayId.HasValue)
+            {
+                var updateRequest = new UpdateGiveawayRequest(
+                    Id: _editingGiveawayId.Value,
+                    Title: _formTitle,
+                    Organizer: _formOrganizer,
+                    Collaborator: _formCollaborator,
+                    Url: _formUrl,
+                    Platform: _formPlatform,
+                    DeadlineAt: deadline,
+                    Country: _formCountry,
+                    ThumbnailUrl: string.IsNullOrWhiteSpace(_formThumbnailUrl) ? null : _formThumbnailUrl.Trim(),
+                    IsCommunityExclusive: _formIsCommunityExclusive,
+                    IsPromoted: IsModerator && _formIsPromoted);
+
+                await GiveawayService.UpdateGiveawayAsync(updateRequest);
+            }
+            else
+            {
+                var request = new CreateGiveawayRequest(
+                    Title: _formTitle,
+                    Organizer: _formOrganizer,
+                    Collaborator: _formCollaborator,
+                    Url: _formUrl,
+                    Platform: _formPlatform,
+                    DeadlineAt: deadline,
+                    ThumbnailUrl: string.IsNullOrWhiteSpace(_formThumbnailUrl) ? null : _formThumbnailUrl.Trim(),
+                    IsCommunityExclusive: _formIsCommunityExclusive,
+                    IsPromoted: IsModerator && _formIsPromoted,
+                    Country: _formCountry);
+
+                await GiveawayService.CreateOrMergeGiveawayAsync(request);
+            }
         }
         catch (UnauthorizedAccessException ex)
         {
             Navigation.TryRedirectToLogin(ex);
             return;
         }
+        catch (Exception ex)
+        {
+            _formError = "Error al procesar el sorteo: " + ex.Message;
+            return;
+        }
 
         _isCreateModalOpen = false;
+        _editingGiveawayId = null;
         _formTitle = string.Empty;
         _formOrganizer = string.Empty;
         _formCollaborator = null;

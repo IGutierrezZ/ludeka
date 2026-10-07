@@ -202,9 +202,9 @@ public class GiveawayService : IGiveawayService
 
         var diff = deadline - DateTimeOffset.UtcNow;
         if (diff.TotalHours < 24)
-            return "Finaliza hoy (¡Últimas horas!)";
+            return "Finaliza hoy";
 
-        var days = (int)Math.Ceiling(diff.TotalDays);
-        return days == 1 ? "Queda 1 día" : $"Quedan {days} días";
+        var days = (int)Math.Floor(diff.TotalDays);
+        return days == 1 ? "1 día" : $"{days} días";
     }
 }

@@ -1171,3 +1171,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Estado:** ✅ **Completado y Archivado** (2.595 tests unitarios en verde al 100%).
 - **Documento:** [`../increments/archive/inc-120-portadas-es-imagenes-top3000.md`](../increments/archive/inc-120-portadas-es-imagenes-top3000.md).
 - **Módulo del Sistema:** [`sistema/53-portadas-es-imagenes-top3000.md`](sistema/53-portadas-es-imagenes-top3000.md).
+
+---
+
+## Incremento 121: Alineación Editorial de Claude (Parte 1: Portada, Tendencias, Catálogo y Sorteos)
+- **Identificador SDD:** `ajustes-editorial-claude-p1`
+- **Objetivo Principal:**
+  1. **Limpieza de Cabecera y Colores Reactivos:** Retirada de la campana de webhooks en `MainLayout.razor`, asignación de terracota (`var(--brand)`) en la ruta `/tendencias`, y depuración del pie de página sin lemas redundantes.
+  2. **Barra de Gestión Contextual (`StaffBar`):** Detección de ruta activa y renderizado contextual de herramientas de moderación (destacados en portada, importación BGG en catálogo, alta exprés en sorteos, edición/eliminación en ficha de sorteo).
+  3. **Portada:** 3 destacados predeterminados diarios (sorteo inminente, novedad, evento) con modal de selección que admite tendencias, y formateo conciso de cuentas atrás sin "Queda/Quedan".
+  4. **Catálogo:** Formato `01, 02...` liberado de recortes por `overflow-hidden` con sombra editorial de 44px en `GameCard.razor`.
+  5. **Radar de Sorteos y Ofertas:** Paginación accesible en ambas pestañas, eliminación de botón redundante "Mis Alertas", y reasignación del icono de lápiz para abrir el modal de edición de datos.
+  6. **Ficha de Sorteo:** Enlace `← Todos los sorteos`, botón comunitario de reporte y modernización del modal de edición con los tokens de Revista Lúdica.
+- **Estado:** ⏳ **En progreso** (Fase 1/2 de la Alineación Editorial de Claude).
+- **Documento:** [`../increments/inc-121-alineacion-editorial-claude-p1.md`](../increments/inc-121-alineacion-editorial-claude-p1.md).
+

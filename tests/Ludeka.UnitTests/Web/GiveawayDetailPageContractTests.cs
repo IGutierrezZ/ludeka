@@ -29,7 +29,7 @@ public class GiveawayDetailPageContractTests
 
         // Enlace de vuelta al radar
         Assert.Contains("href=\"/sorteos\"", source, StringComparison.Ordinal);
-        Assert.Contains("Volver al radar de sorteos", source, StringComparison.Ordinal);
+        Assert.Contains("Todos los sorteos", source, StringComparison.Ordinal);
 
         // Fallback de imagen por dominio y dimensiones anti-CLS
         Assert.Contains("DefaultImage", source, StringComparison.Ordinal);
