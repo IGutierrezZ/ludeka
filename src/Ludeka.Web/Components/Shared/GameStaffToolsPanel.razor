@@ -66,6 +66,25 @@
                             <span>Asociar BGG (@Game.BggId)</span>
                         </button>
 
+                        @if (Game.BggId > 0)
+                        {
+                            <button type="button"
+                                    @onclick="HandleForceSyncBgg"
+                                    disabled="@IsSyncingBgg"
+                                    class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors disabled:opacity-50">
+                                @if (IsSyncingBgg)
+                                {
+                                    <span class="animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
+                                    <span>Sincronizando BGG...</span>
+                                }
+                                else
+                                {
+                                    <Icon Name="refresh-cw" Size="14" />
+                                    <span>Sincronizar BGG (@Game.BggId)</span>
+                                }
+                            </button>
+                        }
+
                         @if (CurrentUserService.IsFoundingTeam)
                         {
                             <button type="button"
@@ -128,6 +147,12 @@
     public EventCallback OnAssociateBgg { get; set; }
 
     [Parameter]
+    public bool IsSyncingBgg { get; set; }
+
+    [Parameter]
+    public EventCallback OnForceSyncBgg { get; set; }
+
+    [Parameter]
     public EventCallback OnEditVerdict { get; set; }
 
     [Parameter]
@@ -159,6 +184,12 @@
     {
         _isFloatingMenuOpen = false;
         await OnAssociateBgg.InvokeAsync();
+    }
+
+    private async Task HandleForceSyncBgg()
+    {
+        _isFloatingMenuOpen = false;
+        await OnForceSyncBgg.InvokeAsync();
     }
 
     private async Task HandleEditVerdict()

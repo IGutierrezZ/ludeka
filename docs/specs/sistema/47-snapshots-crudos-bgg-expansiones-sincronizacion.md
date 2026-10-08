@@ -225,3 +225,21 @@ Para resolver el desfase en juegos recientes donde las ediciones en español se 
 4. **Saneamiento Prioritario en `CatalogDataSanitizer`:**
    - `EnsureKnownPriorityGamesRepairedAsync` asegura de forma determinista O(1) que el juego BggId 453526 (*Got Five!*) actualice su título a `"Código 5"` y su editorial a `"Lúdilo"`, persistiendo además su snapshot de versiones asociado.
 
+### 7.11 Sincronización Forzada de BGG desde la Ficha Editorial (INC-137)
+Para permitir que moderadores y miembros de la Mesa Fundadora puedan corregir discrepancias o enriquecer de forma instantánea cualquier juego desde su propia ficha pública/editorial (`/juegos/{slug}`):
+1. **Contrato de Sincronización en `IGameEditorService`:**
+   - Método `ForceSyncFromBggAsync(Guid gameId, CancellationToken ct = default)` que valida roles/permisos (`IsFoundingTeam` o `CanEditGames`), comprueba `BggId > 0`, consulta en tiempo real a BGG XMLAPI2 con `&versions=1`, guarda o actualiza el snapshot crudo en `IBggRawSnapshotRepository` y actualiza la entidad `Game`:
+     - Título en español: solo si la versión española dispone de un título limpio no genérico (descartando "Spanish edition", etc.).
+     - Editorial española: extraída de la versión española en BGG.
+     - Código de barras EAN-13: validado con algoritmo de dígito de control módulo 10.
+     - Imágenes: portada y miniatura actualizadas si proceden de la edición local o si la ficha carecía de ellas.
+   - Registro de auditoría atómico en `GameEditLog` y `IAuditService`, e invalidación de caché L1 de catálogo (`CachedCatalogService`).
+2. **Desacoplamiento Limpio en `IBggClient`:**
+   - Incorporación de `FetchRawThingJsonAsync(int bggId, bool includeVersions = true, CancellationToken ct = default)` en `IBggClient`, implementado en `BggXmlApiClient` y `SimulatedBggClient` mediante `BggXmlToJsonConverter`, evitando dependencias de XML en la capa de aplicación.
+3. **Controles de Usuario en Blazor Web App:**
+   - Botón reactivo en el panel flotante `GameStaffToolsPanel.razor` («Sincronizar BGG (id)»).
+   - Botón en la botonera editorial de staff en la pestaña de veredicto de `GameDetail.razor`.
+   - Botón contextual «Sincronizar» en el pie del marco polaroid junto a «Ver en BGG ↗».
+   - Estados de carga `IsSyncingBgg` con spinner e información reactiva de cambios en `_actionFeedbackMessage`.
+
+

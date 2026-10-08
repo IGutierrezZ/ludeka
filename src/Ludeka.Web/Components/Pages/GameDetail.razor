@@ -248,13 +248,26 @@ else
 
                     <div class="flex justify-between items-center gap-2 pt-0.5 px-0.5">
                         <b class="text-xs font-extrabold text-[#22180F] truncate">@CurrentHeroImageLabel</b>
-                        <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           class="text-xs font-black text-[#22180F] border-b-2 border-[#C9481C] hover:opacity-80 transition-opacity whitespace-nowrap inline-flex items-center gap-1">
-                            <Icon Name="globe" Size="12" />
-                            <span>Ver en BGG ↗</span>
-                        </a>
+                        <div class="flex items-center gap-2">
+                            @if (IsStaff && Game.BggId > 0)
+                            {
+                                <button type="button"
+                                        @onclick="HandleForceSyncBgg"
+                                        disabled="@_isSyncingBgg"
+                                        title="Sincronizar datos y versiones desde BoardGameGeek"
+                                        class="text-xs font-black text-[#22180F] hover:opacity-80 transition-opacity whitespace-nowrap inline-flex items-center gap-1 border-b border-dashed border-[#22180F] cursor-pointer disabled:opacity-50">
+                                    <Icon Name="refresh-cw" Size="11" class="@(_isSyncingBgg ? "animate-spin" : "")" />
+                                    <span>@(_isSyncingBgg ? "Sincronizando..." : "Sincronizar")</span>
+                                </button>
+                            }
+                            <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-xs font-black text-[#22180F] border-b-2 border-[#C9481C] hover:opacity-80 transition-opacity whitespace-nowrap inline-flex items-center gap-1">
+                                <Icon Name="globe" Size="12" />
+                                <span>Ver en BGG ↗</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -536,6 +549,24 @@ else
                                     <Icon Name="pen-line" Size="14" />
                                     <span>Editar Ficha</span>
                                 </button>
+                                @if (Game.BggId > 0)
+                                {
+                                    <button type="button"
+                                            @onclick="HandleForceSyncBgg"
+                                            disabled="@_isSyncingBgg"
+                                            class="h-9 px-4 rounded-full border border-[var(--rule)] bg-[var(--paper-2)] text-[var(--ink)] font-black text-xs hover:bg-[var(--paper)] transition-colors disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5">
+                                        @if (_isSyncingBgg)
+                                        {
+                                            <span class="animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
+                                            <span>Sincronizando BGG...</span>
+                                        }
+                                        else
+                                        {
+                                            <Icon Name="refresh-cw" Size="14" />
+                                            <span>Sincronizar BGG (@Game.BggId)</span>
+                                        }
+                                    </button>
+                                }
                             </div>
                         }
 
@@ -887,9 +918,11 @@ else
             AiSummary="@_aiSummary"
             FoundingVerdict="@_foundingVerdict"
             IsGeneratingAiSummary="@_isGeneratingAiSummary"
+            IsSyncingBgg="@_isSyncingBgg"
             OnEditMetadata="() => _isEditorModalOpen = true"
             OnRequestAiSummary="HandleRequestAiSummary"
             OnAssociateBgg="() => _isAssociateBggModalOpen = true"
+            OnForceSyncBgg="HandleForceSyncBgg"
             OnEditVerdict="() => _isFoundingModalOpen = true"
             OnSocialCard="OpenSocialCardModal"
             OnOpenReports="() => _isReportModalOpen = true" />
@@ -1497,6 +1530,49 @@ else
         if (Game != null)
         {
             Game = await CatalogService.GetGameBySlugAsync(Slug);
+            StateHasChanged();
+        }
+    }
+
+    private bool _isSyncingBgg;
+
+    private async Task HandleForceSyncBgg()
+    {
+        if (Game == null || Game.BggId <= 0 || _isSyncingBgg) return;
+
+        try
+        {
+            _isSyncingBgg = true;
+            _actionFeedbackMessage = null;
+            StateHasChanged();
+
+            var result = await GameEditorService.ForceSyncFromBggAsync(Game.Id);
+
+            if (result.Success)
+            {
+                var reloaded = await CatalogService.GetGameBySlugAsync(Slug);
+                if (reloaded != null)
+                {
+                    Game = reloaded;
+                }
+                _actionFeedbackType = "success";
+                _actionFeedbackMessage = result.Message;
+            }
+            else
+            {
+                _actionFeedbackType = "error";
+                _actionFeedbackMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al forzar la sincronización con BGG para el juego {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = $"Error al sincronizar con BGG: {ex.Message}";
+        }
+        finally
+        {
+            _isSyncingBgg = false;
             StateHasChanged();
         }
     }

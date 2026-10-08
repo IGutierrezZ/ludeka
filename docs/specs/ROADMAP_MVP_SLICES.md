@@ -1259,7 +1259,22 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 
 ---
 
-## Incremento 137: Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs
+## Incremento 137: Forzar Sincronización BGG desde Ficha de Juego (Snapshot, Versiones, Imágenes y Datos)
+- **Identificador SDD:** `sincronizacion-bgg-ficha`
+- **Objetivo Principal:**
+  1. **Acción bajo demanda en `IGameEditorService`:** Método `ForceSyncFromBggAsync(Guid gameId)` que valida permisos Staff (`CanEditGames` o Mesa Fundadora) y BggId válido.
+  2. **Descarga y Persistencia de Snapshot BGG:** Consulta en tiempo real a BGG XMLAPI2 con `&versions=1`, deserialización estructurada mediante `BggXmlToJsonConverter` y upsert idempotente en `BggRawSnapshots`.
+  3. **Extracción y Actualización Atómica:** Extracción mediante `BggRawSnapshotParser` de versión en español (título no genérico, editorial local con matcher de editoriales, código EAN-13 validado por dígito de control módulo 10 e imágenes oficiales de caja/miniatura).
+  4. **Auditoría e Invalidación de Caché:** Registro atómico en `GameEditLog` e `IAuditService`, e invalidación inmediata de caché L1 de catálogo (`CachedCatalogService`).
+  5. **Controles Reactivos en UI Blazor:** Integración en `GameStaffToolsPanel.razor`, en la botonera de staff de `GameDetail.razor` y en el marco polaroid junto a «Ver en BGG ↗», con estado `IsSyncingBgg`, spinner de progreso y mensaje de retroalimentación editorial.
+- **Estado:** ✅ **Completado y Archivado** (INC-137 · 2.742 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/archive/inc-137-sincronizacion-bgg-ficha.md`](../increments/archive/inc-137-sincronizacion-bgg-ficha.md).
+- **Módulo del Sistema:** [`sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+- **Pruebas unitarias:** 2.742 verificadas al 100%.
+
+---
+
+## Incremento 138: Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs
 - **Identificador SDD:** `resiliencia-devir-maldito-novedades`
 - **Objetivo Principal:**
   1. **Saneamiento de Cabeceras HTTP de Navegación:** Erradicar colisiones de User-Agent y configurar cabeceras estándar de navegador (`Accept`, `Accept-Language`, `Referer`, `Sec-Ch-Ua`) en `DevirReleasesExtractor` y `MalditoReleasesExtractor`.
@@ -1267,5 +1282,5 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   3. **Desacoplo y Aislamiento en Extracción de Maldito Games:** Separar la obtención de la portada y el catálogo para que un fallo en el catálogo Magento no descarte las más de 40 novedades de la portada, garantizando su llegada a la bandeja de moderación.
   4. **Ritmo Cortés y Tolerancia en Job de Barrido:** Throttle de 750 ms entre páginas y tolerancia de hasta 2 fallos consecutivos en `DevirImagesBackfillJobRunner`.
   5. **Despliegue Continuo de `devir-images-backfill`:** Registro en `.github/workflows/ci-cd.yml` para despliegue automático en Google Cloud Run Jobs.
-- **Estado:** ⏳ **En progreso** (INC-137).
-- **Documento:** [`../increments/inc-137-resiliencia-devir-maldito-novedades.md`](../increments/inc-137-resiliencia-devir-maldito-novedades.md).
+- **Estado:** ⏳ **En progreso** (INC-138).
+- **Documento:** [`../increments/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/inc-138-resiliencia-devir-maldito-novedades.md).
