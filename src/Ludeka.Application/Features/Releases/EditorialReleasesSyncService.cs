@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -161,6 +162,9 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 matchedGame = gameByEan;
             }
 
+            var cleanedTitle = CleanCommercialTitle(item.Title);
+            var baseTitle = ExtractBaseTitle(cleanedTitle);
+
             // 2. Cruce por Título normalizado si no se encontró por EAN
             if (matchedGame == null)
             {
@@ -169,6 +173,16 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 {
                     matchedGame = gameByTitle;
                 }
+                else if (!string.IsNullOrWhiteSpace(cleanedTitle) &&
+                         titleIndex.TryGetValue(Normalize(cleanedTitle), out var gameByClean))
+                {
+                    matchedGame = gameByClean;
+                }
+                else if (!string.IsNullOrWhiteSpace(baseTitle) &&
+                         titleIndex.TryGetValue(Normalize(baseTitle), out var gameByBase))
+                {
+                    matchedGame = gameByBase;
+                }
             }
 
             // 3. Fallback BGG si el juego no está en catálogo local
@@ -176,27 +190,52 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
             {
                 try
                 {
-                    var searchResults = await _bggClient.SearchGamesAsync(item.Title, ct).ConfigureAwait(false);
-                    if (searchResults.Count > 0)
+                    var queriesToTry = new List<string> { item.Title };
+                    if (!string.IsNullOrWhiteSpace(cleanedTitle) &&
+                        !cleanedTitle.Equals(item.Title, StringComparison.OrdinalIgnoreCase))
                     {
-                        var bestMatch = FindBestMatch(item.Title, searchResults);
-                        if (bestMatch != null)
+                        queriesToTry.Add(cleanedTitle);
+                    }
+                    if (!string.IsNullOrWhiteSpace(baseTitle) &&
+                        !baseTitle.Equals(cleanedTitle, StringComparison.OrdinalIgnoreCase) &&
+                        !baseTitle.Equals(item.Title, StringComparison.OrdinalIgnoreCase))
+                    {
+                        queriesToTry.Add(baseTitle);
+                    }
+
+                    BggSearchResultDto? bestMatch = null;
+                    string matchedQuery = item.Title;
+
+                    foreach (var query in queriesToTry)
+                    {
+                        var searchResults = await _bggClient.SearchGamesAsync(query, ct).ConfigureAwait(false);
+                        if (searchResults.Count > 0)
                         {
-                            var bggGame = await _bggClient.FetchGameByBggIdAsync(bestMatch.BggId, ct).ConfigureAwait(false);
-                            if (bggGame != null)
+                            bestMatch = FindBestMatch(query, searchResults);
+                            if (bestMatch != null)
                             {
-                                if (!string.IsNullOrWhiteSpace(item.Ean))
-                                {
-                                    bggGame.UpdateEan(item.Ean);
-                                }
-                                bggGame.UpdateSpanishPublisher(item.Publisher);
-
-                                await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
-                                IndexGame(barcodeIndex, titleIndex, bggGame);
-
-                                matchedGame = bggGame;
-                                importedCount++;
+                                matchedQuery = query;
+                                break;
                             }
+                        }
+                    }
+
+                    if (bestMatch != null)
+                    {
+                        var bggGame = await _bggClient.FetchGameByBggIdAsync(bestMatch.BggId, ct).ConfigureAwait(false);
+                        if (bggGame != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(item.Ean))
+                            {
+                                bggGame.UpdateEan(item.Ean);
+                            }
+                            bggGame.UpdateSpanishPublisher(item.Publisher);
+
+                            await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
+                            IndexGame(barcodeIndex, titleIndex, bggGame);
+
+                            matchedGame = bggGame;
+                            importedCount++;
                         }
                     }
                 }
@@ -332,17 +371,66 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         }
     }
 
-    private static BggSearchResultDto? FindBestMatch(string title, IReadOnlyList<BggSearchResultDto> results)
+    private static BggSearchResultDto? FindBestMatch(string queryTitle, IReadOnlyList<BggSearchResultDto> results)
     {
-        var norm = Normalize(title);
+        var norm = Normalize(queryTitle);
 
         // 1. Coincidencia exacta normalizada
         var exact = results.FirstOrDefault(r => Normalize(r.Title) == norm);
         if (exact != null)
             return exact;
 
-        // 2. Primer resultado devuelto por BGG
+        // 2. Coincidencia con título comercial limpio
+        var normClean = Normalize(CleanCommercialTitle(queryTitle));
+        if (!string.IsNullOrWhiteSpace(normClean))
+        {
+            var cleanMatch = results.FirstOrDefault(r => Normalize(r.Title) == normClean);
+            if (cleanMatch != null)
+                return cleanMatch;
+        }
+
+        // 3. Coincidencia con título base
+        var normBase = Normalize(ExtractBaseTitle(queryTitle));
+        if (!string.IsNullOrWhiteSpace(normBase))
+        {
+            var baseMatch = results.FirstOrDefault(r => Normalize(r.Title) == normBase);
+            if (baseMatch != null)
+                return baseMatch;
+        }
+
+        // 4. Primer resultado devuelto por BGG
         return results.FirstOrDefault();
+    }
+
+    public static string CleanCommercialTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return string.Empty;
+
+        var decoded = WebUtility.HtmlDecode(title).Trim();
+
+        // Eliminar coletillas de edición: "Edición Kickstarter", "Edición Esencial", "Edición Almirante..."
+        decoded = Regex.Replace(
+            decoded,
+            @"\s*[-–:]?\s*(?:Edici[oó]n|Version|Versi[oó]n)\s+(?:Kickstarter|Esencial|Deluxe|Coleccionista|Especial|Mecenas|Almirante|Retail|Definitiva)(?:.*)?$",
+            "",
+            RegexOptions.IgnoreCase).Trim();
+
+        return decoded;
+    }
+
+    public static string ExtractBaseTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return string.Empty;
+
+        var parts = title.Split(new[] { " - ", " – ", " — ", ": " }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+        {
+            return parts[0].Trim();
+        }
+
+        return title.Trim();
     }
 
     private static string MakeReleaseKey(string title, string publisher)

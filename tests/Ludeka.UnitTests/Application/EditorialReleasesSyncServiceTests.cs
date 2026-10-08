@@ -184,6 +184,136 @@ public class EditorialReleasesSyncServiceTests
         Assert.Empty(_weeklyReleaseRepo.Releases);
     }
 
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_LinksMalditoGamesWithEanFromImage()
+    {
+        // Arrange: un juego existente en catálogo con el EAN extraído de la imagen
+        var rangers = CreateSampleGame(3001, "earthborne-rangers", "Earthborne Rangers", "Earthborne Rangers", yearPublished: 2023);
+        rangers.UpdateEan("8436578818099");
+        _gameRepo.Add(rangers);
+
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new(
+                Title: "Earthborne Rangers",
+                Publisher: "Maldito Games",
+                ReleaseDate: new DateOnly(2026, 10, 22),
+                TargetDateText: "22 de octubre",
+                EstimatedPvp: 100m,
+                Ean: "8436578818099",
+                CoverImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578818099-1200-face3d.jpg",
+                Notes: "Reimpresión oficial en Maldito Games",
+                SourceUrl: "https://tienda.malditogames.com/1243-earthborne-rangers.html",
+                IsReprint: true,
+                IsMonthOnly: false)
+        };
+
+        var service = CreateService();
+
+        // Act
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        // Assert
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.CreatedCount);
+        Assert.Equal(1, summary.GamesLinkedCount);
+
+        var created = _weeklyReleaseRepo.Releases.First();
+        Assert.Equal("Earthborne Rangers", created.Title);
+        Assert.Equal("Maldito Games", created.Publisher);
+        Assert.Equal(rangers.Id, created.GameId);
+        Assert.Equal(100m, created.EstimatedPvp);
+        Assert.True(created.IsReprint);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_MatchesGameByCleanCommercialTitle()
+    {
+        // Arrange: en catálogo existe "Viticulture"
+        var viticulture = CreateSampleGame(4001, "viticulture", "Viticulture", "Viticulture", yearPublished: 2015);
+        _gameRepo.Add(viticulture);
+
+        // Maldito extrae "Viticulture Edición Esencial"
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new(
+                Title: "Viticulture Edición Esencial",
+                Publisher: "Maldito Games",
+                ReleaseDate: new DateOnly(2026, 10, 1),
+                TargetDateText: "1 de octubre",
+                EstimatedPvp: 60m,
+                Ean: null,
+                CoverImageUrl: null)
+        };
+
+        var service = CreateService();
+
+        // Act
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        // Assert: se limpia la coletilla y vincula a Viticulture
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.GamesLinkedCount);
+        var created = _weeklyReleaseRepo.Releases.First();
+        Assert.Equal(viticulture.Id, created.GameId);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_MatchesGameByBaseTitle()
+    {
+        // Arrange: en catálogo existe "Castle Combo"
+        var castleCombo = CreateSampleGame(5001, "castle-combo", "Castle Combo", "Castle Combo", yearPublished: 2024);
+        _gameRepo.Add(castleCombo);
+
+        // Maldito extrae "Castle Combo - ¡Fuera de la mazmorra!"
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new(
+                Title: "Castle Combo - ¡Fuera de la mazmorra!",
+                Publisher: "Maldito Games",
+                ReleaseDate: null,
+                TargetDateText: null,
+                EstimatedPvp: 6m,
+                Ean: "8436625618603",
+                CoverImageUrl: null)
+        };
+
+        var service = CreateService();
+
+        // Act
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        // Assert: coincide por título base "Castle Combo"
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.GamesLinkedCount);
+        var created = _weeklyReleaseRepo.Releases.First();
+        Assert.Equal(castleCombo.Id, created.GameId);
+    }
+
+    [Theory]
+    [InlineData("Viticulture Edición Esencial", "Viticulture")]
+    [InlineData("Speakeasy Edición Kickstarter", "Speakeasy")]
+    [InlineData("Revenant: Edición Almirante", "Revenant")]
+    [InlineData("Revenant: Edición Almirante con pintado Wash", "Revenant")]
+    [InlineData("Juego Base", "Juego Base")]
+    public void CleanCommercialTitle_RemovesCommercialSuffixes(string raw, string expected)
+    {
+        var cleaned = EditorialReleasesSyncService.CleanCommercialTitle(raw);
+        Assert.Equal(expected, cleaned);
+    }
+
+    [Theory]
+    [InlineData("Castle Combo - ¡Fuera de la mazmorra!", "Castle Combo")]
+    [InlineData("Wingspan - Packs de cartas diseñadas por fans – Conjunto 1", "Wingspan")]
+    [InlineData("Una aventura salvaje - Senderos", "Una aventura salvaje")]
+    [InlineData("Revenant: Razón y Fe", "Revenant")]
+    [InlineData("Scythe", "Scythe")]
+    public void ExtractBaseTitle_ExtractsPrefixProperly(string raw, string expected)
+    {
+        var baseTitle = EditorialReleasesSyncService.ExtractBaseTitle(raw);
+        Assert.Equal(expected, baseTitle);
+    }
+
     private static Game CreateSampleGame(int bggId, string slug, string originalTitle, string spanishTitle, int yearPublished)
     {
         return new Game(
