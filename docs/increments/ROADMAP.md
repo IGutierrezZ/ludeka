@@ -148,6 +148,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-133** | Saneamiento de Novedades Devir y Maldito, Galería Fotográfica y Job de Barrido de Catálogo | ✅ Archivado | [inc-133-devir-galeria-filtros-novedades.md](archive/inc-133-devir-galeria-filtros-novedades.md) |
 | **INC-134** | Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo | ✅ Archivado | [inc-134-ordenacion-dureza-backfill.md](archive/inc-134-ordenacion-dureza-backfill.md) |
 | **INC-135** | Saneamiento de Descriptores de Edición en Títulos BGG y Reparación Automática de Catálogo | ✅ Archivado | [inc-135-saneamiento-titulos-edicion.md](archive/inc-135-saneamiento-titulos-edicion.md) |
+| **INC-136** | Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo | ⏳ En progreso | [inc-136-refresco-versiones-ludilo.md](inc-136-refresco-versiones-ludilo.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
