@@ -1312,3 +1312,19 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-140-galeria-dinamica-fichas.md`](../increments/archive/inc-140-galeria-dinamica-fichas.md).
 - **Módulo del Sistema:** [`sistema/59-galeria-dinamica-editor-fichas.md`](sistema/59-galeria-dinamica-editor-fichas.md).
 - **Pruebas unitarias:** 2.760 verificadas al 100%.
+
+---
+
+## Incremento 141: Búsqueda Insensible a Tildes y Diacríticos en Catálogo y Búsqueda Rápida
+- **Identificador SDD:** `busqueda-insensible-tildes`
+- **Objetivo Principal:**
+  1. **Helper Centralizado en Dominio (`Ludeka.Core`):** `TextNormalizer.RemoveDiacritics` y `TextNormalizer.ToSearchSlugPattern` para estandarizar la descomposición canónica de acentos y generación de comodines flexibles sobre slugs.
+  2. **Insensibilidad a Tildes en Repositorio (`SqliteGameRepository`):**
+     - Búsqueda por `g.Slug` normalizado con `slugPattern` tanto en SQLite como en PostgreSQL.
+     - Búsqueda por `cleanPattern` sobre títulos, diseñadores y editoriales.
+     - Búsqueda rápida insensible a tildes en `QuickSearchAsync`.
+  3. **TDD Estricto y Verificación:** Pruebas unitarias de repositorio y de helper de normalización en `Ludeka.UnitTests` sin dependencias de extensiones específicas de PostgreSQL (`unaccent`) para mantener compatibilidad dual transparente.
+- **Estado:** ⏳ **En progreso** (INC-141).
+- **Documento:** [`../increments/inc-141-busqueda-insensible-tildes.md`](../increments/inc-141-busqueda-insensible-tildes.md).
+- **Módulo del Sistema:** [`sistema/01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md).
+

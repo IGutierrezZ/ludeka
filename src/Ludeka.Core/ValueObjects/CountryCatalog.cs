@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Ludeka.Core.Helpers;
 
 namespace Ludeka.Core.ValueObjects;
 
@@ -110,20 +111,5 @@ public static class CountryCatalog
         return matched != null && matched.Code == "INT";
     }
 
-    private static string RemoveDiacritics(string text)
-    {
-        var normalizedString = text.Normalize(NormalizationForm.FormD);
-        var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
-
-        foreach (var c in normalizedString)
-        {
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
-        }
-
-        return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-    }
+    private static string RemoveDiacritics(string text) => TextNormalizer.RemoveDiacritics(text);
 }

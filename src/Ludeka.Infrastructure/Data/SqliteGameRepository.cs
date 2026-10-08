@@ -147,28 +147,38 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             query = query.Where(g => g.YearPublished <= criteria.MaxYear.Value);
         }
 
-        // Filtro por término de búsqueda (bilingüe y multipaís en SQL: títulos, diseñador, editoriales)
+        // Filtro por término de búsqueda (bilingüe, multipaís e insensible a tildes/diacríticos en SQL)
         if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
         {
             string term = criteria.SearchTerm.Trim();
             string pattern = $"%{term}%";
+            string cleanTerm = TextNormalizer.RemoveDiacritics(term).Trim();
+            string cleanPattern = $"%{cleanTerm}%";
+            string slugPattern = TextNormalizer.ToSearchSlugPattern(term);
+
             if (scope.Context.Database.IsNpgsql())
             {
                 query = query.Where(g =>
+                    EF.Functions.ILike(g.Slug, slugPattern) ||
                     EF.Functions.ILike(g.SpanishTitle, pattern) ||
                     EF.Functions.ILike(g.OriginalTitle, pattern) ||
-                    (g.SpanishPublisher != null && EF.Functions.ILike(g.SpanishPublisher, pattern)) ||
-                    (g.Publisher != null && EF.Functions.ILike(g.Publisher, pattern)) ||
-                    (g.Designer != null && EF.Functions.ILike(g.Designer, pattern)));
+                    EF.Functions.ILike(g.SpanishTitle, cleanPattern) ||
+                    EF.Functions.ILike(g.OriginalTitle, cleanPattern) ||
+                    (g.SpanishPublisher != null && (EF.Functions.ILike(g.SpanishPublisher, pattern) || EF.Functions.ILike(g.SpanishPublisher, cleanPattern))) ||
+                    (g.Publisher != null && (EF.Functions.ILike(g.Publisher, pattern) || EF.Functions.ILike(g.Publisher, cleanPattern))) ||
+                    (g.Designer != null && (EF.Functions.ILike(g.Designer, pattern) || EF.Functions.ILike(g.Designer, cleanPattern))));
             }
             else
             {
                 query = query.Where(g =>
+                    EF.Functions.Like(g.Slug, slugPattern) ||
                     EF.Functions.Like(g.SpanishTitle, pattern) ||
                     EF.Functions.Like(g.OriginalTitle, pattern) ||
-                    (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
-                    (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
-                    (g.Designer != null && EF.Functions.Like(g.Designer, pattern)));
+                    EF.Functions.Like(g.SpanishTitle, cleanPattern) ||
+                    EF.Functions.Like(g.OriginalTitle, cleanPattern) ||
+                    (g.SpanishPublisher != null && (EF.Functions.Like(g.SpanishPublisher, pattern) || EF.Functions.Like(g.SpanishPublisher, cleanPattern))) ||
+                    (g.Publisher != null && (EF.Functions.Like(g.Publisher, pattern) || EF.Functions.Like(g.Publisher, cleanPattern))) ||
+                    (g.Designer != null && (EF.Functions.Like(g.Designer, pattern) || EF.Functions.Like(g.Designer, cleanPattern))));
             }
         }
 
@@ -649,7 +659,11 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         if (string.IsNullOrWhiteSpace(term)) return [];
         if (limit < 1) limit = 5;
 
-        string pattern = $"%{term.Trim()}%";
+        string trimmedTerm = term.Trim();
+        string pattern = $"%{trimmedTerm}%";
+        string cleanTerm = TextNormalizer.RemoveDiacritics(trimmedTerm).Trim();
+        string cleanPattern = $"%{cleanTerm}%";
+        string slugPattern = TextNormalizer.ToSearchSlugPattern(trimmedTerm);
 
         await using var scope = await CreateScopeAsync(ct);
         var isNpgsql = scope.Context.Database.IsNpgsql();
@@ -657,16 +671,22 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .AsNoTracking()
             .Where(g =>
                 isNpgsql
-                    ? (EF.Functions.ILike(g.SpanishTitle, pattern) ||
+                    ? (EF.Functions.ILike(g.Slug, slugPattern) ||
+                       EF.Functions.ILike(g.SpanishTitle, pattern) ||
                        EF.Functions.ILike(g.OriginalTitle, pattern) ||
-                       (g.SpanishPublisher != null && EF.Functions.ILike(g.SpanishPublisher, pattern)) ||
-                       (g.Publisher != null && EF.Functions.ILike(g.Publisher, pattern)) ||
-                       (g.Designer != null && EF.Functions.ILike(g.Designer, pattern)))
-                    : (EF.Functions.Like(g.SpanishTitle, pattern) ||
+                       EF.Functions.ILike(g.SpanishTitle, cleanPattern) ||
+                       EF.Functions.ILike(g.OriginalTitle, cleanPattern) ||
+                       (g.SpanishPublisher != null && (EF.Functions.ILike(g.SpanishPublisher, pattern) || EF.Functions.ILike(g.SpanishPublisher, cleanPattern))) ||
+                       (g.Publisher != null && (EF.Functions.ILike(g.Publisher, pattern) || EF.Functions.ILike(g.Publisher, cleanPattern))) ||
+                       (g.Designer != null && (EF.Functions.ILike(g.Designer, pattern) || EF.Functions.ILike(g.Designer, cleanPattern))))
+                    : (EF.Functions.Like(g.Slug, slugPattern) ||
+                       EF.Functions.Like(g.SpanishTitle, pattern) ||
                        EF.Functions.Like(g.OriginalTitle, pattern) ||
-                       (g.SpanishPublisher != null && EF.Functions.Like(g.SpanishPublisher, pattern)) ||
-                       (g.Publisher != null && EF.Functions.Like(g.Publisher, pattern)) ||
-                       (g.Designer != null && EF.Functions.Like(g.Designer, pattern))))
+                       EF.Functions.Like(g.SpanishTitle, cleanPattern) ||
+                       EF.Functions.Like(g.OriginalTitle, cleanPattern) ||
+                       (g.SpanishPublisher != null && (EF.Functions.Like(g.SpanishPublisher, pattern) || EF.Functions.Like(g.SpanishPublisher, cleanPattern))) ||
+                       (g.Publisher != null && (EF.Functions.Like(g.Publisher, pattern) || EF.Functions.Like(g.Publisher, cleanPattern))) ||
+                       (g.Designer != null && (EF.Functions.Like(g.Designer, pattern) || EF.Functions.Like(g.Designer, cleanPattern)))))
             .OrderBy(g => g.BggRank.HasValue ? 0 : 1)
             .ThenBy(g => g.BggRank ?? int.MaxValue)
             .ThenByDescending(g => g.BggRating)

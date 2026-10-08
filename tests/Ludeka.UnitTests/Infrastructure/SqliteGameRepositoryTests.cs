@@ -776,6 +776,92 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal(3.74, reloadedG3.BggWeight);
     }
 
+    [Fact]
+    public async Task SearchAsync_SearchTerm_WithoutDiacritics_ShouldFindAccentedGame()
+    {
+        // Arrange
+        await CatalogSeeder.SeedAsync(_context);
+
+        // Act: Búsqueda con "borgona" (sin tilde/diacrítico en 'n')
+        var (items, total) = await _repository.SearchAsync(new GameFilterCriteria(SearchTerm: "borgona"));
+
+        // Assert: Debe encontrar "Los Castillos de Borgoña" cuyo slug es "los-castillos-de-borgona"
+        Assert.True(total >= 1);
+        Assert.Contains(items, g => g.Slug == "los-castillos-de-borgona");
+    }
+
+    [Fact]
+    public async Task SearchAsync_SearchTerm_Codigo5WithoutAccent_ShouldFindGame()
+    {
+        // Arrange
+        var codigo5 = new Game(
+            bggId: 999901,
+            originalTitle: "Code 5",
+            spanishTitle: "Código 5",
+            designer: "Autor de Prueba",
+            publisher: "Editorial Prueba",
+            yearPublished: 2024,
+            coverImageUrl: "https://example.com/cover.jpg",
+            thumbnailUrl: "https://example.com/thumb.jpg",
+            description: "Juego de deducción con tilde en el nombre.",
+            bggRating: 7.5,
+            bggRank: 500,
+            ludistRating: 8.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.SmallTable,
+            duration: new GameDuration(30, 45, 30));
+
+        await _context.Games.AddAsync(codigo5);
+        await _context.SaveChangesAsync();
+
+        // Act: Búsqueda sin tilde ("codigo 5")
+        var (items, total) = await _repository.SearchAsync(new GameFilterCriteria(SearchTerm: "codigo 5"));
+
+        // Assert: Debe localizar el juego con título "Código 5"
+        Assert.True(total >= 1);
+        Assert.Contains(items, g => g.Slug == "codigo-5");
+    }
+
+    [Fact]
+    public async Task QuickSearchAsync_WithoutDiacritics_ShouldFindAccentedGame()
+    {
+        // Arrange
+        var codigo5 = new Game(
+            bggId: 999902,
+            originalTitle: "Code 5",
+            spanishTitle: "Código 5",
+            designer: "Autor de Prueba",
+            publisher: "Editorial Prueba",
+            yearPublished: 2024,
+            coverImageUrl: "https://example.com/cover.jpg",
+            thumbnailUrl: "https://example.com/thumb.jpg",
+            description: "Juego de deducción.",
+            bggRating: 7.5,
+            bggRank: 500,
+            ludistRating: 8.0,
+            confrontation: ConfrontationType.Competitive,
+            style: GameStyle.Eurogame,
+            isOfficialSolo: false,
+            age: new AgeRating(10, 10),
+            language: LanguageDependence.None,
+            footprint: TableFootprint.SmallTable,
+            duration: new GameDuration(30, 45, 30));
+
+        await _context.Games.AddAsync(codigo5);
+        await _context.SaveChangesAsync();
+
+        // Act: Búsqueda rápida sin tilde
+        var results = await _repository.QuickSearchAsync("codigo 5", limit: 5);
+
+        // Assert
+        Assert.NotEmpty(results);
+        Assert.Contains(results, g => g.Slug == "codigo-5");
+    }
+
     public void Dispose()
     {
         _context.Dispose();
