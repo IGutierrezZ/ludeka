@@ -1,11 +1,13 @@
 # INC-129: Moderación Asistida por IA (Gemini) de Novedades Editoriales, Filtro de Calendario en Devir y Jerarquía de Imágenes 3D
 
 - **ID del Incremento:** `INC-129`
-- **Estado:** `⏳ En progreso`
+- **Estado:** `✅ Archivado`
 - **Fecha de Inicio:** `2026-10-08`
+- **Fecha de Cierre:** `2026-10-08`
 - **Rama:** `inc/novedades-moderacion-ia-devir`
 - **Worktree:** `F:\repos\ludeka-wt\novedades-moderacion-ia-devir`
 - **Directorio SDD:** `openspec/changes/2026-10-08-inc-129-novedades-moderacion-ia-devir/`
+- **Pruebas Verificadas:** `2.675 pruebas unitarias verificadas al 100% en verde`
 
 ---
 
