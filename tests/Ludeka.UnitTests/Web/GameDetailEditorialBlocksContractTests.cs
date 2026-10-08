@@ -112,7 +112,7 @@ public class GameDetailEditorialBlocksContractTests
 
         // Acciones móviles limpias integradas en cabecera sin solapamiento con MobileBottomNav
         Assert.Contains("Registrar partida", source, StringComparison.Ordinal);
-        Assert.Contains("Compartir", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=\"Compartir\"", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -194,6 +194,10 @@ public class GameDetailEditorialBlocksContractTests
         // Veredicto en resumen truncado a 3 líneas con line-clamp-3
         Assert.Contains("line-clamp-3", source, StringComparison.Ordinal);
         Assert.Contains("Leer el veredicto completo", source, StringComparison.Ordinal);
+
+        // Zona roja limpia: sin botón redundante de veredicto ni botón de compartir
+        Assert.DoesNotContain("<span>Leer el veredicto &rarr;</span>", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=\"Compartir ficha\"", source, StringComparison.Ordinal);
 
         // Pestañas independientes: Videos muestra el reproductor hero y cuadrícula sin subpestañas
         Assert.Contains("AllGameVideos", source, StringComparison.Ordinal);
