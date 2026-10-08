@@ -58,7 +58,13 @@ Ubicación: [`src/Ludeka.Core/Entities/ExpansionRecipe.cs`](file:///c:/repos/Lud
 - [`ExpansionAporteCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionAporteCard.razor): Tarjeta de aportes con badges de impacto y necesidad.
   - **Estado Vacío y Acción IA (INC-102):** Si la expansión carece de aportes editoriales cargados, despliega un *empty state* con iconografía `sparkles` y un botón interactivo para generar la síntesis de aporte al instante con feedback visual de carga.
 - [`ExpansionSisterList.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor): Carrusel de expansiones hermanas.
-- [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor): Sección en el juego base con 3 pestañas:
-  - **Carrusel Horizontal de Expansiones (INC-99):** Sustituye la cuadrícula vertical previa por un carril horizontal (`id="expansions-carousel-rail"`, `overflow-x-auto snap-x snap-mandatory scrollbar-none`), con tarjetas compactas (275px a 310px) que permiten ver 2 o 3 títulos simultáneos sin forzar scroll vertical. Incluye botones prev/next interactivos asistidos por `window.ludekaScrollRail`.
-  - **Mezclador de Mesa en Layout a 2 Columnas (INC-99):** Reestructurado en dos columnas (`lg:grid-cols-12`): columna izquierda (`lg:col-span-5`) con selector vertical compacto de altura contenida (`max-h-[380px] overflow-y-auto`) y columna derecha (`lg:col-span-7`) con el panel de diagnóstico en tiempo real de compatibilidad y sinergias, evitando scroll vertical excesivo.
-  - **Recetas Recomendadas:** Carrusel horizontal de recetas prediseñadas con botón directo de carga al mezclador.
+- [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor): Sección editorial limpia en el juego base (INC-130, alineación Claude Design):
+  - **Cuadrícula Editorial de 2 Columnas:** Sustituye el carrusel y las subpestañas por una cuadrícula directa de 2 columnas (`grid grid-cols-1 md:grid-cols-2 gap-4`) con tarjetas contenidas (`rounded-2xl bg-[var(--paper-2)]`).
+  - **Tarjetas de Expansión Limpias:**
+    - Carátula nítida con dimensiones explícitas anti-CLS (64x64 píxeles, `loading="lazy"`, `decoding="async"`).
+    - Etiqueta de necesidad simplificada («Opcional», «Muy recomendada», «Imprescindible», «Para completistas», «Prescindible»).
+    - Título editorial enlazado a la ficha de la expansión con efecto hover.
+    - Metadatos claros: año de publicación y cálculo del total de jugadores alcanzable con el juego base (`hasta X jugadores`).
+    - Botón interactivo de colección: «+ A mi ludoteca» / «En mi ludoteca» (con icono `check` verde), sincronizado de forma reactiva con `IUserLibraryService`.
+  - **Retirada del Mezclador en Mesa:** Se elimina la sobrecarga cognitiva del mezclador interactivo, recetas y botones de scroll por JavaScript de la pestaña de consulta para ofrecer una experiencia editorial directa y ligera.
+  - **Cabecera Limpia en `GameDetail.razor`:** Título `Expansiones` sin el bloque numérico obsoleto `04` ni el sufijo redundante `& Dónde Comprar` (las tiendas residen en la barra lateral fija). Píldora con contador exacto de expansiones disponibles.
