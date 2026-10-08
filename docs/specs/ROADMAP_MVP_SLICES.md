@@ -1229,5 +1229,20 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-128-extractor-novedades-maldito.md`](../increments/archive/inc-128-extractor-novedades-maldito.md).
 - **Módulo del Sistema:** [`sistema/56-extractor-novedades-reimpresiones-maldito-games.md`](sistema/56-extractor-novedades-reimpresiones-maldito-games.md).
 
+---
+
+## Incremento 132: Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa en Catálogo
+- **Identificador SDD:** `dureza-numerica-bgg`
+- **Objetivo Principal:**
+  1. **Persistencia de Dureza Cuantitativa en `Game` (`Ludeka.Core`):** Incorporación de la propiedad `BggWeight` (`double?`, 1.00 a 5.00) con clamping defensivo, redondeo bancario a dos decimales y propiedad calculada `Complexity`.
+  2. **Motor Canónico `ComplexityCalculator`:** Mapeo matemático riguroso según la convención de la comunidad (< 2.20 Ligero, 2.20 - 3.25 Medio, ≥ 3.25 Duro), con fallback heurístico y extracción segura desde snapshots JSON.
+  3. **Ingesta y Migraciones EF Core:** Extracción de `<averageweight>` en `BggXmlParser`, migración `AddGameBggWeight`, columna indexada `IX_Games_BggWeight`, soporte SQLite y canario de integración a 24 migraciones en PostgreSQL real.
+  4. **Ordenación Precisa en Catálogo y Repositorio:** Consultas SQL (`ComplexityAsc`, `ComplexityDesc`) y filtro en memoria en `SqliteGameRepository` con ordenación continua decimal y nulos al final.
+  5. **Presentación Editorial en Ficha Técnica (`GameDetail.razor`):** Exhibición en el eyebrow superior y en el bloque desplegable de ADN Lúdico formateado (`2.50 / 5 (Medio)`).
+- **Estado:** ✅ **Completado y Archivado** (INC-132 · 2.696 pruebas unitarias + 10 de integración en verde al 100% [2.706 totales] · PR #241 desplegado en Google Cloud Run).
+- **Documento:** [`../increments/archive/inc-132-dureza-numerica-bgg.md`](../increments/archive/inc-132-dureza-numerica-bgg.md).
+- **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
+
+
 
 
