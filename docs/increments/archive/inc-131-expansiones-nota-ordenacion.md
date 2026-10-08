@@ -1,6 +1,6 @@
 # INC-131: Calificación en Tarjetas de Expansión y Ordenación por Nota
 
-**Estado:** ⏳ En progreso (Verificado 2.679 tests)  
+**Estado:** ✅ Archivado (PR #243, 2026-10-08)  
 **Rama:** `inc/expansiones-nota-ordenacion`  
 **Objetivo:** Mostrar la calificación (nota cuantitativa) en cada tarjeta de expansión dentro de la pestaña editorial de expansiones (`ExpansionEcosystemSection.razor`) y asegurar que el listado se ordene de forma predeterminada de mayor a menor por calificación, tanto en la capa de aplicación (`ExpansionService.cs`) como en el renderizado del componente Blazor.
 
