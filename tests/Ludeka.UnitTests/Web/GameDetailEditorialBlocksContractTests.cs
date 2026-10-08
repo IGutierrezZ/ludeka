@@ -222,4 +222,26 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("p-5 sm:p-6 rounded-2xl", reviewCardSource, StringComparison.Ordinal);
         Assert.DoesNotContain("p-4.5", reviewCardSource, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_ShouldToggleAdnLudicoExtendedDetails()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // Título dinámico según estado de despliegue
+        Assert.Contains("@(_isTechOpen ? \"Ficha Técnica Completa\" : \"ADN Lúdico\")", source, StringComparison.Ordinal);
+
+        // Botón conmutador con aria-expanded y etiquetas adecuadas
+        Assert.Contains("@onclick=\"() => _isTechOpen = !_isTechOpen\"", source, StringComparison.Ordinal);
+        Assert.Contains("aria-expanded=\"@_isTechOpen\"", source, StringComparison.Ordinal);
+        Assert.Contains("@(_isTechOpen ? \"Ver menos\" : \"Ver todos los detalles\")", source, StringComparison.Ordinal);
+
+        // Los 4 atributos extendidos del ADN lúdico deben condicionarse a @_isTechOpen
+        Assert.Contains("@if (_isTechOpen)", source, StringComparison.Ordinal);
+        Assert.Contains("Confrontación", source, StringComparison.Ordinal);
+        Assert.Contains("Huella en mesa", source, StringComparison.Ordinal);
+        Assert.Contains("Modo solitario", source, StringComparison.Ordinal);
+        Assert.Contains("Dependencia idioma", source, StringComparison.Ordinal);
+    }
 }
+
