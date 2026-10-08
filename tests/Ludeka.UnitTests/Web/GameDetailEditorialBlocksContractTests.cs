@@ -205,4 +205,21 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("¿Conoces un vídeo mejor?", source, StringComparison.Ordinal);
         Assert.Contains("Propón uno", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_ShouldSupportHeroImageZoomAndPaddedUserReviewCard()
+    {
+        var gameDetailSource = ReadSource(GameDetailPath);
+        var reviewCardSource = ReadSource("src/Ludeka.Web/Components/Shared/UserReviewCard.razor");
+
+        // Ampliación de imagen / zoom lightbox al pulsar sobre la imagen seleccionada
+        Assert.Contains("_isImageZoomModalOpen = true", gameDetailSource, StringComparison.Ordinal);
+        Assert.Contains("cursor-zoom-in", gameDetailSource, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Vista ampliada de la imagen\"", gameDetailSource, StringComparison.Ordinal);
+        Assert.Contains("<Icon Name=\"maximize-2\"", gameDetailSource, StringComparison.Ordinal);
+
+        // Recuadro de valoración del usuario con padding completo y márgenes adecuados
+        Assert.Contains("p-5 sm:p-6 rounded-2xl", reviewCardSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("p-4.5", reviewCardSource, StringComparison.Ordinal);
+    }
 }

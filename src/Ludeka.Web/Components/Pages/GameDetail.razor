@@ -211,28 +211,37 @@ else
             @* Columna Derecha: Marco polaroid físico rotado 2° con carrusel y pegatina de precio *@
             <div class="relative flex flex-col items-center gap-3.5 select-none">
                 <div class="bg-[#FFF8EE] p-3 pb-3.5 rounded shadow-[0_26px_44px_rgba(34,24,15,0.3)] w-full max-w-[360px] flex flex-col gap-2.5 text-[#22180F] transform rotate-2 hover:rotate-0 transition-transform duration-300">
-                    <div class="relative aspect-square w-full rounded overflow-hidden bg-neutral-900 flex items-center justify-center">
+                    <div class="relative aspect-square w-full rounded overflow-hidden bg-neutral-900 flex items-center justify-center group/hero cursor-zoom-in"
+                         @onclick="() => _isImageZoomModalOpen = true"
+                         title="Haz clic para ampliar la imagen de @Game.SpanishTitle">
                         <img src="@CurrentHeroImageUrl"
                              alt="@Game.SpanishTitle"
-                             class="w-full h-full object-cover" />
+                             class="w-full h-full object-cover transition-transform duration-300 group-hover/hero:scale-105" />
+
+                        @* Badge indicador de zoom *@
+                        <span class="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-[#FFF8EE] flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity shadow pointer-events-none">
+                            <Icon Name="maximize-2" Size="14" />
+                        </span>
 
                         @if (AvailableHeroImagesCount > 1)
                         {
                             <button type="button"
                                     @onclick="PreviousHeroImage"
+                                    @onclick:stopPropagation="true"
                                     aria-label="Imagen anterior"
                                     class="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#FFF8EE]/90 hover:bg-[#FFF8EE] text-[#22180F] font-black text-sm flex items-center justify-center shadow-md transition-all cursor-pointer">
                                 &larr;
                             </button>
                             <button type="button"
                                     @onclick="NextHeroImage"
+                                    @onclick:stopPropagation="true"
                                     aria-label="Imagen siguiente"
                                     class="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#FFF8EE]/90 hover:bg-[#FFF8EE] text-[#22180F] font-black text-sm flex items-center justify-center shadow-md transition-all cursor-pointer">
                                 &rarr;
                             </button>
                         }
 
-                        <span class="absolute right-2.5 bottom-2.5 py-1 px-2.5 rounded-full bg-[#22180F] text-[#FFF8EE] text-xs font-extrabold shadow">
+                        <span class="absolute right-2.5 bottom-2.5 py-1 px-2.5 rounded-full bg-[#22180F] text-[#FFF8EE] text-xs font-extrabold shadow pointer-events-none">
                             @(CurrentHeroImageIndex + 1) / @AvailableHeroImagesCount
                         </span>
                     </div>
@@ -272,15 +281,19 @@ else
         @* Versión Móvil (<lg) *@
         <div class="lg:hidden px-4 pt-5 pb-9 flex flex-col gap-6">
             @* Carátula 4:3 con controles táctiles y dots *@
-            <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 shadow-xl">
+            <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 shadow-xl cursor-zoom-in"
+                 @onclick="() => _isImageZoomModalOpen = true">
                 <img src="@CurrentHeroImageUrl" alt="@Game.SpanishTitle" class="w-full h-full object-cover" />
                 @if (AvailableHeroImagesCount > 1)
                 {
-                    <button type="button" @onclick="PreviousHeroImage" aria-label="Anterior" class="absolute left-0 top-0 bottom-0 w-1/3 bg-transparent border-0 cursor-pointer"></button>
-                    <button type="button" @onclick="NextHeroImage" aria-label="Siguiente" class="absolute right-0 top-0 bottom-0 w-1/3 bg-transparent border-0 cursor-pointer"></button>
+                    <button type="button" @onclick="PreviousHeroImage" @onclick:stopPropagation="true" aria-label="Anterior" class="absolute left-0 top-0 bottom-0 w-1/4 bg-transparent border-0 cursor-pointer"></button>
+                    <button type="button" @onclick="NextHeroImage" @onclick:stopPropagation="true" aria-label="Siguiente" class="absolute right-0 top-0 bottom-0 w-1/4 bg-transparent border-0 cursor-pointer"></button>
                 }
                 <span class="absolute left-3 bottom-3 py-1 px-2.5 rounded-full bg-[#22180F]/85 text-[#FFF8EE] text-[11px] font-extrabold backdrop-blur-xs">
                     @CurrentHeroImageLabel
+                </span>
+                <span class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-[#FFF8EE] flex items-center justify-center shadow backdrop-blur-xs pointer-events-none">
+                    <Icon Name="maximize-2" Size="14" />
                 </span>
                 @if (AvailableHeroImagesCount > 1)
                 {
@@ -810,14 +823,16 @@ else
             </div>
 
             @* Columna Lateral Fija (Desktop / Sticky top-20) *@
-            <aside id="donde-comprar" class="flex flex-col gap-7 lg:col-span-4 lg:sticky lg:top-20">
+            <aside id="donde-comprar" class="flex flex-col gap-8 lg:col-span-4 lg:sticky lg:top-20">
                 <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameSlug="@Game.Slug" GameId="@Game.Id" IsSidebar="true" />
 
-                <UserReviewCard
-                    Review="@_userReview"
-                    CanReview="@CanUserReview()"
-                    DisabledReviewReason="@GetDisabledReviewReason()"
-                    OnEditClicked="OpenReviewModal" />
+                <div class="pt-2">
+                    <UserReviewCard
+                        Review="@_userReview"
+                        CanReview="@CanUserReview()"
+                        DisabledReviewReason="@GetDisabledReviewReason()"
+                        OnEditClicked="OpenReviewModal" />
+                </div>
             </aside>
         </div>
     </div>
@@ -891,6 +906,77 @@ else
         IsOpen="@_isEmbedModalOpen"
         Item="@_selectedEmbedMediaItem"
         OnClose="() => _isEmbedModalOpen = false" />
+
+    @* Modal de Ampliación de Imagen (Lightbox) *@
+    @if (_isImageZoomModalOpen && Game != null)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Vista ampliada de la imagen"
+             @onclick="() => _isImageZoomModalOpen = false">
+            <div class="relative max-w-5xl max-h-[94vh] flex flex-col items-center justify-center select-none w-full"
+                 @onclick:stopPropagation="true">
+                @* Barra superior *@
+                <div class="w-full flex items-center justify-between pb-3 text-[#FFF8EE] px-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="py-1 px-3 rounded-full bg-white/20 text-xs font-black tracking-wide">
+                            @(CurrentHeroImageIndex + 1) / @AvailableHeroImagesCount
+                        </span>
+                        <span class="text-sm font-bold truncate">
+                            @CurrentHeroImageLabel &bull; @Game.SpanishTitle
+                        </span>
+                    </div>
+                    <button type="button"
+                            @onclick="() => _isImageZoomModalOpen = false"
+                            aria-label="Cerrar ampliación"
+                            class="w-10 h-10 rounded-full bg-white/15 hover:bg-white/30 text-[#FFF8EE] flex items-center justify-center transition-colors cursor-pointer border-0">
+                        <Icon Name="x" Size="20" />
+                    </button>
+                </div>
+
+                @* Contenedor imagen grande *@
+                <div class="relative rounded-2xl overflow-hidden bg-black/50 shadow-2xl flex items-center justify-center max-w-full max-h-[78vh]">
+                    <img src="@CurrentHeroImageUrl"
+                         alt="@CurrentHeroImageLabel - @Game.SpanishTitle"
+                         class="max-w-full max-h-[78vh] w-auto h-auto object-contain block rounded-2xl" />
+
+                    @if (AvailableHeroImagesCount > 1)
+                    {
+                        <button type="button"
+                                @onclick="PreviousHeroImage"
+                                aria-label="Imagen anterior"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-[#FFF8EE] font-black text-xl flex items-center justify-center border-0 shadow-lg transition-all cursor-pointer">
+                            &larr;
+                        </button>
+                        <button type="button"
+                                @onclick="NextHeroImage"
+                                aria-label="Imagen siguiente"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-[#FFF8EE] font-black text-xl flex items-center justify-center border-0 shadow-lg transition-all cursor-pointer">
+                            &rarr;
+                        </button>
+                    }
+                </div>
+
+                @* Miniaturas en el lightbox *@
+                @if (AvailableHeroImagesCount > 1)
+                {
+                    <div class="flex gap-2.5 pt-3 overflow-x-auto max-w-full">
+                        @foreach (var imgInfo in AvailableHeroImages)
+                        {
+                            var isSelected = imgInfo.Key == _selectedHeroImageKey;
+                            <button type="button"
+                                    @onclick="() => _selectedHeroImageKey = imgInfo.Key"
+                                    aria-label="@imgInfo.Label"
+                                    class="p-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 @(isSelected ? "border-[#FFC145] scale-105 shadow-md" : "border-white/30 opacity-60 hover:opacity-100")">
+                                <img src="@imgInfo.Url" alt="" class="w-full h-full object-cover block" />
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     @if (_isPlayedPromptModalOpen && Game != null)
     {
@@ -983,6 +1069,7 @@ else
     private MediaItemDto? _selectedVideo;
     private MediaItemDto? _selectedEmbedMediaItem;
     private bool _isEmbedModalOpen;
+    private bool _isImageZoomModalOpen;
     private bool _showStaffMediaTools;
 
     private IReadOnlyList<MediaItemDto> AllGameVideos => (_mediaHub?.Tutorials ?? [])
