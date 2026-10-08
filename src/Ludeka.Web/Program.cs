@@ -227,6 +227,17 @@ using (var scope = app.Services.CreateScope())
         await UserManagementSeeder.SeedUsersAndAuditAsync(db);
         await BoardGameEventSeeder.SeedEventsAsync(db);
     }
+
+    // Backfill retroactivo de peso BGG desde snapshots crudos (INC-132 / INC-134)
+    var gameRepo = scope.ServiceProvider.GetService<IGameRepository>();
+    if (gameRepo != null)
+    {
+        int backfilledCount = await gameRepo.BackfillBggWeightsFromSnapshotsAsync();
+        if (backfilledCount > 0)
+        {
+            logger.LogInformation("Backfill de BggWeight completado: {Count} juegos actualizados con su peso cuantitativo de BGG.", backfilledCount);
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.

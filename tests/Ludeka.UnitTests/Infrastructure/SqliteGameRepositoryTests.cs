@@ -604,7 +604,7 @@ public class SqliteGameRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task SearchAsync_SortByComplexityAsc_ShouldOrderContinuouslyByBggWeightWithNullsAtEnd()
+    public async Task SearchAsync_SortByComplexityAsc_ShouldOrderContinuouslyByEffectiveWeight()
     {
         // Arrange
         var gLight = new Game(2001, "Light Game", "Juego Ligero", "Autor", "Editorial", 2020, "", "", "", 7.5, 100, 7.5,
@@ -625,7 +625,7 @@ public class SqliteGameRepositoryTests : IDisposable
 
         var gNoWeight = new Game(2005, "Unrated Weight Game", "Juego Sin Peso", "Autor", "Editorial", 2020, "", "", "", 7.0, 5, 7.0,
             ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
-            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null);
+            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null); // Extrapolado Medium -> 2.70
 
         await _context.Games.AddRangeAsync(gHeavy, gNoWeight, gMedium2, gLight, gMedium1);
         await _context.SaveChangesAsync();
@@ -639,13 +639,13 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal(5, items.Count);
         Assert.Equal(gLight.Id, items[0].Id);       // 1.45
         Assert.Equal(gMedium1.Id, items[1].Id);     // 2.15
-        Assert.Equal(gMedium2.Id, items[2].Id);     // 3.10
-        Assert.Equal(gHeavy.Id, items[3].Id);       // 4.25
-        Assert.Equal(gNoWeight.Id, items[4].Id);    // null al final
+        Assert.Equal(gNoWeight.Id, items[2].Id);    // 2.70 (extrapolado continuo entre 2.15 y 3.10)
+        Assert.Equal(gMedium2.Id, items[3].Id);     // 3.10
+        Assert.Equal(gHeavy.Id, items[4].Id);       // 4.25
     }
 
     [Fact]
-    public async Task SearchAsync_SortByComplexityDesc_ShouldOrderContinuouslyByBggWeightDescendingWithNullsAtEnd()
+    public async Task SearchAsync_SortByComplexityDesc_ShouldOrderContinuouslyByEffectiveWeightDescending()
     {
         // Arrange
         var gLight = new Game(3001, "Light Game D", "Juego Ligero D", "Autor", "Editorial", 2020, "", "", "", 7.5, 100, 7.5,
@@ -662,7 +662,7 @@ public class SqliteGameRepositoryTests : IDisposable
 
         var gNoWeight = new Game(3004, "No Weight D", "Sin Peso D", "Autor", "Editorial", 2020, "", "", "", 7.0, 5, 7.0,
             ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
-            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null);
+            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null); // Extrapolado Medium -> 2.70
 
         await _context.Games.AddRangeAsync(gLight, gNoWeight, gHeavy, gMedium);
         await _context.SaveChangesAsync();
@@ -676,8 +676,39 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal(4, items.Count);
         Assert.Equal(gHeavy.Id, items[0].Id);       // 4.10
         Assert.Equal(gMedium.Id, items[1].Id);      // 2.80
-        Assert.Equal(gLight.Id, items[2].Id);       // 1.50
-        Assert.Equal(gNoWeight.Id, items[3].Id);    // null al final
+        Assert.Equal(gNoWeight.Id, items[2].Id);    // 2.70 (extrapolado continuo entre 2.80 y 1.50)
+        Assert.Equal(gLight.Id, items[3].Id);       // 1.50
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithInMemoryFilters_ShouldOrderContinuouslyByEffectiveWeightInTwoPhasePagination()
+    {
+        // Arrange: agregamos juegos con Scalability independiente para forzar paginación en dos fases con ApplyIndexSorting
+        var gLight = new Game(4001, "TwoPhase Light", "Fase Ligero", "Autor", "Editorial", 2020, "", "", "", 7.5, 100, 7.5,
+            ConfrontationType.Competitive, GameStyle.PartyGame, false, new AgeRating(8, 8), LanguageDependence.None,
+            TableFootprint.SmallTable, new GameDuration(15, 30, 10), [new ScalabilityEntry(4, "4", ScalabilityStatus.Recommended)], bggWeight: 1.40);
+
+        var gExtrapolatedMed = new Game(4002, "TwoPhase Extrapolated Med", "Fase Extrapolado Med", "Autor", "Editorial", 2020, "", "", "", 7.8, 50, 7.8,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
+            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [new ScalabilityEntry(4, "4", ScalabilityStatus.Recommended)], bggWeight: null); // 2.70
+
+        var gHeavy = new Game(4003, "TwoPhase Heavy", "Fase Duro", "Autor", "Editorial", 2020, "", "", "", 8.5, 10, 8.5,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(14, 14), LanguageDependence.Low,
+            TableFootprint.TableMonster, new GameDuration(120, 180, 45), [new ScalabilityEntry(4, "4", ScalabilityStatus.Recommended)], bggWeight: 4.50);
+
+        await _context.Games.AddRangeAsync(gHeavy, gLight, gExtrapolatedMed);
+        await _context.SaveChangesAsync();
+
+        // Act: filtro por 4 jugadores activa hasInMemoryFilters = true
+        var criteria = new GameFilterCriteria(PlayerCount: 4, SortBy: GameSortOrder.ComplexityAsc);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 10);
+
+        // Assert
+        Assert.Equal(3, total);
+        Assert.Equal(3, items.Count);
+        Assert.Equal(gLight.Id, items[0].Id);            // 1.40
+        Assert.Equal(gExtrapolatedMed.Id, items[1].Id);  // 2.70 (intercalado continuo)
+        Assert.Equal(gHeavy.Id, items[2].Id);            // 4.50
     }
 
     [Fact]

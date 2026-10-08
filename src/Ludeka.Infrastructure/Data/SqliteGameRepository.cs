@@ -827,15 +827,27 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue),
             GameSortOrder.ComplexityAsc => query
-                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
-                .ThenBy(g => g.BggWeight)
+                .OrderBy(g => (g.BggWeight != null && g.BggWeight > 0.0)
+                    ? g.BggWeight.Value
+                    : ((g.Style == GameStyle.PartyGame || g.Style == GameStyle.FillerAbstract || (g.Duration.MaxMinutes <= 30 && g.Age.CommunityAge <= 10))
+                        ? ComplexityCalculator.DefaultExtrapolatedLight
+                        : ((g.Duration.MaxMinutes >= 120 || g.Age.CommunityAge >= 14 || (g.Duration.MaxMinutes >= 90 && g.Style == GameStyle.Eurogame))
+                            ? ComplexityCalculator.DefaultExtrapolatedHeavy
+                            : ComplexityCalculator.DefaultExtrapolatedMedium)))
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
-                .ThenBy(g => g.BggRank ?? int.MaxValue),
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating),
             GameSortOrder.ComplexityDesc => query
-                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
-                .ThenByDescending(g => g.BggWeight)
+                .OrderByDescending(g => (g.BggWeight != null && g.BggWeight > 0.0)
+                    ? g.BggWeight.Value
+                    : ((g.Style == GameStyle.PartyGame || g.Style == GameStyle.FillerAbstract || (g.Duration.MaxMinutes <= 30 && g.Age.CommunityAge <= 10))
+                        ? ComplexityCalculator.DefaultExtrapolatedLight
+                        : ((g.Duration.MaxMinutes >= 120 || g.Age.CommunityAge >= 14 || (g.Duration.MaxMinutes >= 90 && g.Style == GameStyle.Eurogame))
+                            ? ComplexityCalculator.DefaultExtrapolatedHeavy
+                            : ComplexityCalculator.DefaultExtrapolatedMedium)))
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
-                .ThenBy(g => g.BggRank ?? int.MaxValue),
+                .ThenBy(g => g.BggRank ?? int.MaxValue)
+                .ThenByDescending(g => g.BggRating),
             GameSortOrder.DurationAsc => query
                 .OrderBy(g => g.Duration.MaxMinutes)
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
@@ -876,14 +888,12 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue),
             GameSortOrder.ComplexityAsc => items
-                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
-                .ThenBy(g => g.BggWeight)
+                .OrderBy(g => ComplexityCalculator.GetEffectiveWeight(g.BggWeight, g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue)
                 .ThenByDescending(g => g.BggRating),
             GameSortOrder.ComplexityDesc => items
-                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
-                .ThenByDescending(g => g.BggWeight)
+                .OrderByDescending(g => ComplexityCalculator.GetEffectiveWeight(g.BggWeight, g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue)
                 .ThenByDescending(g => g.BggRating),

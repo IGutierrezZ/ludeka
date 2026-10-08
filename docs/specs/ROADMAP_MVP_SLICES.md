@@ -1243,6 +1243,20 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-132-dureza-numerica-bgg.md`](../increments/archive/inc-132-dureza-numerica-bgg.md).
 - **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
 
+---
+
+## Incremento 134: Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo
+- **Identificador SDD:** `ordenacion-dureza-catalogo`
+- **Objetivo Principal:**
+  1. **Motor de Peso Efectivo en `Ludeka.Core` (`ComplexityCalculator`):** Método `GetEffectiveWeight` para garantizar que todo juego posea un valor decimal continuo para ordenación, usando `BggWeight` o extrapolando según estilo, duración y edad.
+  2. **Backfill Autónomo en Arranque:** Integrar la ejecución de `BackfillBggWeightsFromSnapshotsAsync` en `Program.cs` / `SqliteSchemaMigrator`.
+  3. **Ordenación Resiliente en `SqliteGameRepository`:** Actualizar `ApplyQuerySorting` y `ApplyIndexSorting` para emplear el peso efectivo en `ComplexityAsc` y `ComplexityDesc`, evitando que los registros sin peso de BGG queden relegados al final agrupados por ranking BGG.
+  4. **Presentación Editorial en Catálogo:** Exhibición visual de la dureza en `GameCard.razor` y `GameListItem.razor`.
+- **Estado:** ✅ **Completado y Archivado** (INC-134 · 2.712 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/archive/inc-134-ordenacion-dureza-backfill.md`](../increments/archive/inc-134-ordenacion-dureza-backfill.md).
+- **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
+- **Pruebas unitarias:** 2.712 verificadas al 100%.
+
 
 
 

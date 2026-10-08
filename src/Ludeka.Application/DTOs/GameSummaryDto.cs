@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.Helpers;
 using Ludeka.Core.ValueObjects;
 
 namespace Ludeka.Application.DTOs;
@@ -41,6 +42,25 @@ public record GameSummaryDto(
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
+
+    public GameComplexity Complexity => ComplexityCalculator.Calculate(BggWeight, Style, EstimatedPerPlayerMinutes * 2, CommunityAge);
+
+    public double EffectiveWeight => ComplexityCalculator.GetEffectiveWeight(BggWeight, Style, EstimatedPerPlayerMinutes * 2, CommunityAge);
+
+    public string ComplexityShortLabel => Complexity switch
+    {
+        GameComplexity.Light => "Ligero",
+        GameComplexity.Heavy => "Duro",
+        _ => "Medio"
+    };
+
+    public string ComplexityDisplayBadge => BggWeight.HasValue && BggWeight.Value > 0
+        ? $"{BggWeight.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}/5"
+        : ComplexityShortLabel;
+
+    public string ComplexityTooltip => BggWeight.HasValue && BggWeight.Value > 0
+        ? $"Dureza: {BggWeight.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}/5 ({ComplexityShortLabel})"
+        : $"Dureza estimada: {ComplexityShortLabel}";
 
     public string GetPublisherForCountry(string? countryCode)
     {

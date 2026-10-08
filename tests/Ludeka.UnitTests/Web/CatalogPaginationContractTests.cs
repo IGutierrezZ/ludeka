@@ -14,8 +14,22 @@ namespace Ludeka.UnitTests.Web;
 /// </summary>
 public class CatalogPaginationContractTests
 {
+    private const string GameCardPath = "src/Ludeka.Web/Components/Shared/GameCard.razor";
     private const string GameListItemPath = "src/Ludeka.Web/Components/Shared/GameListItem.razor";
     private const string HomeCatalogPath = "src/Ludeka.Web/Components/Pages/Home.razor";
+
+    [Fact]
+    public void GameCardAndListItem_ShouldDisplayAccessibleComplexityBadge()
+    {
+        var cardSource = ReadSource(GameCardPath);
+        var listItemSource = ReadSource(GameListItemPath);
+
+        Assert.Contains("Game.ComplexityDisplayBadge", cardSource, StringComparison.Ordinal);
+        Assert.Contains("Game.ComplexityTooltip", cardSource, StringComparison.Ordinal);
+
+        Assert.Contains("Game.ComplexityDisplayBadge", listItemSource, StringComparison.Ordinal);
+        Assert.Contains("Game.ComplexityTooltip", listItemSource, StringComparison.Ordinal);
+    }
 
     [Theory]
     [InlineData(0, 24, 0)]
