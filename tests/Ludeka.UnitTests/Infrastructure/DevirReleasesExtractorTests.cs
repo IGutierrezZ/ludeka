@@ -167,4 +167,39 @@ public class DevirReleasesExtractorTests
         Assert.Equal(2026, item.ReleaseDate!.Value.Year);
         Assert.Equal(12, item.ReleaseDate!.Value.Month);
     }
+
+    [Fact]
+    public void ParseHtml_PrioritizesFace3dImageOverFlatCover()
+    {
+        var html = @"
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Noviembre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-single-image-wrapper"">
+                <a href=""https://devir.es/salton-sea"">
+                    <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625615555-1200-front.jpg"" alt=""Salton Sea 2D"" />
+                </a>
+            </div>
+            <div class=""mgz-single-image-wrapper"">
+                <a href=""https://devir.es/salton-sea"">
+                    <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625615555-1200-face3d.jpg"" alt=""Salton Sea 3D"" />
+                </a>
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>SALTON SEA</span></strong></span></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 35€</p>
+            </div>
+        </div>
+        ";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var results = extractor.ParseHtml(html);
+
+        Assert.Single(results);
+        var item = results.First();
+        Assert.Equal("SALTON SEA", item.Title);
+        Assert.Contains("face3d", item.CoverImageUrl);
+        Assert.Equal("https://devir.es/salton-sea", item.SourceUrl);
+    }
 }

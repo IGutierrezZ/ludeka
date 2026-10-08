@@ -150,10 +150,31 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             if (imgMatch.Count > 0)
             {
                 var lastImg = imgMatch[imgMatch.Count - 1];
-                imgSrc = lastImg.Groups["img"].Value.Trim();
-                if (lastImg.Groups["url"].Success)
+                Match chosenImg = lastImg;
+
+                // Buscar si entre las imágenes contiguas a la del producto (dentro de 400 chars) hay una con face3d/3d/caja
+                for (int i = imgMatch.Count - 1; i >= 0; i--)
                 {
-                    var u = lastImg.Groups["url"].Value.Trim();
+                    var m = imgMatch[i];
+                    if (lastImg.Index - m.Index > 400)
+                    {
+                        break; // Pertenece a un producto anterior en el HTML precedente
+                    }
+
+                    var src = m.Groups["img"].Value;
+                    if (src.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                        src.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                        src.Contains("caja", StringComparison.OrdinalIgnoreCase))
+                    {
+                        chosenImg = m;
+                        break;
+                    }
+                }
+
+                imgSrc = chosenImg.Groups["img"].Value.Trim();
+                if (chosenImg.Groups["url"].Success)
+                {
+                    var u = chosenImg.Groups["url"].Value.Trim();
                     if (u.StartsWith('/'))
                     {
                         u = "https://devir.es" + u;
@@ -161,6 +182,26 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                     if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
                     {
                         productUrl = u;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(productUrl))
+                {
+                    for (int i = imgMatch.Count - 1; i >= 0; i--)
+                    {
+                        var m = imgMatch[i];
+                        if (lastImg.Index - m.Index > 400) break;
+
+                        if (m.Groups["url"].Success)
+                        {
+                            var u = m.Groups["url"].Value.Trim();
+                            if (u.StartsWith('/')) u = "https://devir.es" + u;
+                            if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                            {
+                                productUrl = u;
+                                break;
+                            }
+                        }
                     }
                 }
 

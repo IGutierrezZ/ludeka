@@ -294,6 +294,15 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                     gameModified = true;
                 }
 
+                if (!string.IsNullOrWhiteSpace(item.CoverImageUrl) &&
+                    (item.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                     item.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                     string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)))
+                {
+                    matchedGame.UpdateImages(item.CoverImageUrl, matchedGame.ThumbnailUrl ?? item.CoverImageUrl);
+                    gameModified = true;
+                }
+
                 if (gameModified)
                 {
                     await _gameRepository.UpdateAsync(matchedGame, ct).ConfigureAwait(false);

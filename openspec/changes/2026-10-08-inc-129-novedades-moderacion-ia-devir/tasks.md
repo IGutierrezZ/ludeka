@@ -31,6 +31,6 @@
 - [x] 5.4 Pruebas de integración y componentes para la vista de moderación.
 
 ## Tarea 6: Jerarquía de Imágenes (3D como Principal) y Galería
-- [ ] 6.1 Asegurar que `face3d` tenga prioridad como `CoverImageUrl` principal del juego y de la novedad.
-- [ ] 6.2 Exponer en la ficha de detalle las imágenes complementarias (portada 2D, contraportada, mesa).
-- [ ] 6.3 Ejecutar suite completa `dotnet test` y verificar 100% verde sin regresiones.
+- [x] 6.1 Asegurar que `face3d` tenga prioridad como `CoverImageUrl` principal del juego y de la novedad.
+- [x] 6.2 Exponer en la ficha de detalle las imágenes complementarias (portada 2D, contraportada, mesa).
+- [x] 6.3 Ejecutar suite completa `dotnet test` y verificar 100% verde sin regresiones.

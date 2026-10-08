@@ -1103,11 +1103,29 @@ else
             if (Game != null)
             {
                 if (!string.IsNullOrWhiteSpace(Game.CoverImageUrl))
-                    list.Add(new HeroImageInfo("cover", "Foto de portada", Game.CoverImageUrl));
+                {
+                    bool is3d = Game.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                                Game.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                                Game.CoverImageUrl.Contains("caja", StringComparison.OrdinalIgnoreCase);
+                    list.Add(new HeroImageInfo("cover", is3d ? "Caja 3D" : "Foto de portada", Game.CoverImageUrl));
+                }
                 if (!string.IsNullOrWhiteSpace(Game.BackCoverImageUrl))
                     list.Add(new HeroImageInfo("back", "Contraportada", Game.BackCoverImageUrl));
                 if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
                     list.Add(new HeroImageInfo("table", "En mesa", Game.TableImageUrl));
+            }
+            if (_foundingVerdict?.Photos != null)
+            {
+                int pIndex = 1;
+                foreach (var photo in _foundingVerdict.Photos)
+                {
+                    if (!string.IsNullOrWhiteSpace(photo.PhotoUrl))
+                    {
+                        var caption = !string.IsNullOrWhiteSpace(photo.Caption) ? photo.Caption : $"Foto personal #{pIndex}";
+                        list.Add(new HeroImageInfo($"verdict-{pIndex}", caption, photo.PhotoUrl));
+                        pIndex++;
+                    }
+                }
             }
             if (list.Count == 0)
                 list.Add(new HeroImageInfo("cover", "Carátula", "/images/game-placeholder.svg"));

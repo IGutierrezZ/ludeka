@@ -106,6 +106,27 @@ public class EditorialReleasesSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncAllEditorialReleasesAsync_WhenReleaseHas3dBoxImage_UpdatesMatchedGameCover()
+    {
+        var game = CreateSampleGame(6001, "salton-sea", "Salton Sea", "Salton Sea", yearPublished: 2024);
+        game.UpdateImages("https://example.com/2d-flat.jpg");
+        _gameRepo.Add(game);
+
+        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new("Salton Sea", "Devir", new DateOnly(2026, 11, 1), "Noviembre 2026", 35.00m, null,
+                "https://devir.es/img/8436625615555-face3d.jpg", SourceUrl: "https://devir.es/salton-sea", IsMonthOnly: true)
+        };
+
+        var service = CreateService();
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.GamesLinkedCount);
+        Assert.Contains("face3d", game.CoverImageUrl);
+    }
+
+    [Fact]
     public async Task SyncAllEditorialReleasesAsync_IsIdempotent_UpdatesExistingReleaseWithoutDuplicating()
     {
         var floeGame = CreateSampleGame(2001, "floe", "Floe", "Floe", yearPublished: 2026);
