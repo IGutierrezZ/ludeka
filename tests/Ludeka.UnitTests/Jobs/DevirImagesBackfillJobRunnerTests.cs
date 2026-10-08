@@ -274,4 +274,71 @@ public class DevirImagesBackfillJobRunnerTests
         Assert.Contains("https://devir.es/juego-uno", extractor.RequestedGalleryUrls);
         Assert.Contains("https://devir.es/juego-dos", extractor.RequestedGalleryUrls);
     }
+
+    [Fact]
+    public async Task RunAsync_ToleratesSinglePageFailureAndContinuesToNextPage()
+    {
+        var coordinator = new FakeCoordinator();
+        var extractor = new FakeDevirExtractor();
+        var gameRepo = new FakeGameRepository();
+
+        var gameDos = CreateGame(2002, "juego-dos", "Juego Dos", ean: "8436625610973");
+        gameRepo.Games.Add(gameDos);
+
+        // Página 1 falla (Success = false)
+        extractor.Pages[1] = new DevirCatalogPageResultDto([], HasNextPage: true, Success: false);
+
+        // Página 2 funciona (Success = true) y devuelve Juego Dos
+        extractor.Pages[2] = new DevirCatalogPageResultDto(
+            Items: new List<DevirCatalogItemDto>
+            {
+                new("https://devir.es/juego-dos", "Juego Dos", "8436625610973", null)
+            },
+            HasNextPage: false,
+            Success: true);
+
+        extractor.Galleries["https://devir.es/juego-dos"] = new DevirProductGalleryDto(
+            CoverImageUrl: "https://devir.es/dos-3d.jpg",
+            TableImageUrl: null,
+            BackCoverImageUrl: null,
+            FrontFlatImageUrl: null);
+
+        var runner = new DevirImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<DevirImagesBackfillJobRunner>.Instance);
+
+        var outcome = await runner.RunAsync(CancellationToken.None);
+
+        Assert.Equal(JobLeaseOutcome.Completed, outcome);
+        Assert.Equal(1, coordinator.CapturedResult!.Processed);
+        Assert.Equal(1, coordinator.CapturedResult.Failed);
+        Assert.Single(gameRepo.UpdatedGames);
+    }
+
+    [Fact]
+    public async Task RunAsync_AbortsWhenTwoConsecutivePagesFail()
+    {
+        var coordinator = new FakeCoordinator();
+        var extractor = new FakeDevirExtractor();
+        var gameRepo = new FakeGameRepository();
+
+        // Página 1 y 2 fallan consecutivamente
+        extractor.Pages[1] = new DevirCatalogPageResultDto([], HasNextPage: true, Success: false);
+        extractor.Pages[2] = new DevirCatalogPageResultDto([], HasNextPage: true, Success: false);
+        extractor.Pages[3] = new DevirCatalogPageResultDto(
+            Items: new List<DevirCatalogItemDto>
+            {
+                new("https://devir.es/juego-tres", "Juego Tres", "8436625619999", null)
+            },
+            HasNextPage: false,
+            Success: true);
+
+        var runner = new DevirImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<DevirImagesBackfillJobRunner>.Instance);
+
+        var outcome = await runner.RunAsync(CancellationToken.None);
+
+        Assert.Equal(JobLeaseOutcome.Completed, outcome);
+        Assert.Equal(0, coordinator.CapturedResult!.Processed);
+        Assert.Equal(2, coordinator.CapturedResult.Failed);
+        Assert.DoesNotContain("https://devir.es/juego-tres", extractor.RequestedGalleryUrls);
+    }
 }
+

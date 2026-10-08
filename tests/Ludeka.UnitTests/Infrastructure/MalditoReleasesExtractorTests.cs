@@ -210,4 +210,101 @@ public class MalditoReleasesExtractorTests
         Assert.Equal(expDay, date!.Value.Day);
         Assert.Equal(expMonthOnly, isMonthOnly);
     }
+
+    private class MockHttpMessageHandler : System.Net.Http.HttpMessageHandler
+    {
+        private readonly System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> _handler;
+
+        public MockHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(
+            System.Net.Http.HttpRequestMessage request,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            return System.Threading.Tasks.Task.FromResult(_handler(request));
+        }
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ExtractReleasesAsync_WhenCatalogFails_StillReturnsHomeReleases()
+    {
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            var url = req.RequestUri?.ToString() ?? string.Empty;
+            if (url.Contains("/juegos?"))
+            {
+                // El catálogo falla con 403 o 500
+                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError);
+            }
+
+            // La portada devuelve el HTML de prueba con Floe
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new System.Net.Http.StringContent(SampleHomeHtml)
+            };
+        });
+
+        var client = new System.Net.Http.HttpClient(handler);
+        var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
+
+        var results = await extractor.ExtractReleasesAsync();
+
+        Assert.NotNull(results);
+        Assert.NotEmpty(results);
+        Assert.Contains(results, r => r.Title.Contains("Floe", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ExtractReleasesAsync_WhenBothFail_ReturnsEmptyList()
+    {
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+        });
+
+        var client = new System.Net.Http.HttpClient(handler);
+        var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
+
+        var results = await extractor.ExtractReleasesAsync();
+
+        Assert.NotNull(results);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ExtractReleasesAsync_RetriesOn403AndSucceedsOnSecondAttempt()
+    {
+        int homeAttempts = 0;
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            var url = req.RequestUri?.ToString() ?? string.Empty;
+            if (url.Contains("/juegos?"))
+            {
+                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+            }
+
+            homeAttempts++;
+            if (homeAttempts == 1)
+            {
+                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+            }
+
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new System.Net.Http.StringContent(SampleHomeHtml)
+            };
+        });
+
+        var client = new System.Net.Http.HttpClient(handler);
+        var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
+
+        var results = await extractor.ExtractReleasesAsync();
+
+        Assert.Equal(2, homeAttempts);
+        Assert.NotEmpty(results);
+    }
 }
+

@@ -79,6 +79,7 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                 int totalFailed = 0;
                 int page = 1;
                 const int maxPages = 50;
+                int consecutiveFailures = 0;
                 bool hasMore = true;
 
                 while (hasMore && page <= maxPages && !workCt.IsCancellationRequested)
@@ -87,6 +88,24 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                     _logger.LogInformation("Consultando página {Page} del catálogo general de Devir...", page);
 
                     var pageResult = await _devirExtractor.ExtractCatalogPageAsync(page, workCt).ConfigureAwait(false);
+                    if (!pageResult.Success)
+                    {
+                        consecutiveFailures++;
+                        totalFailed++;
+                        _logger.LogWarning("Fallo al consultar la página {Page} del catálogo de Devir (fallos consecutivos: {Count}).", page, consecutiveFailures);
+                        if (consecutiveFailures >= 2)
+                        {
+                            _logger.LogWarning("Se alcanzaron 2 fallos consecutivos al consultar el catálogo de Devir. Interrumpiendo recorrido.");
+                            break;
+                        }
+
+                        page++;
+                        await Task.Delay(1000, workCt).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    consecutiveFailures = 0;
+
                     if (pageResult.Items.Count == 0)
                     {
                         _logger.LogInformation("Página {Page} no devolvió productos. Finalizando recorrido.", page);
@@ -202,8 +221,8 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                     hasMore = pageResult.HasNextPage;
                     page++;
 
-                    // Breve pausa entre páginas del catálogo
-                    await Task.Delay(500, workCt).ConfigureAwait(false);
+                    // Breve pausa cortés entre páginas del catálogo para Cloudflare WAF
+                    await Task.Delay(750, workCt).ConfigureAwait(false);
                 }
 
                 string summary = $"Barrido de imágenes de Devir finalizado. Catálogo evaluado: {totalCatalogItems}, Coincidentes: {totalMatched}, Actualizados: {totalUpdated}, Omitidos: {totalSkipped}, Fallos: {totalFailed}.";

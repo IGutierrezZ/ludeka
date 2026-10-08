@@ -32,21 +32,101 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
 
     public async Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default)
     {
+        _logger.LogInformation("Descargando novedades de Maldito Games desde portada y catálogo...");
+
+        string? homeHtml = null;
         try
         {
-            _logger.LogInformation("Descargando novedades de Maldito Games desde portada y catálogo...");
-            var homeHtmlTask = _httpClient.GetStringAsync(DefaultMalditoHomeUrl, ct);
-            var catalogHtmlTask = _httpClient.GetStringAsync(DefaultMalditoCatalogUrl, ct);
-
-            await Task.WhenAll(homeHtmlTask, catalogHtmlTask).ConfigureAwait(false);
-
-            return ParseHtml(await homeHtmlTask.ConfigureAwait(false), await catalogHtmlTask.ConfigureAwait(false));
+            homeHtml = await FetchHtmlWithRetryAsync(DefaultMalditoHomeUrl, referer: null, ct).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
-            _logger.LogError(ex, "Error al extraer los lanzamientos de Maldito Games.");
+            _logger.LogWarning(ex, "Fallo al obtener la portada de Maldito Games.");
+        }
+
+        string? catalogHtml = null;
+        try
+        {
+            catalogHtml = await FetchHtmlWithRetryAsync(DefaultMalditoCatalogUrl, referer: DefaultMalditoHomeUrl, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Fallo al obtener el catálogo de Maldito Games. Se continuará con los lanzamientos de portada.");
+        }
+
+        if (string.IsNullOrWhiteSpace(homeHtml) && string.IsNullOrWhiteSpace(catalogHtml))
+        {
+            _logger.LogError("No se pudo obtener contenido de ninguna fuente de Maldito Games.");
             return Array.Empty<EditorialReleaseItem>();
         }
+
+        return ParseHtml(homeHtml ?? string.Empty, catalogHtml);
+    }
+
+    private async Task<string?> FetchHtmlWithRetryAsync(string url, string? referer, CancellationToken ct)
+    {
+        for (int attempt = 1; attempt <= 2; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
+
+                using var request = CreateBrowserNavRequest(HttpMethod.Get, url, referer);
+                var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+                }
+
+                _logger.LogWarning("HTTP {StatusCode} al consultar '{Url}' (intento {Attempt}/2).", response.StatusCode, url, attempt);
+
+                if (attempt == 1 && ((int)response.StatusCode == 403 || (int)response.StatusCode == 429 || (int)response.StatusCode >= 500))
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return null;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Error al consultar '{Url}' (intento {Attempt}/2).", url, attempt);
+                if (attempt == 1)
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static HttpRequestMessage CreateBrowserNavRequest(HttpMethod method, string targetUrl, string? referer = null)
+    {
+        var request = new HttpRequestMessage(method, targetUrl);
+        request.Headers.Accept.Clear();
+        request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+        request.Headers.AcceptLanguage.Clear();
+        request.Headers.AcceptLanguage.ParseAdd("es-ES,es;q=0.9,en;q=0.8");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua", "\"Chromium\";v=\"122\", \"Not(A:Brand\";v=\"24\", \"Google Chrome\";v=\"122\"");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua-mobile", "?0");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua-platform", "\"Windows\"");
+        request.Headers.TryAddWithoutValidation("sec-fetch-dest", "document");
+        request.Headers.TryAddWithoutValidation("sec-fetch-mode", "navigate");
+        request.Headers.TryAddWithoutValidation("sec-fetch-site", referer != null ? "same-origin" : "none");
+
+        if (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refUri))
+        {
+            request.Headers.Referrer = refUri;
+        }
+
+        return request;
     }
 
     public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? catalogHtml = null)

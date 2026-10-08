@@ -189,7 +189,7 @@ jobs:
           REGION: ${{ secrets.GCP_REGION || 'europe-west1' }}
           IMAGE_NAME: ${{ secrets.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ludeka/ludeka-web:${{ github.sha }}
         run: |
-          for JOB in nightly-cataloging price-radar social-collector notification-outbox seed-staging drain-staging feed-sync editorial-releases-sync; do
+          for JOB in nightly-cataloging price-radar social-collector notification-outbox seed-staging drain-staging feed-sync editorial-releases-sync devir-images-backfill; do
             gcloud run jobs deploy "ludeka-job-${JOB}" \
               --image "${IMAGE_NAME}" \
               --region "${REGION}" \
