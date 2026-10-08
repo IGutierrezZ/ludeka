@@ -201,3 +201,16 @@ Para corregir la corrupción de títulos en juegos de catálogo que adoptaban no
      - Restaura `SpanishTitle` con el título original (`OriginalTitle`) o con el título oficial en español obtenido del snapshot de BGG si está disponible.
      - Limpia editoriales coreanas y códigos de barras con prefijo GS1 de Corea del Sur (`880...`) erróneamente atribuidos.
    - Ejecutado proactivamente durante el arranque de la aplicación web (`Program.cs`) y al inicio de los barridos de catálogo (`BggRawSnapshotSyncService.SweepCatalogFromVersionsCoreAsync` y `ProcessBatchAsync`).
+
+### 7.9 Saneamiento de Descriptores de Edición con Acrónimos y Reparación de Catálogo (INC-135)
+Para erradicar casos donde las versiones multilingües de BGG asignan rótulos técnicos de producción (ej. `ENG/GER/FRE/SPA edition` en *Queen Alice*, BggId 456236) y asegurar que nunca degraden el título canónico en catálogo ni en búsquedas:
+1. **Reconocimiento Exhaustivo de Acrónimos y Descriptores (`BggRawSnapshotParser`):**
+   - `IsGenericEditionTitle`: Ampliado con reconocimiento de códigos ISO/BGG de 2 y 3 letras (`ENG`, `SPA`, `ESP`, `GER`, `FRE`, `FRA`, `ITA`, `POR`, `DUT`, `POL`, `CZE`, `RUS`, `KOR`, `JPN`, `CHI`, `EN`, `ES`, `FR`, `DE`, `IT`, `PT`, etc.) en combinaciones con barras, guiones o conectores (`ENG/GER/FRE/SPA edition`), y términos de tirada/formato (`Retail edition`, `Deluxe edition`, `Kickstarter edition`, `Multilingual edition`, `Combo Games edition`).
+   - `CleanVersionTitle`: Retira sufijos multilingües compuestos (ej. `"Queen Alice - ENG/GER/FRE/SPA edition"` -> `"Queen Alice"`) y devuelve `null` si la cadena íntegra es un descriptor genérico.
+   - `ExtractSpanishVersionInfoFromJson`: Fija `Title = null` cuando la versión carece de un título propio localizado, preservando intacto el nombre canónico del juego.
+2. **Blindaje de Nombres Alternativos (`BggXmlParser`):**
+   - `ExtractSpanishTitle` descarta nombres alternativos del nodo XML raíz clasificados como descriptores genéricos por `IsGenericEditionTitle`.
+3. **Saneador Autónomo y Reparación Prioritaria (`CatalogDataSanitizer`):**
+   - Ampliación del predicado SQL en EF Core para evaluar títulos con `"edition"`, `"edicion"`, `"edición"`, `"version"`, `"versión"` y barras (`/`).
+   - Saneamiento prioritario O(1) en `EnsureKnownPriorityGamesRepairedAsync` para *Queen Alice* (456236) restaurándolo a `OriginalTitle` y asignando su editorial local.
+

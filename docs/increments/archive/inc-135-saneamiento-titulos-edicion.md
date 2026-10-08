@@ -1,6 +1,6 @@
 # INC-135: Saneamiento de Descriptores de Edición en Títulos BGG y Reparación Automática de Catálogo
 
-**Estado:** ⏳ En progreso  
+**Estado:** ✅ Archivado  
 **Rama:** `inc/saneamiento-titulos-edicion`  
 **Fecha:** 2026-10-08  
 **Autor:** Antigravity (ODD / SDD)  
