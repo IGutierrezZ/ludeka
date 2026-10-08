@@ -1,16 +1,16 @@
 # Tareas de Implementación: INC-129
 
 ## Tarea 1: Modelo de Dominio y Persistencia (`WeeklyReleaseStatus`)
-- [ ] 1.1 Crear enum `WeeklyReleaseStatus` (`Published`, `PendingModeration`, `Rejected`) en `src/Ludeka.Core/Enums/WeeklyReleaseStatus.cs`.
-- [ ] 1.2 Extender la entidad `WeeklyRelease.cs` con `Status`, `AiSuggestedBggId`, `AiSuggestedTitle` y `AiMatchReasoning`, añadiendo métodos `SetPendingModeration`, `Approve` y `Reject`.
-- [ ] 1.3 Actualizar `SqliteSchemaMigrator.cs` para migrar de forma defensiva las nuevas columnas en SQLite.
-- [ ] 1.4 Crear pruebas unitarias en `Ludeka.UnitTests` verificando el comportamiento de `WeeklyRelease` y sus nuevos estados.
+- [x] 1.1 Crear enum `WeeklyReleaseStatus` (`Published`, `PendingModeration`, `Rejected`) en `src/Ludeka.Core/Enums/WeeklyReleaseStatus.cs`.
+- [x] 1.2 Extender la entidad `WeeklyRelease.cs` con `Status`, `AiSuggestedBggId`, `AiSuggestedTitle` y `AiMatchReasoning`, añadiendo métodos `SetPendingModeration`, `Approve` y `Reject`.
+- [x] 1.3 Actualizar `SqliteSchemaMigrator.cs` para migrar de forma defensiva las nuevas columnas en SQLite.
+- [x] 1.4 Crear pruebas unitarias en `Ludeka.UnitTests` verificando el comportamiento de `WeeklyRelease` y sus nuevos estados.
 
 ## Tarea 2: Filtros de Calendario y Enlaces en `DevirReleasesExtractor`
-- [ ] 2.1 Descartar secciones que contengan «desarrollo» en `DevirReleasesExtractor.cs`.
-- [ ] 2.2 Exigir que los lanzamientos extraídos tengan un mes cerrado de calendario.
-- [ ] 2.3 Capturar la URL de ficha de producto (`<a href="https://devir.es/...">`) en lugar del enlace genérico de próximos lanzamientos.
-- [ ] 2.4 Actualizar y ampliar las pruebas unitarias en `DevirReleasesExtractorTests.cs`.
+- [x] 2.1 Descartar secciones que contengan «desarrollo» en `DevirReleasesExtractor.cs`.
+- [x] 2.2 Exigir que los lanzamientos extraídos tengan un mes cerrado de calendario.
+- [x] 2.3 Capturar la URL de ficha de producto (`<a href="https://devir.es/...">`) en lugar del enlace genérico de próximos lanzamientos.
+- [x] 2.4 Actualizar y ampliar las pruebas unitarias en `DevirReleasesExtractorTests.cs`.
 
 ## Tarea 3: Asistente IA de Enlace (`IReleaseAiMatcherService`)
 - [ ] 3.1 Definir interfaces y DTOs en `src/Ludeka.Application/Contracts/IReleaseAiMatcherService.cs` y `src/Ludeka.Application/DTOs/`.

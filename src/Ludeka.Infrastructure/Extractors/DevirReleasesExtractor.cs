@@ -59,14 +59,19 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                 var match = sectionHeaders[i];
                 var headerText = match.Groups["header"].Value.Trim();
 
-                // Descartar explícitamente secciones que sean de Juegos de Rol o no sean Juegos de Mesa
+                // Descartar explícitamente secciones que sean de Juegos de Rol, no sean Juegos de Mesa o estén en desarrollo
                 if (headerText.Contains("juegos de rol", StringComparison.OrdinalIgnoreCase) ||
-                    headerText.Contains("rol", StringComparison.OrdinalIgnoreCase))
+                    headerText.Contains("rol", StringComparison.OrdinalIgnoreCase) ||
+                    headerText.Contains("desarrollo", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 var (sectionDate, isMonthOnly) = ParseSectionDate(headerText);
+                if (!sectionDate.HasValue)
+                {
+                    continue;
+                }
 
                 int startIdx = match.Index;
                 int endIdx = (i + 1 < sectionHeaders.Count) ? sectionHeaders[i + 1].Index : html.Length;
@@ -148,13 +153,38 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                 imgSrc = lastImg.Groups["img"].Value.Trim();
                 if (lastImg.Groups["url"].Success)
                 {
-                    productUrl = lastImg.Groups["url"].Value.Trim();
+                    var u = lastImg.Groups["url"].Value.Trim();
+                    if (u.StartsWith('/'))
+                    {
+                        u = "https://devir.es" + u;
+                    }
+                    if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                    {
+                        productUrl = u;
+                    }
                 }
 
                 var eanM = EanRegex().Match(imgSrc);
                 if (eanM.Success)
                 {
                     ean = eanM.Groups[1].Value;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(productUrl))
+            {
+                var linkM = Regex.Match(precedingHtml, @"href=""(?<url>(?:https://devir\.es)?/[^""]+)""", RegexOptions.IgnoreCase);
+                if (linkM.Success)
+                {
+                    var u = linkM.Groups["url"].Value.Trim();
+                    if (u.StartsWith('/'))
+                    {
+                        u = "https://devir.es" + u;
+                    }
+                    if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                    {
+                        productUrl = u;
+                    }
                 }
             }
 
@@ -219,6 +249,41 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             }
 
             var (parsedDate, isMonthOnly) = ParseCardDate(dateText, sectionDate, sectionIsMonthOnly);
+            if (!parsedDate.HasValue)
+            {
+                continue;
+            }
+
+            string? productUrl = null;
+            if (match.Groups["url"].Success)
+            {
+                var u = match.Groups["url"].Value.Trim();
+                if (u.StartsWith('/'))
+                {
+                    u = "https://devir.es" + u;
+                }
+                if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                {
+                    productUrl = u;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(productUrl))
+            {
+                var linkMatch = Regex.Match(match.Value, @"href=""(?<url>(?:https://devir\.es)?/[^""]+)""", RegexOptions.IgnoreCase);
+                if (linkMatch.Success)
+                {
+                    var u = linkMatch.Groups["url"].Value.Trim();
+                    if (u.StartsWith('/'))
+                    {
+                        u = "https://devir.es" + u;
+                    }
+                    if (!u.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                    {
+                        productUrl = u;
+                    }
+                }
+            }
 
             var item = new EditorialReleaseItem(
                 Title: titleText,
@@ -229,7 +294,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                 Ean: ean,
                 CoverImageUrl: string.IsNullOrWhiteSpace(imgSrc) ? null : imgSrc,
                 Notes: headerText != null ? $"Próximos lanzamientos Devir ({headerText})" : "Próximos lanzamientos Devir",
-                SourceUrl: DefaultDevirUrl,
+                SourceUrl: !string.IsNullOrWhiteSpace(productUrl) ? productUrl : DefaultDevirUrl,
                 IsReprint: false,
                 IsMonthOnly: isMonthOnly);
 
@@ -290,10 +355,10 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
 
         dateText = dateText.Trim();
 
-        // Año solo: "2026", "2027"
-        if (int.TryParse(dateText, out int year) && year >= 2024 && year <= 2035)
+        // Descartar si el texto de fecha indica "desarrollo"
+        if (dateText.Contains("desarrollo", StringComparison.OrdinalIgnoreCase))
         {
-            return (new DateOnly(year, 1, 1), true);
+            return (null, false);
         }
 
         // Mes y año: "Noviembre 2026"
@@ -311,12 +376,22 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             }
         }
 
-        return (fallbackDate, fallbackIsMonthOnly);
+        // Si la tarjeta solo tiene un año numérico (ej. "2026", "2027") sin mes,
+        // no se acepta salvo que la sección padre (fallbackDate) tenga un mes cerrado válido.
+        if (fallbackDate.HasValue && fallbackDate.Value.Month > 0)
+        {
+            return (fallbackDate, fallbackIsMonthOnly);
+        }
+
+        return (null, false);
     }
 
     private static (DateOnly? Date, bool IsMonthOnly) ParseSectionDate(string header)
     {
         if (string.IsNullOrWhiteSpace(header))
+            return (null, false);
+
+        if (header.Contains("desarrollo", StringComparison.OrdinalIgnoreCase))
             return (null, false);
 
         var m = MonthYearRegex().Match(header);
@@ -333,12 +408,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             }
         }
 
-        var yearMatch = Regex.Match(header, @"\b(20\d\d)\b");
-        if (yearMatch.Success && int.TryParse(yearMatch.Groups[1].Value, out int year))
-        {
-            return (new DateOnly(year, 1, 1), true);
-        }
-
+        // Si solo contiene año (ej. "2027") sin mes, no se considera una sección con mes cerrado
         return (null, false);
     }
 
@@ -365,7 +435,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
     [GeneratedRegex(@"Precio:\s*(?:</strong>)?\s*(?<price>\d+(?:[.,]\d+)?)\s*€", RegexOptions.IgnoreCase)]
     private static partial Regex PriceRegex();
 
-    [GeneratedRegex(@"(?:<a[^>]+href=""(?<url>https://devir\.es/[^""]+)""[^>]*>)?\s*<img[^>]+src=""(?<img>https?://[^""]+)""", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:<a[^>]+href=""(?<url>(?:https://devir\.es)?/[^""]+)""[^>]*>\s*)?<img[^>]+src=""(?<img>https?://[^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex PrecedingImageRegex();
 
     [GeneratedRegex(@"<span[^>]*font-size:\s*(?:24|20)px[^>]*><strong>(?:<span[^>]*>)?(?<title>[^<]+)", RegexOptions.IgnoreCase)]
@@ -374,7 +444,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
     [GeneratedRegex(@"<strong>(?<text>[^<]+)</strong>", RegexOptions.IgnoreCase)]
     private static partial Regex StrongTagRegex();
 
-    [GeneratedRegex(@"src=""(?<img>[^""]*(?:Proximos-lanzamientos|product)/[^""]+)"".*?alt=""(?<alt>[^""]*)"".*?<p[^>]*>.*?<strong>(?<date>[^<]+)</strong>.*?</p>.*?<p[^>]*>.*?<strong>(?<title>[^<]+)</strong>.*?</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:<a[^>]+href=""(?<url>(?:https://devir\.es)?/[^""]+)""[^>]*>\s*)?<img[^>]+src=""(?<img>[^""]*(?:Proximos-lanzamientos|product)/[^""]+)"".*?alt=""(?<alt>[^""]*)"".*?<p[^>]*>.*?<strong>(?<date>[^<]+)</strong>.*?</p>.*?<p[^>]*>.*?<strong>(?<title>[^<]+)</strong>.*?</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex TileCardRegex();
 
     [GeneratedRegex(@"\b(84\d{11})\b")]

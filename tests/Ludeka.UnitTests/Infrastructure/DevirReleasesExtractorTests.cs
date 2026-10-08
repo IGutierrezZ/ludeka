@@ -24,7 +24,9 @@ public class DevirReleasesExtractorTests
     </div>
     <div class=""mgz-element-inner"">
         <div class=""mgz-single-image-wrapper"">
-            <img class=""mgz-hover-main"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/8436625616159-1200.jpg"" alt=""En el Abismo"" />
+            <a href=""https://devir.es/en-el-abismo"">
+                <img class=""mgz-hover-main"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/8436625616159-1200.jpg"" alt=""En el Abismo"" />
+            </a>
         </div>
         <p style=""text-align: center;""><span><strong>Noviembre 2026</strong></span></p>
         <p style=""text-align: center;""><span><strong>EN EL ABISMO</strong></span></p>
@@ -32,31 +34,25 @@ public class DevirReleasesExtractorTests
     ";
 
     [Fact]
-    public void ParseHtml_ExtractsReleasesAndEanFromImageFilename()
+    public void ParseHtml_ExtractsOnlyReleasesWithClosedCalendarMonthAndCapturesProductUrl()
     {
         var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
 
         var results = extractor.ParseHtml(SampleDevirHtml);
 
-        Assert.Equal(3, results.Count);
+        // Vileborn (solo 2026) y Daggerheart (solo 2027) se descartan por no tener mes cerrado anunciado.
+        // Solo En el Abismo (Noviembre 2026) debe extraerse.
+        Assert.Single(results);
 
-        var vileborn = results.First(r => r.Title == "VILEBORN");
-        Assert.Equal("Devir", vileborn.Publisher);
-        Assert.Equal("8436625615992", vileborn.Ean);
-        Assert.Equal("2026", vileborn.TargetDateText);
-        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/8436625615992-1200-frontflat.jpg", vileborn.CoverImageUrl);
-
-        var daggerheart = results.First(r => r.Title == "DAGGERHEART");
-        Assert.Equal("Devir", daggerheart.Publisher);
-        Assert.Null(daggerheart.Ean);
-        Assert.Equal("2027", daggerheart.TargetDateText);
-
-        var abismo = results.First(r => r.Title == "EN EL ABISMO");
+        var abismo = results.First();
+        Assert.Equal("EN EL ABISMO", abismo.Title);
+        Assert.Equal("Devir", abismo.Publisher);
         Assert.Equal("8436625616159", abismo.Ean);
         Assert.Equal("Noviembre 2026", abismo.TargetDateText);
         Assert.NotNull(abismo.ReleaseDate);
         Assert.Equal(2026, abismo.ReleaseDate!.Value.Year);
         Assert.Equal(11, abismo.ReleaseDate!.Value.Month);
+        Assert.Equal("https://devir.es/en-el-abismo", abismo.SourceUrl);
     }
 
     [Fact]
@@ -123,5 +119,52 @@ public class DevirReleasesExtractorTests
         Assert.Equal(65.50m, lacrimosa.EstimatedPvp);
         Assert.True(lacrimosa.IsReprint);
         Assert.True(lacrimosa.IsMonthOnly);
+    }
+
+    [Fact]
+    public void ParseHtml_DiscardsInDevelopmentSectionsAndNonBoardgames()
+    {
+        var html = @"
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Diciembre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-single-image-wrapper"">
+                <a href=""https://devir.es/red-cathedral-expansion"">
+                    <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625612222-1200-face3d.jpg"" alt=""Red Cathedral Expansion"" />
+                </a>
+            </div>
+        </div>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>THE RED CATHEDRAL EXPANSION</span></strong></span></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 30€</p>
+            </div>
+        </div>
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>EN DESARROLLO - JUEGOS DE MESA - 2027</strong></span></p>
+        <div class=""mgz-element-inner"">
+            <div class=""mgz-single-image-wrapper"">
+                <img class=""mgz-hover-main"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/8436625619999-1200.jpg"" alt=""Dogs of War"" />
+            </div>
+            <p style=""text-align: center;""><span><strong>2027</strong></span></p>
+            <p style=""text-align: center;""><span><strong>DOGS OF WAR</strong></span></p>
+        </div>
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>EN DESARROLLO - JUEGOS DE ROL - 2027</strong></span></p>
+        <div class=""mgz-element-inner"">
+            <div class=""mgz-single-image-wrapper"">
+                <img class=""mgz-hover-main"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/dagger.jpg"" alt=""Daggerheart"" />
+            </div>
+            <p style=""text-align: center;""><span><strong>2027</strong></span></p>
+            <p style=""text-align: center;""><span><strong>DAGGERHEART</strong></span></p>
+        </div>
+        ";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var results = extractor.ParseHtml(html);
+
+        Assert.Single(results);
+        var item = results.First();
+        Assert.Equal("THE RED CATHEDRAL EXPANSION", item.Title);
+        Assert.Equal("https://devir.es/red-cathedral-expansion", item.SourceUrl);
+        Assert.Equal(2026, item.ReleaseDate!.Value.Year);
+        Assert.Equal(12, item.ReleaseDate!.Value.Month);
     }
 }
