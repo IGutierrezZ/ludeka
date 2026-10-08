@@ -48,9 +48,9 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("id=\"bloque-03-ficha-tecnica\"", source, StringComparison.Ordinal);
         Assert.Contains("Ficha Técnica &amp; Escalabilidad", source, StringComparison.Ordinal);
 
-        // Bloque 04: Expansiones y Dónde Comprar
+        // Bloque 04: Expansiones
         Assert.Contains("id=\"bloque-04-expansiones-tiendas\"", source, StringComparison.Ordinal);
-        Assert.Contains("Expansiones &amp; Dónde Comprar", source, StringComparison.Ordinal);
+        Assert.Contains(">Expansiones</h2>", source, StringComparison.Ordinal);
 
         // Bloque 05: Hub Multimedia y Opiniones
         Assert.Contains("id=\"bloque-05-multimedia-comunidad\"", source, StringComparison.Ordinal);
@@ -250,11 +250,11 @@ public class GameDetailEditorialBlocksContractTests
     {
         var source = ReadSource(GameDetailPath);
 
-        // Bloque 04: Expansiones debe vincular ExpansionEcosystemSection con BaseGameId y Expansions
-        Assert.Contains("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" />", source, StringComparison.Ordinal);
+        // Bloque 04: Expansiones debe vincular ExpansionEcosystemSection con BaseGameId, Expansions y BaseGameMaxPlayers
+        Assert.Contains("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" BaseGameMaxPlayers=\"@GetBaseGameMaxPlayers()\" />", source, StringComparison.Ordinal);
 
         // No debe pasar parámetros inexistentes a ExpansionEcosystemSection (causante de circuit crash en Blazor)
-        var withoutValidEco = source.Replace("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" />", string.Empty);
+        var withoutValidEco = source.Replace("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" BaseGameMaxPlayers=\"@GetBaseGameMaxPlayers()\" />", string.Empty);
         Assert.DoesNotContain("<ExpansionEcosystemSection", withoutValidEco, StringComparison.Ordinal);
 
         // Debe soportar expansiones hijas mediante ExpansionAporteCard y ExpansionSisterList

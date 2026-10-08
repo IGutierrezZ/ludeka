@@ -15,47 +15,47 @@ public class ExpansionAndMediaCarouselUiContractTests
     private const string RailScrollJsPath = "src/Ludeka.Web/wwwroot/js/rail-scroll.js";
 
     [Fact]
-    public void ExpansionEcosystemSection_ShouldDeclareHorizontalCarouselRail()
+    public void ExpansionEcosystemSection_ShouldDeclareEditorialTwoColumnGrid()
     {
         var source = ReadSource(ExpansionSectionPath);
 
-        Assert.Contains("id=\"expansions-carousel-rail\"", source, StringComparison.Ordinal);
-        Assert.Contains("overflow-x-auto", source, StringComparison.Ordinal);
-        Assert.Contains("snap-x", source, StringComparison.Ordinal);
-        Assert.Contains("snap-mandatory", source, StringComparison.Ordinal);
-        Assert.Contains("scrollbar-none", source, StringComparison.Ordinal);
-        Assert.Contains("ScrollExpansionsRailAsync", source, StringComparison.Ordinal);
-        Assert.Contains("ludekaScrollRail", source, StringComparison.Ordinal);
+        // Cuadrícula editorial de 2 columnas según prototipo Claude
+        Assert.Contains("grid grid-cols-1 md:grid-cols-2 gap-4", source, StringComparison.Ordinal);
+        Assert.Contains("rounded-2xl bg-[var(--paper-2)]", source, StringComparison.Ordinal);
+
+        // Optimización anti-CLS y carga asíncrona
+        Assert.Contains("width=\"64\"", source, StringComparison.Ordinal);
+        Assert.Contains("height=\"64\"", source, StringComparison.Ordinal);
+        Assert.Contains("loading=\"lazy\"", source, StringComparison.Ordinal);
+        Assert.Contains("decoding=\"async\"", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ExpansionEcosystemSection_ShouldNotUseVerticalGridInExpansionsListTab()
+    public void ExpansionEcosystemSection_ShouldDeclareCleanCardWithLibraryButton()
     {
         var source = ReadSource(ExpansionSectionPath);
 
-        // La pestaña list ya no debe tener cuadrícula vertical de 2 columnas
-        Assert.DoesNotContain("<div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\">", source, StringComparison.Ordinal);
+        // Botón interactivo de ludoteca con estados
+        Assert.Contains("+ A mi ludoteca", source, StringComparison.Ordinal);
+        Assert.Contains("En mi ludoteca", source, StringComparison.Ordinal);
+        Assert.Contains("HandleToggleLibrary", source, StringComparison.Ordinal);
+        Assert.Contains("LibraryService.SetCollectionStateAsync", source, StringComparison.Ordinal);
+
+        // Etiqueta de necesidad simplificada (Opcional, Imprescindible, etc.)
+        Assert.Contains("GetNecessitySimpleLabel", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ExpansionEcosystemSection_ShouldDeclareCompactCardsWithSnapStart()
+    public void ExpansionEcosystemSection_ShouldNotContainMixerOrRecipes()
     {
         var source = ReadSource(ExpansionSectionPath);
 
-        Assert.Contains("snap-start", source, StringComparison.Ordinal);
-        Assert.Contains("w-[275px]", source, StringComparison.Ordinal);
-        Assert.Contains("shrink-0", source, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ExpansionEcosystemSection_MixerShouldUseTwoColumnLayoutWithoutVerticalSprawl()
-    {
-        var source = ReadSource(ExpansionSectionPath);
-
-        Assert.Contains("lg:grid-cols-12", source, StringComparison.Ordinal);
-        Assert.Contains("lg:col-span-5", source, StringComparison.Ordinal);
-        Assert.Contains("lg:col-span-7", source, StringComparison.Ordinal);
-        Assert.Contains("max-h-[380px] overflow-y-auto", source, StringComparison.Ordinal);
+        // Se retiran el mezclador en mesa, recetas y botones de scroll por JavaScript
+        Assert.DoesNotContain("expansions-carousel-rail", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ScrollExpansionsRailAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("EvaluateMixerCombinationAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("_activeTab", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("lg:grid-cols-12", source, StringComparison.Ordinal);
     }
 
     [Fact]
