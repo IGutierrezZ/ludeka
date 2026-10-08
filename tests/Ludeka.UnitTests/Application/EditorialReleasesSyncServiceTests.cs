@@ -21,8 +21,9 @@ public class EditorialReleasesSyncServiceTests
     private readonly FakeWeeklyReleaseRepository _weeklyReleaseRepo = new();
     private readonly FakeGameRepository _gameRepo = new();
     private readonly FakeBggClient _bggClient = new();
+    private readonly FakeAiMatcherService _aiMatcher = new();
 
-    private EditorialReleasesSyncService CreateService()
+    private EditorialReleasesSyncService CreateService(bool useAiMatcher = false)
     {
         return new EditorialReleasesSyncService(
             _devirExtractor,
@@ -30,6 +31,7 @@ public class EditorialReleasesSyncServiceTests
             _weeklyReleaseRepo,
             _gameRepo,
             _bggClient,
+            useAiMatcher ? _aiMatcher : null,
             NullLogger<EditorialReleasesSyncService>.Instance);
     }
 
@@ -104,6 +106,27 @@ public class EditorialReleasesSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncAllEditorialReleasesAsync_WhenReleaseHas3dBoxImage_UpdatesMatchedGameCover()
+    {
+        var game = CreateSampleGame(6001, "salton-sea", "Salton Sea", "Salton Sea", yearPublished: 2024);
+        game.UpdateImages("https://example.com/2d-flat.jpg");
+        _gameRepo.Add(game);
+
+        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new("Salton Sea", "Devir", new DateOnly(2026, 11, 1), "Noviembre 2026", 35.00m, null,
+                "https://devir.es/img/8436625615555-face3d.jpg", SourceUrl: "https://devir.es/salton-sea", IsMonthOnly: true)
+        };
+
+        var service = CreateService();
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.GamesLinkedCount);
+        Assert.Contains("face3d", game.CoverImageUrl);
+    }
+
+    [Fact]
     public async Task SyncAllEditorialReleasesAsync_IsIdempotent_UpdatesExistingReleaseWithoutDuplicating()
     {
         var floeGame = CreateSampleGame(2001, "floe", "Floe", "Floe", yearPublished: 2026);
@@ -143,32 +166,45 @@ public class EditorialReleasesSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncAllEditorialReleasesAsync_DiscardsReleasesWhenNoMatchingBoardGameFound()
+    public async Task SyncAllEditorialReleasesAsync_WhenNoMatchingBoardGameFound_SendsToPendingModerationWithAiSuggestion()
     {
-        // Devir devuelve un suplemento de rol o título no existente en catálogo ni en BGG
-        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        // Maldito Games devuelve un título que no está en catálogo ("Crucero Galáctico")
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
         {
-            new("VHS - SED DE SANGRE", "Devir", new DateOnly(2026, 10, 1), "Octubre 2026", 25m, null, "https://devir.es/vhs.jpg")
+            new("Crucero Galáctico", "Maldito Games", new DateOnly(2026, 11, 1), "Noviembre 2026", 55m, null, "https://maldito.es/crucero.jpg")
         };
 
-        var service = CreateService();
+        _aiMatcher.SuggestionsByTitle["Crucero Galáctico"] = new AiReleaseMatchResultDto(
+            SuggestedBggId: 367209,
+            SuggestedTitle: "Galactic Cruise",
+            Reasoning: "Edición en castellano de Maldito Games de Galactic Cruise.");
+
+        var service = CreateService(useAiMatcher: true);
 
         // Act
         var summary = await service.SyncAllEditorialReleasesAsync();
 
-        // Assert: se detecta 1 item extraído pero se DESCARTA por no corresponder a un juego de mesa de BGG
+        // Assert: no se descarta, se crea como novedad en estado PendingModeration con la sugerencia de IA
         Assert.Equal(1, summary.TotalFound);
-        Assert.Equal(0, summary.CreatedCount);
+        Assert.Equal(1, summary.CreatedCount);
         Assert.Equal(0, summary.GamesLinkedCount);
-        Assert.Empty(_weeklyReleaseRepo.Releases);
+        Assert.Single(_weeklyReleaseRepo.Releases);
+
+        var release = _weeklyReleaseRepo.Releases.First();
+        Assert.Equal("Crucero Galáctico", release.Title);
+        Assert.Equal(WeeklyReleaseStatus.PendingModeration, release.Status);
+        Assert.Null(release.GameId);
+        Assert.Equal(367209, release.AiSuggestedBggId);
+        Assert.Equal("Galactic Cruise", release.AiSuggestedTitle);
+        Assert.Contains("Galactic Cruise", release.AiMatchReasoning);
     }
 
     [Fact]
-    public async Task SyncAllEditorialReleasesAsync_PurgesPreexistingOrphanReleasesWithoutGameId()
+    public async Task SyncAllEditorialReleasesAsync_PurgesPreexistingLegacyOrphanReleasesWithoutGameId()
     {
-        // Supongamos que en una ejecución anterior se guardó un suplemento de rol huérfano sin GameId
+        // Supongamos que en una ejecución anterior se guardó una novedad corrupta publicada sin GameId y sin IA
         var orphanRelease = new WeeklyRelease(
-            title: "VHS - INFESTACIÓN",
+            title: "Corrupted Release",
             publisher: "Devir",
             releaseDate: new DateOnly(2026, 10, 1),
             gameId: null);
@@ -180,8 +216,31 @@ public class EditorialReleasesSyncServiceTests
         _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>();
         await service.SyncPublisherReleasesAsync("Devir");
 
-        // Assert: la novedad huérfana ha sido purgada automáticamente
+        // Assert: la novedad corrupta ha sido purgada automáticamente
         Assert.Empty(_weeklyReleaseRepo.Releases);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_DoesNotPurgePendingModerationReleases()
+    {
+        // Una novedad pendiente de moderación sin GameId nunca debe ser purgada automáticamente
+        var pendingRelease = new WeeklyRelease(
+            title: "Crucero Galáctico",
+            publisher: "Maldito Games",
+            releaseDate: new DateOnly(2026, 11, 1),
+            gameId: null);
+        pendingRelease.SetPendingModeration(367209, "Galactic Cruise", "Traducción pendiente de revisión");
+        _weeklyReleaseRepo.Releases.Add(pendingRelease);
+
+        var service = CreateService();
+
+        // Act: Maldito devuelve 0 items en esta pasada
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>();
+        await service.SyncPublisherReleasesAsync("Maldito Games");
+
+        // Assert: la novedad pendiente de moderación sigue existiendo
+        Assert.Single(_weeklyReleaseRepo.Releases);
+        Assert.Equal(WeeklyReleaseStatus.PendingModeration, _weeklyReleaseRepo.Releases.First().Status);
     }
 
     [Fact]
@@ -439,5 +498,28 @@ public class EditorialReleasesSyncServiceTests
         public Task<IReadOnlyList<BggSearchResultDto>> SearchGamesAsync(string query, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<BggSearchResultDto>>(
                 SearchResults.TryGetValue(query, out var list) ? list : []);
+    }
+
+    private class FakeAiMatcherService : IReleaseAiMatcherService
+    {
+        public Dictionary<string, AiReleaseMatchResultDto> SuggestionsByTitle { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task<AiReleaseMatchResultDto> SuggestMatchAsync(
+            string rawTitle,
+            string publisher,
+            decimal? estimatedPvp,
+            string? notes,
+            CancellationToken ct = default)
+        {
+            if (SuggestionsByTitle.TryGetValue(rawTitle, out var match))
+            {
+                return Task.FromResult(match);
+            }
+
+            return Task.FromResult(new AiReleaseMatchResultDto(
+                SuggestedBggId: null,
+                SuggestedTitle: rawTitle,
+                Reasoning: $"Sugerencia simulada para '{rawTitle}'"));
+        }
     }
 }

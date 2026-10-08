@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Ludeka.Application.Features.Releases;
@@ -24,6 +25,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
     private readonly IWeeklyReleaseRepository _weeklyReleaseRepository;
     private readonly IGameRepository _gameRepository;
     private readonly IBggClient? _bggClient;
+    private readonly IReleaseAiMatcherService? _aiMatcherService;
     private readonly ILogger<EditorialReleasesSyncService> _logger;
 
     public EditorialReleasesSyncService(
@@ -32,6 +34,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         IWeeklyReleaseRepository weeklyReleaseRepository,
         IGameRepository gameRepository,
         IBggClient? bggClient,
+        IReleaseAiMatcherService? aiMatcherService,
         ILogger<EditorialReleasesSyncService> logger)
     {
         _devirExtractor = devirExtractor ?? throw new ArgumentNullException(nameof(devirExtractor));
@@ -39,7 +42,19 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         _weeklyReleaseRepository = weeklyReleaseRepository ?? throw new ArgumentNullException(nameof(weeklyReleaseRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _bggClient = bggClient;
+        _aiMatcherService = aiMatcherService;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public EditorialReleasesSyncService(
+        IDevirReleasesExtractor devirExtractor,
+        IMalditoReleasesExtractor malditoExtractor,
+        IWeeklyReleaseRepository weeklyReleaseRepository,
+        IGameRepository gameRepository,
+        IBggClient? bggClient,
+        ILogger<EditorialReleasesSyncService> logger)
+        : this(devirExtractor, malditoExtractor, weeklyReleaseRepository, gameRepository, bggClient, null, logger)
+    {
     }
 
     public async Task<EditorialSyncSummaryDto> SyncAllEditorialReleasesAsync(CancellationToken ct = default)
@@ -107,12 +122,16 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
             return new EditorialSyncResultDto(publisher, false, 0, 0, 0, 0, 0, $"Editorial '{publisher}' no soportada.");
         }
 
-        // Cargar novedades existentes para idempotencia y purga de huérfanos
+        // Cargar novedades existentes para idempotencia
         var existingReleases = await _weeklyReleaseRepository.GetReleasesAsync(null, ct).ConfigureAwait(false);
 
-        // Limpiar posibles registros huérfanos previos de esta editorial sin juego vinculado (ej. suplementos de rol o cómics)
+        // Limpiar únicamente registros que estuvieran huérfanos sin estado definido o inválidos (no tocar PendingModeration ni Rejected)
         var orphanReleases = existingReleases
-            .Where(r => r.Publisher.Equals(publisher, StringComparison.OrdinalIgnoreCase) && r.GameId == null)
+            .Where(r => r.Publisher.Equals(publisher, StringComparison.OrdinalIgnoreCase) && 
+                        r.GameId == null && 
+                        r.Status == WeeklyReleaseStatus.Published &&
+                        r.AiSuggestedBggId == null &&
+                        r.AiSuggestedTitle == null)
             .ToList();
 
         foreach (var orphan in orphanReleases)
@@ -127,7 +146,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         }
 
         var releaseIndex = new Dictionary<string, WeeklyRelease>(StringComparer.OrdinalIgnoreCase);
-        foreach (var rel in existingReleases.Where(r => r.GameId != null))
+        foreach (var rel in existingReleases)
         {
             var key = MakeReleaseKey(rel.Title, rel.Publisher);
             releaseIndex[key] = rel;
@@ -152,6 +171,15 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         foreach (var item in extractedItems)
         {
             ct.ThrowIfCancellationRequested();
+
+            var releaseKey = MakeReleaseKey(item.Title, item.Publisher);
+            releaseIndex.TryGetValue(releaseKey, out var existingRelease);
+
+            // Si el moderador ya rechazó este elemento previamente, respetamos su decisión
+            if (existingRelease != null && existingRelease.Status == WeeklyReleaseStatus.Rejected)
+            {
+                continue;
+            }
 
             Game? matchedGame = null;
             bool isReprint = item.IsReprint;
@@ -185,103 +213,105 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 }
             }
 
-            // 3. Fallback BGG si el juego no está en catálogo local
-            if (matchedGame == null && _bggClient != null)
-            {
-                try
-                {
-                    var queriesToTry = new List<string> { item.Title };
-                    if (!string.IsNullOrWhiteSpace(cleanedTitle) &&
-                        !cleanedTitle.Equals(item.Title, StringComparison.OrdinalIgnoreCase))
-                    {
-                        queriesToTry.Add(cleanedTitle);
-                    }
-                    if (!string.IsNullOrWhiteSpace(baseTitle) &&
-                        !baseTitle.Equals(cleanedTitle, StringComparison.OrdinalIgnoreCase) &&
-                        !baseTitle.Equals(item.Title, StringComparison.OrdinalIgnoreCase))
-                    {
-                        queriesToTry.Add(baseTitle);
-                    }
-
-                    BggSearchResultDto? bestMatch = null;
-                    string matchedQuery = item.Title;
-
-                    foreach (var query in queriesToTry)
-                    {
-                        var searchResults = await _bggClient.SearchGamesAsync(query, ct).ConfigureAwait(false);
-                        if (searchResults.Count > 0)
-                        {
-                            bestMatch = FindBestMatch(query, searchResults);
-                            if (bestMatch != null)
-                            {
-                                matchedQuery = query;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (bestMatch != null)
-                    {
-                        var bggGame = await _bggClient.FetchGameByBggIdAsync(bestMatch.BggId, ct).ConfigureAwait(false);
-                        if (bggGame != null)
-                        {
-                            if (!string.IsNullOrWhiteSpace(item.Ean))
-                            {
-                                bggGame.UpdateEan(item.Ean);
-                            }
-                            bggGame.UpdateSpanishPublisher(item.Publisher);
-
-                            await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
-                            IndexGame(barcodeIndex, titleIndex, bggGame);
-
-                            matchedGame = bggGame;
-                            importedCount++;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "No se pudo consultar BGG para el título '{Title}'.", item.Title);
-                }
-            }
-
-            // REGLA DE NEGOCIO ESTRICTA: Toda novedad debe corresponder a un juego de mesa de BGG o del catálogo.
-            // Si tras buscar en catálogo y BGG no se relaciona con ningún juego, se DESCARTA.
+            // 3. Si no hay cruce en catálogo local:
+            AiReleaseMatchResultDto? aiMatch = null;
             if (matchedGame == null)
             {
-                _logger.LogInformation("Descartando elemento '{Title}' ({Publisher}) por no estar relacionado con ningún juego de mesa de BGG ni catálogo local.", item.Title, item.Publisher);
-                continue;
+                if (_aiMatcherService != null)
+                {
+                    try
+                    {
+                        aiMatch = await _aiMatcherService.SuggestMatchAsync(item.Title, item.Publisher, item.EstimatedPvp, item.Notes, ct).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error al invocar el asistente de IA para el lanzamiento '{Title}'.", item.Title);
+                    }
+                }
+                else if (_bggClient != null)
+                {
+                    // Fallback para suites de tests unitarios que configuran BggClient simulado sin servicio de IA
+                    try
+                    {
+                        var queriesToTry = new List<string> { item.Title };
+                        if (!string.IsNullOrWhiteSpace(cleanedTitle) && !cleanedTitle.Equals(item.Title, StringComparison.OrdinalIgnoreCase))
+                            queriesToTry.Add(cleanedTitle);
+                        if (!string.IsNullOrWhiteSpace(baseTitle) && !baseTitle.Equals(cleanedTitle, StringComparison.OrdinalIgnoreCase))
+                            queriesToTry.Add(baseTitle);
+
+                        BggSearchResultDto? bestMatch = null;
+                        foreach (var query in queriesToTry)
+                        {
+                            var searchResults = await _bggClient.SearchGamesAsync(query, ct).ConfigureAwait(false);
+                            if (searchResults.Count > 0)
+                            {
+                                bestMatch = FindBestMatch(query, searchResults);
+                                if (bestMatch != null) break;
+                            }
+                        }
+
+                        if (bestMatch != null)
+                        {
+                            var bggGame = await _bggClient.FetchGameByBggIdAsync(bestMatch.BggId, ct).ConfigureAwait(false);
+                            if (bggGame != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(item.Ean)) bggGame.UpdateEan(item.Ean);
+                                bggGame.UpdateSpanishPublisher(item.Publisher);
+                                await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
+                                IndexGame(barcodeIndex, titleIndex, bggGame);
+                                matchedGame = bggGame;
+                                importedCount++;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "No se pudo consultar BGG para el título '{Title}'.", item.Title);
+                    }
+                }
             }
 
-            linkedCount++;
-
-            if (matchedGame.YearPublished > 0 && matchedGame.YearPublished < currentYear)
+            // Enriquecer el juego y calcular reprint si está vinculado
+            if (matchedGame != null)
             {
-                isReprint = true;
+                linkedCount++;
+
+                if (matchedGame.YearPublished > 0 && matchedGame.YearPublished < currentYear)
+                {
+                    isReprint = true;
+                }
+
+                bool gameModified = false;
+                if (!string.IsNullOrWhiteSpace(item.Ean) && string.IsNullOrWhiteSpace(matchedGame.Ean))
+                {
+                    matchedGame.UpdateEan(item.Ean);
+                    gameModified = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(matchedGame.SpanishPublisher))
+                {
+                    matchedGame.UpdateSpanishPublisher(item.Publisher);
+                    gameModified = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.CoverImageUrl) &&
+                    (item.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                     item.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                     string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)))
+                {
+                    matchedGame.UpdateImages(item.CoverImageUrl, matchedGame.ThumbnailUrl ?? item.CoverImageUrl);
+                    gameModified = true;
+                }
+
+                if (gameModified)
+                {
+                    await _gameRepository.UpdateAsync(matchedGame, ct).ConfigureAwait(false);
+                }
             }
 
-            // Enriquecer el juego si no tenía EAN o editorial en español
-            bool gameModified = false;
-            if (!string.IsNullOrWhiteSpace(item.Ean) && string.IsNullOrWhiteSpace(matchedGame.Ean))
-            {
-                matchedGame.UpdateEan(item.Ean);
-                gameModified = true;
-            }
-
-            if (string.IsNullOrWhiteSpace(matchedGame.SpanishPublisher))
-            {
-                matchedGame.UpdateSpanishPublisher(item.Publisher);
-                gameModified = true;
-            }
-
-            if (gameModified)
-            {
-                await _gameRepository.UpdateAsync(matchedGame, ct).ConfigureAwait(false);
-            }
-
-            // Resolver precio estimado: prioridad al extraído; fallback al mejor precio de ofertas en catálogo
+            // Resolver precio estimado
             decimal? finalEstimatedPvp = item.EstimatedPvp;
-            if (finalEstimatedPvp == null && matchedGame.PurchaseLinks.Count > 0)
+            if (finalEstimatedPvp == null && matchedGame?.PurchaseLinks.Count > 0)
             {
                 var minOfferPrice = matchedGame.PurchaseLinks
                     .Where(p => p.Price.HasValue && p.Price.Value > 0)
@@ -296,21 +326,28 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
             }
 
             // 4. Crear o actualizar WeeklyRelease
-            var releaseKey = MakeReleaseKey(item.Title, item.Publisher);
-
-            if (releaseIndex.TryGetValue(releaseKey, out var existingRelease))
+            if (existingRelease != null)
             {
                 existingRelease.Update(
                     title: existingRelease.Title,
                     publisher: existingRelease.Publisher,
                     releaseDate: item.ReleaseDate ?? existingRelease.ReleaseDate,
-                    gameId: matchedGame.Id,
+                    gameId: matchedGame != null ? matchedGame.Id : existingRelease.GameId,
                     coverImageUrl: item.CoverImageUrl ?? existingRelease.CoverImageUrl,
                     estimatedPvp: finalEstimatedPvp ?? existingRelease.EstimatedPvp,
                     isReprint: existingRelease.IsReprint || isReprint,
                     notes: !string.IsNullOrWhiteSpace(item.Notes) ? item.Notes : existingRelease.Notes,
                     sourceUrl: item.SourceUrl ?? existingRelease.SourceUrl,
                     isMonthOnly: item.IsMonthOnly);
+
+                if (matchedGame != null && existingRelease.Status == WeeklyReleaseStatus.PendingModeration)
+                {
+                    existingRelease.Approve(matchedGame.Id);
+                }
+                else if (matchedGame == null && aiMatch != null && existingRelease.Status == WeeklyReleaseStatus.PendingModeration)
+                {
+                    existingRelease.SetAiSuggestion(aiMatch.SuggestedBggId, aiMatch.SuggestedTitle, aiMatch.Reasoning);
+                }
 
                 await _weeklyReleaseRepository.UpdateAsync(existingRelease, ct).ConfigureAwait(false);
                 updatedCount++;
@@ -321,13 +358,21 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                     title: item.Title,
                     publisher: item.Publisher,
                     releaseDate: item.ReleaseDate,
-                    gameId: matchedGame.Id,
+                    gameId: matchedGame?.Id,
                     coverImageUrl: item.CoverImageUrl,
                     estimatedPvp: finalEstimatedPvp,
                     isReprint: isReprint,
                     notes: item.Notes,
                     sourceUrl: item.SourceUrl,
                     isMonthOnly: item.IsMonthOnly);
+
+                if (matchedGame == null)
+                {
+                    newRelease.SetPendingModeration(
+                        aiMatch?.SuggestedBggId,
+                        aiMatch?.SuggestedTitle,
+                        aiMatch?.Reasoning ?? "Pendiente de revisión y vinculación por moderador.");
+                }
 
                 await _weeklyReleaseRepository.AddAsync(newRelease, ct).ConfigureAwait(false);
                 releaseIndex[releaseKey] = newRelease;

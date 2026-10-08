@@ -13,17 +13,23 @@ namespace Ludeka.Application.Features.Community;
 public class WeeklyReleaseService : IWeeklyReleaseService
 {
     private const string DenialMessage =
-        "Se requiere el permiso de moderación 'CanApproveMedia' para registrar novedades editoriales.";
+        "Se requiere el permiso de moderación 'CanApproveMedia' para gestionar novedades editoriales.";
 
     private readonly IWeeklyReleaseRepository _repository;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IGameRepository? _gameRepository;
+    private readonly IBggClient? _bggClient;
 
     public WeeklyReleaseService(
         IWeeklyReleaseRepository repository,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IGameRepository? gameRepository = null,
+        IBggClient? bggClient = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _permissionGuard = permissionGuard;
+        _gameRepository = gameRepository;
+        _bggClient = bggClient;
     }
 
     /// <summary>
@@ -38,7 +44,21 @@ public class WeeklyReleaseService : IWeeklyReleaseService
     public async Task<IReadOnlyList<WeeklyReleaseDto>> GetReleasesAsync(DateOnly? fromDate = null, CancellationToken ct = default)
     {
         var releases = await _repository.GetReleasesAsync(fromDate, ct);
-        return releases.Select(MapToDto).ToList();
+        return releases
+            .Where(r => r.Status == WeeklyReleaseStatus.Published)
+            .Select(MapToDto)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<WeeklyReleaseDto>> GetPendingModerationReleasesAsync(CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+        var releases = await _repository.GetReleasesAsync(null, ct);
+        return releases
+            .Where(r => r.Status == WeeklyReleaseStatus.PendingModeration)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(MapToDto)
+            .ToList();
     }
 
     public async Task<WeeklyReleaseDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -92,6 +112,64 @@ public class WeeklyReleaseService : IWeeklyReleaseService
         return MapToDto(existing);
     }
 
+    public async Task<WeeklyReleaseDto> ApproveReleaseAsync(
+        Guid id,
+        Guid? linkedGameId = null,
+        bool useAiSuggestionIfAvailable = true,
+        CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var existing = await _repository.GetByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No se encontró el lanzamiento con ID {id}.");
+
+        Guid? finalGameId = linkedGameId;
+
+        if (!finalGameId.HasValue && useAiSuggestionIfAvailable && existing.AiSuggestedBggId.HasValue)
+        {
+            var bggId = existing.AiSuggestedBggId.Value;
+            if (_gameRepository != null)
+            {
+                var localGame = await _gameRepository.GetByBggIdAsync(bggId, ct);
+                if (localGame != null)
+                {
+                    finalGameId = localGame.Id;
+                }
+                else if (_bggClient != null)
+                {
+                    try
+                    {
+                        var fetched = await _bggClient.FetchGameByBggIdAsync(bggId, ct);
+                        if (fetched != null)
+                        {
+                            await _gameRepository.AddRangeAsync([fetched], ct);
+                            finalGameId = fetched.Id;
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback seguro si la llamada de red a BGG falla
+                    }
+                }
+            }
+        }
+
+        existing.Approve(finalGameId);
+        await _repository.UpdateAsync(existing, ct);
+        return MapToDto(existing);
+    }
+
+    public async Task RejectReleaseAsync(Guid id, CancellationToken ct = default)
+    {
+        await RequirePermissionAsync(ct);
+
+        var existing = await _repository.GetByIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No se encontró el lanzamiento con ID {id}.");
+
+        existing.Reject();
+        await _repository.UpdateAsync(existing, ct);
+    }
+
     public async Task DeleteReleaseAsync(Guid id, CancellationToken ct = default)
     {
         await RequirePermissionAsync(ct);
@@ -114,6 +192,10 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             r.IsPublishedOnInstagram,
             r.SourceUrl,
             r.CreatedAt,
-            r.IsMonthOnly);
+            r.IsMonthOnly,
+            r.Status,
+            r.AiSuggestedBggId,
+            r.AiSuggestedTitle,
+            r.AiMatchReasoning);
     }
 }

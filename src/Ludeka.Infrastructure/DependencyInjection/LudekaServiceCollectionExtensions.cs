@@ -463,6 +463,7 @@ public static class LudekaServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
         });
+        services.AddHttpClient<IReleaseAiMatcherService, GeminiReleaseMatcherService>();
 
         return services;
     }

@@ -70,7 +70,11 @@ public record WeeklyReleaseDto(
     bool IsPublishedOnInstagram = false,
     string? SourceUrl = null,
     DateTimeOffset CreatedAt = default,
-    bool IsMonthOnly = false);
+    bool IsMonthOnly = false,
+    WeeklyReleaseStatus Status = WeeklyReleaseStatus.Published,
+    int? AiSuggestedBggId = null,
+    string? AiSuggestedTitle = null,
+    string? AiMatchReasoning = null);
 
 public record CreateWeeklyReleaseRequest(
     string Title,
