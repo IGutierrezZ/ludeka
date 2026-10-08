@@ -1,7 +1,7 @@
 # INC-138: Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs
 
 ## Estado
-⏳ En progreso
+✅ Archivado
 
 ## Contexto y Motivación
 Durante la ejecución del barrido de imágenes de Devir en Cloud Run (`devir-images-backfill`), Cloudflare bloqueó la paginación a partir de la página 2 con HTTP 403 Forbidden debido a colisiones de cabeceras User-Agent y ausencia de cabeceras de navegación humana. Además, el job `editorial-releases-sync` no cargaba novedades de Maldito Games porque un fallo o timeout en la consulta del catálogo cronológico abortaba el procesamiento completo de la portada mediante `Task.WhenAll`. Por último, el job `devir-images-backfill` no estaba dado de alta en el bucle de despliegue de Cloud Run en GitHub Actions.
