@@ -677,12 +677,9 @@ else
                 else if (_activeTab == "expansiones")
                 {
                     @* BLOQUE 04: EXPANSIONES Y DÓNDE COMPRAR *@
-                    <section id="bloque-04-expansiones-tiendas" class="flex flex-col gap-6" aria-label="Bloque 04: Expansiones y tiendas">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <div class="flex items-baseline gap-3">
-                                <b class="text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">04</b>
-                                <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight">Expansiones &amp; Dónde Comprar</h2>
-                            </div>
+                    <section id="bloque-04-expansiones-tiendas" class="flex flex-col gap-6" aria-label="Expansiones">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight">Expansiones</h2>
                             @if (!Game.IsExpansion && _expansions.Count > 0)
                             {
                                 <span class="py-1 px-3 rounded-full bg-[var(--paper-2)] text-[var(--ink)] font-extrabold text-xs flex items-center gap-1">
@@ -721,7 +718,7 @@ else
                         }
                         else if (_expansions.Count > 0)
                         {
-                            <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
+                            <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" BaseGameMaxPlayers="@GetBaseGameMaxPlayers()" />
                         }
                         else
                         {
@@ -1886,6 +1883,12 @@ else
         var min = Game.Scalability.Min(s => s.PlayerCount);
         var max = Game.Scalability.Max(s => s.PlayerCount);
         return min == max ? $"{min}" : $"{min}–{max}";
+    }
+
+    private int? GetBaseGameMaxPlayers()
+    {
+        if (Game == null || Game.Scalability.Count == 0) return null;
+        return Game.Scalability.Max(s => s.PlayerCount);
     }
 
     private static string GetLanguageText(LanguageDependence lang) => lang switch

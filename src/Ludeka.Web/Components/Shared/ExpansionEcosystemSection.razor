@@ -1,331 +1,62 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Application.Contracts
 @using Ludeka.Core.Enums
-@inject IExpansionService ExpansionService
-@inject IJSRuntime JSRuntime
+@using Microsoft.Extensions.Logging
+@inject IUserLibraryService LibraryService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject ILogger<ExpansionEcosystemSection> Logger
 
-@if (_isLoading)
+@if (Expansions != null && Expansions.Count > 0)
 {
-    <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-muted)]">
-        <div class="inline-block animate-spin mb-1"><Icon Name="dices" Size="20" /></div>
-        <p>Cargando expansiones y sinergias del ecosistema...</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @foreach (var exp in Expansions)
+        {
+            <div class="flex items-center gap-4 p-4 sm:p-5 rounded-2xl bg-[var(--paper-2)] border border-[var(--rule)]/40 hover:border-[var(--rule)] transition-all">
+                <a href="/juegos/@exp.Slug" class="shrink-0 w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-white/50 border border-black/5 group block">
+                    <img src="@(string.IsNullOrWhiteSpace(exp.CoverImageUrl) ? "/images/expansion-placeholder.svg" : exp.CoverImageUrl)"
+                         alt="Carátula de @exp.SpanishTitle"
+                         width="64"
+                         height="64"
+                         loading="lazy"
+                         decoding="async"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                         onerror="this.onerror=null; this.src='/images/expansion-placeholder.svg';" />
+                </a>
+                <div class="flex-1 min-w-0 flex flex-col items-start gap-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                        @GetNecessitySimpleLabel(exp.Necessity)
+                    </span>
+                    <a href="/juegos/@exp.Slug" class="text-base font-black text-[var(--ink)] hover:text-[var(--accent)] transition-colors leading-tight line-clamp-1" title="@exp.SpanishTitle">
+                        @exp.SpanishTitle
+                    </a>
+                    <span class="text-xs text-[var(--muted)] font-semibold">
+                        @exp.YearPublished@(GetPlayerText(exp))
+                    </span>
+                    <button type="button"
+                            @onclick="() => HandleToggleLibrary(exp.Id)"
+                            class="mt-1 h-8 px-3.5 rounded-full border border-[var(--line)] bg-transparent hover:bg-white text-[var(--ink)] font-bold text-xs inline-flex items-center gap-1.5 transition-all cursor-pointer">
+                        @if (_userInCollectionIds.Contains(exp.Id))
+                        {
+                            <Icon Name="check" Size="13" class="text-[var(--accent-green)]" />
+                            <span>En mi ludoteca</span>
+                        }
+                        else
+                        {
+                            <span>+ A mi ludoteca</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 }
-else if (Expansions != null && Expansions.Count > 0)
+else
 {
-    <div class="p-5 sm:p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4 sm:space-y-5">
-        @* Cabecera y Selector de Pestañas *@
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
-            <div>
-                <span class="text-[0.68rem] font-bold uppercase tracking-wider text-[var(--brand-primary)] block mb-0.5">
-                    Ecosistema Lúdico
-                </span>
-                <h2 class="text-lg sm:text-xl font-black text-[var(--text-primary)]">
-                    Expansiones Oficiales y Compatibilidad de Mesa
-                </h2>
-            </div>
-
-            <div class="flex items-center gap-2 self-start sm:self-auto">
-                <div class="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] overflow-x-auto">
-                    <button type="button"
-                            @onclick='() => _activeTab = "list"'
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap @(_activeTab == "list" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                        <span class="inline-flex items-center gap-1.5"><Icon Name="puzzle" Size="13" /> Expansiones (@Expansions.Count)</span>
-                    </button>
-                    <button type="button"
-                            @onclick='() => _activeTab = "mixer"'
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap @(_activeTab == "mixer" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                        <span class="inline-flex items-center gap-1.5"><Icon Name="flask-conical" Size="13" /> Mezclador de Mesa</span>
-                    </button>
-                    @if (_recipes.Count > 0)
-                    {
-                        <button type="button"
-                                @onclick='() => _activeTab = "recipes"'
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap @(_activeTab == "recipes" ? "bg-[var(--brand-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")">
-                            <span class="inline-flex items-center gap-1.5"><Icon Name="lightbulb" Size="13" /> Recetas (@_recipes.Count)</span>
-                        </button>
-                    }
-                </div>
-
-                @* Flechas de navegación para el carrusel en pestaña 'list' *@
-                @if (_activeTab == "list" && Expansions.Count > 2)
-                {
-                    <div class="hidden sm:flex items-center gap-1 pl-1">
-                        <button type="button"
-                                @onclick='() => ScrollExpansionsRailAsync(-320)'
-                                class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--border-subtle)] text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm"
-                                aria-label="Expansiones anteriores"
-                                title="Deslizar hacia la izquierda">
-                            <Icon Name="chevron-left" Size="16" />
-                        </button>
-                        <button type="button"
-                                @onclick='() => ScrollExpansionsRailAsync(320)'
-                                class="w-8 h-8 rounded-full bg-[var(--bg-surface-elevated)] hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--border-subtle)] text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm"
-                                aria-label="Expansiones siguientes"
-                                title="Deslizar hacia la derecha">
-                            <Icon Name="chevron-right" Size="16" />
-                        </button>
-                    </div>
-                }
-            </div>
-        </div>
-
-        @* PESTAÑA 1: Carrusel Horizontal de Expansiones *@
-        @if (_activeTab == "list")
-        {
-            <div id="expansions-carousel-rail"
-                 class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-2 pt-1 scroll-smooth"
-                 role="list"
-                 tabindex="0"
-                 aria-label="Carrusel de expansiones oficiales">
-                @foreach (var exp in Expansions)
-                {
-                    <div class="w-[275px] sm:w-[295px] md:w-[310px] shrink-0 snap-start flex flex-col justify-between p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--brand-primary)] transition-all shadow-sm group">
-                        <div class="space-y-2.5">
-                            <div class="flex items-start gap-3">
-                                <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[var(--bg-card)] border border-[var(--border-subtle)] relative">
-                                    @if (!string.IsNullOrWhiteSpace(exp.CoverImageUrl))
-                                    {
-                                        <img src="@exp.CoverImageUrl"
-                                             alt="Carátula de @exp.SpanishTitle"
-                                             width="64"
-                                             height="64"
-                                             loading="lazy"
-                                             decoding="async"
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                             onerror="this.onerror=null; this.src='/images/expansion-placeholder.svg';" />
-                                    }
-                                    else
-                                    {
-                                        <img src="/images/expansion-placeholder.svg"
-                                             alt="Carátula de @exp.SpanishTitle no disponible"
-                                             width="64"
-                                             height="64"
-                                             loading="lazy"
-                                             decoding="async"
-                                             class="w-full h-full object-cover opacity-90" />
-                                    }
-                                    <div class="absolute top-1 left-1 px-1 py-0.5 rounded bg-purple-950/85 backdrop-blur-sm border border-purple-500/40 text-purple-200 shadow-sm leading-none">
-                                        <Icon Name="puzzle" Size="10" />
-                                    </div>
-                                </div>
-
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-1.5 mb-0.5">
-                                        <span class="text-[0.68rem] font-bold text-[var(--text-muted)]">
-                                            @exp.YearPublished
-                                        </span>
-                                        <span class="text-[0.68rem] font-extrabold text-[var(--brand-primary)]">
-                                            ★ @exp.LudistRating.ToString("0.0")
-                                        </span>
-                                    </div>
-                                    <h3 class="text-xs sm:text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 leading-tight" title="@exp.SpanishTitle">
-                                        @exp.SpanishTitle
-                                    </h3>
-                                    <p class="text-[0.68rem] font-bold text-emerald-400 mt-1 truncate">
-                                        @exp.NecessityBadgeText
-                                    </p>
-                                </div>
-                            </div>
-
-                            @* Chips de Aporte *@
-                            @if (exp.ImpactTagLabels.Count > 0)
-                            {
-                                <div class="flex flex-wrap gap-1">
-                                    @foreach (var label in exp.ImpactTagLabels.Take(3))
-                                    {
-                                        <span class="text-[0.65rem] font-semibold px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] truncate max-w-[130px]">
-                                            @label
-                                        </span>
-                                    }
-                                </div>
-                            }
-
-                            @if (!string.IsNullOrWhiteSpace(exp.WhatItBringsSummary))
-                            {
-                                <p class="text-[0.72rem] text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                                    @exp.WhatItBringsSummary
-                                </p>
-                            }
-                        </div>
-
-                        <div class="pt-2.5 mt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] truncate">
-                                Reviews e info
-                            </span>
-                            <a href="/juegos/@exp.Slug"
-                               class="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--brand-primary)] hover:text-white text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs font-bold transition-all inline-flex items-center gap-1 shadow-sm shrink-0">
-                                <span>Ver ficha</span>
-                                <span>&rarr;</span>
-                            </a>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-
-        @* PESTAÑA 2: Mezclador de Mesa en Layout a 2 Columnas sin Scroll Excesivo *@
-        @if (_activeTab == "mixer")
-        {
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                @* Columna Izquierda: Selector de Expansiones *@
-                <div class="lg:col-span-5 space-y-3">
-                    <div class="flex items-center justify-between gap-2 pb-1 border-b border-[var(--border-subtle)]">
-                        <div>
-                            <h3 class="text-sm font-bold text-[var(--text-primary)]">
-                                Expansiones en Mesa
-                            </h3>
-                            <p class="text-[0.68rem] text-[var(--text-secondary)]">
-                                Marca las que deseas combinar:
-                            </p>
-                        </div>
-                        <span class="text-[0.68rem] font-extrabold px-2 py-0.5 rounded-full bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] border border-[var(--brand-primary)]/20 shrink-0">
-                            @_selectedExpansionIds.Count de @Expansions.Count
-                        </span>
-                    </div>
-
-                    <div class="max-h-[380px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
-                        @foreach (var exp in Expansions)
-                        {
-                            bool isSelected = _selectedExpansionIds.Contains(exp.Id);
-                            <button type="button"
-                                    @onclick="() => ToggleExpansion(exp.Id)"
-                                    class="w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between gap-2.5 @(isSelected ? "bg-[var(--brand-primary)]/10 border-[var(--brand-primary)] shadow-sm text-[var(--brand-primary)]" : "bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)] hover:border-[var(--border-highlight)] text-[var(--text-primary)]")">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    <span class="shrink-0 text-base">
-                                        <Icon Name="@(isSelected ? "circle-check" : "square")" Size="16" />
-                                    </span>
-                                    <div class="truncate">
-                                        <span class="text-xs font-bold block truncate">
-                                            @exp.SpanishTitle
-                                        </span>
-                                        <span class="text-[0.65rem] text-[var(--text-muted)] block">
-                                            @exp.YearPublished &bull; @(exp.ExtraPlayerCount > 0 ? $"+{exp.ExtraPlayerCount}J" : "Mismo rango")
-                                        </span>
-                                    </div>
-                                </div>
-                                @if (isSelected)
-                                {
-                                    <span class="text-[0.62rem] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[var(--brand-primary)] text-white shrink-0">
-                                        Activa
-                                    </span>
-                                }
-                            </button>
-                        }
-                    </div>
-                </div>
-
-                @* Columna Derecha: Panel de Diagnóstico en Tiempo Real *@
-                <div class="lg:col-span-7">
-                    @if (_evaluation != null)
-                    {
-                        <div class="p-4 sm:p-5 rounded-2xl border transition-colors @GetEvaluationContainerClass(_evaluation.GlobalStatus)">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-black">
-                                        @_evaluation.GlobalStatusBadge
-                                    </span>
-                                </div>
-
-                                <div class="flex items-center gap-3 text-xs">
-                                    <div class="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                        <span class="text-[0.62rem] uppercase font-bold text-[var(--text-muted)] block">Jugadores</span>
-                                        <span class="font-extrabold text-[var(--text-primary)] text-xs">
-                                            @_evaluation.ResultingMinPlayers a @_evaluation.ResultingMaxPlayers personas
-                                        </span>
-                                    </div>
-                                    <div class="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-                                        <span class="text-[0.62rem] uppercase font-bold text-[var(--text-muted)] block">Duración</span>
-                                        <span class="font-extrabold text-[var(--text-primary)] text-xs">
-                                            ~@_evaluation.ResultingEstimatedMinutes min
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p class="text-xs text-[var(--text-secondary)] mt-3 leading-relaxed">
-                                @_evaluation.GlobalStatusMessage
-                            </p>
-
-                            @* Avisos de Conflicto *@
-                            @if (_evaluation.ConflictWarnings.Count > 0)
-                            {
-                                <div class="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-1">
-                                    <span class="font-black uppercase text-[0.68rem] block inline-flex items-center gap-1"><Icon Name="triangle-alert" Size="12" /> Incompatibilidades Detectadas:</span>
-                                    @foreach (var warn in _evaluation.ConflictWarnings)
-                                    {
-                                        <p>&bull; @warn</p>
-                                    }
-                                </div>
-                            }
-
-                            @* Avisos de Precaución / Sobrecarga *@
-                            @if (_evaluation.CautionWarnings.Count > 0)
-                            {
-                                <div class="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1">
-                                    <span class="font-black uppercase text-[0.68rem] block inline-flex items-center gap-1"><Icon Name="triangle-alert" Size="12" /> Advertencias de Mesa:</span>
-                                    @foreach (var warn in _evaluation.CautionWarnings)
-                                    {
-                                        <p>&bull; @warn</p>
-                                    }
-                                </div>
-                            }
-
-                            @* Destacados de Sinergia *@
-                            @if (_evaluation.SynergyHighlights.Count > 0)
-                            {
-                                <div class="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 space-y-1">
-                                    <span class="font-black uppercase text-[0.68rem] block inline-flex items-center gap-1"><Icon Name="sparkles" Size="12" /> Sinergias Óptimas:</span>
-                                    @foreach (var syn in _evaluation.SynergyHighlights)
-                                    {
-                                        <p>&bull; @syn</p>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-        }
-
-        @* PESTAÑA 3: Recetas de Mesa Recomendadas *@
-        @if (_activeTab == "recipes" && _recipes.Count > 0)
-        {
-            <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-2 pt-1 scroll-smooth">
-                @foreach (var recipe in _recipes)
-                {
-                    <div class="w-[280px] sm:w-[320px] shrink-0 snap-start p-4 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-3 flex flex-col justify-between shadow-sm">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-1">
-                                <span class="text-[0.68rem] font-bold uppercase tracking-wider text-[var(--brand-primary)]">
-                                    <span class="inline-flex items-center gap-1"><Icon Name="lightbulb" Size="12" /> Receta Recomendada</span>
-                                </span>
-                                <span class="text-[0.65rem] font-extrabold px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
-                                    @recipe.IdealFor
-                                </span>
-                            </div>
-                            <h4 class="text-sm font-black text-[var(--text-primary)]">
-                                @recipe.Name
-                            </h4>
-                            <p class="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-3">
-                                @recipe.Description
-                            </p>
-                        </div>
-
-                        <div class="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-                            <span class="text-[0.65rem] text-[var(--text-muted)] truncate">
-                                @recipe.IncludedExpansionIds.Count @(recipe.IncludedExpansionIds.Count == 1 ? "expansión" : "expansiones")
-                            </span>
-                            <button type="button"
-                                    @onclick="() => LoadRecipe(recipe)"
-                                    class="px-2.5 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white hover:opacity-90 font-bold text-xs transition-opacity flex items-center gap-1 shadow-sm shrink-0">
-                                <span class="inline-flex items-center gap-1"><Icon Name="target" Size="12" /> Cargar</span>
-                            </button>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
+    <div class="p-8 rounded-2xl bg-[var(--paper-2)] text-center max-w-lg">
+        <p class="text-sm text-[var(--muted)] font-semibold">
+            No hay expansiones oficiales registradas para este juego todavía.
+        </p>
     </div>
 }
 
@@ -336,67 +67,89 @@ else if (Expansions != null && Expansions.Count > 0)
     [Parameter]
     public IReadOnlyList<ExpansionSummaryDto> Expansions { get; set; } = [];
 
-    private string _activeTab = "list";
-    private bool _isLoading = false;
-    private HashSet<Guid> _selectedExpansionIds = [];
-    private ExpansionMixerEvaluationDto? _evaluation;
-    private IReadOnlyList<ExpansionRecipeDto> _recipes = [];
+    [Parameter]
+    public int? BaseGameMaxPlayers { get; set; }
 
-    protected override async Task OnParametersSetAsync()
+    private HashSet<Guid> _userInCollectionIds = [];
+
+    protected override async Task OnInitializedAsync()
     {
-        if (BaseGameId != Guid.Empty)
-        {
-            await LoadDataAsync();
-        }
+        await LoadUserCollectionStateAsync();
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadUserCollectionStateAsync()
     {
-        _isLoading = true;
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId)) return;
+
         try
         {
-            _recipes = await ExpansionService.GetRecipesForBaseGameAsync(BaseGameId);
-            _evaluation = await ExpansionService.EvaluateMixerCombinationAsync(BaseGameId, _selectedExpansionIds);
+            var summary = await LibraryService.GetLibrarySummaryAsync();
+            if (summary?.Items != null)
+            {
+                _userInCollectionIds = summary.Items
+                    .Where(i => i.Status == CollectionStatus.InCollection && i.GameId.HasValue)
+                    .Select(i => i.GameId!.Value)
+                    .ToHashSet();
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            _isLoading = false;
+            Logger.LogWarning(ex, "Error al cargar estado de colección en expansiones");
         }
     }
 
-    private async Task ToggleExpansion(Guid expansionId)
+    private async Task HandleToggleLibrary(Guid expansionId)
     {
-        if (!_selectedExpansionIds.Add(expansionId))
+        if (string.IsNullOrWhiteSpace(CurrentUserService.UserId))
         {
-            _selectedExpansionIds.Remove(expansionId);
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+            return;
         }
 
-        _evaluation = await ExpansionService.EvaluateMixerCombinationAsync(BaseGameId, _selectedExpansionIds);
-    }
-
-    private async Task LoadRecipe(ExpansionRecipeDto recipe)
-    {
-        _selectedExpansionIds = recipe.IncludedExpansionIds.ToHashSet();
-        _activeTab = "mixer";
-        _evaluation = await ExpansionService.EvaluateMixerCombinationAsync(BaseGameId, _selectedExpansionIds);
-    }
-
-    private async Task ScrollExpansionsRailAsync(int distance)
-    {
         try
         {
-            await JSRuntime.InvokeVoidAsync("ludekaScrollRail", "expansions-carousel-rail", distance);
+            if (_userInCollectionIds.Contains(expansionId))
+            {
+                await LibraryService.SetCollectionStateAsync(expansionId, null);
+                _userInCollectionIds.Remove(expansionId);
+            }
+            else
+            {
+                await LibraryService.SetCollectionStateAsync(expansionId, CollectionStatus.InCollection);
+                _userInCollectionIds.Add(expansionId);
+            }
+            StateHasChanged();
         }
-        catch
+        catch (UnauthorizedAccessException ex)
         {
-            // Interop defensivo si el runtime se desconecta
+            Navigation.TryRedirectToLogin(ex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error al cambiar estado de colección para la expansión {ExpansionId}", expansionId);
         }
     }
 
-    private static string GetEvaluationContainerClass(string status) => status switch
+    private static string GetNecessitySimpleLabel(ExpansionNecessity? necessity) => necessity switch
     {
-        "Conflict" => "bg-rose-500/5 border-rose-500/30",
-        "Caution" => "bg-amber-500/5 border-amber-500/30",
-        _ => "bg-emerald-500/5 border-emerald-500/20"
+        ExpansionNecessity.MustHave => "Imprescindible",
+        ExpansionNecessity.HighlyRecommended => "Muy recomendada",
+        ExpansionNecessity.Situational => "Opcional",
+        ExpansionNecessity.OnlyForFans => "Para completistas",
+        ExpansionNecessity.Dispensable => "Prescindible",
+        _ => "Opcional"
     };
+
+    private string GetPlayerText(ExpansionSummaryDto exp)
+    {
+        if (exp.ExtraPlayerCount.HasValue && exp.ExtraPlayerCount > 0)
+        {
+            if (BaseGameMaxPlayers.HasValue && BaseGameMaxPlayers.Value > 0)
+            {
+                return $" · hasta {BaseGameMaxPlayers.Value + exp.ExtraPlayerCount.Value} jugadores";
+            }
+            return $" · +{exp.ExtraPlayerCount.Value} jugadores";
+        }
+        return string.Empty;
+    }
 }
