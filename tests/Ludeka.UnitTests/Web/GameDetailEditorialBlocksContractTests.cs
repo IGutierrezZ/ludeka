@@ -177,4 +177,28 @@ public class GameDetailEditorialBlocksContractTests
         // Veredicto estructurado como sección limpia en línea bajo pestaña dedicada
         Assert.Contains("id=\"bloque-02-veredicto\"", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_ShouldAlignWithClaudeEditorialDesign_CleanHeaderSummaryAndVideosTab()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // Cabecera limpia: solo nombres de diseñador y editorial, sin prefijos redundantes
+        Assert.DoesNotContain("Diseñado por <span", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("editado en España por", source, StringComparison.Ordinal);
+        Assert.Contains("@GetEyebrowText()", source, StringComparison.Ordinal);
+
+        // Minutos en una sola línea protegidos contra salto
+        Assert.Contains("whitespace-nowrap\">@GetDurationNumber()′</b>", source, StringComparison.Ordinal);
+
+        // Veredicto en resumen truncado a 3 líneas con line-clamp-3
+        Assert.Contains("line-clamp-3", source, StringComparison.Ordinal);
+        Assert.Contains("Leer el veredicto completo", source, StringComparison.Ordinal);
+
+        // Pestañas independientes: Videos muestra el reproductor hero y cuadrícula sin subpestañas
+        Assert.Contains("AllGameVideos", source, StringComparison.Ordinal);
+        Assert.Contains("OpenVideoEmbed(featured)", source, StringComparison.Ordinal);
+        Assert.Contains("¿Conoces un vídeo mejor?", source, StringComparison.Ordinal);
+        Assert.Contains("Propón uno", source, StringComparison.Ordinal);
+    }
 }
