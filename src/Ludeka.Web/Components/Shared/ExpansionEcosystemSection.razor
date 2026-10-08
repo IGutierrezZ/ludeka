@@ -10,7 +10,7 @@
 @if (Expansions != null && Expansions.Count > 0)
 {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        @foreach (var exp in Expansions)
+        @foreach (var exp in SortedExpansions)
         {
             <div class="flex items-center gap-4 p-4 sm:p-5 rounded-2xl bg-[var(--paper-2)] border border-[var(--rule)]/40 hover:border-[var(--rule)] transition-all">
                 <a href="/juegos/@exp.Slug" class="shrink-0 w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-white/50 border border-black/5 group block">
@@ -24,9 +24,18 @@
                          onerror="this.onerror=null; this.src='/images/expansion-placeholder.svg';" />
                 </a>
                 <div class="flex-1 min-w-0 flex flex-col items-start gap-1">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                        @GetNecessitySimpleLabel(exp.Necessity)
-                    </span>
+                    <div class="flex items-center justify-between w-full gap-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] truncate">
+                            @GetNecessitySimpleLabel(exp.Necessity)
+                        </span>
+                        @if (GetEffectiveRating(exp) > 0)
+                        {
+                            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--paper-3)] border border-[var(--rule)]/30 text-xs font-black text-[var(--ink)]">
+                                <Icon Name="star" Size="11" class="text-[var(--mustard)] fill-[var(--mustard)]" />
+                                <span>@GetEffectiveRating(exp).ToString("0.0")</span>
+                            </span>
+                        }
+                    </div>
                     <a href="/juegos/@exp.Slug" class="text-base font-black text-[var(--ink)] hover:text-[var(--accent)] transition-colors leading-tight line-clamp-1" title="@exp.SpanishTitle">
                         @exp.SpanishTitle
                     </a>
@@ -139,6 +148,14 @@ else
         ExpansionNecessity.Dispensable => "Prescindible",
         _ => "Opcional"
     };
+
+    private static double GetEffectiveRating(ExpansionSummaryDto exp) =>
+        exp.LudistRating > 0 ? exp.LudistRating : exp.BggRating;
+
+    private IEnumerable<ExpansionSummaryDto> SortedExpansions =>
+        Expansions != null
+            ? Expansions.OrderByDescending(GetEffectiveRating).ThenByDescending(e => e.BggRating).ThenBy(e => e.SpanishTitle)
+            : [];
 
     private string GetPlayerText(ExpansionSummaryDto exp)
     {

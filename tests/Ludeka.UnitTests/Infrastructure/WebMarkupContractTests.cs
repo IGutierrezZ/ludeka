@@ -577,9 +577,9 @@ public class WebMarkupContractTests
                   "ExpansionImpactTag.FixesBalance => \"scale\"", "ExpansionImpactTag.NewMapOrFactions => \"map\"" },
           new[] { "👥", "⏱", "🟢", "🟡", "🔵", "⚪", "⚔", "⚖", "🎭", "🧩", "🗺", "⚡", "✨" } },
 
-        // ExpansionEcosystemSection: estado en ludoteca por icono Lucide (sin emojis)
+        // ExpansionEcosystemSection: estado en ludoteca y calificación por icono Lucide (sin emojis)
         { "ExpansionEcosystemSection (sin emojis)", "src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor",
-          new[] { "<Icon Name=\"check\"" },
+          new[] { "<Icon Name=\"check\"", "<Icon Name=\"star\"" },
           new[] { "🎲", "🧩", "🔬", "💡", "✅", "⬜", "⚠", "✨", "🎯" } },
 
         // ExpansionSisterList: badge de expansión hermana por icono Lucide (★ conservada)
