@@ -1,6 +1,6 @@
 # INC-130: Pestaña de Expansiones Editorial Limpia (Alineación Claude Design y Retirada del Mezclador)
 
-**Estado:** ⏳ En progreso (Verificado 2.677 tests)  
+**Estado:** ✅ Archivado (PR #240, 2026-10-08)  
 **Rama:** `inc/expansiones-diseno-claude`  
 **Objetivo:** Alinear la pestaña de Expansiones en la ficha de detalle de juego (`GameDetail.razor` y `ExpansionEcosystemSection.razor`) con el prototipo editorial de Claude, eliminando el mezclador en mesa y las recetas no utilizadas, e implementando tarjetas limpias con portada, etiqueta de necesidad («Opcional», «Imprescindible»), título, metadatos y acción directa «+ A mi ludoteca».
 

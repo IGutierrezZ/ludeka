@@ -141,6 +141,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-126** | Ficha Editorial Limpia (Alineación Claude Design: 4 Columnas, Veredicto Integrado y Filtro Estricto de Stock) | ✅ Archivado | [inc-126-ficha-editorial-limpia.md](archive/inc-126-ficha-editorial-limpia.md) |
 | **INC-127** | Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design) | ⏳ En progreso (Verificado 2.627 tests) | [inc-127-cuenta-movil-gestion.md](inc-127-cuenta-movil-gestion.md) |
 | **INC-128** | Extractor Determinista de Novedades y Reimpresiones de Maldito Games | ✅ Archivado | [inc-128-extractor-novedades-maldito.md](archive/inc-128-extractor-novedades-maldito.md) |
+| **INC-129** | Moderación Asistida por IA (Gemini) de Novedades Editoriales, Filtros de Calendario en Devir y Jerarquía de Imágenes 3D | ✅ Archivado | [inc-129-novedades-moderacion-ia-devir.md](archive/inc-129-novedades-moderacion-ia-devir.md) |
 | **INC-130** | Pestaña de Expansiones Editorial Limpia (Alineación Claude Design y Retirada del Mezclador) | ✅ Archivado | [inc-130-expansiones-editorial-claude.md](archive/inc-130-expansiones-editorial-claude.md) |
 | **INC-131** | Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa | ⏳ En progreso | [inc-131-dureza-numerica-bgg.md](inc-131-dureza-numerica-bgg.md) |
 
@@ -171,7 +172,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
-- **INC-130** (`inc/expansiones-diseno-claude` en `F:\repos\ludeka-wt\expansiones-diseno-claude`): Pestaña de Expansiones Editorial Limpia (Alineación Claude Design y Retirada del Mezclador). En curso.
+
+*(INC-130 entregó su PR #240, verificada con 2.677 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-08. Implementa la alineación de la pestaña Expansiones con el diseño editorial de Claude: cabecera directa «Expansiones» sin numeración 04 ni etiqueta redundante de tiendas, retirada completa del mezclador en mesa y sus recetas, cuadrícula de 2 columnas con tarjetas contenidas, carátula anti-CLS [64x64 lazy/async], etiquetas de necesidad simplificadas [Opcional, Imprescindible], metadatos de año y jugadores máximos, y botón interactivo reactivo de colección [+ A mi ludoteca / En mi ludoteca] integrado con IUserLibraryService).*
 
 *(INC-129 entregó su verificación con 2.676 pruebas unitarias en verde al 100%, y quedó archivada el 2026-10-08. Implementa la sincronización desacoplada sin bloqueos a BGG para editoriales oficiales [Maldito Games y Devir], el extractor determinista de Devir con exclusión de secciones en desarrollo y captura de enlaces a producto, el asistente IA de enlace BGG [GeminiReleaseMatcherService] con fallback determinista, la bandeja de moderación comparativa en /novedades con flujo de aprobación manual e importación automática, y la jerarquía visual priorizando cajas en perspectiva 3D [face3d] como imagen principal y enriqueciendo la galería de ficha con fotos personales del veredicto fundador).*
 
