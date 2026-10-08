@@ -142,6 +142,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-127** | Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design) | ⏳ En progreso (Verificado 2.627 tests) | [inc-127-cuenta-movil-gestion.md](inc-127-cuenta-movil-gestion.md) |
 | **INC-128** | Extractor Determinista de Novedades y Reimpresiones de Maldito Games | ✅ Archivado | [inc-128-extractor-novedades-maldito.md](archive/inc-128-extractor-novedades-maldito.md) |
 | **INC-129** | Moderación Asistida por IA (Gemini) de Novedades Editoriales, Filtros de Calendario en Devir y Jerarquía de Imágenes 3D | ✅ Archivado | [inc-129-novedades-moderacion-ia-devir.md](archive/inc-129-novedades-moderacion-ia-devir.md) |
+| **INC-130** | Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa | ⏳ En progreso | [inc-130-dureza-numerica-bgg.md](inc-130-dureza-numerica-bgg.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
