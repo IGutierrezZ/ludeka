@@ -84,6 +84,35 @@ public class GameBggWeightAndComplexityTests
         Assert.Equal(GameComplexity.Light, game.Complexity);
     }
 
+    [Fact]
+    public void ComplexityCalculator_ExtractWeightFromJson_ShouldParseCorrectly()
+    {
+        // Formato objeto con @value
+        string jsonWithValue = @"{""statistics"":{""ratings"":{""averageweight"":{""@value"":""3.2645""}}}}";
+        var weight1 = ComplexityCalculator.ExtractWeightFromJson(jsonWithValue);
+        Assert.Equal(3.26, weight1);
+
+        // Formato string directo
+        string jsonWithString = @"{""statistics"":{""ratings"":{""averageweight"":""2.15""}}}";
+        var weight2 = ComplexityCalculator.ExtractWeightFromJson(jsonWithString);
+        Assert.Equal(2.15, weight2);
+
+        // Formato numérico
+        string jsonWithNumber = @"{""statistics"":{""ratings"":{""averageweight"":1.75}}}";
+        var weight3 = ComplexityCalculator.ExtractWeightFromJson(jsonWithNumber);
+        Assert.Equal(1.75, weight3);
+
+        // Clamping y defensivo
+        string jsonZero = @"{""statistics"":{""ratings"":{""averageweight"":{""@value"":""0""}}}}";
+        Assert.Null(ComplexityCalculator.ExtractWeightFromJson(jsonZero));
+
+        string jsonInvalid = @"{""statistics"":{}}";
+        Assert.Null(ComplexityCalculator.ExtractWeightFromJson(jsonInvalid));
+
+        Assert.Null(ComplexityCalculator.ExtractWeightFromJson(""));
+        Assert.Null(ComplexityCalculator.ExtractWeightFromJson(null));
+    }
+
     private static Game CreateSampleGame(double? bggWeight = null)
     {
         return new Game(

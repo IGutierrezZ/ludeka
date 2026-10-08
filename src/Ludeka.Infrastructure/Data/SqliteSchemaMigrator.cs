@@ -75,7 +75,8 @@ public static class SqliteSchemaMigrator
                 ("LocalizedTitles", "TEXT NOT NULL DEFAULT '[]'"),
                 ("Ean", "TEXT NULL"),
                 ("AdditionalBarcodes", "TEXT NOT NULL DEFAULT '[]'"),
-                ("Asin", "TEXT NULL")
+                ("Asin", "TEXT NULL"),
+                ("BggWeight", "REAL NULL")
             };
 
             foreach (var (colName, colDef) in columnsToAdd)
@@ -110,6 +111,7 @@ public static class SqliteSchemaMigrator
                     CREATE INDEX IF NOT EXISTS "IX_Games_Type" ON "Games" ("Type");
                     CREATE INDEX IF NOT EXISTS "IX_Games_Ean" ON "Games" ("Ean");
                     CREATE INDEX IF NOT EXISTS "IX_Games_Asin" ON "Games" ("Asin");
+                    CREATE INDEX IF NOT EXISTS "IX_Games_BggWeight" ON "Games" ("BggWeight");
                     """;
                 await idxCmd.ExecuteNonQueryAsync(ct);
             }
