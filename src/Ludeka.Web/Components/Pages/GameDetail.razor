@@ -88,7 +88,7 @@ else
             @* Columna Izquierda: Metadatos, Titular, Píldoras, Veredicto y Botonera *@
             <div class="flex flex-col gap-4.5 min-w-0">
                 <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--mustard)]">
-                    @GetStyleShortText(Game.Style).ToUpperInvariant() &bull; @Game.YearPublished
+                    @GetEyebrowText()
                 </span>
 
                 <h1 class="m-0 text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.04] sm:leading-[1.0] lg:leading-[0.98] tracking-[-0.035em] sm:tracking-[-0.04em] text-balance text-[var(--on-brand)]">
@@ -102,19 +102,16 @@ else
                     </p>
                 }
 
-                <p class="text-[15px] leading-relaxed text-[var(--on-brand)]/90">
-                    Diseñado por <span class="text-[var(--text-primary)] font-bold">@Game.Designer</span> &bull; editado en España por
+                <p class="text-[15px] sm:text-base font-semibold text-[var(--on-brand)]/90 my-1 flex flex-wrap items-center gap-2">
+                    <span>@Game.Designer</span>
+                    <span class="text-[var(--on-brand)]/50">&bull;</span>
                     @if (HasLocalPublisher)
                     {
-                        <a href="@($"/editoriales/{LocalPubSlug}")" class="font-black border-b-2 border-[var(--mustard)] text-[var(--on-brand)] hover:text-[var(--mustard)] transition-colors">@PublisherForCountry</a>
+                        <a href="@($"/editoriales/{LocalPubSlug}")" class="font-bold border-b border-[var(--mustard)] text-[var(--on-brand)] hover:text-[var(--mustard)] transition-colors">@PublisherForCountry</a>
                     }
                     else
                     {
-                        <strong class="font-black border-b-2 border-[var(--mustard)]">@(string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher)</strong>
-                    }
-                    @if (DiffersFromOriginal && !string.IsNullOrWhiteSpace(Game.Publisher))
-                    {
-                        <span class="text-xs text-[var(--on-brand)]/70 ml-1">(Orig.: <a href="@($"/editoriales/{OrigPubSlug}")" class="underline">@Game.Publisher</a>)</span>
+                        <span class="font-bold">@(string.IsNullOrWhiteSpace(Game.Publisher) ? "Varios" : Game.Publisher)</span>
                     }
                 </p>
 
@@ -133,7 +130,7 @@ else
                         <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Jugadores</span>
                     </span>
                     <span class="flex flex-col gap-1 pl-7 border-l border-white/30" title="Minutos">
-                        <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetDurationNumber()′</b>
+                        <b class="text-[30px] lg:text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black whitespace-nowrap">@GetDurationNumber()′</b>
                         <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Minutos</span>
                     </span>
                 </div>
@@ -322,7 +319,7 @@ else
             <div class="flex flex-col gap-2.5">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--mustard)]">
-                        @GetStyleShortText(Game.Style).ToUpperInvariant() &bull; @Game.YearPublished
+                        @GetEyebrowText()
                     </span>
                     @if (Game.BggRank.HasValue && Game.BggRank.Value <= 500)
                     {
@@ -337,8 +334,17 @@ else
                     @TitleForCountry
                 </h1>
 
-                <p class="text-[13px] leading-snug text-[var(--on-brand)]/92 m-0">
-                    Diseñado por <span class="text-[var(--text-primary)] font-bold">@Game.Designer</span> &bull; <strong class="font-bold border-b border-[var(--mustard)]">@(string.IsNullOrWhiteSpace(PublisherForCountry) ? Game.Publisher : PublisherForCountry)</strong>
+                <p class="text-sm font-semibold text-[var(--on-brand)]/92 my-1 flex flex-wrap items-center gap-1.5">
+                    <span>@Game.Designer</span>
+                    <span class="text-[var(--on-brand)]/50">&bull;</span>
+                    @if (HasLocalPublisher)
+                    {
+                        <a href="@($"/editoriales/{LocalPubSlug}")" class="font-bold border-b border-[var(--mustard)] text-[var(--on-brand)]">@PublisherForCountry</a>
+                    }
+                    else
+                    {
+                        <span class="font-bold">@(string.IsNullOrWhiteSpace(PublisherForCountry) ? Game.Publisher : PublisherForCountry)</span>
+                    }
                 </p>
 
                 @* 4 Cifras Clave Móvil *@
@@ -356,7 +362,7 @@ else
                         <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Jugadores</span>
                     </span>
                     <span class="flex flex-col gap-1 pl-2.5 border-l border-white/30" title="Minutos">
-                        <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetDurationNumber()′</b>
+                        <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black whitespace-nowrap">@GetDurationNumber()′</b>
                         <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Minutos</span>
                     </span>
                 </div>
@@ -440,12 +446,12 @@ else
             <button type="button"
                     @onclick='() => SelectTab("veredicto")'
                     class="border-0 bg-transparent py-4 px-0.5 font-extrabold text-sm sm:text-[15px] transition-colors cursor-pointer @(_activeTab == "veredicto" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
-                El veredicto
+                Veredicto
             </button>
             <button type="button"
                     @onclick='() => SelectTab("videos")'
                     class="border-0 bg-transparent py-4 px-0.5 font-extrabold text-sm sm:text-[15px] transition-colors cursor-pointer @(_activeTab == "videos" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
-                Vídeos @(_mediaHub?.TotalCount > 0 ? $"· {_mediaHub.TotalCount}" : "")
+                Videos @(AllGameVideos.Count > 0 ? $"· {AllGameVideos.Count}" : "")
             </button>
             <button type="button"
                     @onclick='() => SelectTab("dudas")'
@@ -564,12 +570,26 @@ else
                 }
                 else if (_activeTab == "resumen")
                 {
-                    @* Callout superior al veredicto *@
-                    <a @onclick='() => SelectTab("veredicto")' class="flex flex-col gap-2 pb-7 border-b border-[var(--line)] cursor-pointer group">
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">El veredicto &bull; @GetFoundingBadgeText()</span>
-                        <span class="text-lg sm:text-xl font-bold leading-snug tracking-[-0.01em] text-pretty max-w-[720px] text-[var(--ink)]">«@GetHighImpactQuote()»</span>
-                        <span class="text-[13px] font-extrabold text-[var(--accent)] group-hover:underline">Leer el veredicto completo &rarr;</span>
-                    </a>
+                    @* Callout superior al veredicto (truncado a 3 líneas con tres puntos) *@
+                    <div class="flex flex-col gap-2 pb-6 border-b border-[var(--line)]">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[var(--muted)]">El veredicto</span>
+                            <span class="text-[var(--muted)]">&bull;</span>
+                            <span class="py-0.5 px-2 rounded bg-[var(--mustard)] text-[#22180F] text-[10px] font-black uppercase tracking-[0.06em]">
+                                @GetFoundingBadgeText()
+                            </span>
+                        </div>
+                        <p class="text-base sm:text-lg font-bold leading-snug tracking-[-0.01em] text-pretty max-w-[720px] text-[var(--ink)] line-clamp-3 m-0"
+                           style="-webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+                            «@GetSummaryVerdictText()»
+                        </p>
+                        <button type="button"
+                                @onclick='() => SelectTab("veredicto")'
+                                class="self-start text-[13px] font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 pt-0.5">
+                            <span>Leer el veredicto completo</span>
+                            <span>&rarr;</span>
+                        </button>
+                    </div>
                     @* BLOQUE 03: FICHA TÉCNICA DETALLADA Y ESCALABILIDAD *@
                     <section id="bloque-03-ficha-tecnica" class="flex flex-col gap-10" aria-label="Ficha Técnica &amp; Escalabilidad">
                         @* Escalabilidad *@
@@ -699,50 +719,128 @@ else
                             OnExpansionAporteUpdated="HandleExpansionAporteUpdated" />
                     </section>
                 }
-                else if (_activeTab == "videos" || _activeTab == "fundas" || _activeTab == "dudas")
+                else if (_activeTab == "videos")
                 {
                     @* BLOQUE 05: HUB MULTIMEDIA Y OPINIONES *@
-                    <section id="bloque-05-multimedia-comunidad" class="flex flex-col gap-6" aria-label="Bloque 05: Multimedia y opiniones">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <div class="flex items-baseline gap-3">
-                                <b class="text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">05</b>
-                                <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight">Multimedia &amp; Comunidad</h2>
+                    <section id="bloque-05-multimedia-comunidad" class="flex flex-col gap-6" aria-label="Multimedia &amp; Comunidad">
+                        @if (AllGameVideos.Count > 0)
+                        {
+                            var featured = _selectedVideo ?? AllGameVideos.First();
+                            <div class="flex flex-col gap-6 animate-in fade-in duration-200">
+                                @* Vídeo Principal Destacado (Diseño Editorial Claude) *@
+                                <div class="flex flex-col gap-3">
+                                    <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-neutral-900 shadow-xl group cursor-pointer"
+                                         @onclick="() => OpenVideoEmbed(featured)">
+                                        <img src="@featured.ThumbnailUrl"
+                                             alt="@featured.Title"
+                                             class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+                                        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                                            <div class="w-16 h-16 rounded-full bg-[#FFC145] text-[#22180F] flex items-center justify-center shadow-2xl pl-1 group-hover:scale-110 transition-transform">
+                                                <Icon Name="play" Size="28" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-0.5">
+                                        <h3 class="m-0 text-lg sm:text-xl font-black text-[var(--ink)] tracking-tight">@featured.Title</h3>
+                                        <span class="text-xs sm:text-sm font-semibold text-[var(--muted)]">@featured.AuthorChannel &bull; @(string.IsNullOrWhiteSpace(featured.FormattedDuration) ? "Vídeo" : featured.FormattedDuration)</span>
+                                    </div>
+                                </div>
+
+                                @* Fila / Cuadrícula de Vídeos en Miniatura *@
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4 pt-1">
+                                    @foreach (var vid in AllGameVideos)
+                                    {
+                                        var isSelected = vid.Id == featured.Id;
+                                        <div class="flex flex-col gap-1.5 cursor-pointer group"
+                                             @onclick="() => _selectedVideo = vid">
+                                            <div class="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 transition-all @(isSelected ? "border-2 border-[#FFC145] ring-2 ring-[#FFC145]/30 shadow-md" : "border border-black/10 group-hover:border-black/30")">
+                                                <img src="@vid.ThumbnailUrl" alt="@vid.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                                @if (!string.IsNullOrWhiteSpace(vid.FormattedDuration))
+                                                {
+                                                    <span class="absolute left-1.5 bottom-1.5 py-0.5 px-2 rounded-full bg-[#22180F]/90 text-[#FFF8EE] text-[10px] font-extrabold flex items-center gap-1">
+                                                        <Icon Name="play" Size="10" />
+                                                        <span>@vid.FormattedDuration</span>
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="flex flex-col min-w-0">
+                                                <b class="text-xs sm:text-sm font-extrabold text-[var(--ink)] leading-snug line-clamp-2 group-hover:text-[var(--accent)] transition-colors">@vid.Title</b>
+                                                <span class="text-xs text-[var(--muted)] truncate">@vid.AuthorChannel</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                @* Enlace / CTA: ¿Conoces un vídeo mejor? Propón uno *@
+                                <div class="pt-2 text-xs sm:text-sm text-[var(--muted)] flex items-center gap-2">
+                                    <span>¿Conoces un vídeo mejor?</span>
+                                    <button type="button"
+                                            @onclick="() => _isReportModalOpen = true"
+                                            class="font-black text-[var(--ink)] underline hover:text-[var(--accent)] cursor-pointer bg-transparent border-0 p-0">
+                                        Propón uno
+                                    </button>
+                                    @if (IsStaff)
+                                    {
+                                        <span class="text-[var(--line)]">|</span>
+                                        <button type="button"
+                                                @onclick="() => _showStaffMediaTools = !_showStaffMediaTools"
+                                                class="text-xs font-bold text-[var(--mustard)] bg-[#22180F] px-2.5 py-1 rounded-full cursor-pointer border-0">
+                                            @(_showStaffMediaTools ? "Ocultar panel staff" : "Hub Multimedia (Moderar)")
+                                        </button>
+                                    }
+                                </div>
+
+                                @if (IsStaff && _showStaffMediaTools)
+                                {
+                                    <div class="p-4 rounded-2xl border-2 border-dashed border-[var(--mustard)] bg-[var(--paper-2)]">
+                                        <MultimediaHub MediaHub="@_mediaHub" GameId="@Game.Id" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
+                                    </div>
+                                }
                             </div>
-                        </div>
-
-                        @* Pestañas secundarias contratadas por GameDetailEditorialContractTests *@
-                        <div class="flex flex-wrap items-center gap-2 border-b border-[var(--line)] pb-3">
-                            <button type="button"
-                                    @onclick='() => _activeSecondaryTab = "media"'
-                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "media" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                                <Icon Name="play-circle" Size="14" />
-                                <span>Hub Multimedia (@(_mediaHub?.TotalCount ?? 0))</span>
-                            </button>
-                            <button type="button"
-                                    @onclick='() => _activeSecondaryTab = "sleeves"'
-                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "sleeves" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                                <Icon Name="shield" Size="14" />
-                                <span>Guía de Fundas (@(Game.Sleeves?.Count ?? 0))</span>
-                            </button>
-                            <button type="button"
-                                    @onclick='() => _activeSecondaryTab = "qa"'
-                                    class="px-4 py-2 rounded-full font-black text-xs transition-colors inline-flex items-center gap-1.5 @(_activeSecondaryTab == "qa" ? "bg-[var(--ink)] text-[var(--on-inverse)]" : "text-[var(--muted)] hover:text-[var(--ink)]")">
-                                <Icon Name="help-circle" Size="14" />
-                                <span>Consultorio de Reglas</span>
-                            </button>
-                        </div>
-
-                        @if (_activeSecondaryTab == "media")
-                        {
-                            <MultimediaHub MediaHub="@_mediaHub" GameId="@Game.Id" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
                         }
-                        else if (_activeSecondaryTab == "sleeves")
+                        else
                         {
-                            <SleeveGuideCard Sleeves="@Game.Sleeves" />
+                            <div class="p-8 text-center rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] max-w-md mx-auto space-y-3">
+                                <span class="inline-block text-[var(--muted)]"><Icon Name="tv" Size="32" /></span>
+                                <h3 class="text-base font-black text-[var(--ink)]">Aún no hay vídeos enlazados</h3>
+                                <p class="text-xs text-[var(--muted)] leading-relaxed">
+                                    ¿Conoces una reseña o partida de calidad en español? Puedes proponer un vídeo para esta ficha.
+                                </p>
+                                <div class="pt-2 flex justify-center gap-2">
+                                    <button type="button"
+                                            @onclick="() => _isReportModalOpen = true"
+                                            class="px-4 py-2 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-black text-xs hover:opacity-90 transition-opacity cursor-pointer">
+                                        Proponer un vídeo
+                                    </button>
+                                    @if (IsStaff)
+                                    {
+                                        <button type="button"
+                                                @onclick="() => _showStaffMediaTools = true"
+                                                class="px-4 py-2 rounded-full bg-[#22180F] text-[#FFC145] font-black text-xs hover:opacity-90 transition-opacity cursor-pointer">
+                                            Buscar en YouTube
+                                        </button>
+                                    }
+                                </div>
+                            </div>
                         }
-                        else if (_activeSecondaryTab == "qa")
-                        {
+                    </section>
+                }
+                else if (_activeTab == "dudas" || _activeTab == "fundas")
+                {
+                    <section id="seccion-dudas-consultorio" class="flex flex-col gap-8 animate-in fade-in duration-200" aria-label="Dudas y Consultorio de Reglas">
+                        @* Consultorio de Reglas *@
+                        <div class="flex flex-col gap-4">
+                            <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight m-0">Consultorio de Reglas</h2>
                             <RuleQuestionsSection GameId="@Game.Id" GameTitle="@Game.SpanishTitle" />
+                        </div>
+
+                        @* Guía de Fundas (si el juego tiene cartas o fundas) *@
+                        @if (Game.Sleeves != null && Game.Sleeves.Count > 0)
+                        {
+                            <div class="flex flex-col gap-3 pt-6 border-t border-[var(--line)]">
+                                <h3 class="text-xl font-black text-[var(--ink)] tracking-tight m-0">Guía de Fundas</h3>
+                                <SleeveGuideCard Sleeves="@Game.Sleeves" />
+                            </div>
                         }
                     </section>
                 }
@@ -825,6 +923,11 @@ else
         @bind-IsOpen="_isEditorModalOpen"
         Game="@Game"
         OnGameUpdated="HandleGameUpdated" />
+
+    <MediaEmbedModal
+        IsOpen="@_isEmbedModalOpen"
+        Item="@_selectedEmbedMediaItem"
+        OnClose="() => _isEmbedModalOpen = false" />
 
     @if (_isPlayedPromptModalOpen && Game != null)
     {
@@ -914,6 +1017,23 @@ else
     private string _activeSecondaryTab = "media";
     private bool _isLibMenuOpen;
     private bool _isTechOpen;
+    private MediaItemDto? _selectedVideo;
+    private MediaItemDto? _selectedEmbedMediaItem;
+    private bool _isEmbedModalOpen;
+    private bool _showStaffMediaTools;
+
+    private IReadOnlyList<MediaItemDto> AllGameVideos => (_mediaHub?.Tutorials ?? [])
+        .Concat(_mediaHub?.Playthroughs ?? [])
+        .Concat(_mediaHub?.QuickOverviews ?? [])
+        .Concat(_mediaHub?.ReviewsAndOpinions ?? [])
+        .Where(v => !v.IsBroken)
+        .ToList();
+
+    private void OpenVideoEmbed(MediaItemDto item)
+    {
+        _selectedEmbedMediaItem = item;
+        _isEmbedModalOpen = true;
+    }
 
     private void SelectTab(string tab)
     {
@@ -1038,14 +1158,41 @@ else
         return $"{Game.Duration.EstimatedPerPlayerMinutes} min";
     }
 
+    private string GetEyebrowText()
+    {
+        if (Game == null) return string.Empty;
+        var parts = new List<string>();
+        var styleName = Game.Style == GameStyle.Eurogame ? "EUROGAME" : GetStyleShortText(Game.Style).ToUpperInvariant();
+        parts.Add(styleName);
+        var comp = GetComplexityShortText().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(comp)) parts.Add(comp);
+        var age = Game.Age.BoxAge > 0 ? Game.Age.BoxAge : Game.Age.CommunityAge;
+        if (age > 0) parts.Add($"{age}+");
+        parts.Add($"{Game.YearPublished}");
+        return string.Join(" · ", parts);
+    }
+
+    private string GetSummaryVerdictText()
+    {
+        if (!string.IsNullOrWhiteSpace(_foundingVerdict?.OverallVerdict))
+            return _foundingVerdict.OverallVerdict;
+        if (!string.IsNullOrWhiteSpace(_aiSummary?.GeneralVerdict))
+            return _aiSummary.GeneralVerdict;
+        if (!string.IsNullOrWhiteSpace(Game?.Description))
+            return Game.Description.Trim();
+        return "Ficha en evaluación editorial por la Mesa Fundadora.";
+    }
+
     private string GetDurationNumber()
     {
         if (Game == null) return "60";
-        if (Game.Duration.MinMinutes > 0 && Game.Duration.MaxMinutes > 0)
+        if (Game.Duration.MaxMinutes > 0)
         {
-            return Game.Duration.MinMinutes == Game.Duration.MaxMinutes
-                ? $"{Game.Duration.MinMinutes}"
-                : $"{Game.Duration.MinMinutes}–{Game.Duration.MaxMinutes}";
+            return $"{Game.Duration.MaxMinutes}";
+        }
+        if (Game.Duration.MinMinutes > 0)
+        {
+            return $"{Game.Duration.MinMinutes}";
         }
         return $"{Game.Duration.EstimatedPerPlayerMinutes}";
     }

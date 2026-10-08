@@ -38,9 +38,9 @@ public class WebMarkupContractTests
 
     public static TheoryData<string, string, string[], string[]> MarkupContracts => new()
     {
-        // GameDetail: diseñador como texto plano, sin <a> al directorio de creadores
+        // GameDetail: diseñador como texto plano limpio (solo nombre), sin <a> al directorio de creadores
         { "GameDetail (diseñador texto plano)", "src/Ludeka.Web/Components/Pages/GameDetail.razor",
-          new[] { "Diseñado por", "<span class=\"text-[var(--text-primary)] font-bold\">@Game.Designer</span>" },
+          new[] { "@Game.Designer" },
           new[] { "creadores/", "Ver ficha del autor" } },
 
         // CreatorDetail: sin "Obras de", reetiquetado a creador de contenido, alias /autores/{slug} conservado
