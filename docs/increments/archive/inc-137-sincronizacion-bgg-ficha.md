@@ -17,9 +17,9 @@ Aunque Ludeka cuenta con procesos periódicos en segundo plano, el equipo editor
 ---
 
 ## 3. Criterios de Aceptación
-- [ ] Moderadores y Mesa Fundadora pueden pulsar «Sincronizar con BGG» en la ficha de cualquier juego con `BggId` válido.
-- [ ] Si el juego no tiene `BggId` (o es menor o igual a 0), la acción está deshabilitada o informa de que debe asociarse primero.
-- [ ] La operación consulta BGG, actualiza el snapshot crudo en base de datos y extrae versiones en castellano.
-- [ ] Si la versión de BGG aporta título en castellano, editorial española, código EAN o imágenes, la ficha se actualiza y la UI refleja los cambios sin recargar el navegador.
-- [ ] Se registra auditoría editorial detallando los campos modificados.
-- [ ] La suite de pruebas unitarias verifica todos los escenarios (permisos, BGG ID inválido, actualización de campos, idempotencia).
+- [x] Moderadores y Mesa Fundadora pueden pulsar «Sincronizar con BGG» en la ficha de cualquier juego con `BggId` válido.
+- [x] Si el juego no tiene `BggId` (o es menor o igual a 0), la acción está deshabilitada o informa de que debe asociarse primero.
+- [x] La operación consulta BGG, actualiza el snapshot crudo en base de datos y extrae versiones en castellano.
+- [x] Si la versión de BGG aporta título en castellano, editorial española, código EAN o imágenes, la ficha se actualiza y la UI refleja los cambios sin recargar el navegador.
+- [x] Se registra auditoría editorial detallando los campos modificados.
+- [x] La suite de pruebas unitarias verifica todos los escenarios (permisos, BGG ID inválido, actualización de campos, idempotencia).
