@@ -153,6 +153,41 @@ public class SqliteBggRawSnapshotRepository : DbContextRepositoryBase, IBggRawSn
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<int>> GetBggIdsNeedingVersionRefreshAsync(int minYear = 2025, int limit = 50, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+
+        var candidateIds = await scope.Context.Games
+            .AsNoTracking()
+            .Where(g => g.YearPublished >= minYear && g.SpanishTitle == g.OriginalTitle)
+            .OrderByDescending(g => g.YearPublished)
+            .ThenBy(g => g.BggId)
+            .Select(g => g.BggId)
+            .Take(limit * 2)
+            .ToListAsync(ct);
+
+        if (candidateIds.Count == 0) return [];
+
+        var snapshots = await scope.Context.BggRawSnapshots
+            .AsNoTracking()
+            .Where(s => candidateIds.Contains(s.BggId))
+            .ToListAsync(ct);
+
+        var result = new List<int>();
+        foreach (var s in snapshots)
+        {
+            if (s.RawJson.IndexOf("Spanish", StringComparison.OrdinalIgnoreCase) < 0 &&
+                s.RawJson.IndexOf("Español", StringComparison.OrdinalIgnoreCase) < 0 &&
+                s.RawJson.IndexOf("Castellano", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                result.Add(s.BggId);
+                if (result.Count >= limit) break;
+            }
+        }
+
+        return result.AsReadOnly();
+    }
+
     public async Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
     {
         await using var scope = await CreateScopeAsync(ct);

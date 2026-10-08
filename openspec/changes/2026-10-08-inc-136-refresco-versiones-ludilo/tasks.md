@@ -1,0 +1,21 @@
+# Tareas: INC-136 — Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo
+
+- [x] 1. **Pruebas Unitarias (TDD Rojo):**
+  - [x] 1.1 Añadir en `RegionalPublisherMatcherTests.cs` prueba para el reconocimiento de `"Lúdilo"` y `"Ludilo"`.
+  - [x] 1.2 Añadir en `CatalogDataSanitizerTests.cs` prueba para la reparación de `Got Five!` (453526) a `Código 5` y editorial `Lúdilo`.
+  - [x] 1.3 Añadir en `BggRawSnapshotParserVersionsTests.cs` prueba para la versión de `Código 5 - Spanish edition (2026)` de Lúdilo.
+- [x] 2. **Soporte de Editorial Lúdilo:**
+  - [x] 2.1 Añadir entradas de `"Lúdilo"`, `"Ludilo"` y variantes en `RegionalPublisherMatcher.cs`.
+- [x] 3. **Saneamiento Prioritario en `CatalogDataSanitizer`:**
+  - [x] 3.1 Actualizar `EnsureKnownPriorityGamesRepairedAsync` en `CatalogDataSanitizer.cs` para reparar BggId 453526 a `"Código 5"` y `"Lúdilo"`.
+- [x] 4. **Mecanismo de Refresco de Versiones:**
+  - [x] 4.1 Definir `GetBggIdsNeedingVersionRefreshAsync` en `IBggRawSnapshotRepository.cs`.
+  - [x] 4.2 Implementar `GetBggIdsNeedingVersionRefreshAsync` en `SqliteBggRawSnapshotRepository.cs`.
+  - [x] 4.3 Integrar soporte en `BggRawSnapshotSyncService.cs`.
+- [x] 5. **Verificación y Suite Completa (TDD Verde):**
+  - [x] 5.1 Ejecutar suite completa con `dotnet test` y verificar 100% verde sin regresiones (2.737 unitarias + 10 integración = 2.747 totales).
+- [x] 6. **Cierre, Archivo y Despliegue:**
+  - [x] 6.1 Generar `verification-report.md`.
+  - [x] 6.2 Actualizar especificación viva (`docs/specs/sistema/`).
+  - [x] 6.3 Mover `docs/increments/inc-136-refresco-versiones-ludilo.md` a `archive/`.
+  - [x] 6.4 Abrir PR con `sdd-worktree.ps1 pr refresco-versiones-ludilo`, vigilar CI, mergear y verificar despliegue en Google Cloud Run.

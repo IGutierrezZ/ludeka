@@ -176,6 +176,28 @@ public sealed class CatalogDataSanitizerTests : IDisposable
     }
 
     [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRepairGotFiveToCodigo5AndLudilo_WhenStoredAsOriginalTitleAndAsmodee()
+    {
+        // Arrange: Got Five! guardado con título original inglés y Asmodee Ibérica
+        var game = CreateTestGame(
+            bggId: 453526,
+            originalTitle: "Got Five!",
+            spanishTitle: "Got Five!",
+            spanishPublisher: "Asmodee Ibérica"
+        );
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 453526);
+        Assert.Equal("Código 5", refreshed.SpanishTitle);
+        Assert.Equal("Lúdilo", refreshed.SpanishPublisher);
+    }
+
+    [Fact]
     public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRestoreValidSpanishTitle_WhenSpanishVersionInSnapshot()
     {
         // Arrange: juego corrupto con "Korean edition" pero el snapshot sí tiene versión en español

@@ -20,6 +20,9 @@ public class RegionalPublisherMatcherTests
     [InlineData("Zacatrus", "Zacatrus!")]
     [InlineData("TCG Factory", "TCG Factory")]
     [InlineData("Gen-X Games", "Gen-X Games")]
+    [InlineData("Lúdilo", "Lúdilo")]
+    [InlineData("Ludilo", "Lúdilo")]
+    [InlineData("Lúdilo Games", "Lúdilo")]
     public void Match_WithKnownSpanishPublishers_ReturnsCanonicalSpanishPublisher(string input, string expected)
     {
         var (spanish, regional) = RegionalPublisherMatcher.Match(new[] { input });

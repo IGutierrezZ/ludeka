@@ -53,6 +53,10 @@ public static class RegionalPublisherMatcher
         new("Mont Tábora", "ES", "Mont Tábora", "mont-tabora"),
         new("Bumble3EE Interactive", "ES", "Bumble3EE Interactive", "bumble3ee-interactive"),
         new("Tang de Naranja", "ES", "Tang de Naranja", "tang-de-naranja"),
+        new("Lúdilo", "ES", "Lúdilo", "ludilo"),
+        new("Ludilo", "ES", "Lúdilo", "ludilo"),
+        new("Lúdilo Games", "ES", "Lúdilo", "ludilo"),
+        new("Ludilo Games", "ES", "Lúdilo", "ludilo"),
 
         // Argentina (AR)
         new("Bureau de Juegos", "AR", "Bureau de Juegos", "bureau-de-juegos"),

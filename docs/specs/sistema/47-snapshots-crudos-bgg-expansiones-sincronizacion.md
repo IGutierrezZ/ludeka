@@ -214,3 +214,14 @@ Para erradicar casos donde las versiones multilingües de BGG asignan rótulos t
    - Ampliación del predicado SQL en EF Core para evaluar títulos con `"edition"`, `"edicion"`, `"edición"`, `"version"`, `"versión"` y barras (`/`).
    - Saneamiento prioritario O(1) en `EnsureKnownPriorityGamesRepairedAsync` para *Queen Alice* (456236) restaurándolo a `OriginalTitle` y asignando su editorial local.
 
+### 7.10 Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo (INC-136)
+Para resolver el desfase en juegos recientes donde las ediciones en español se registran en BGG con posterioridad a la indexación del título original (ej. *Got Five!*, BggId 453526, de Yoann Levet, publicado en España por Lúdilo como *Código 5*):
+1. **Soporte Editorial Lúdilo (`RegionalPublisherMatcher`):**
+   - Incorporación de `"Lúdilo"`, `"Ludilo"`, `"Lúdilo Games"` y `"Ludilo Games"` como sello editorial español oficial (`CountryCode = "ES"`, `OfficialName = "Lúdilo"`, `Slug = "ludilo"`), corrigiendo la atribución errónea a distribuidores genéricos.
+2. **Detección de Snapshots Candidatos a Refresco (`IBggRawSnapshotRepository` / `SqliteBggRawSnapshotRepository`):**
+   - Implementación de `GetBggIdsNeedingVersionRefreshAsync(minYear, limit)`: detecta títulos recientes (`YearPublished >= minYear`) cuyo título en español coincide con el original y cuyos snapshots aún no registran versiones en español, habilitando su re-sincronización periódica en segundo plano.
+3. **Integración en el Sincronizador de Versiones (`BggRawSnapshotSyncService`):**
+   - `SyncVersionsBatchCoreAsync` consulta automáticamente los candidatos a refresco de novedades cuando no existen snapshots pendientes sin el nodo `versions`.
+4. **Saneamiento Prioritario en `CatalogDataSanitizer`:**
+   - `EnsureKnownPriorityGamesRepairedAsync` asegura de forma determinista O(1) que el juego BggId 453526 (*Got Five!*) actualice su título a `"Código 5"` y su editorial a `"Lúdilo"`, persistiendo además su snapshot de versiones asociado.
+

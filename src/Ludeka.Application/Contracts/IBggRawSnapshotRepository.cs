@@ -52,6 +52,13 @@ public interface IBggRawSnapshotRepository
         => Task.FromResult<IReadOnlyList<int>>([]);
 
     /// <summary>
+    /// Obtiene identificadores de BGG cuyos snapshots carecen de versión en español
+    /// para juegos publicados en o después de minYear (novedades candidatas a edición española tardía).
+    /// </summary>
+    Task<IReadOnlyList<int>> GetBggIdsNeedingVersionRefreshAsync(int minYear = 2025, int limit = 50, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<int>>([]);
+
+    /// <summary>
     /// Cuenta cuántos snapshots almacenados contienen información de versiones.
     /// </summary>
     Task<int> GetCountWithVersionsAsync(CancellationToken ct = default)
