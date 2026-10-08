@@ -33,7 +33,15 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         try
         {
             _logger.LogInformation("Descargando calendario de próximos lanzamientos de Devir desde '{Url}'...", DefaultDevirUrl);
-            var html = await _httpClient.GetStringAsync(DefaultDevirUrl, ct).ConfigureAwait(false);
+            using var req = CreateBrowserNavRequest(HttpMethod.Get, DefaultDevirUrl);
+            var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("HTTP {StatusCode} al descargar el calendario de Devir.", resp.StatusCode);
+                return Array.Empty<EditorialReleaseItem>();
+            }
+
+            var html = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             var items = ParseHtml(html);
 
             // Enriquecer con galería de producto (mesa y contraportada) para aquellos ítems con SourceUrl de ficha de producto
@@ -477,9 +485,17 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(8));
 
-            var html = await _httpClient.GetStringAsync(productUrl, timeoutCts.Token).ConfigureAwait(false);
+            using var request = CreateBrowserNavRequest(HttpMethod.Get, productUrl, "https://devir.es/catalogo/juegos-de-mesa");
+            var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("HTTP {StatusCode} al obtener la galería de Devir en '{Url}'.", response.StatusCode, productUrl);
+                return null;
+            }
+
+            var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
             return ParseProductGalleryHtml(html);
         }
         catch (Exception ex)
@@ -589,29 +605,71 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             ? "https://devir.es/catalogo/juegos-de-mesa" 
             : $"https://devir.es/catalogo/juegos-de-mesa?p={page}";
 
-        try
+        var referer = page > 1 ? "https://devir.es/catalogo/juegos-de-mesa" : null;
+
+        for (int attempt = 1; attempt <= 2; attempt++)
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-            var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            ct.ThrowIfCancellationRequested();
+            try
             {
-                _logger.LogWarning("HTTP {StatusCode} al obtener la página {Page} del catálogo de Devir.", response.StatusCode, page);
-                return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), false);
-            }
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(12));
 
-            var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
-            return ParseCatalogPageHtml(html);
+                using var request = CreateBrowserNavRequest(HttpMethod.Get, targetUrl, referer);
+                var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+                    return ParseCatalogPageHtml(html);
+                }
+
+                _logger.LogWarning("HTTP {StatusCode} al obtener la página {Page} del catálogo de Devir (intento {Attempt}/2).", response.StatusCode, page, attempt);
+
+                if (attempt == 1 && ((int)response.StatusCode == 403 || (int)response.StatusCode == 429 || (int)response.StatusCode >= 500))
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), HasNextPage: false, Success: false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Error al extraer la página {Page} del catálogo general de Devir (intento {Attempt}/2).", page, attempt);
+                if (attempt == 1)
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), HasNextPage: false, Success: false);
+            }
         }
-        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+
+        return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), HasNextPage: false, Success: false);
+    }
+
+    private static HttpRequestMessage CreateBrowserNavRequest(HttpMethod method, string targetUrl, string? referer = null)
+    {
+        var request = new HttpRequestMessage(method, targetUrl);
+        request.Headers.Accept.Clear();
+        request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+        request.Headers.AcceptLanguage.Clear();
+        request.Headers.AcceptLanguage.ParseAdd("es-ES,es;q=0.9,en;q=0.8");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua", "\"Chromium\";v=\"122\", \"Not(A:Brand\";v=\"24\", \"Google Chrome\";v=\"122\"");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua-mobile", "?0");
+        request.Headers.TryAddWithoutValidation("sec-ch-ua-platform", "\"Windows\"");
+        request.Headers.TryAddWithoutValidation("sec-fetch-dest", "document");
+        request.Headers.TryAddWithoutValidation("sec-fetch-mode", "navigate");
+        request.Headers.TryAddWithoutValidation("sec-fetch-site", referer != null ? "same-origin" : "none");
+
+        if (!string.IsNullOrWhiteSpace(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refUri))
         {
-            _logger.LogWarning(ex, "Error al extraer la página {Page} del catálogo general de Devir.", page);
-            return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), false);
+            request.Headers.Referrer = refUri;
         }
+
+        return request;
     }
 
     public DevirCatalogPageResultDto ParseCatalogPageHtml(string html)

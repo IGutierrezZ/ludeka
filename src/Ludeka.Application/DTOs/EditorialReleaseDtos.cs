@@ -71,5 +71,6 @@ public record DevirCatalogItemDto(
 /// </summary>
 public record DevirCatalogPageResultDto(
     IReadOnlyList<DevirCatalogItemDto> Items,
-    bool HasNextPage);
+    bool HasNextPage,
+    bool Success = true);
 

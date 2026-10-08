@@ -408,4 +408,85 @@ public class DevirReleasesExtractorTests
         Assert.Equal("Castle Party", item2.Title);
         Assert.Equal("8436589622340", item2.Ean);
     }
+
+    private class MockHttpMessageHandler : System.Net.Http.HttpMessageHandler
+    {
+        private readonly System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> _handler;
+
+        public MockHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(
+            System.Net.Http.HttpRequestMessage request,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            return System.Threading.Tasks.Task.FromResult(_handler(request));
+        }
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ExtractCatalogPageAsync_RetriesOn403AndSucceedsOnSecondAttempt()
+    {
+        int callCount = 0;
+        System.Uri? capturedReferer = null;
+
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            callCount++;
+            capturedReferer = req.Headers.Referrer;
+            if (callCount == 1)
+            {
+                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+            }
+
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new System.Net.Http.StringContent(@"
+                <li class=""item product product-item"">
+                    <div class=""product-item-info"">
+                        <a href=""https://devir.es/paris"" class=""product photo product-item-photo"">
+                            <span class=""product-image-container"">
+                                <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-face3d.jpg"" alt=""Paris"" />
+                            </span>
+                        </a>
+                    </div>
+                </li>")
+            };
+        });
+
+        var client = new System.Net.Http.HttpClient(handler);
+        var extractor = new DevirReleasesExtractor(client, NullLogger<DevirReleasesExtractor>.Instance);
+
+        var result = await extractor.ExtractCatalogPageAsync(page: 2);
+
+        Assert.Equal(2, callCount);
+        Assert.True(result.Success);
+        Assert.Single(result.Items);
+        Assert.Equal("Paris", result.Items[0].Title);
+        Assert.NotNull(capturedReferer);
+        Assert.Equal("https://devir.es/catalogo/juegos-de-mesa", capturedReferer.ToString());
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ExtractCatalogPageAsync_ReturnsFailureWhenBothAttemptsReturn403()
+    {
+        int callCount = 0;
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            callCount++;
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+        });
+
+        var client = new System.Net.Http.HttpClient(handler);
+        var extractor = new DevirReleasesExtractor(client, NullLogger<DevirReleasesExtractor>.Instance);
+
+        var result = await extractor.ExtractCatalogPageAsync(page: 2);
+
+        Assert.Equal(2, callCount);
+        Assert.False(result.Success);
+        Assert.Empty(result.Items);
+    }
 }
+

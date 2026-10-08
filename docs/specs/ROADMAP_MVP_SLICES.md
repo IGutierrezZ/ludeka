@@ -1257,6 +1257,15 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
 - **Pruebas unitarias:** 2.712 verificadas al 100%.
 
+---
 
-
-
+## Incremento 137: Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs
+- **Identificador SDD:** `resiliencia-devir-maldito-novedades`
+- **Objetivo Principal:**
+  1. **Saneamiento de Cabeceras HTTP de Navegación:** Erradicar colisiones de User-Agent y configurar cabeceras estándar de navegador (`Accept`, `Accept-Language`, `Referer`, `Sec-Ch-Ua`) en `DevirReleasesExtractor` y `MalditoReleasesExtractor`.
+  2. **Reintento Comedido (Opción 2):** Implementar a lo sumo 1 reintento con retardo de 1.5s ante 403, 429 o errores 5xx transitorios de Cloudflare en Devir y Maldito Games.
+  3. **Desacoplo y Aislamiento en Extracción de Maldito Games:** Separar la obtención de la portada y el catálogo para que un fallo en el catálogo Magento no descarte las más de 40 novedades de la portada, garantizando su llegada a la bandeja de moderación.
+  4. **Ritmo Cortés y Tolerancia en Job de Barrido:** Throttle de 750 ms entre páginas y tolerancia de hasta 2 fallos consecutivos en `DevirImagesBackfillJobRunner`.
+  5. **Despliegue Continuo de `devir-images-backfill`:** Registro en `.github/workflows/ci-cd.yml` para despliegue automático en Google Cloud Run Jobs.
+- **Estado:** ⏳ **En progreso** (INC-137).
+- **Documento:** [`../increments/inc-137-resiliencia-devir-maldito-novedades.md`](../increments/inc-137-resiliencia-devir-maldito-novedades.md).
