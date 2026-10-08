@@ -58,11 +58,13 @@ Ubicación: [`src/Ludeka.Core/Entities/ExpansionRecipe.cs`](file:///c:/repos/Lud
 - [`ExpansionAporteCard.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionAporteCard.razor): Tarjeta de aportes con badges de impacto y necesidad.
   - **Estado Vacío y Acción IA (INC-102):** Si la expansión carece de aportes editoriales cargados, despliega un *empty state* con iconografía `sparkles` y un botón interactivo para generar la síntesis de aporte al instante con feedback visual de carga.
 - [`ExpansionSisterList.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionSisterList.razor): Carrusel de expansiones hermanas.
-- [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor): Sección editorial limpia en el juego base (INC-130, alineación Claude Design):
+- [`ExpansionEcosystemSection.razor`](file:///c:/repos/Ludeka/src/Ludeka.Web/Components/Shared/ExpansionEcosystemSection.razor): Sección editorial limpia en el juego base (INC-130 y INC-131, alineación Claude Design):
   - **Cuadrícula Editorial de 2 Columnas:** Sustituye el carrusel y las subpestañas por una cuadrícula directa de 2 columnas (`grid grid-cols-1 md:grid-cols-2 gap-4`) con tarjetas contenidas (`rounded-2xl bg-[var(--paper-2)]`).
-  - **Tarjetas de Expansión Limpias:**
+  - **Tarjetas de Expansión Limpias con Calificación (INC-131):**
     - Carátula nítida con dimensiones explícitas anti-CLS (64x64 píxeles, `loading="lazy"`, `decoding="async"`).
     - Etiqueta de necesidad simplificada («Opcional», «Muy recomendada», «Imprescindible», «Para completistas», «Prescindible»).
+    - Insignia de calificación cuantitativa con icono de estrella Lucide (`★ X.X`) en la esquina superior derecha, resolviendo la nota efectiva (`LudistRating > 0 ? LudistRating : BggRating`).
+    - Ordenación predeterminada descendente por calificación tanto en `ExpansionService.cs` como en el componente Blazor (`SortedExpansions`), mostrando primero las expansiones mejor valoradas.
     - Título editorial enlazado a la ficha de la expansión con efecto hover.
     - Metadatos claros: año de publicación y cálculo del total de jugadores alcanzable con el juego base (`hasta X jugadores`).
     - Botón interactivo de colección: «+ A mi ludoteca» / «En mi ludoteca» (con icono `check` verde), sincronizado de forma reactiva con `IUserLibraryService`.
