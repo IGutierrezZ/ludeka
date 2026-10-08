@@ -1,4 +1,5 @@
 using System;
+using Ludeka.Core.Enums;
 
 namespace Ludeka.Core.Entities;
 
@@ -17,6 +18,10 @@ public class WeeklyRelease
     public string? SourceUrl { get; private set; }
     public string? InstagramMediaId { get; private set; }
     public string? InstagramPermalink { get; private set; }
+    public WeeklyReleaseStatus Status { get; private set; } = WeeklyReleaseStatus.Published;
+    public int? AiSuggestedBggId { get; private set; }
+    public string? AiSuggestedTitle { get; private set; }
+    public string? AiMatchReasoning { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; private set; }
 
@@ -36,7 +41,11 @@ public class WeeklyRelease
         bool isReprint = false,
         string? notes = null,
         string? sourceUrl = null,
-        bool isMonthOnly = false)
+        bool isMonthOnly = false,
+        WeeklyReleaseStatus status = WeeklyReleaseStatus.Published,
+        int? aiSuggestedBggId = null,
+        string? aiSuggestedTitle = null,
+        string? aiMatchReasoning = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("El título del lanzamiento no puede estar vacío.", nameof(title));
@@ -54,6 +63,10 @@ public class WeeklyRelease
         IsReprint = isReprint;
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         SourceUrl = string.IsNullOrWhiteSpace(sourceUrl) ? null : sourceUrl.Trim();
+        Status = status;
+        AiSuggestedBggId = aiSuggestedBggId;
+        AiSuggestedTitle = string.IsNullOrWhiteSpace(aiSuggestedTitle) ? null : aiSuggestedTitle.Trim();
+        AiMatchReasoning = string.IsNullOrWhiteSpace(aiMatchReasoning) ? null : aiMatchReasoning.Trim();
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -108,4 +121,38 @@ public class WeeklyRelease
         InstagramPermalink = permalink.Trim();
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void SetPendingModeration(int? suggestedBggId = null, string? suggestedTitle = null, string? reasoning = null)
+    {
+        Status = WeeklyReleaseStatus.PendingModeration;
+        AiSuggestedBggId = suggestedBggId;
+        AiSuggestedTitle = string.IsNullOrWhiteSpace(suggestedTitle) ? null : suggestedTitle.Trim();
+        AiMatchReasoning = string.IsNullOrWhiteSpace(reasoning) ? null : reasoning.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Approve(Guid? gameId = null)
+    {
+        Status = WeeklyReleaseStatus.Published;
+        if (gameId.HasValue && gameId.Value != Guid.Empty)
+        {
+            GameId = gameId.Value;
+        }
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Reject()
+    {
+        Status = WeeklyReleaseStatus.Rejected;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetAiSuggestion(int? suggestedBggId, string? suggestedTitle, string? reasoning)
+    {
+        AiSuggestedBggId = suggestedBggId;
+        AiSuggestedTitle = string.IsNullOrWhiteSpace(suggestedTitle) ? null : suggestedTitle.Trim();
+        AiMatchReasoning = string.IsNullOrWhiteSpace(reasoning) ? null : reasoning.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }
+

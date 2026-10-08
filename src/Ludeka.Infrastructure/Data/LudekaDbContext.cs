@@ -1,4 +1,5 @@
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -233,6 +234,15 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
 
         release.Property(r => r.IsMonthOnly)
             .HasDefaultValue(false);
+
+        release.Property(r => r.Status)
+            .HasDefaultValue(WeeklyReleaseStatus.Published);
+
+        release.Property(r => r.AiSuggestedTitle)
+            .HasMaxLength(300);
+
+        release.Property(r => r.AiMatchReasoning)
+            .HasMaxLength(2000);
 
         release.Property(r => r.SourceUrl)
             .HasMaxLength(1000);

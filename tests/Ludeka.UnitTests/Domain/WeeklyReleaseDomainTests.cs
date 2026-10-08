@@ -49,4 +49,37 @@ public class WeeklyReleaseDomainTests
         Assert.Equal(targetDate, release.ReleaseDate);
         Assert.NotNull(release.UpdatedAt);
     }
+
+    [Fact]
+    public void Status_DefaultsToPublished_CanBeSetToPendingModerationAndApproved()
+    {
+        var release = new WeeklyRelease("Crucero Galáctico", "Maldito Games");
+        Assert.Equal(Ludeka.Core.Enums.WeeklyReleaseStatus.Published, release.Status);
+        Assert.Null(release.AiSuggestedBggId);
+
+        // Pasa a moderación con propuesta de IA
+        release.SetPendingModeration(390111, "Galactic Cruise", "Edición en español de Galactic Cruise por Maldito Games.");
+        Assert.Equal(Ludeka.Core.Enums.WeeklyReleaseStatus.PendingModeration, release.Status);
+        Assert.Equal(390111, release.AiSuggestedBggId);
+        Assert.Equal("Galactic Cruise", release.AiSuggestedTitle);
+        Assert.Contains("Galactic Cruise", release.AiMatchReasoning);
+
+        // Moderador aprueba vinculando juego
+        var gameId = Guid.NewGuid();
+        release.Approve(gameId);
+        Assert.Equal(Ludeka.Core.Enums.WeeklyReleaseStatus.Published, release.Status);
+        Assert.Equal(gameId, release.GameId);
+    }
+
+    [Fact]
+    public void Reject_SetsStatusToRejected()
+    {
+        var release = new WeeklyRelease("Accesorio No Juego", "Maldito Games");
+        release.SetPendingModeration();
+        Assert.Equal(Ludeka.Core.Enums.WeeklyReleaseStatus.PendingModeration, release.Status);
+
+        release.Reject();
+        Assert.Equal(Ludeka.Core.Enums.WeeklyReleaseStatus.Rejected, release.Status);
+    }
 }
+

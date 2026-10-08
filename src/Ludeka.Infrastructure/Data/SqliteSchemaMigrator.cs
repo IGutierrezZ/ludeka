@@ -651,6 +651,30 @@ public static class SqliteSchemaMigrator
                     cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"IsMonthOnly\" INTEGER NOT NULL DEFAULT 0;";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
+                if (!releaseCols.Contains("Status"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"Status\" INTEGER NOT NULL DEFAULT 1;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!releaseCols.Contains("AiSuggestedBggId"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"AiSuggestedBggId\" INTEGER NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!releaseCols.Contains("AiSuggestedTitle"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"AiSuggestedTitle\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!releaseCols.Contains("AiMatchReasoning"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"AiMatchReasoning\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
             }
 
             // Crear tabla InstagramPostDrafts si no existe (Incremento 28)
