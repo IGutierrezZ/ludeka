@@ -80,3 +80,23 @@ El proyecto cuenta con el servidor MCP de **Engram** conectado en `.tools/bin/en
   - `tests/Ludeka.UnitTests`: Pruebas unitarias con xUnit y pruebas de componentes/integración.
 - **Async/Await:** Emplear `ValueTask` cuando proceda, pasar siempre `CancellationToken`, evitar `.Result` o `.Wait()`.
 - **Commits Convencionales:** Formato `feat:`, `fix:`, `refactor:`, `test:`, `docs:`. Prohibido añadir atribuciones "Co-Authored-By" de IA.
+
+---
+
+## 5. Entorno Local de Pruebas con Réplica de Producción (PostgreSQL en Docker)
+
+Para verificar cambios *in situ* contra el catálogo real sin riesgo para producción ni esperas de despliegue:
+- **Contenedor PostgreSQL local:** Servicio `postgres:17-alpine` definido en `docker-compose.yml` (puerto `5432:5432`, base `ludeka`, usuario `postgres`, contraseña `postgrespassword`, volumen persistente `postgres_data`).
+  - Arrancar: `docker compose up -d postgres`.
+- **Sincronización / Refresco desde producción:**
+  - Script automatizado: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sync-prod-db.ps1`.
+  - Extrae el volcado por *streaming* SSH seguro desde la VM de base de datos en Google Cloud (`ludeka-db`), descargándolo a local y restaurándolo en el contenedor sin almacenar archivos en Google Cloud.
+- **Secretos y configuración local (`dotnet user-secrets`):**
+  - Compartido entre `src/Ludeka.Web` y `src/Ludeka.Jobs` mediante `<UserSecretsId>ludeka-web-user-secrets-2026</UserSecretsId>`.
+  - Cadena: `ConnectionStrings:DefaultConnection = Host=localhost;Port=5432;Database=ludeka;Username=postgres;Password=postgrespassword;`
+  - Proveedor: `Database:Provider = PostgreSql` y `Database:SeedDemoData = false`.
+  - Lotes acotados para Jobs: `NightlyCataloging:DailyCatalogingLimit = 100` (permite verificar ejecuciones de ingesta o sincronización con 100 juegos en vez de procesar el catálogo entero de 18.000+).
+- **Ejecución de verificación local:**
+  - Web: `dotnet run --project src/Ludeka.Web --launch-profile http` (disponible en `http://localhost:5081`).
+  - Jobs: `dotnet run --project src/Ludeka.Jobs -- <nombre-job>` (ej. `nightly-cataloging`, `devir-images-backfill`).
+
