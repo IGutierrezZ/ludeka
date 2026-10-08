@@ -100,6 +100,15 @@ public interface IReleaseAiMatcherService
 - Cruza en memoria contra el catálogo completo de Ludeka por EAN y título normalizado.
 - Si el juego coincide y carece de alguna de sus tres vistas principales (caja 3D, mesa o contraportada), descarga su ficha oficial, extrae la galería de alta resolución y actualiza la entidad `Game`.
 - Si el juego ya cuenta con todas sus imágenes completas, omite la consulta de red a la ficha individual.
+- **Ritmo Cortés y Tolerancia a Fallos (INC-138):** Incorpora un retardo preventivo de 750 ms entre páginas consecutivas para evitar la activación del WAF/rate-limiting de Cloudflare en entornos de centros de datos (GCP Cloud Run), y tolera fallos HTTP aislados (permitiendo hasta 2 páginas fallidas consecutivas antes de detener el recorrido).
+
+### 5.3 Resiliencia HTTP y Desacoplamiento de Portada en Maldito Games (`MalditoReleasesExtractor`, INC-138)
+- **Cabeceras de Navegación Humana:** Configura peticiones HTTP enriquecidas (`Accept`, `Accept-Language`, `sec-ch-ua`, `User-Agent` de navegador de escritorio) y erradica colisiones o duplicidades en cabeceras.
+- **Reintento Educado:** Aplica un único reintento diferido (1.500 ms) ante respuestas HTTP 403, 429 o fallos 5xx transitorios.
+- **Aislamiento de Portada frente a Catálogo Magento:** La descarga de lanzamientos de la portada y del catálogo cronológico se ejecuta de forma desacoplada; si el catálogo pesado falla o agota el tiempo de espera, la portada se procesa íntegramente y sus más de 40 novedades son enviadas con éxito al sincronizador y la bandeja de moderación.
+
+### 5.4 Despliegue Automatizado de Jobs en CI/CD (INC-138)
+- El job `devir-images-backfill` está integrado formalmente en la matriz de despliegue continuo de Cloud Run Jobs en `.github/workflows/ci-cd.yml`, garantizando su actualización y aprovisionamiento en Google Cloud en cada entrega a `main`.
 
 ---
 
@@ -131,12 +140,13 @@ public interface IReleaseAiMatcherService
 
 La arquitectura ha sido verificada mediante pruebas automáticas exhaustivas en `tests/Ludeka.UnitTests`:
 - `WeeklyReleaseDomainTests.cs`: 5 pruebas que verifican las transiciones de estado, invariantes y asignación de propuestas IA.
-- `DevirReleasesExtractorTests.cs`: 8 pruebas de exclusión de secciones en desarrollo, rol, meses pasados, captura de enlaces de producto, detección de cajas 3D, galería completa y paginación de catálogo.
+- `DevirReleasesExtractorTests.cs`: 10 pruebas de exclusión de secciones en desarrollo, rol, meses pasados, captura de enlaces de producto, detección de cajas 3D, galería completa, paginación de catálogo y reintentos ante 403.
+- `MalditoReleasesExtractorTests.cs`: 8 pruebas que cubren extracción de portada, catálogo Magento, reintentos y tolerancia a fallos desacoplados en catálogo sin pérdida de lanzamientos de portada.
 - `GeminiReleaseMatcherServiceTests.cs`: 9 pruebas que validan el asistente IA, parsing de respuestas estructuradas y fallback determinista ante errores.
 - `EditorialReleasesSyncServiceTests.cs`: 21 pruebas de sincronización instantánea, detección de cajas 3D, enriquecimiento de mesa/contraportada, aislamiento por editorial y envío a moderación.
 - `WeeklyReleaseServiceTests.cs`: 14 pruebas de filtrado público, consulta de pendientes, aprobación con/sin BGG ID y rechazo.
-- `DevirImagesBackfillJobRunnerTests.cs`: 3 pruebas del trabajo autónomo de barrido de imágenes, omisión de fichas ya completas y recorrido multipágina.
+- `DevirImagesBackfillJobRunnerTests.cs`: 5 pruebas del trabajo autónomo de barrido de imágenes, omisión de fichas ya completas, recorrido multipágina, ritmo cortés y tolerancia a fallos transitorios.
 - `LudekaJobsCompositionTests.cs`: 1 prueba de composición del contenedor de trabajos verificando la exposición de los 17 runners oficiales.
 - `NewsPageContractTests.cs`: 6 pruebas de contrato UI para la visibilidad de la pestaña de moderación según roles y botones de acción.
 
-**Total de la suite tras la incorporación del módulo:** 2.705 pruebas unitarias verificadas al 100% en verde (2.715 totales con integración).
+**Total de la suite tras la incorporación del módulo y robustecimiento (INC-138):** 2.749 pruebas unitarias verificadas al 100% en verde (2.759 totales con integración).
