@@ -1284,3 +1284,16 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   5. **Despliegue Continuo de `devir-images-backfill`:** Registro en `.github/workflows/ci-cd.yml` para despliegue automático en Google Cloud Run Jobs.
 - **Estado:** ⏳ **En progreso** (INC-138).
 - **Documento:** [`../increments/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/inc-138-resiliencia-devir-maldito-novedades.md).
+
+---
+
+## Incremento 139: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
+- **Identificador SDD:** `galeria-dinamica-fichas`
+- **Objetivo Principal:**
+  1. **Modelo de Dominio (`Ludeka.Core`):** Value Object `GameGalleryImage` con `Url` obligatoria y `Title` opcional; métodos de dominio en `Game.cs` (`UpdateAdditionalImages`, `AddGalleryImage`, `RemoveGalleryImage`).
+  2. **Persistencia e Infraestructura (`Ludeka.Infrastructure`):** Mapeo JSONB con `OwnsMany(g => g.AdditionalImages, b => b.ToJson())`, migración EF Core `AddGameAdditionalImages` y reconciliación en `SqliteSchemaMigrator`.
+  3. **Capa de Aplicación y Auditoría (`Ludeka.Application`):** Extensión de DTOs (`GameDetailDto`, `UpdateGameDetailsCommand`), control de permisos `CanUploadImages` y registro detallado en `GameEditLog` e `IAuditService`.
+  4. **UI Blazor (`Ludeka.Web`):** Sección «4. Galería Complementaria» en `GameEditorModal.razor` para subida de archivos y alta de URLs con título; renderizado dinámico en `GameImageCarousel.razor` y `GameDetail.razor`.
+- **Estado:** ⏳ **En progreso** (INC-139).
+- **Documento:** [`../increments/inc-139-galeria-dinamica-fichas.md`](../increments/inc-139-galeria-dinamica-fichas.md).
+- **Pruebas unitarias:** 2.760 verificadas al 100%.

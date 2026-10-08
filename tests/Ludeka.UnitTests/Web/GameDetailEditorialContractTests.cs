@@ -53,6 +53,7 @@ public class GameDetailEditorialContractTests
         Assert.Contains("CoverImageUrl=\"@Game.CoverImageUrl\"", source, StringComparison.Ordinal);
         Assert.Contains("BackCoverImageUrl=\"@Game.BackCoverImageUrl\"", source, StringComparison.Ordinal);
         Assert.Contains("TableImageUrl=\"@Game.TableImageUrl\"", source, StringComparison.Ordinal);
+        Assert.Contains("AdditionalImages=\"@Game.AdditionalImages\"", source, StringComparison.Ordinal);
 
         // Pestañas secundarias agrupadas para evitar scroll infinito
         Assert.Contains("_activeSecondaryTab", source, StringComparison.Ordinal);

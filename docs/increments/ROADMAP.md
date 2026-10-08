@@ -151,6 +151,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-136** | Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo | ✅ Archivado | [inc-136-refresco-versiones-ludilo.md](archive/inc-136-refresco-versiones-ludilo.md) |
 | **INC-137** | Forzar Sincronización BGG desde Ficha de Juego (Snapshot, Versiones, Imágenes y Datos) | ✅ Archivado | [inc-137-sincronizacion-bgg-ficha.md](archive/inc-137-sincronizacion-bgg-ficha.md) |
 | **INC-138** | Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs | ⏳ En progreso | [inc-138-resiliencia-devir-maldito-novedades.md](inc-138-resiliencia-devir-maldito-novedades.md) |
+| **INC-139** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ⏳ En progreso | [inc-139-galeria-dinamica-fichas.md](inc-139-galeria-dinamica-fichas.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -180,6 +181,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
 - **INC-138** (`inc/resiliencia-devir-maldito-novedades` en `F:\repos\ludeka-wt\resiliencia-devir-maldito-novedades`): Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs. En curso.
+- **INC-139** (`inc/galeria-dinamica-fichas` en `F:\repos\ludeka-wt\galeria-dinamica-fichas`): Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas de Juego. En curso.
 
 *(INC-137 entregó su verificación con 2.742 pruebas unitarias en verde al 100%, incorporando la sincronización forzada bajo demanda con BGG desde la sección de gestión de la ficha editorial [ForceSyncFromBggAsync], persistencia de snapshots y versiones físicas, actualización reactiva en GameDetail y GameStaffToolsPanel de título en castellano, editorial española, código EAN-13 e imágenes, y registro de auditoría).*
 

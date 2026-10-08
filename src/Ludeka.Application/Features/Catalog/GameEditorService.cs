@@ -76,7 +76,10 @@ public class GameEditorService : IGameEditorService
                                !string.Equals(game.CoverImageUrl, command.CoverImageUrl, StringComparison.Ordinal);
         bool isChangingBackCover = !string.Equals(game.BackCoverImageUrl, command.BackCoverImageUrl, StringComparison.Ordinal);
         bool isChangingTable = !string.Equals(game.TableImageUrl, command.TableImageUrl, StringComparison.Ordinal);
-        bool isChangingImages = isChangingCover || isChangingBackCover || isChangingTable;
+        bool isChangingAdditionalImages = command.AdditionalImages != null &&
+                                          (game.AdditionalImages.Count != command.AdditionalImages.Count ||
+                                           !game.AdditionalImages.Select(i => (i.Url, i.Title)).SequenceEqual(command.AdditionalImages.Select(i => (i.Url, i.Title))));
+        bool isChangingImages = isChangingCover || isChangingBackCover || isChangingTable || isChangingAdditionalImages;
 
         if (isChangingImages && !_currentUserService.IsFoundingTeam && !_currentUserService.HasPermission(ModeratorPermission.CanUploadImages))
         {
@@ -135,6 +138,12 @@ public class GameEditorService : IGameEditorService
             fieldChanges.Add(new FieldChangeDto("TableImageUrl", game.TableImageUrl, command.TableImageUrl));
         }
 
+        if (isChangingAdditionalImages)
+        {
+            changes.Add($"Galería de fotos actualizada ({command.AdditionalImages!.Count} imágenes)");
+            fieldChanges.Add(new FieldChangeDto("AdditionalImages", $"{game.AdditionalImages.Count} fotos", $"{command.AdditionalImages!.Count} fotos"));
+        }
+
         if (command.Sleeves != null)
         {
             changes.Add($"Fundas de cartas actualizadas ({command.Sleeves.Count} formatos)");
@@ -181,6 +190,11 @@ public class GameEditorService : IGameEditorService
             command.BackCoverImageUrl,
             command.TableImageUrl
         );
+
+        if (command.AdditionalImages != null)
+        {
+            game.UpdateAdditionalImages(command.AdditionalImages);
+        }
 
         if (command.Sleeves != null)
         {

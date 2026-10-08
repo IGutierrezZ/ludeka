@@ -47,7 +47,8 @@ public record GameDetailDto(
     IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null,
     string? Ean = null,
     IReadOnlyList<string>? AdditionalBarcodes = null,
-    double? BggWeight = null
+    double? BggWeight = null,
+    IReadOnlyList<GameGalleryImage>? AdditionalImages = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
@@ -131,6 +132,7 @@ public record GameDetailDto(
         (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly(),
         g.Ean,
         (g.AdditionalBarcodes ?? new List<string>()).AsReadOnly(),
-        g.BggWeight
+        g.BggWeight,
+        (g.AdditionalImages ?? new List<GameGalleryImage>()).AsReadOnly()
     );
 }

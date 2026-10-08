@@ -93,6 +93,11 @@ public class GameEditorWebIntegrationTests
         Assert.Contains("<InputFile", content);
         Assert.Contains("SaveGameCoverAsync", content);
 
+        // Galería complementaria dinámica (INC-139)
+        Assert.Contains("4. Galería Complementaria", content);
+        Assert.Contains("AddGalleryImageFromUrl", content);
+        Assert.Contains("RemoveAdditionalImage", content);
+
         // Resolución en cascada de reportes
         Assert.Contains("AssociatedReportId", content);
         Assert.Contains("Guardar Ficha y Resolver Reporte", content);

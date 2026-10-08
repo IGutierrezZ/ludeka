@@ -173,6 +173,7 @@
     [Parameter] public string? CoverImageUrl { get; set; }
     [Parameter] public string? BackCoverImageUrl { get; set; }
     [Parameter] public string? TableImageUrl { get; set; }
+    [Parameter] public IReadOnlyList<GameGalleryImage>? AdditionalImages { get; set; }
     [Parameter] public string GameTitle { get; set; } = "Juego";
     [Parameter] public bool IsExpansion { get; set; }
     [Parameter] public string SelectedKey { get; set; } = "cover";
@@ -222,6 +223,28 @@
                     Alt: $"Componentes en mesa de {GameTitle}",
                     IconName: "layout-grid"
                 ));
+            }
+
+            // 4. Galería complementaria
+            if (AdditionalImages != null)
+            {
+                int galIdx = 1;
+                foreach (var extra in AdditionalImages)
+                {
+                    if (!string.IsNullOrWhiteSpace(extra.Url))
+                    {
+                        var label = !string.IsNullOrWhiteSpace(extra.Title) ? extra.Title : $"Foto {galIdx}";
+                        list.Add(new SlideItem(
+                            Key: $"gallery-{galIdx}",
+                            Label: label,
+                            Subtext: "Galería",
+                            ImageUrl: extra.Url,
+                            Alt: $"{label} de {GameTitle}",
+                            IconName: "image"
+                        ));
+                        galIdx++;
+                    }
+                }
             }
 
             return list;

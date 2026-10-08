@@ -81,6 +81,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         game.OwnsMany(g => g.PurchaseLinks, b => b.ToJson());
         game.OwnsMany(g => g.RegionalPublishers, b => b.ToJson());
         game.OwnsMany(g => g.LocalizedTitles, b => b.ToJson());
+        game.OwnsMany(g => g.AdditionalImages, b => b.ToJson());
         game.PrimitiveCollection(g => g.ImpactTags);
         game.Property(g => g.Ean).HasMaxLength(14);
         game.HasIndex(g => g.Ean);

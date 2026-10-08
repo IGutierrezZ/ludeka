@@ -35,7 +35,8 @@ public record UpdateGameDetailsCommand(
     string? ResolutionNotes = null,
     IReadOnlyList<SleeveItem>? Sleeves = null,
     string? Ean = null,
-    int? BggId = null
+    int? BggId = null,
+    IReadOnlyList<GameGalleryImage>? AdditionalImages = null
 );
 
 /// <summary>

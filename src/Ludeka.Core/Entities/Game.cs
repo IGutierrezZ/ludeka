@@ -40,6 +40,7 @@ public partial class Game
     public List<ScalabilityEntry> Scalability { get; private set; } = [];
     public List<SleeveItem> Sleeves { get; private set; } = [];
     public List<GamePurchaseLink> PurchaseLinks { get; private set; } = [];
+    public List<GameGalleryImage> AdditionalImages { get; private set; } = [];
     public string? SpanishPublisher { get; private set; }
     public List<RegionalPublisherEntry> RegionalPublishers { get; private set; } = [];
     public List<LocalizedTitleEntry> LocalizedTitles { get; private set; } = [];
@@ -105,7 +106,8 @@ public partial class Game
         string? ean = null,
         IEnumerable<string>? additionalBarcodes = null,
         string? asin = null,
-        double? bggWeight = null)
+        double? bggWeight = null,
+        IEnumerable<GameGalleryImage>? additionalImages = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -154,6 +156,7 @@ public partial class Game
         ExtraPlayerCount = extraPlayerCount;
         ExtraDurationMinutes = extraDurationMinutes;
         UpdateBggWeight(bggWeight);
+        UpdateAdditionalImages(additionalImages);
     }
 
     public string IdealPlayerCountText => CalculateIdealPlayerCountText();
@@ -237,6 +240,35 @@ public partial class Game
         ThumbnailUrl = thumbnailUrl?.Trim();
         BackCoverImageUrl = backCoverImageUrl?.Trim();
         TableImageUrl = tableImageUrl?.Trim();
+    }
+
+    public void UpdateAdditionalImages(IEnumerable<GameGalleryImage>? additionalImages)
+    {
+        AdditionalImages.Clear();
+        if (additionalImages != null)
+        {
+            foreach (var img in additionalImages)
+            {
+                if (img != null && !string.IsNullOrWhiteSpace(img.Url))
+                {
+                    AdditionalImages.Add(img);
+                }
+            }
+        }
+    }
+
+    public void AddGalleryImage(string url, string? title = null)
+    {
+        var item = new GameGalleryImage(url, title);
+        AdditionalImages.Add(item);
+    }
+
+    public void RemoveGalleryImage(int index)
+    {
+        if (index >= 0 && index < AdditionalImages.Count)
+        {
+            AdditionalImages.RemoveAt(index);
+        }
     }
 
     public void UpdateCatalogInformation(
