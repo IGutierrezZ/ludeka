@@ -437,7 +437,7 @@ else
             <button type="button"
                     @onclick='() => SelectTab("expansiones")'
                     class="border-0 bg-transparent py-4 px-0.5 font-extrabold text-sm sm:text-[15px] transition-colors cursor-pointer @(_activeTab == "expansiones" ? "text-[var(--ink)] border-b-[3px] border-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)] border-b-[3px] border-transparent")">
-                Expansiones @(_expansions.Count > 0 ? $"· {_expansions.Count}" : "")
+                Expansiones @((Game.IsExpansion ? _sisterExpansions.Count : _expansions.Count) > 0 ? $"· {(Game.IsExpansion ? _sisterExpansions.Count : _expansions.Count)}" : "")
             </button>
         </div>
     </nav>
@@ -683,20 +683,54 @@ else
                                 <b class="text-3xl sm:text-4xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">04</b>
                                 <h2 class="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight">Expansiones &amp; Dónde Comprar</h2>
                             </div>
-                            @if (_expansions.Count > 0)
+                            @if (!Game.IsExpansion && _expansions.Count > 0)
                             {
                                 <span class="py-1 px-3 rounded-full bg-[var(--paper-2)] text-[var(--ink)] font-extrabold text-xs flex items-center gap-1">
                                     <Icon Name="package" Size="14" /> @_expansions.Count expansiones
                                 </span>
                             }
+                            else if (Game.IsExpansion && _sisterExpansions.Count > 0)
+                            {
+                                <span class="py-1 px-3 rounded-full bg-[var(--paper-2)] text-[var(--ink)] font-extrabold text-xs flex items-center gap-1">
+                                    <Icon Name="package" Size="14" /> @_sisterExpansions.Count expansiones hermanas
+                                </span>
+                            }
                         </div>
 
-                        <ExpansionEcosystemSection
-                            Expansions="@_expansions"
-                            SisterExpansions="@_sisterExpansions"
-                            SisterSynergies="@_sisterSynergies"
-                            Game="@Game"
-                            OnExpansionAporteUpdated="HandleExpansionAporteUpdated" />
+                        @if (Game.IsExpansion)
+                        {
+                            <ExpansionAporteCard
+                                ExpansionId="@Game.Id"
+                                Necessity="@Game.ExpansionNecessity"
+                                ImpactTags="@Game.ImpactTags"
+                                WhatItBringsSummary="@Game.WhatItBringsSummary"
+                                ExtraPlayerCount="@Game.ExtraPlayerCount"
+                                ExtraDurationMinutes="@Game.ExtraDurationMinutes"
+                                OnAporteGenerated="HandleExpansionAporteUpdated" />
+
+                            @if (_sisterExpansions.Count > 0)
+                            {
+                                <div class="pt-2">
+                                    <ExpansionSisterList
+                                        CurrentExpansionId="@Game.Id"
+                                        BaseGameTitle="@(_parentGame?.SpanishTitle ?? "Juego Base")"
+                                        Sisters="@_sisterExpansions"
+                                        Synergies="@_sisterSynergies" />
+                                </div>
+                            }
+                        }
+                        else if (_expansions.Count > 0)
+                        {
+                            <ExpansionEcosystemSection BaseGameId="@Game.Id" Expansions="@_expansions" />
+                        }
+                        else
+                        {
+                            <div class="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center">
+                                <p class="text-sm text-[var(--muted)] italic py-2">
+                                    No hay expansiones oficiales registradas para este juego todavía.
+                                </p>
+                            </div>
+                        }
                     </section>
                 }
                 else if (_activeTab == "videos")

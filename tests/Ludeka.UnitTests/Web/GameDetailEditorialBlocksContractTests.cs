@@ -243,5 +243,22 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("Modo solitario", source, StringComparison.Ordinal);
         Assert.Contains("Dependencia idioma", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_ShouldCorrectlyBindExpansionComponentsWithoutExtraneousParameters()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // Bloque 04: Expansiones debe vincular ExpansionEcosystemSection con BaseGameId y Expansions
+        Assert.Contains("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" />", source, StringComparison.Ordinal);
+
+        // No debe pasar parámetros inexistentes a ExpansionEcosystemSection (causante de circuit crash en Blazor)
+        var withoutValidEco = source.Replace("<ExpansionEcosystemSection BaseGameId=\"@Game.Id\" Expansions=\"@_expansions\" />", string.Empty);
+        Assert.DoesNotContain("<ExpansionEcosystemSection", withoutValidEco, StringComparison.Ordinal);
+
+        // Debe soportar expansiones hijas mediante ExpansionAporteCard y ExpansionSisterList
+        Assert.Contains("<ExpansionAporteCard", source, StringComparison.Ordinal);
+        Assert.Contains("<ExpansionSisterList", source, StringComparison.Ordinal);
+    }
 }
 
