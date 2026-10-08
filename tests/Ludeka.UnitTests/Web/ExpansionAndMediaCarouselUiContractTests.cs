@@ -46,6 +46,20 @@ public class ExpansionAndMediaCarouselUiContractTests
     }
 
     [Fact]
+    public void ExpansionEcosystemSection_ShouldDeclareRatingBadgeAndSortedCollection()
+    {
+        var source = ReadSource(ExpansionSectionPath);
+
+        // Badge de calificación con estrella Lucide
+        Assert.Contains("GetEffectiveRating", source, StringComparison.Ordinal);
+        Assert.Contains("<Icon Name=\"star\"", source, StringComparison.Ordinal);
+
+        // Iteración sobre colección ordenada
+        Assert.Contains("foreach (var exp in SortedExpansions)", source, StringComparison.Ordinal);
+        Assert.Contains("SortedExpansions", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExpansionEcosystemSection_ShouldNotContainMixerOrRecipes()
     {
         var source = ReadSource(ExpansionSectionPath);

@@ -141,6 +141,60 @@ public class ExpansionServiceTests
     }
 
     [Fact]
+    public async Task GetExpansionsForBaseGameAsync_OrdersByRatingDescending()
+    {
+        var baseGame = CreateBaseGame();
+        var expRepo = new MockExpansionRepository();
+        var gameRepo = new MockGameRepository();
+
+        var expBaja = new Game(
+            bggId: 201, originalTitle: "Exp Baja", spanishTitle: "Expansión Baja",
+            designer: "Autor", publisher: "Ed", yearPublished: 2020,
+            coverImageUrl: null, thumbnailUrl: null, description: "Desc",
+            bggRating: 6.5, bggRank: 50, ludistRating: 6.5,
+            confrontation: ConfrontationType.Competitive, style: GameStyle.Eurogame,
+            isOfficialSolo: true, age: new AgeRating(10, 10), language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable, duration: new GameDuration(40, 70, 25),
+            type: GameType.Expansion, baseGameId: baseGame.Id
+        );
+
+        var expAlta = new Game(
+            bggId: 202, originalTitle: "Exp Alta", spanishTitle: "Expansión Alta",
+            designer: "Autor", publisher: "Ed", yearPublished: 2022,
+            coverImageUrl: null, thumbnailUrl: null, description: "Desc",
+            bggRating: 8.8, bggRank: 10, ludistRating: 9.0,
+            confrontation: ConfrontationType.Competitive, style: GameStyle.Eurogame,
+            isOfficialSolo: true, age: new AgeRating(10, 10), language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable, duration: new GameDuration(40, 70, 25),
+            type: GameType.Expansion, baseGameId: baseGame.Id
+        );
+
+        var expMedia = new Game(
+            bggId: 203, originalTitle: "Exp Media", spanishTitle: "Expansión Media",
+            designer: "Autor", publisher: "Ed", yearPublished: 2021,
+            coverImageUrl: null, thumbnailUrl: null, description: "Desc",
+            bggRating: 7.8, bggRank: 30, ludistRating: 7.9,
+            confrontation: ConfrontationType.Competitive, style: GameStyle.Eurogame,
+            isOfficialSolo: true, age: new AgeRating(10, 10), language: LanguageDependence.None,
+            footprint: TableFootprint.StandardTable, duration: new GameDuration(40, 70, 25),
+            type: GameType.Expansion, baseGameId: baseGame.Id
+        );
+
+        expRepo.Expansions.AddRange([expBaja, expAlta, expMedia]);
+
+        var service = new ExpansionService(expRepo, gameRepo);
+        var result = await service.GetExpansionsForBaseGameAsync(baseGame.Id);
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal("Expansión Alta", result[0].SpanishTitle);
+        Assert.Equal(9.0, result[0].LudistRating);
+        Assert.Equal("Expansión Media", result[1].SpanishTitle);
+        Assert.Equal(7.9, result[1].LudistRating);
+        Assert.Equal("Expansión Baja", result[2].SpanishTitle);
+        Assert.Equal(6.5, result[2].LudistRating);
+    }
+
+    [Fact]
     public async Task EvaluateMixerCombinationAsync_DetectsConflict()
     {
         var baseGame = CreateBaseGame();

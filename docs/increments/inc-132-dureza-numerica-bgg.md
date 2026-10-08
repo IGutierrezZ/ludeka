@@ -1,6 +1,6 @@
-# Incremento 130: Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa
+# Incremento 132: Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa
 
-- **ID del Incremento:** `INC-130`
+- **ID del Incremento:** `INC-132`
 - **Slug:** `dureza-numerica-bgg`
 - **Rama:** `inc/dureza-numerica-bgg`
 - **Fecha:** 2026-10-08
