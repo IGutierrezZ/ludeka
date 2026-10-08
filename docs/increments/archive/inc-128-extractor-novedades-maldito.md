@@ -4,8 +4,9 @@
 - **Slug:** `maldito-releases-extractor`
 - **Rama:** `inc/maldito-releases-extractor`
 - **Fecha:** 2026-10-08
-- **Estado:** ⏳ En revisión (PR pendiente)
+- **Estado:** ✅ Archivado (2.652 pruebas unitarias en verde al 100% · PR #232 mergeado y desplegado en Google Cloud Run)
 - **Épica / Contexto:** Sincronización de Novedades Editoriales Oficiales (Devir y Maldito Games).
+- **Módulo del Sistema:** [`sistema/56-extractor-novedades-reimpresiones-maldito-games.md`](../specs/sistema/56-extractor-novedades-reimpresiones-maldito-games.md)
 
 ---
 
