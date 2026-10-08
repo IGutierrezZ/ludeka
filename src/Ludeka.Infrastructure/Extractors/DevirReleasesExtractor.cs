@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +34,43 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         {
             _logger.LogInformation("Descargando calendario de próximos lanzamientos de Devir desde '{Url}'...", DefaultDevirUrl);
             var html = await _httpClient.GetStringAsync(DefaultDevirUrl, ct).ConfigureAwait(false);
-            return ParseHtml(html);
+            var items = ParseHtml(html);
+
+            // Enriquecer con galería de producto (mesa y contraportada) para aquellos ítems con SourceUrl de ficha de producto
+            var enrichedItems = new List<EditorialReleaseItem>(items.Count);
+            foreach (var item in items)
+            {
+                if (!string.IsNullOrWhiteSpace(item.SourceUrl) &&
+                    item.SourceUrl.StartsWith("https://devir.es/", StringComparison.OrdinalIgnoreCase) &&
+                    !item.SourceUrl.EndsWith("/proximos-lanzamientos", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var gallery = await ExtractProductGalleryAsync(item.SourceUrl, ct).ConfigureAwait(false);
+                        if (gallery != null)
+                        {
+                            var enriched = item with
+                            {
+                                CoverImageUrl = gallery.CoverImageUrl ?? item.CoverImageUrl,
+                                TableImageUrl = gallery.TableImageUrl ?? item.TableImageUrl,
+                                BackCoverImageUrl = gallery.BackCoverImageUrl ?? item.BackCoverImageUrl,
+                                Ean = !string.IsNullOrWhiteSpace(gallery.Ean) ? gallery.Ean : item.Ean,
+                                EstimatedPvp = item.EstimatedPvp ?? gallery.Pvp
+                            };
+                            enrichedItems.Add(enriched);
+                            continue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "No se pudo extraer la galería para '{Title}' desde '{Url}'.", item.Title, item.SourceUrl);
+                    }
+                }
+
+                enrichedItems.Add(item);
+            }
+
+            return enrichedItems;
         }
         catch (Exception ex)
         {
@@ -42,12 +80,18 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
     }
 
     public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html)
+        => ParseHtml(html, null);
+
+    public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html, DateOnly? referenceDate = null)
     {
         if (string.IsNullOrWhiteSpace(html))
             return Array.Empty<EditorialReleaseItem>();
 
         var results = new List<EditorialReleaseItem>();
         var seenTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var now = DateTime.UtcNow;
+        var currentMonthStart = referenceDate ?? new DateOnly(now.Year, now.Month, 1);
 
         // 1. Dividir por secciones si existen cabeceras principales (ej. "Octubre 2026 - Juegos de mesa", "Noviembre 2026 - Juegos de rol", etc.)
         var sectionHeaders = SectionHeaderRegex().Matches(html);
@@ -62,6 +106,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                 // Descartar explícitamente secciones que sean de Juegos de Rol, no sean Juegos de Mesa o estén en desarrollo
                 if (headerText.Contains("juegos de rol", StringComparison.OrdinalIgnoreCase) ||
                     headerText.Contains("rol", StringComparison.OrdinalIgnoreCase) ||
+                    headerText.Contains("rpg", StringComparison.OrdinalIgnoreCase) ||
                     headerText.Contains("desarrollo", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -73,16 +118,22 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                     continue;
                 }
 
+                // Descartar meses anteriores al mes de referencia actual
+                if (sectionDate.Value < currentMonthStart)
+                {
+                    continue;
+                }
+
                 int startIdx = match.Index;
                 int endIdx = (i + 1 < sectionHeaders.Count) ? sectionHeaders[i + 1].Index : html.Length;
                 string sectionHtml = html.Substring(startIdx, endIdx - startIdx);
 
-                ParseSectionItems(sectionHtml, headerText, sectionDate, isMonthOnly, results, seenTitles);
+                ParseSectionItems(sectionHtml, headerText, sectionDate, isMonthOnly, currentMonthStart, results, seenTitles);
             }
         }
         else
         {
-            ParseSectionItems(html, null, null, false, results, seenTitles);
+            ParseSectionItems(html, null, null, false, currentMonthStart, results, seenTitles);
         }
 
         _logger.LogInformation("Lanzamientos válidos de juegos de mesa extraídos de Devir: {Count}", results.Count);
@@ -94,14 +145,22 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         string? headerText,
         DateOnly? sectionDate,
         bool sectionIsMonthOnly,
+        DateOnly currentMonthStart,
         List<EditorialReleaseItem> results,
         HashSet<string> seenTitles)
     {
-        // 1. Formato A: Productos detallados con Precio (ej. "Precio: 25€")
-        ParseDetailedPriceItems(sectionHtml, headerText, sectionDate, sectionIsMonthOnly, results, seenTitles);
+        int countBefore = results.Count;
 
-        // 2. Formato B: Tarjetas simples con imagen, fecha y título
-        ParseTileCardItems(sectionHtml, headerText, sectionDate, sectionIsMonthOnly, results, seenTitles);
+        // 1. Formato A: Productos detallados con Precio (ej. "Precio: 25€")
+        ParseDetailedPriceItems(sectionHtml, headerText, sectionDate, sectionIsMonthOnly, currentMonthStart, results, seenTitles);
+
+        int detailedCount = results.Count - countBefore;
+
+        // 2. Formato B: Tarjetas simples SOLO si la sección no contenía productos detallados con precio
+        if (detailedCount == 0)
+        {
+            ParseTileCardItems(sectionHtml, headerText, sectionDate, sectionIsMonthOnly, currentMonthStart, results, seenTitles);
+        }
     }
 
     private void ParseDetailedPriceItems(
@@ -109,6 +168,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         string? headerText,
         DateOnly? sectionDate,
         bool sectionIsMonthOnly,
+        DateOnly currentMonthStart,
         List<EditorialReleaseItem> results,
         HashSet<string> seenTitles)
     {
@@ -121,15 +181,18 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             int searchStart = Math.Max(0, priceIdx - 1500);
             string precedingHtml = sectionHtml.Substring(searchStart, priceIdx - searchStart);
 
-            // Descartar si dentro del bloque se menciona juego de rol
-            if (precedingHtml.Contains("Juego de rol", StringComparison.OrdinalIgnoreCase))
+            // Descartar si dentro del bloque se menciona juego de rol o libro básico
+            if (precedingHtml.Contains("Juego de rol", StringComparison.OrdinalIgnoreCase) ||
+                precedingHtml.Contains("Juegos de rol", StringComparison.OrdinalIgnoreCase) ||
+                precedingHtml.Contains("Libro básico", StringComparison.OrdinalIgnoreCase) ||
+                precedingHtml.Contains("Pantalla del director", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
             // Extraer título del bloque precedente
             string? title = ExtractTitleFromPreceding(precedingHtml);
-            if (string.IsNullOrWhiteSpace(title) || int.TryParse(title, out _) || !seenTitles.Add(title))
+            if (string.IsNullOrWhiteSpace(title) || int.TryParse(title, out _) || !IsValidGameTitle(title) || !seenTitles.Add(title))
             {
                 continue;
             }
@@ -254,6 +317,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         string? headerText,
         DateOnly? sectionDate,
         bool sectionIsMonthOnly,
+        DateOnly currentMonthStart,
         List<EditorialReleaseItem> results,
         HashSet<string> seenTitles)
     {
@@ -267,11 +331,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             titleText = Regex.Replace(titleText, "<[^>]+>", "").Trim();
             if (string.IsNullOrWhiteSpace(titleText) || 
                 int.TryParse(titleText, out _) ||
-                titleText.Equals("Juego de mesa", StringComparison.OrdinalIgnoreCase) ||
-                titleText.Equals("Juegos de mesa", StringComparison.OrdinalIgnoreCase) ||
-                titleText.Equals("NOVEDAD", StringComparison.OrdinalIgnoreCase) ||
-                titleText.Equals("REIMPRESIÓN", StringComparison.OrdinalIgnoreCase) ||
-                titleText.Equals("REIMPRESION", StringComparison.OrdinalIgnoreCase))
+                !IsValidGameTitle(titleText))
             {
                 continue;
             }
@@ -290,7 +350,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             }
 
             var (parsedDate, isMonthOnly) = ParseCardDate(dateText, sectionDate, sectionIsMonthOnly);
-            if (!parsedDate.HasValue)
+            if (!parsedDate.HasValue || parsedDate.Value < currentMonthStart)
             {
                 continue;
             }
@@ -350,12 +410,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         for (int i = bigSpanMatches.Count - 1; i >= 0; i--)
         {
             var raw = Regex.Replace(bigSpanMatches[i].Groups["title"].Value, "<[^>]+>", "").Trim();
-            if (!string.IsNullOrWhiteSpace(raw) && 
-                !raw.Equals("Juego de mesa", StringComparison.OrdinalIgnoreCase) &&
-                !raw.Equals("Juegos de mesa", StringComparison.OrdinalIgnoreCase) &&
-                !raw.Equals("NOVEDAD", StringComparison.OrdinalIgnoreCase) &&
-                !raw.Equals("REIMPRESIÓN", StringComparison.OrdinalIgnoreCase) &&
-                !raw.Equals("REIMPRESION", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(raw) && IsValidGameTitle(raw))
             {
                 return raw;
             }
@@ -366,19 +421,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         for (int i = strongMatches.Count - 1; i >= 0; i--)
         {
             var candidate = Regex.Replace(strongMatches[i].Groups["text"].Value, "<[^>]+>", "").Trim();
-            if (string.IsNullOrWhiteSpace(candidate) ||
-                candidate.Equals("Juego de mesa", StringComparison.OrdinalIgnoreCase) ||
-                candidate.Equals("Juegos de mesa", StringComparison.OrdinalIgnoreCase) ||
-                candidate.Equals("NOVEDAD", StringComparison.OrdinalIgnoreCase) ||
-                candidate.Equals("REIMPRESIÓN", StringComparison.OrdinalIgnoreCase) ||
-                candidate.Equals("REIMPRESION", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Autor:", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Ilustrador:", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Tipo:", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Edad:", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Nº Jugadores:", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Tiempo", StringComparison.OrdinalIgnoreCase) ||
-                candidate.StartsWith("Precio", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(candidate) || !IsValidGameTitle(candidate))
             {
                 continue;
             }
@@ -387,6 +430,232 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         }
 
         return null;
+    }
+
+    private static bool IsValidGameTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return false;
+        var t = title.Trim();
+        if (t.Length < 2) return false;
+
+        if (t.Equals("Juego de mesa", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("Juegos de mesa", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("NOVEDAD", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("REIMPRESIÓN", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("REIMPRESION", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("Juego de rol", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("Juegos de rol", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("Libro básico", StringComparison.OrdinalIgnoreCase) ||
+            t.Equals("Libro basico", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (t.StartsWith("Autor", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Ilustrador", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Editorial", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Precio", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Libro", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Pantalla", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Tipo:", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Edad:", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Nº Jugadores", StringComparison.OrdinalIgnoreCase) ||
+            t.StartsWith("Tiempo", StringComparison.OrdinalIgnoreCase) ||
+            t.EndsWith(":"))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task<DevirProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(productUrl) || !productUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            var html = await _httpClient.GetStringAsync(productUrl, timeoutCts.Token).ConfigureAwait(false);
+            return ParseProductGalleryHtml(html);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "No se pudo extraer la galería de producto de Devir desde '{Url}'.", productUrl);
+            return null;
+        }
+    }
+
+    public DevirProductGalleryDto? ParseProductGalleryHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+            return null;
+
+        string? coverUrl = null;
+        string? tableUrl = null;
+        string? backCoverUrl = null;
+        string? frontFlatUrl = null;
+        string? ean = null;
+        decimal? pvp = null;
+
+        // 1. Extraer JSON de galería Magento
+        var galleryMatch = GalleryScriptRegex().Match(html);
+        if (galleryMatch.Success)
+        {
+            try
+            {
+                var jsonText = galleryMatch.Groups["json"].Value;
+                using var doc = JsonDocument.Parse(jsonText);
+                if (doc.RootElement.TryGetProperty("[data-gallery-role=gallery-placeholder]", out var ph) &&
+                    ph.TryGetProperty("mage/gallery/gallery", out var mg) &&
+                    mg.TryGetProperty("data", out var dataArr) &&
+                    dataArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var imgObj in dataArr.EnumerateArray())
+                    {
+                        var full = imgObj.TryGetProperty("full", out var f) ? f.GetString() : null;
+                        var img = imgObj.TryGetProperty("img", out var im) ? im.GetString() : null;
+                        var targetUrl = !string.IsNullOrWhiteSpace(full) ? full : img;
+                        if (string.IsNullOrWhiteSpace(targetUrl)) continue;
+
+                        if (targetUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                            targetUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                            targetUrl.Contains("caja", StringComparison.OrdinalIgnoreCase))
+                        {
+                            coverUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("components", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("mesa", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("contenido", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tableUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("backflat", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("trasera", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("contra", StringComparison.OrdinalIgnoreCase))
+                        {
+                            backCoverUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("frontflat", StringComparison.OrdinalIgnoreCase))
+                        {
+                            frontFlatUrl = targetUrl;
+                        }
+
+                        if (coverUrl == null && imgObj.TryGetProperty("isMain", out var isMain) && isMain.GetBoolean())
+                        {
+                            coverUrl = targetUrl;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error al parsear el JSON de galería de producto Devir.");
+            }
+        }
+
+        // 2. Extraer EAN (del HTML o SKU)
+        var eanM = EanRegex().Match(html);
+        if (eanM.Success)
+        {
+            ean = eanM.Groups[1].Value;
+        }
+
+        // 3. Extraer PVP
+        var pvpM = ProductPriceRegex().Match(html);
+        if (pvpM.Success)
+        {
+            var priceStr = pvpM.Groups["price"].Value.Replace(',', '.');
+            if (decimal.TryParse(priceStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+            {
+                pvp = p;
+            }
+        }
+
+        if (coverUrl == null && tableUrl == null && backCoverUrl == null && frontFlatUrl == null && ean == null && !pvp.HasValue)
+        {
+            return null;
+        }
+
+        return new DevirProductGalleryDto(coverUrl, tableUrl, backCoverUrl, frontFlatUrl, ean, pvp);
+    }
+
+    public async Task<DevirCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)
+    {
+        var targetUrl = page <= 1 
+            ? "https://devir.es/catalogo/juegos-de-mesa" 
+            : $"https://devir.es/catalogo/juegos-de-mesa?p={page}";
+
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+            var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("HTTP {StatusCode} al obtener la página {Page} del catálogo de Devir.", response.StatusCode, page);
+                return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), false);
+            }
+
+            var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+            return ParseCatalogPageHtml(html);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Error al extraer la página {Page} del catálogo general de Devir.", page);
+            return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), false);
+        }
+    }
+
+    public DevirCatalogPageResultDto ParseCatalogPageHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return new DevirCatalogPageResultDto(Array.Empty<DevirCatalogItemDto>(), false);
+        }
+
+        var items = new List<DevirCatalogItemDto>();
+        var matches = CatalogCardRegex().Matches(html);
+
+        foreach (Match match in matches)
+        {
+            var productUrl = match.Groups["url"].Value.Trim();
+            if (string.IsNullOrWhiteSpace(productUrl)) continue;
+
+            var rawAlt = match.Groups["alt"].Value;
+            var title = !string.IsNullOrWhiteSpace(rawAlt)
+                ? WebUtility.HtmlDecode(rawAlt).Trim()
+                : null;
+
+            var imageUrl = match.Groups["img"].Value.Trim();
+            string? ean = null;
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                var eanMatch = EanRegex().Match(imageUrl);
+                if (eanMatch.Success)
+                {
+                    ean = eanMatch.Groups[1].Value;
+                }
+            }
+
+            items.Add(new DevirCatalogItemDto(
+                ProductUrl: productUrl,
+                Title: title,
+                Ean: ean,
+                CoverImageUrl: !string.IsNullOrWhiteSpace(imageUrl) ? imageUrl : null));
+        }
+
+        bool hasNextPage = html.Contains("pages-item-next", StringComparison.OrdinalIgnoreCase) ||
+                           html.Contains("class=\"action  next\"", StringComparison.OrdinalIgnoreCase);
+
+        return new DevirCatalogPageResultDto(items, hasNextPage);
     }
 
     private static (DateOnly? Date, bool IsMonthOnly) ParseCardDate(string dateText, DateOnly? fallbackDate, bool fallbackIsMonthOnly)
@@ -493,4 +762,13 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
 
     [GeneratedRegex(@"(?<month>enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+(?<year>20\d\d)", RegexOptions.IgnoreCase)]
     private static partial Regex MonthYearRegex();
+
+    [GeneratedRegex(@"<script[^>]*type=""text/x-magento-init""[^>]*>\s*(?<json>\{.*?data-gallery-role=gallery-placeholder.*?)\s*</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex GalleryScriptRegex();
+
+    [GeneratedRegex(@"(?:data-price-amount=""(?<price>\d+(?:\.\d+)?)"")|(?:<span[^>]*class=""price""[^>]*>(?<price>\d+(?:[.,]\d+)?)(?:\s|&nbsp;)*€)", RegexOptions.IgnoreCase)]
+    private static partial Regex ProductPriceRegex();
+
+    [GeneratedRegex(@"<a[^>]+href=""(?<url>https://devir\.es/[^""]+)""[^>]*class=""product photo product-item-photo""[^>]*>[\s\S]*?<img[^>]*src=""(?<img>[^""]+)""[^>]*alt=""(?<alt>[^""]*)""", RegexOptions.IgnoreCase)]
+    private static partial Regex CatalogCardRegex();
 }
