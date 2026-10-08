@@ -586,6 +586,7 @@ else
                                 </h2>
                                 <button type="button"
                                         @onclick="() => _isTechOpen = !_isTechOpen"
+                                        aria-expanded="@_isTechOpen"
                                         class="text-xs font-extrabold text-[var(--accent)] border-b-2 border-[var(--accent)] hover:opacity-80 transition-opacity cursor-pointer">
                                     @(_isTechOpen ? "Ver menos" : "Ver todos los detalles")
                                 </button>
@@ -608,22 +609,25 @@ else
                                     <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Año publicación</span>
                                     <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@Game.YearPublished</b>
                                 </div>
-                                <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)]">
-                                    <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Confrontación</span>
-                                    <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetConfrontationText(Game.Confrontation)</b>
-                                </div>
-                                <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)]">
-                                    <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Huella en mesa</span>
-                                    <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetFootprintText(Game.Footprint)</b>
-                                </div>
-                                <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)]">
-                                    <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Modo solitario</span>
-                                    <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@(Game.IsOfficialSolo ? "Oficial" : "No oficial / Sin solitario")</b>
-                                </div>
-                                <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)]">
-                                    <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Dependencia idioma</span>
-                                    <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetLanguageText(Game.Language)</b>
-                                </div>
+                                @if (_isTechOpen)
+                                {
+                                    <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Confrontación</span>
+                                        <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetConfrontationText(Game.Confrontation)</b>
+                                    </div>
+                                    <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Huella en mesa</span>
+                                        <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetFootprintText(Game.Footprint)</b>
+                                    </div>
+                                    <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Modo solitario</span>
+                                        <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@(Game.IsOfficialSolo ? "Oficial" : "No oficial / Sin solitario")</b>
+                                    </div>
+                                    <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Dependencia idioma</span>
+                                        <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetLanguageText(Game.Language)</b>
+                                    </div>
+                                }
                             </div>
                         </div>
 
