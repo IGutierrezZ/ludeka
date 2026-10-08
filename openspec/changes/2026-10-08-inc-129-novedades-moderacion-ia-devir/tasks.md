@@ -19,10 +19,10 @@
 - [x] 3.4 Crear pruebas unitarias en `GeminiReleaseMatcherServiceTests.cs`.
 
 ## Tarea 4: Orquestación No Bloqueante en `EditorialReleasesSyncService`
-- [ ] 4.1 Modificar `EditorialReleasesSyncService.cs` para que los elementos que no crucen de inmediato no se descarten, sino que se guarden en `PendingModeration`.
-- [ ] 4.2 Integrar `IReleaseAiMatcherService` para adjuntar la propuesta de BGG y razonamiento de IA.
-- [ ] 4.3 Eliminar el bucle masivo bloqueante de llamadas a BGG en la solicitud sincrónica.
-- [ ] 4.4 Actualizar `EditorialReleasesSyncServiceTests.cs` validando el nuevo flujo sin descartes de Maldito Games.
+- [x] 4.1 Modificar `EditorialReleasesSyncService.cs` para que los elementos que no crucen de inmediato no se descarten, sino que se guarden en `PendingModeration`.
+- [x] 4.2 Integrar `IReleaseAiMatcherService` para adjuntar la propuesta de BGG y razonamiento de IA.
+- [x] 4.3 Eliminar el bucle masivo bloqueante de llamadas a BGG en la solicitud sincrónica.
+- [x] 4.4 Actualizar `EditorialReleasesSyncServiceTests.cs` validando el nuevo flujo sin descartes de Maldito Games.
 
 ## Tarea 5: Bandeja de Moderación y Visualización en `/novedades`
 - [ ] 5.1 Extender `WeeklyReleaseDto.cs` y `IWeeklyReleaseService.cs` con métodos de aprobación y rechazo.
