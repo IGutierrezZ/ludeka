@@ -25,6 +25,7 @@ public static class JobNames
     public const string YouTubeAutoIngest = "youtube-auto-ingest";
     public const string BggImagesTop3000 = "bgg-images-top3000";
     public const string EditorialReleasesSync = "editorial-releases-sync";
+    public const string DevirImagesBackfill = "devir-images-backfill";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -45,6 +46,7 @@ public static class JobNames
         FeedSync,
         YouTubeAutoIngest,
         BggImagesTop3000,
-        EditorialReleasesSync
+        EditorialReleasesSync,
+        DevirImagesBackfill
     ];
 }

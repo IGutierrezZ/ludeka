@@ -38,16 +38,23 @@ Se añaden a la entidad `WeeklyRelease` los campos necesarios para la moderació
 
 ## 3. Extractor Oficial de Devir (`DevirReleasesExtractor`)
 
-### 3.1 Exclusión de Secciones «En Desarrollo» y Validación de Fecha
-- **Descarte de secciones preliminares:** Se excluyen los bloques clasificados bajo `EN DESARROLLO JUEGOS DE MESA` o `EN DESARROLLO JUEGOS DE ROL`.
-- **Exigencia de mes de calendario:** Para evitar anuncios etéreos, solo se aceptan títulos adscritos a una sección con mes definido en castellano (ej. «ABRIL», «MAYO») o fecha concreta. Si el encabezado carece de mes o es indefinido, el lanzamiento se ignora.
+### 3.1 Exclusión de Secciones «En Desarrollo», Juegos de Rol y Meses Pasados
+- **Descarte de secciones preliminares y de rol:** Se excluyen los bloques clasificados bajo `EN DESARROLLO`, `JUEGOS DE ROL`, `ROL`, `RPG`, suplementos o manuales (`Libro básico`, `Pantalla`).
+- **Filtro de meses pasados:** Se descartan secciones cuyo mes sea anterior al mes en curso (`< DateOnly(currentYear, currentMonth, 1)` en UTC), garantizando que solo se procesen lanzamientos vigentes o futuros.
+- **Prevención de duplicados espurios:** Si una sección incluye productos detallados con precio, se omite el análisis secundario de tarjetas de cuadrícula para evitar capturar fragmentos de texto como títulos (`Autor:`, `Ilustrador:`).
+- **Lista negra estricta de tokens de título:** Validación que descarta cadenas que no representan títulos de juegos de mesa.
 
-### 3.2 Captura de Enlaces de Producto
-- Si la tarjeta del juego en Devir incluye un enlace a su ficha detallada (`https://devir.es/<slug>`), se captura como `productUrl`, evitando enlaces genéricos a la página de próximos lanzamientos.
+### 3.2 Captura de Enlaces de Producto y Galería Completa
+- Si la tarjeta del juego en Devir incluye un enlace a su ficha detallada (`https://devir.es/<slug>`), se captura como `SourceUrl`.
+- **Galería oficial enriquecida:** El extractor descarga e inspecciona la ficha de producto analizando el bloque JSON `mage/gallery/gallery` del script Magento 2:
+  - Carátula 3D (`face3d`): carátula principal.
+  - Fotografía en mesa y componentes (`components1`): `TableImageUrl`.
+  - Contraportada oficial (`backflat`): `BackCoverImageUrl`.
+  - Portada plana 2D (`frontflat`): recurso secundario.
+  - EAN-13 y PVP oficial del producto.
 
-### 3.3 Priorización de Caja 3D (`face3d`)
-- El extractor detecta imágenes en perspectiva 3D (`face3d` o con indicadores 3D) en una ventana de proximidad acotada ($\le 400$ caracteres de distancia del producto).
-- La URL de la caja 3D se establece como `CoverImageUrl` principal, manteniendo el resto de capturas fotográficas (en mesa, 2D, contraportada) como imágenes secundarias.
+### 3.3 Extracción del Catálogo General de Devir
+- Métodos `ExtractCatalogPageAsync(page)` y `ParseCatalogPageHtml(html)` para paginar el catálogo (`https://devir.es/catalogo/juegos-de-mesa?p={page}`), extrayendo productos con enlace, título, carátula e indicador de siguiente página.
 
 ---
 
@@ -83,9 +90,16 @@ public interface IReleaseAiMatcherService
   1. Coincidencia directa por EAN-13.
   2. Coincidencia directa por slug normalizado (`NormalizeTitle`).
   3. Coincidencia por título base limpio (`ExtractBaseTitle`).
-- **Novedades Enlazadas:** Si existe coincidencia local, la novedad se guarda como `Status = Published`. Además, si la novedad incluye una caja 3D (`face3d`), se actualiza la carátula principal del juego existente en catálogo (`matchedGame.UpdateImages(...)`).
-- **Novedades Sin Enlace Inmediato:** Se consultan en paralelo o en lote mediante `IReleaseAiMatcherService` y se persisten inmediatamente como `Status = PendingModeration` con su propuesta IA, dejándolas listas en la bandeja de moderación sin bloquear el hilo de sincronización.
-- **Fuentes Oficiales Estrictas:** La sincronización de editoriales se circunscribe exclusivamente a los extractores de Devir y Maldito Games.
+- **Novedades Enlazadas:** Si existe coincidencia local, la novedad se guarda como `Status = Published`. Además, si la novedad incluye carátula 3D (`face3d`), fotografía en mesa o contraportada oficial, se actualizan los medios del juego en catálogo (`matchedGame.UpdateImages(...)` y `matchedGame.UpdateMediaUrls(...)`).
+- **Novedades Sin Enlace Inmediato:** Se consultan en paralelo o en lote mediante `IReleaseAiMatcherService` con un timeout defensivo de 4 segundos por llamada (con fallback inmediato al emparejador heurístico) para prevenir bloqueos de circuito o desconexiones de WebSocket en Cloud Run, y se persisten inmediatamente como `Status = PendingModeration` con su propuesta IA en la bandeja de moderación.
+- **Fuentes Oficiales Estrictas e Independientes:** La sincronización de editoriales se circunscribe a Devir y Maldito Games, ejecutándose de forma aislada para que eventuales errores en una no impidan la ejecución de las demás.
+
+### 5.2 Barrido Autónomo de Galería de Catálogo (`DevirImagesBackfillJobRunner`)
+- Job autónomo registrado en `Ludeka.Jobs` (`devir-images-backfill`).
+- Recorre sistemáticamente las páginas de `https://devir.es/catalogo/juegos-de-mesa?p={page}` bajo concesión de ventana.
+- Cruza en memoria contra el catálogo completo de Ludeka por EAN y título normalizado.
+- Si el juego coincide y carece de alguna de sus tres vistas principales (caja 3D, mesa o contraportada), descarga su ficha oficial, extrae la galería de alta resolución y actualiza la entidad `Game`.
+- Si el juego ya cuenta con todas sus imágenes completas, omite la consulta de red a la ficha individual.
 
 ---
 
@@ -108,7 +122,7 @@ public interface IReleaseAiMatcherService
 ## 7. Jerarquía de Imágenes y Fotos Personales en Ficha (`GameDetail.razor`)
 
 - **Prioridad Visual:** Las imágenes con caja 3D (`face3d`) se priorizan como carátula principal del juego tanto en catálogo como en el héroe de la ficha de detalle.
-- **Clasificación en Galería:** En el carrusel polaroid del héroe, las imágenes se identifican contextualmente como «Caja 3D», «Portada» o «En mesa».
+- **Clasificación en Galería:** En el carrusel polaroid del héroe, las imágenes se identifican contextualmente como «Caja 3D», «Portada», «En mesa» o «Contraportada».
 - **Fotos Personales de Análisis:** Se integran automáticamente en la galería las fotografías personales asociadas al veredicto fundador (`_foundingVerdict.Photos`), permitiendo acceder a imágenes reales de partidas y análisis propios sin alterar las imágenes de catálogo.
 
 ---
@@ -117,10 +131,12 @@ public interface IReleaseAiMatcherService
 
 La arquitectura ha sido verificada mediante pruebas automáticas exhaustivas en `tests/Ludeka.UnitTests`:
 - `WeeklyReleaseDomainTests.cs`: 5 pruebas que verifican las transiciones de estado, invariantes y asignación de propuestas IA.
-- `DevirReleasesExtractorTests.cs`: Pruebas de exclusión de secciones en desarrollo, meses no definidos, captura de enlaces de producto y detección de cajas 3D.
+- `DevirReleasesExtractorTests.cs`: 8 pruebas de exclusión de secciones en desarrollo, rol, meses pasados, captura de enlaces de producto, detección de cajas 3D, galería completa y paginación de catálogo.
 - `GeminiReleaseMatcherServiceTests.cs`: 9 pruebas que validan el asistente IA, parsing de respuestas estructuradas y fallback determinista ante errores.
-- `EditorialReleasesSyncServiceTests.cs`: 19 pruebas de sincronización instantánea, detección de cajas 3D, actualización de carátulas en catálogo y envío a moderación.
+- `EditorialReleasesSyncServiceTests.cs`: 21 pruebas de sincronización instantánea, detección de cajas 3D, enriquecimiento de mesa/contraportada, aislamiento por editorial y envío a moderación.
 - `WeeklyReleaseServiceTests.cs`: 14 pruebas de filtrado público, consulta de pendientes, aprobación con/sin BGG ID y rechazo.
+- `DevirImagesBackfillJobRunnerTests.cs`: 3 pruebas del trabajo autónomo de barrido de imágenes, omisión de fichas ya completas y recorrido multipágina.
+- `LudekaJobsCompositionTests.cs`: 1 prueba de composición del contenedor de trabajos verificando la exposición de los 17 runners oficiales.
 - `NewsPageContractTests.cs`: 6 pruebas de contrato UI para la visibilidad de la pestaña de moderación según roles y botones de acción.
 
-**Total de la suite tras la incorporación del módulo:** 2.676 pruebas unitarias verificadas al 100% en verde.
+**Total de la suite tras la incorporación del módulo:** 2.705 pruebas unitarias verificadas al 100% en verde (2.715 totales con integración).

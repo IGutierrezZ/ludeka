@@ -202,4 +202,210 @@ public class DevirReleasesExtractorTests
         Assert.Contains("face3d", item.CoverImageUrl);
         Assert.Equal("https://devir.es/salton-sea", item.SourceUrl);
     }
+
+    [Fact]
+    public void ParseHtml_DiscardsPastMonths_WhenReferenceDateIsProvided()
+    {
+        var html = @"
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Septiembre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>JUEGO PASADO</span></strong></span></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 20€</p>
+            </div>
+        </div>
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Octubre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>JUEGO PRESENTE</span></strong></span></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 30€</p>
+            </div>
+        </div>
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Noviembre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-column"">
+            <div class=""mgz-element-text"">
+                <p><span style=""font-size: 24px;""><strong><span>JUEGO FUTURO</span></strong></span></p>
+                <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 40€</p>
+            </div>
+        </div>
+        ";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var refDate = new System.DateOnly(2026, 10, 1);
+        var results = extractor.ParseHtml(html, refDate);
+
+        // Septiembre 2026 debe ser descartado; Octubre y Noviembre deben mantenerse
+        Assert.Equal(2, results.Count);
+        Assert.DoesNotContain(results, r => r.Title == "JUEGO PASADO");
+        Assert.Contains(results, r => r.Title == "JUEGO PRESENTE");
+        Assert.Contains(results, r => r.Title == "JUEGO FUTURO");
+    }
+
+    [Fact]
+    public void ParseHtml_NeverProducesAuthorOrRoleplayingDuplicatesFromDetailedSections()
+    {
+        var html = @"
+        <p style=""text-align: center;""><span style=""font-size: 38px;""><strong>Octubre 2026 - Juegos de mesa</strong></span></p>
+        <div class=""mgz-element-inner"">
+            <div class=""mgz-element-column"">
+                <div class=""mgz-single-image-wrapper"">
+                    <a href=""https://devir.es/the-hanging-gardens"">
+                        <img src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/wysiwyg/Proximos-lanzamientos/8436625610973-1200-face3d.jpg"" alt=""The Hanging Gardens"" />
+                    </a>
+                </div>
+            </div>
+            <div class=""mgz-element-column"">
+                <div class=""mgz-element-text"">
+                    <p><span style=""font-size: 24px;""><strong><span>THE HANGING GARDENS</span></strong></span></p>
+                    <p><strong>19 de octubre</strong></p>
+                    <p><strong>Autor: </strong>Seiji Kanai</p>
+                    <p><strong>Ilustrador: </strong>Toko</p>
+                    <p><strong>Juego de mesa</strong><br /><strong>Precio:</strong> 25€</p>
+                </div>
+            </div>
+        </div>
+        ";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var refDate = new System.DateOnly(2026, 10, 1);
+        var results = extractor.ParseHtml(html, refDate);
+
+        // Debe haber EXACTAMENTE 1 resultado, correspondiente al juego real
+        Assert.Single(results);
+        var item = results.First();
+        Assert.Equal("THE HANGING GARDENS", item.Title);
+        Assert.Equal(25m, item.EstimatedPvp);
+        Assert.Equal("8436625610973", item.Ean);
+
+        // Jamás debe existir una tarjeta espuria con 'Autor:'
+        Assert.DoesNotContain(results, r => r.Title.StartsWith("Autor", System.StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(results, r => r.Title.StartsWith("Ilustrador", System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ParseProductGalleryHtml_ExtractsFace3dComponentsAndBackCover()
+    {
+        var sampleProductHtml = @"
+        <!DOCTYPE html>
+        <html>
+        <head><title>The Hanging Gardens - Devir Iberia</title></head>
+        <body>
+            <div class=""product attribute sku"">
+                <strong class=""type"">Referencia</strong>
+                <div class=""value"" itemprop=""sku"">8436625610973</div>
+            </div>
+            <div class=""price-box price-final_price"" data-role=""priceBox"" data-product-id=""4521"">
+                <span class=""price"">25,00&nbsp;€</span>
+            </div>
+            <script type=""text/x-magento-init"">
+            {
+                ""[data-gallery-role=gallery-placeholder]"": {
+                    ""mage/gallery/gallery"": {
+                        ""mixins"":[""magnifier/magnify""],
+                        ""data"": [
+                            {
+                                ""thumb"": ""https://devir.es/media/catalog/product/cache/thumb/8436625610973-1200-face3d.jpg"",
+                                ""img"": ""https://devir.es/media/catalog/product/cache/medium/8436625610973-1200-face3d.jpg"",
+                                ""full"": ""https://devir.es/media/catalog/product/8436625610973-1200-face3d.jpg"",
+                                ""isMain"": true,
+                                ""type"": ""image""
+                            },
+                            {
+                                ""thumb"": ""https://devir.es/media/catalog/product/cache/thumb/8436625610973-1200-components1.jpg"",
+                                ""img"": ""https://devir.es/media/catalog/product/cache/medium/8436625610973-1200-components1.jpg"",
+                                ""full"": ""https://devir.es/media/catalog/product/8436625610973-1200-components1.jpg"",
+                                ""isMain"": false,
+                                ""type"": ""image""
+                            },
+                            {
+                                ""thumb"": ""https://devir.es/media/catalog/product/cache/thumb/8436625610973-1200-backflat.jpg"",
+                                ""img"": ""https://devir.es/media/catalog/product/cache/medium/8436625610973-1200-backflat.jpg"",
+                                ""full"": ""https://devir.es/media/catalog/product/8436625610973-1200-backflat.jpg"",
+                                ""isMain"": false,
+                                ""type"": ""image""
+                            },
+                            {
+                                ""thumb"": ""https://devir.es/media/catalog/product/cache/thumb/8436625610973-1200-frontflat.jpg"",
+                                ""img"": ""https://devir.es/media/catalog/product/cache/medium/8436625610973-1200-frontflat.jpg"",
+                                ""full"": ""https://devir.es/media/catalog/product/8436625610973-1200-frontflat.jpg"",
+                                ""isMain"": false,
+                                ""type"": ""image""
+                            }
+                        ]
+                    }
+                }
+            }
+            </script>
+        </body>
+        </html>";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var gallery = extractor.ParseProductGalleryHtml(sampleProductHtml);
+
+        Assert.NotNull(gallery);
+        Assert.Equal("https://devir.es/media/catalog/product/8436625610973-1200-face3d.jpg", gallery.CoverImageUrl);
+        Assert.Equal("https://devir.es/media/catalog/product/8436625610973-1200-components1.jpg", gallery.TableImageUrl);
+        Assert.Equal("https://devir.es/media/catalog/product/8436625610973-1200-backflat.jpg", gallery.BackCoverImageUrl);
+        Assert.Equal("https://devir.es/media/catalog/product/8436625610973-1200-frontflat.jpg", gallery.FrontFlatImageUrl);
+        Assert.Equal("8436625610973", gallery.Ean);
+        Assert.Equal(25.00m, gallery.Pvp);
+    }
+
+    [Fact]
+    public void ParseCatalogPageHtml_ExtractsCatalogItemsAndDetectsNextPage()
+    {
+        const string sampleCatalogHtml = @"
+        <ol class=""products list items product-items"">
+            <li class=""item product product-item"">
+                <div class=""product-item-info"">
+                    <a href=""https://devir.es/bichos-polilla-tramposa"" class=""product photo product-item-photo"" tabindex=""-1"">
+                        <span class=""product-image-container"">
+                            <span class=""product-image-wrapper"">
+                                <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-face3d-copy.jpg"" alt=""Polilla&#x20;Tramposa"" />
+                            </span>
+                        </span>
+                    </a>
+                    <div class=""product details product-item-details"">
+                        <strong class=""product name product-item-name"">
+                            <a class=""product-item-link"" href=""https://devir.es/bichos-polilla-tramposa"">Polilla Tramposa</a>
+                        </strong>
+                    </div>
+                </div>
+            </li>
+            <li class=""item product product-item"">
+                <div class=""product-item-info"">
+                    <a href=""https://devir.es/castle-party"" class=""product photo product-item-photo"" tabindex=""-1"">
+                        <span class=""product-image-container"">
+                            <span class=""product-image-wrapper"">
+                                <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436589622340-1200-face3d-copy.jpg"" alt=""Castle Party"" />
+                            </span>
+                        </span>
+                    </a>
+                </div>
+            </li>
+        </ol>
+        <ul class=""items pages-items"">
+            <li class=""item pages-item-next"">
+                <a class=""action  next"" href=""https://devir.es/catalogo/juegos-de-mesa?p=2"">Siguiente</a>
+            </li>
+        </ul>";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var result = extractor.ParseCatalogPageHtml(sampleCatalogHtml);
+
+        Assert.NotNull(result);
+        Assert.True(result.HasNextPage);
+        Assert.Equal(2, result.Items.Count);
+
+        var item1 = result.Items[0];
+        Assert.Equal("https://devir.es/bichos-polilla-tramposa", item1.ProductUrl);
+        Assert.Equal("Polilla Tramposa", item1.Title);
+        Assert.Equal("8436017221138", item1.Ean);
+        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-face3d-copy.jpg", item1.CoverImageUrl);
+
+        var item2 = result.Items[1];
+        Assert.Equal("https://devir.es/castle-party", item2.ProductUrl);
+        Assert.Equal("Castle Party", item2.Title);
+        Assert.Equal("8436589622340", item2.Ean);
+    }
 }

@@ -221,11 +221,13 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 {
                     try
                     {
-                        aiMatch = await _aiMatcherService.SuggestMatchAsync(item.Title, item.Publisher, item.EstimatedPvp, item.Notes, ct).ConfigureAwait(false);
+                        using var aiCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        aiCts.CancelAfter(TimeSpan.FromSeconds(4));
+                        aiMatch = await _aiMatcherService.SuggestMatchAsync(item.Title, item.Publisher, item.EstimatedPvp, item.Notes, aiCts.Token).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Error al invocar el asistente de IA para el lanzamiento '{Title}'.", item.Title);
+                        _logger.LogWarning(ex, "Timeout o error al invocar el asistente de IA para el lanzamiento '{Title}'. Aplicando fallback.", item.Title);
                     }
                 }
                 else if (_bggClient != null)
@@ -301,6 +303,25 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 {
                     matchedGame.UpdateImages(item.CoverImageUrl, matchedGame.ThumbnailUrl ?? item.CoverImageUrl);
                     gameModified = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.TableImageUrl) || !string.IsNullOrWhiteSpace(item.BackCoverImageUrl))
+                {
+                    var currentTable = matchedGame.TableImageUrl;
+                    var currentBack = matchedGame.BackCoverImageUrl;
+
+                    var newTable = !string.IsNullOrWhiteSpace(item.TableImageUrl) ? item.TableImageUrl : currentTable;
+                    var newBack = !string.IsNullOrWhiteSpace(item.BackCoverImageUrl) ? item.BackCoverImageUrl : currentBack;
+
+                    if (newTable != currentTable || newBack != currentBack)
+                    {
+                        matchedGame.UpdateMediaUrls(
+                            coverImageUrl: matchedGame.CoverImageUrl,
+                            thumbnailUrl: matchedGame.ThumbnailUrl,
+                            backCoverImageUrl: newBack,
+                            tableImageUrl: newTable);
+                        gameModified = true;
+                    }
                 }
 
                 if (gameModified)

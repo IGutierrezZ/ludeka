@@ -17,7 +17,20 @@ public record EditorialReleaseItem(
     string? Notes = null,
     string? SourceUrl = null,
     bool IsReprint = false,
-    bool IsMonthOnly = false);
+    bool IsMonthOnly = false,
+    string? TableImageUrl = null,
+    string? BackCoverImageUrl = null);
+
+/// <summary>
+/// Representa la galería y datos de producto extraídos de la ficha de un juego en Devir Iberia.
+/// </summary>
+public record DevirProductGalleryDto(
+    string? CoverImageUrl,
+    string? TableImageUrl,
+    string? BackCoverImageUrl,
+    string? FrontFlatImageUrl,
+    string? Ean = null,
+    decimal? Pvp = null);
 
 /// <summary>
 /// Resultado del proceso de sincronización para una editorial concreta.
@@ -43,3 +56,20 @@ public record EditorialSyncSummaryDto(
     int GamesImportedFromBggCount,
     IReadOnlyList<EditorialSyncResultDto> PublisherResults,
     IReadOnlyList<string> Errors);
+
+/// <summary>
+/// Representa una entrada de producto en el catálogo general de juegos de mesa de Devir Iberia.
+/// </summary>
+public record DevirCatalogItemDto(
+    string ProductUrl,
+    string? Title = null,
+    string? Ean = null,
+    string? CoverImageUrl = null);
+
+/// <summary>
+/// Resultado del raspado de una página del catálogo general de Devir Iberia.
+/// </summary>
+public record DevirCatalogPageResultDto(
+    IReadOnlyList<DevirCatalogItemDto> Items,
+    bool HasNextPage);
+

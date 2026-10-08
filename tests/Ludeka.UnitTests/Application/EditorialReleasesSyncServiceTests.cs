@@ -221,6 +221,41 @@ public class EditorialReleasesSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncPublisherReleasesAsync_WhenMatchedGame_EnrichesTableAndBackCoverMediaUrls()
+    {
+        var game = CreateSampleGame(4521, "the-hanging-gardens", "The Hanging Gardens", "The Hanging Gardens", yearPublished: 2024);
+        game.UpdateEan("8436625610973");
+        _gameRepo.Add(game);
+
+        _devirExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new(
+                Title: "THE HANGING GARDENS",
+                Publisher: "Devir",
+                ReleaseDate: new DateOnly(2026, 10, 19),
+                TargetDateText: "19 de octubre",
+                EstimatedPvp: 25m,
+                Ean: "8436625610973",
+                CoverImageUrl: "https://devir.es/face3d.jpg",
+                SourceUrl: "https://devir.es/the-hanging-gardens",
+                TableImageUrl: "https://devir.es/components1.jpg",
+                BackCoverImageUrl: "https://devir.es/backflat.jpg")
+        };
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncPublisherReleasesAsync("Devir");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(1, result.GamesLinked);
+        Assert.Equal("https://devir.es/face3d.jpg", game.CoverImageUrl);
+        Assert.Equal("https://devir.es/components1.jpg", game.TableImageUrl);
+        Assert.Equal("https://devir.es/backflat.jpg", game.BackCoverImageUrl);
+    }
+
+    [Fact]
     public async Task SyncAllEditorialReleasesAsync_DoesNotPurgePendingModerationReleases()
     {
         // Una novedad pendiente de moderación sin GameId nunca debe ser purgada automáticamente
@@ -403,9 +438,20 @@ public class EditorialReleasesSyncServiceTests
     private class FakeDevirExtractor : IDevirReleasesExtractor
     {
         public List<EditorialReleaseItem> ItemsToReturn { get; set; } = [];
+        public DevirProductGalleryDto? GalleryToReturn { get; set; }
         public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<EditorialReleaseItem>>(ItemsToReturn);
         public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html) => ItemsToReturn;
+        public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html, DateOnly? referenceDate = null) => ItemsToReturn;
+        public Task<DevirProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default)
+            => Task.FromResult(GalleryToReturn);
+        public DevirProductGalleryDto? ParseProductGalleryHtml(string html) => GalleryToReturn;
+        public Task<DevirCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)
+            => Task.FromResult(new DevirCatalogPageResultDto(CatalogItemsToReturn, HasNextPageToReturn));
+        public DevirCatalogPageResultDto ParseCatalogPageHtml(string html)
+            => new DevirCatalogPageResultDto(CatalogItemsToReturn, HasNextPageToReturn);
+        public List<DevirCatalogItemDto> CatalogItemsToReturn { get; set; } = [];
+        public bool HasNextPageToReturn { get; set; }
     }
 
     private class FakeMalditoExtractor : IMalditoReleasesExtractor

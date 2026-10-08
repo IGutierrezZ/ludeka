@@ -152,6 +152,11 @@ public class LudekaPersistenceAndDomainServicesTests
     {
         public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html) => throw new NotImplementedException();
+        public IReadOnlyList<EditorialReleaseItem> ParseHtml(string html, DateOnly? referenceDate = null) => throw new NotImplementedException();
+        public Task<DevirProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default) => throw new NotImplementedException();
+        public DevirProductGalleryDto? ParseProductGalleryHtml(string html) => throw new NotImplementedException();
+        public Task<DevirCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default) => throw new NotImplementedException();
+        public DevirCatalogPageResultDto ParseCatalogPageHtml(string html) => throw new NotImplementedException();
     }
 
     private sealed class FakeMalditoReleasesExtractor : IMalditoReleasesExtractor
