@@ -603,6 +603,148 @@ public class SqliteGameRepositoryTests : IDisposable
         Assert.Equal("B01G958V6U", updated.Asin);
     }
 
+    [Fact]
+    public async Task SearchAsync_SortByComplexityAsc_ShouldOrderContinuouslyByBggWeightWithNullsAtEnd()
+    {
+        // Arrange
+        var gLight = new Game(2001, "Light Game", "Juego Ligero", "Autor", "Editorial", 2020, "", "", "", 7.5, 100, 7.5,
+            ConfrontationType.Competitive, GameStyle.PartyGame, false, new AgeRating(8, 8), LanguageDependence.None,
+            TableFootprint.SmallTable, new GameDuration(15, 30, 10), [], bggWeight: 1.45);
+
+        var gMedium1 = new Game(2002, "Medium Low Game", "Juego Medio Bajo", "Autor", "Editorial", 2020, "", "", "", 7.8, 50, 7.8,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
+            TableFootprint.StandardTable, new GameDuration(30, 45, 15), [], bggWeight: 2.15);
+
+        var gMedium2 = new Game(2003, "Medium High Game", "Juego Medio Alto", "Autor", "Editorial", 2020, "", "", "", 8.0, 30, 8.0,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(12, 12), LanguageDependence.Low,
+            TableFootprint.StandardTable, new GameDuration(60, 90, 25), [], bggWeight: 3.10);
+
+        var gHeavy = new Game(2004, "Heavy Game", "Juego Duro", "Autor", "Editorial", 2020, "", "", "", 8.5, 10, 8.5,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(14, 14), LanguageDependence.Low,
+            TableFootprint.TableMonster, new GameDuration(120, 180, 45), [], bggWeight: 4.25);
+
+        var gNoWeight = new Game(2005, "Unrated Weight Game", "Juego Sin Peso", "Autor", "Editorial", 2020, "", "", "", 7.0, 5, 7.0,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
+            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null);
+
+        await _context.Games.AddRangeAsync(gHeavy, gNoWeight, gMedium2, gLight, gMedium1);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var criteria = new GameFilterCriteria(SortBy: GameSortOrder.ComplexityAsc);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 10);
+
+        // Assert
+        Assert.Equal(5, total);
+        Assert.Equal(5, items.Count);
+        Assert.Equal(gLight.Id, items[0].Id);       // 1.45
+        Assert.Equal(gMedium1.Id, items[1].Id);     // 2.15
+        Assert.Equal(gMedium2.Id, items[2].Id);     // 3.10
+        Assert.Equal(gHeavy.Id, items[3].Id);       // 4.25
+        Assert.Equal(gNoWeight.Id, items[4].Id);    // null al final
+    }
+
+    [Fact]
+    public async Task SearchAsync_SortByComplexityDesc_ShouldOrderContinuouslyByBggWeightDescendingWithNullsAtEnd()
+    {
+        // Arrange
+        var gLight = new Game(3001, "Light Game D", "Juego Ligero D", "Autor", "Editorial", 2020, "", "", "", 7.5, 100, 7.5,
+            ConfrontationType.Competitive, GameStyle.PartyGame, false, new AgeRating(8, 8), LanguageDependence.None,
+            TableFootprint.SmallTable, new GameDuration(15, 30, 10), [], bggWeight: 1.50);
+
+        var gMedium = new Game(3002, "Medium Game D", "Juego Medio D", "Autor", "Editorial", 2020, "", "", "", 8.0, 30, 8.0,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(12, 12), LanguageDependence.Low,
+            TableFootprint.StandardTable, new GameDuration(60, 90, 25), [], bggWeight: 2.80);
+
+        var gHeavy = new Game(3003, "Heavy Game D", "Juego Duro D", "Autor", "Editorial", 2020, "", "", "", 8.5, 10, 8.5,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(14, 14), LanguageDependence.Low,
+            TableFootprint.TableMonster, new GameDuration(120, 180, 45), [], bggWeight: 4.10);
+
+        var gNoWeight = new Game(3004, "No Weight D", "Sin Peso D", "Autor", "Editorial", 2020, "", "", "", 7.0, 5, 7.0,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
+            TableFootprint.StandardTable, new GameDuration(30, 60, 20), [], bggWeight: null);
+
+        await _context.Games.AddRangeAsync(gLight, gNoWeight, gHeavy, gMedium);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var criteria = new GameFilterCriteria(SortBy: GameSortOrder.ComplexityDesc);
+        var (items, total) = await _repository.SearchAsync(criteria, page: 1, pageSize: 10);
+
+        // Assert
+        Assert.Equal(4, total);
+        Assert.Equal(4, items.Count);
+        Assert.Equal(gHeavy.Id, items[0].Id);       // 4.10
+        Assert.Equal(gMedium.Id, items[1].Id);      // 2.80
+        Assert.Equal(gLight.Id, items[2].Id);       // 1.50
+        Assert.Equal(gNoWeight.Id, items[3].Id);    // null al final
+    }
+
+    [Fact]
+    public async Task BackfillBggWeightsFromSnapshotsAsync_ShouldExtractAverageweightAndPopulateGameBggWeight()
+    {
+        // Arrange
+        var g1 = new Game(4001, "Catan Backfill", "Catan Backfill", "Klaus", "Devir", 1995, "", "", "", 7.1, 400, 7.1,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.None,
+            TableFootprint.StandardTable, new GameDuration(60, 90, 25), [], bggWeight: null);
+
+        var g2 = new Game(4002, "Wingspan Backfill", "Wingspan Backfill", "Elizabeth", "999 Games", 2019, "", "", "", 8.1, 25, 8.1,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(10, 10), LanguageDependence.Low,
+            TableFootprint.StandardTable, new GameDuration(40, 70, 20), [], bggWeight: null);
+
+        var g3AlreadyHasWeight = new Game(4003, "Ark Nova Backfill", "Ark Nova Backfill", "Mathias", "Feuerland", 2021, "", "", "", 8.5, 4, 8.5,
+            ConfrontationType.Competitive, GameStyle.Eurogame, false, new AgeRating(14, 14), LanguageDependence.Low,
+            TableFootprint.TableMonster, new GameDuration(90, 150, 45), [], bggWeight: 3.74);
+
+        await _context.Games.AddRangeAsync(g1, g2, g3AlreadyHasWeight);
+
+        // Snapshot para g1 (formato objeto @value)
+        string json1 = """
+        {
+            "statistics": {
+                "ratings": {
+                    "averageweight": { "@value": "2.30" }
+                }
+            }
+        }
+        """;
+        var snap1 = new BggRawSnapshot(4001, json1);
+
+        // Snapshot para g2 (formato numérico directo)
+        string json2 = """
+        {
+            "statistics": {
+                "ratings": {
+                    "averageweight": 2.45
+                }
+            }
+        }
+        """;
+        var snap2 = new BggRawSnapshot(4002, json2);
+
+        await _context.BggRawSnapshots.AddRangeAsync(snap1, snap2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        int updatedCount = await _repository.BackfillBggWeightsFromSnapshotsAsync();
+
+        // Assert
+        Assert.Equal(2, updatedCount);
+
+        var reloadedG1 = await _repository.GetByIdAsync(g1.Id);
+        var reloadedG2 = await _repository.GetByIdAsync(g2.Id);
+        var reloadedG3 = await _repository.GetByIdAsync(g3AlreadyHasWeight.Id);
+
+        Assert.NotNull(reloadedG1);
+        Assert.Equal(2.30, reloadedG1.BggWeight);
+
+        Assert.NotNull(reloadedG2);
+        Assert.Equal(2.45, reloadedG2.BggWeight);
+
+        Assert.NotNull(reloadedG3);
+        Assert.Equal(3.74, reloadedG3.BggWeight);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

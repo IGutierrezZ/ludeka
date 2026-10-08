@@ -83,5 +83,11 @@ public interface IGameRepository
         int limit = 1500,
         CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<int>>([]);
+
+    /// <summary>
+    /// Realiza un barrido local sobre BggRawSnapshots para poblar BggWeight en los juegos que carezcan de él (INC-130).
+    /// </summary>
+    Task<int> BackfillBggWeightsFromSnapshotsAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }
 

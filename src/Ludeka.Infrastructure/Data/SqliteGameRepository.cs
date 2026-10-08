@@ -7,6 +7,7 @@ using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
+using Ludeka.Core.Helpers;
 using Ludeka.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -175,9 +176,7 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         bool hasInMemoryFilters = criteria.EspecialParejas
             || (criteria.PlayerCounts != null && criteria.PlayerCounts.Count > 0)
             || criteria.PlayerCount.HasValue
-            || (criteria.Complexities != null && criteria.Complexities.Count > 0)
-            || criteria.SortBy == GameSortOrder.ComplexityAsc
-            || criteria.SortBy == GameSortOrder.ComplexityDesc;
+            || (criteria.Complexities != null && criteria.Complexities.Count > 0);
 
         if (!hasInMemoryFilters)
         {
@@ -227,7 +226,8 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 g.BggRank,
                 g.BggRating,
                 g.YearPublished,
-                g.SpanishTitle
+                g.SpanishTitle,
+                g.BggWeight
             ))
             .ToListAsync(ct);
 
@@ -263,7 +263,7 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         // Filtro por dureza / complejidad cognitiva
         if (criteria.Complexities != null && criteria.Complexities.Count > 0)
         {
-            indexList = indexList.Where(g => criteria.Complexities.Contains(CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))).ToList();
+            indexList = indexList.Where(g => criteria.Complexities.Contains(CalculateComplexity(g.BggWeight, g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))).ToList();
         }
 
         int totalCount = indexList.Count;
@@ -479,6 +479,10 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 existing.UpdateAdditionalBarcodes(game.AdditionalBarcodes);
                 existing.SetAsin(game.Asin);
                 existing.UpdatePurchaseLinks(game.PurchaseLinks);
+                if (game.BggWeight.HasValue)
+                {
+                    existing.UpdateBggWeight(game.BggWeight);
+                }
             }
 
             await scope.Context.SaveChangesAsync(ct);
@@ -801,16 +805,17 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
     public static GameComplexity CalculateComplexity(Game g)
     {
-        return CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge);
+        return ComplexityCalculator.Calculate(g);
+    }
+
+    public static GameComplexity CalculateComplexity(double? bggWeight, GameStyle style, int maxMinutes, int communityAge)
+    {
+        return ComplexityCalculator.Calculate(bggWeight, style, maxMinutes, communityAge);
     }
 
     public static GameComplexity CalculateComplexity(GameStyle style, int maxMinutes, int communityAge)
     {
-        if (style == GameStyle.PartyGame || style == GameStyle.FillerAbstract || (maxMinutes <= 30 && communityAge <= 10))
-            return GameComplexity.Light;
-        if (maxMinutes >= 120 || communityAge >= 14 || (maxMinutes >= 90 && style == GameStyle.Eurogame))
-            return GameComplexity.Heavy;
-        return GameComplexity.Medium;
+        return ComplexityCalculator.Calculate(null, style, maxMinutes, communityAge);
     }
 
     public static IQueryable<Game> ApplyQuerySorting(IQueryable<Game> query, GameSortOrder sortBy)
@@ -819,6 +824,16 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
         {
             GameSortOrder.RatingDesc => query
                 .OrderByDescending(g => g.BggRating)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.ComplexityAsc => query
+                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggWeight)
+                .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggRank ?? int.MaxValue),
+            GameSortOrder.ComplexityDesc => query
+                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
+                .ThenByDescending(g => g.BggWeight)
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue),
             GameSortOrder.DurationAsc => query
@@ -861,12 +876,14 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue),
             GameSortOrder.ComplexityAsc => items
-                .OrderBy(g => CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
+                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
+                .ThenBy(g => g.BggWeight)
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue)
                 .ThenByDescending(g => g.BggRating),
             GameSortOrder.ComplexityDesc => items
-                .OrderByDescending(g => CalculateComplexity(g.Style, g.Duration.MaxMinutes, g.Age.CommunityAge))
+                .OrderBy(g => g.BggWeight.HasValue ? 0 : 1)
+                .ThenByDescending(g => g.BggWeight)
                 .ThenBy(g => g.BggRank.HasValue ? 0 : 1)
                 .ThenBy(g => g.BggRank ?? int.MaxValue)
                 .ThenByDescending(g => g.BggRating),
@@ -966,6 +983,59 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
             .Select(g => g.BggId)
             .Take(limit)
             .ToListAsync(ct);
+    }
+
+    public async Task<int> BackfillBggWeightsFromSnapshotsAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+
+        const int batchSize = 250;
+        int totalUpdated = 0;
+        int lastBggId = 0;
+
+        while (true)
+        {
+            var batchGames = await scope.Context.Games
+                .Where(g => g.BggWeight == null && g.BggId > lastBggId)
+                .OrderBy(g => g.BggId)
+                .Take(batchSize)
+                .ToListAsync(ct);
+
+            if (batchGames.Count == 0) break;
+
+            lastBggId = batchGames.Max(g => g.BggId);
+
+            var bggIds = batchGames.Select(g => g.BggId).ToList();
+            var snapshots = await scope.Context.BggRawSnapshots
+                .AsNoTracking()
+                .Where(s => bggIds.Contains(s.BggId))
+                .Select(s => new { s.BggId, s.RawJson })
+                .ToListAsync(ct);
+
+            var snapshotMap = snapshots.ToDictionary(s => s.BggId, s => s.RawJson);
+            int batchModified = 0;
+
+            foreach (var game in batchGames)
+            {
+                if (snapshotMap.TryGetValue(game.BggId, out var rawJson))
+                {
+                    var weight = ComplexityCalculator.ExtractWeightFromJson(rawJson);
+                    if (weight.HasValue && weight.Value > 0)
+                    {
+                        game.UpdateBggWeight(weight.Value);
+                        batchModified++;
+                    }
+                }
+            }
+
+            if (batchModified > 0)
+            {
+                await scope.Context.SaveChangesAsync(ct);
+                totalUpdated += batchModified;
+            }
+        }
+
+        return totalUpdated;
     }
 }
 
