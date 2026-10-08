@@ -1,5 +1,9 @@
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Ludeka.Infrastructure.Extractors;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -8,33 +12,29 @@ namespace Ludeka.UnitTests.Infrastructure;
 
 public class MalditoReleasesExtractorTests
 {
-    private const string SampleHomeHtml = @"
-    <div class=""pagebuilder-column"">
-        <figure>
-            <img src=""https://tienda.malditogames.com/media/wysiwyg/SQ_Floe.jpg"" alt="""" />
-        </figure>
-        <div class=""fecha-home""><p>2027</p></div>
-    </div>
-    <div class=""pagebuilder-column"">
-        <figure>
-            <img src=""https://tienda.malditogames.com/media/wysiwyg/SQ-sleeping-gods-cielos-lejanos.jpg"" alt="""" />
-        </figure>
-        <div class=""fecha-home""><p>2027</p></div>
-    </div>
-    ";
-
-    private const string SampleCatalogHtml = @"
-    <div class=""product-item-info"">
-        <a class=""product-item-link"" href=""https://tienda.malditogames.com/1300-tianxia-metal-coins.html"">
-            Tianxia Metal Coins
-        </a>
-        <span class=""price"">27,00&nbsp;€</span>
-    </div>
-    <div class=""product-item-info"">
-        <a class=""product-item-link"" href=""https://tienda.malditogames.com/34-comprar-terraforming-mars.html"">
-            Terraforming Mars
-        </a>
-        <span class=""price"">55,00&nbsp;€</span>
+    private const string SampleHomeWithPuntitoHtml = @"
+    <div class=""pagebuilder-column-group"">
+        <h2 class=""titulo-home"" data-content-type=""heading"">A puntito de llegar</h2>
+        <div class=""novedades-home"">
+            <ul class=""product-items"">
+                <li class=""item product product-item"">
+                    <div class=""product-item-info type1"">
+                        <div class=""product photo product-item-photo"">
+                            <a href=""https://tienda.malditogames.com/railway-boom.html"">
+                                <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625619129-1200-face3d.jpg"" />
+                            </a>
+                        </div>
+                        <div class=""product details product-item-details"">
+                            <a class=""product-item-link"" href=""https://tienda.malditogames.com/railway-boom.html"">
+                                Railway Boom
+                            </a>
+                            <span class=""fecha_home"">15 de octubre</span>
+                            <span class=""price"">52,00&nbsp;&euro;</span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
     ";
 
@@ -107,7 +107,7 @@ public class MalditoReleasesExtractorTests
         </div>
 
         <h2 class=""titulo-home"" data-content-type=""heading"">Lo que se viene</h2>
-        <div class=""sev सामूहिक"">
+        <div class=""sev"">
             <figure>
                 <img src=""https://tienda.malditogames.com/media/wysiwyg/SQ_Floe.jpg"" alt="""" />
             </figure>
@@ -116,69 +116,138 @@ public class MalditoReleasesExtractorTests
     </div>
     ";
 
+    private const string SampleMalditoProductPageHtml = @"
+    <!doctype html>
+    <html lang=""es"">
+        <head>
+            <meta property=""og:type"" content=""product"" />
+            <meta property=""product:price:amount"" content=""115"" />
+            <meta property=""product:price:currency"" content=""EUR"" />
+        </head>
+        <body>
+            <script type=""text/x-magento-init"">
+            {
+                ""[data-gallery-role=gallery-placeholder]"": {
+                    ""mage/gallery/gallery"": {
+                        ""data"": [
+                            {
+                                ""thumb"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-face3d.jpg"",
+                                ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-face3d.jpg"",
+                                ""full"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-face3d.jpg"",
+                                ""isMain"": true
+                            },
+                            {
+                                ""thumb"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-frontflat.jpg"",
+                                ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-frontflat.jpg"",
+                                ""full"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-frontflat.jpg"",
+                                ""isMain"": false
+                            },
+                            {
+                                ""thumb"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-backflat.jpg"",
+                                ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-backflat.jpg"",
+                                ""full"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-backflat.jpg"",
+                                ""isMain"": false
+                            }
+                        ]
+                    }
+                }
+            }
+            </script>
+            <div class=""product-add-form"">
+                <form data-product-sku=""8436578819720"" action=""/cart""></form>
+            </div>
+        </body>
+    </html>
+    ";
+
+    private const string SampleMalditoCatalogPageHtml = @"
+    <div class=""products wrapper grid products-grid"">
+        <ol class=""products list items product-items"">
+            <li class=""item product product-item"">
+                <div class=""product-item-info"">
+                    <a class=""product-item-link"" href=""https://tienda.malditogames.com/34-terraforming-mars.html"">
+                        Terraforming Mars
+                    </a>
+                    <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-face3d.jpg"" />
+                </div>
+            </li>
+            <li class=""item product product-item"">
+                <div class=""product-item-info"">
+                    <a class=""product-item-link"" href=""https://tienda.malditogames.com/scythe.html"">
+                        Scythe
+                    </a>
+                    <img class=""product-image-photo"" src=""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810200-1200-face3d.jpg"" />
+                </div>
+            </li>
+        </ol>
+        <div class=""pages"">
+            <a class=""action next"" href=""https://tienda.malditogames.com/juegos?p=2"">Siguiente</a>
+        </div>
+    </div>
+    ";
+
     [Fact]
-    public void ParseHtml_ExtractsSeVieneTitlesAndCatalogPreorders()
+    public void ParseHtml_FiltersStrictly_OnlyReturnsPuntitoAndReprint_ExcludesUltimasNovedadesAndLoQueSeViene()
     {
-        var extractor = new MalditoReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
-
-        var results = extractor.ParseHtml(SampleHomeHtml, SampleCatalogHtml);
-
-        Assert.Equal(4, results.Count);
-
-        var floe = results.First(r => r.Title == "Floe");
-        Assert.Equal("Maldito Games", floe.Publisher);
-        Assert.Equal("2027", floe.TargetDateText);
-        Assert.Equal("https://tienda.malditogames.com/media/wysiwyg/SQ_Floe.jpg", floe.CoverImageUrl);
-
-        var sleepingGods = results.First(r => r.Title.Contains("Sleeping Gods"));
-        Assert.Equal("Maldito Games", sleepingGods.Publisher);
-        Assert.Equal("2027", sleepingGods.TargetDateText);
-
-        var mars = results.First(r => r.Title == "Terraforming Mars");
-        Assert.Equal("Maldito Games", mars.Publisher);
-        Assert.Equal(55.00m, mars.EstimatedPvp);
-        Assert.Equal("https://tienda.malditogames.com/34-comprar-terraforming-mars.html", mars.SourceUrl);
-    }
-
-    [Fact]
-    public void ParseHtml_ExtractsSectionalGridProducts_WithDatesEanPvpAndReprintStatus()
-    {
-        var extractor = new MalditoReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
+        var extractor = new MalditoReleasesExtractor(new HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
 
         var results = extractor.ParseHtml(SampleFullSectionsHomeHtml, null);
 
-        Assert.Equal(4, results.Count);
+        // Se deben descartar 'Últimas novedades' (Emblemas) y 'Lo que se viene' (Floe)
+        Assert.Equal(2, results.Count);
 
-        // 1. Últimas novedades: Emblemas
-        var emblemas = results.First(r => r.Title == "Emblemas");
-        Assert.Equal("8436625618788", emblemas.Ean);
-        Assert.Equal(20.00m, emblemas.EstimatedPvp);
-        Assert.Equal("8 de octubre", emblemas.TargetDateText);
-        Assert.NotNull(emblemas.ReleaseDate);
-        Assert.Equal(10, emblemas.ReleaseDate!.Value.Month);
-        Assert.Equal(8, emblemas.ReleaseDate!.Value.Day);
-        Assert.False(emblemas.IsReprint);
-        Assert.False(emblemas.IsMonthOnly);
-
-        // 2. A puntito de llegar: Railway Boom
-        var railway = results.First(r => r.Title == "Railway Boom");
+        // 1. A puntito de llegar: Railway Boom
+        var railway = Assert.Single(results, r => r.Title == "Railway Boom");
         Assert.Equal("8436625619129", railway.Ean);
         Assert.Equal(52.00m, railway.EstimatedPvp);
         Assert.Equal("15 de octubre", railway.TargetDateText);
         Assert.False(railway.IsReprint);
+        Assert.Equal("Maldito Games", railway.Publisher);
 
-        // 3. Volverán a estar disponibles en breve (Reimpresión): Earthborne Rangers
-        var rangers = results.First(r => r.Title == "Earthborne Rangers");
+        // 2. Volverán a estar disponibles en breve (Reimpresión): Earthborne Rangers
+        var rangers = Assert.Single(results, r => r.Title == "Earthborne Rangers");
         Assert.Equal("8436578818099", rangers.Ean);
         Assert.Equal(100.00m, rangers.EstimatedPvp);
         Assert.Equal("22 de octubre", rangers.TargetDateText);
         Assert.True(rangers.IsReprint);
+        Assert.Equal("Maldito Games", rangers.Publisher);
 
-        // 4. Lo que se viene: Floe
-        var floe = results.First(r => r.Title == "Floe");
-        Assert.Equal("2027", floe.TargetDateText);
-        Assert.True(floe.IsMonthOnly);
-        Assert.Equal(new DateOnly(2027, 1, 1), floe.ReleaseDate);
+        // Verificar explícitamente ausencias
+        Assert.DoesNotContain(results, r => r.Title == "Emblemas");
+        Assert.DoesNotContain(results, r => r.Title == "Floe");
+    }
+
+    [Fact]
+    public void ParseProductGalleryHtml_ExtractsImagesEanAndPrice()
+    {
+        var extractor = new MalditoReleasesExtractor(new HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
+
+        var gallery = extractor.ParseProductGalleryHtml(SampleMalditoProductPageHtml);
+
+        Assert.NotNull(gallery);
+        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-face3d.jpg", gallery!.CoverImageUrl);
+        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-backflat.jpg", gallery.BackCoverImageUrl);
+        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-frontflat.jpg", gallery.TableImageUrl);
+        Assert.Equal("8436578819720", gallery.Ean);
+        Assert.Equal(115.00m, gallery.Pvp);
+    }
+
+    [Fact]
+    public void ParseCatalogPageHtml_ExtractsItemsAndNextPage()
+    {
+        var extractor = new MalditoReleasesExtractor(new HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
+
+        var result = extractor.ParseCatalogPageHtml(SampleMalditoCatalogPageHtml);
+
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        Assert.True(result.HasNextPage);
+        Assert.Equal(2, result.Items.Count);
+
+        var terraforming = result.Items[0];
+        Assert.Equal("Terraforming Mars", terraforming.Title);
+        Assert.Equal("https://tienda.malditogames.com/34-terraforming-mars.html", terraforming.ProductUrl);
+        Assert.Equal("8436578810017", terraforming.Ean);
     }
 
     [Theory]
@@ -211,61 +280,67 @@ public class MalditoReleasesExtractorTests
         Assert.Equal(expMonthOnly, isMonthOnly);
     }
 
-    private class MockHttpMessageHandler : System.Net.Http.HttpMessageHandler
+    private class MockHttpMessageHandler : HttpMessageHandler
     {
-        private readonly System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> _handler;
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
 
-        public MockHttpMessageHandler(System.Func<System.Net.Http.HttpRequestMessage, System.Net.Http.HttpResponseMessage> handler)
+        public MockHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
         {
             _handler = handler;
         }
 
-        protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(
-            System.Net.Http.HttpRequestMessage request,
-            System.Threading.CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
         {
-            return System.Threading.Tasks.Task.FromResult(_handler(request));
+            return Task.FromResult(_handler(request));
         }
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExtractReleasesAsync_WhenCatalogFails_StillReturnsHomeReleases()
+    public async Task ExtractReleasesAsync_WhenHomeSucceeds_EnrichesWithProductGallery()
     {
         var handler = new MockHttpMessageHandler(req =>
         {
             var url = req.RequestUri?.ToString() ?? string.Empty;
-            if (url.Contains("/juegos?"))
+            if (url.Contains("railway-boom.html"))
             {
-                // El catálogo falla con 403 o 500
-                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError);
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(SampleMalditoProductPageHtml)
+                };
             }
 
-            // La portada devuelve el HTML de prueba con Floe
-            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new System.Net.Http.StringContent(SampleHomeHtml)
+                Content = new StringContent(SampleHomeWithPuntitoHtml)
             };
         });
 
-        var client = new System.Net.Http.HttpClient(handler);
+        var client = new HttpClient(handler);
         var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
 
         var results = await extractor.ExtractReleasesAsync();
 
         Assert.NotNull(results);
-        Assert.NotEmpty(results);
-        Assert.Contains(results, r => r.Title.Contains("Floe", StringComparison.OrdinalIgnoreCase));
+        var item = Assert.Single(results);
+        Assert.Equal("Railway Boom", item.Title);
+        // Debe enriquecerse con la galería (3D cover, back cover, EAN, PVP de la ficha de producto)
+        Assert.Contains("face3d", item.CoverImageUrl!);
+        Assert.Contains("backflat", item.BackCoverImageUrl!);
+        Assert.Equal("8436578819720", item.Ean);
+        Assert.Equal(115.00m, item.EstimatedPvp);
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExtractReleasesAsync_WhenBothFail_ReturnsEmptyList()
+    public async Task ExtractReleasesAsync_WhenBothFail_ReturnsEmptyList()
     {
         var handler = new MockHttpMessageHandler(req =>
         {
-            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+            return new HttpResponseMessage(HttpStatusCode.Forbidden);
         });
 
-        var client = new System.Net.Http.HttpClient(handler);
+        var client = new HttpClient(handler);
         var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
 
         var results = await extractor.ExtractReleasesAsync();
@@ -275,30 +350,33 @@ public class MalditoReleasesExtractorTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExtractReleasesAsync_RetriesOn403AndSucceedsOnSecondAttempt()
+    public async Task ExtractReleasesAsync_RetriesOn403AndSucceedsOnSecondAttempt()
     {
         int homeAttempts = 0;
         var handler = new MockHttpMessageHandler(req =>
         {
-            var url = req.RequestUri?.ToString() ?? string.Empty;
-            if (url.Contains("/juegos?"))
+            var uri = req.RequestUri?.ToString().TrimEnd('/') ?? string.Empty;
+            if (uri.Equals("https://tienda.malditogames.com", StringComparison.OrdinalIgnoreCase))
             {
-                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+                homeAttempts++;
+                if (homeAttempts == 1)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.Forbidden);
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(SampleHomeWithPuntitoHtml)
+                };
             }
 
-            homeAttempts++;
-            if (homeAttempts == 1)
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
-            }
-
-            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
-            {
-                Content = new System.Net.Http.StringContent(SampleHomeHtml)
+                Content = new StringContent(SampleMalditoProductPageHtml)
             };
         });
 
-        var client = new System.Net.Http.HttpClient(handler);
+        var client = new HttpClient(handler);
         var extractor = new MalditoReleasesExtractor(client, NullLogger<MalditoReleasesExtractor>.Instance);
 
         var results = await extractor.ExtractReleasesAsync();
@@ -307,4 +385,3 @@ public class MalditoReleasesExtractorTests
         Assert.NotEmpty(results);
     }
 }
-

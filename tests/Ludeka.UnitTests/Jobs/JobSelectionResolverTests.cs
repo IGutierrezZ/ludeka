@@ -35,6 +35,7 @@ public class JobSelectionResolverTests
     [InlineData(JobNames.YouTubeAutoIngest)]
     [InlineData(JobNames.EditorialReleasesSync)]
     [InlineData(JobNames.DevirImagesBackfill)]
+    [InlineData(JobNames.MalditoImagesBackfill)]
     public void Resolve_ConArgumentoPosicionalValido_DevuelveEseTrabajo(string jobName)
     {
         var result = JobSelectionResolver.Resolve([jobName], EmptyConfiguration());

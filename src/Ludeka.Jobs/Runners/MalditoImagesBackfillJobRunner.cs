@@ -14,30 +14,31 @@ using Microsoft.Extensions.Logging;
 namespace Ludeka.Jobs.Runners;
 
 /// <summary>
-/// Trabajo autónomo para el barrido puntual y actualización de imágenes de catálogo oficial de Devir Iberia.
-/// Recorre la paginación del catálogo de Devir (https://devir.es/catalogo/juegos-de-mesa?p={page}),
-/// localiza juegos coincidentes en el repositorio local y enriquece sus recursos multimedia (caja 3D, mesa y contraportada).
+/// Trabajo autónomo para el barrido puntual y actualización de imágenes, EAN y precios del catálogo oficial de Maldito Games.
+/// Recorre la paginación del catálogo de Maldito (https://tienda.malditogames.com/juegos?p={page}),
+/// localiza juegos coincidentes en el repositorio local y enriquece sus recursos multimedia (caja 3D, mesa y contraportada),
+/// asigna el EAN-13 si faltaba y registra la oferta oficial con su PVP en PurchaseLinks.
 /// </summary>
-public sealed class DevirImagesBackfillJobRunner : IJobRunner
+public sealed class MalditoImagesBackfillJobRunner : IJobRunner
 {
     private readonly IJobExecutionCoordinator _coordinator;
-    private readonly IDevirReleasesExtractor _devirExtractor;
+    private readonly IMalditoReleasesExtractor _malditoExtractor;
     private readonly IGameRepository _gameRepository;
-    private readonly ILogger<DevirImagesBackfillJobRunner> _logger;
+    private readonly ILogger<MalditoImagesBackfillJobRunner> _logger;
 
-    public DevirImagesBackfillJobRunner(
+    public MalditoImagesBackfillJobRunner(
         IJobExecutionCoordinator coordinator,
-        IDevirReleasesExtractor devirExtractor,
+        IMalditoReleasesExtractor malditoExtractor,
         IGameRepository gameRepository,
-        ILogger<DevirImagesBackfillJobRunner> logger)
+        ILogger<MalditoImagesBackfillJobRunner> logger)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
-        _devirExtractor = devirExtractor ?? throw new ArgumentNullException(nameof(devirExtractor));
+        _malditoExtractor = malditoExtractor ?? throw new ArgumentNullException(nameof(malditoExtractor));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public string Name => JobNames.DevirImagesBackfill;
+    public string Name => JobNames.MalditoImagesBackfill;
 
     public Task<JobLeaseOutcome> RunAsync(CancellationToken ct)
     {
@@ -49,7 +50,7 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
             windowKey,
             async (heartbeat, workCt) =>
             {
-                _logger.LogInformation("Iniciando trabajo '{JobName}' para barrido de imágenes del catálogo general de Devir...", Name);
+                _logger.LogInformation("Iniciando trabajo '{JobName}' para barrido de imágenes, EAN y ofertas de Maldito Games...", Name);
                 await heartbeat.BeatAsync(workCt);
 
                 var allGames = await _gameRepository.GetAllGamesAsync(workCt).ConfigureAwait(false);
@@ -80,24 +81,24 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                 int totalSkipped = 0;
                 int totalFailed = 0;
                 int page = 1;
-                const int maxPages = 50;
+                const int maxPages = 60;
                 int consecutiveFailures = 0;
                 bool hasMore = true;
 
                 while (hasMore && page <= maxPages && !workCt.IsCancellationRequested)
                 {
                     await heartbeat.BeatAsync(workCt);
-                    _logger.LogInformation("Consultando página {Page} del catálogo general de Devir...", page);
+                    _logger.LogInformation("Consultando página {Page} del catálogo general de Maldito Games...", page);
 
-                    var pageResult = await _devirExtractor.ExtractCatalogPageAsync(page, workCt).ConfigureAwait(false);
+                    var pageResult = await _malditoExtractor.ExtractCatalogPageAsync(page, workCt).ConfigureAwait(false);
                     if (!pageResult.Success)
                     {
                         consecutiveFailures++;
                         totalFailed++;
-                        _logger.LogWarning("Fallo al consultar la página {Page} del catálogo de Devir (fallos consecutivos: {Count}).", page, consecutiveFailures);
+                        _logger.LogWarning("Fallo al consultar la página {Page} del catálogo de Maldito Games (fallos consecutivos: {Count}).", page, consecutiveFailures);
                         if (consecutiveFailures >= 2)
                         {
-                            _logger.LogWarning("Se alcanzaron 2 fallos consecutivos al consultar el catálogo de Devir. Interrumpiendo recorrido.");
+                            _logger.LogWarning("Se alcanzaron 2 fallos consecutivos al consultar el catálogo de Maldito Games. Interrumpiendo recorrido.");
                             break;
                         }
 
@@ -110,7 +111,7 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
 
                     if (pageResult.Items.Count == 0)
                     {
-                        _logger.LogInformation("Página {Page} no devolvió productos. Finalizando recorrido.", page);
+                        _logger.LogInformation("Página {Page} de Maldito Games no devolvió productos. Finalizando recorrido.", page);
                         break;
                     }
 
@@ -146,18 +147,18 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
 
                         totalMatched++;
 
-                        // Evaluar si requiere imágenes, EAN u oferta de compra oficial de Devir
+                        // Evaluar si ya tiene portada 3D, mesa, contraportada, EAN y oferta de Maldito Games
                         bool has3dCover = !string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl) &&
                                           (matchedGame.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
                                            matchedGame.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase));
                         bool hasTable = !string.IsNullOrWhiteSpace(matchedGame.TableImageUrl);
                         bool hasBack = !string.IsNullOrWhiteSpace(matchedGame.BackCoverImageUrl);
                         bool hasEan = !string.IsNullOrWhiteSpace(matchedGame.Ean);
-                        bool hasDevirOffer = matchedGame.PurchaseLinks.Any(p =>
-                            string.Equals(p.StoreName, "Devir", StringComparison.OrdinalIgnoreCase) &&
+                        bool hasMalditoOffer = matchedGame.PurchaseLinks.Any(p =>
+                            string.Equals(p.StoreName, "Maldito Games", StringComparison.OrdinalIgnoreCase) &&
                             p.Price.HasValue && p.Price.Value > 0);
 
-                        if (has3dCover && hasTable && hasBack && hasEan && hasDevirOffer)
+                        if (has3dCover && hasTable && hasBack && hasEan && hasMalditoOffer)
                         {
                             totalSkipped++;
                             continue;
@@ -165,7 +166,7 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
 
                         try
                         {
-                            var gallery = await _devirExtractor.ExtractProductGalleryAsync(item.ProductUrl, workCt).ConfigureAwait(false);
+                            var gallery = await _malditoExtractor.ExtractProductGalleryAsync(item.ProductUrl, workCt).ConfigureAwait(false);
                             if (gallery == null)
                             {
                                 totalSkipped++;
@@ -206,16 +207,16 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                                 }
                             }
 
-                            // Actualizar o registrar oferta oficial de Devir en PurchaseLinks
+                            // Actualizar o registrar oferta de Maldito Games en PurchaseLinks
                             if (gallery.Pvp.HasValue && gallery.Pvp.Value > 0)
                             {
                                 var existingOffer = matchedGame.PurchaseLinks.FirstOrDefault(p =>
-                                    string.Equals(p.StoreName, "Devir", StringComparison.OrdinalIgnoreCase));
+                                    string.Equals(p.StoreName, "Maldito Games", StringComparison.OrdinalIgnoreCase));
 
                                 if (existingOffer == null)
                                 {
                                     var newLink = new GamePurchaseLink(
-                                        storeName: "Devir",
+                                        storeName: "Maldito Games",
                                         affiliateUrl: item.ProductUrl,
                                         price: gallery.Pvp.Value,
                                         currency: "€",
@@ -235,7 +236,7 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                                         InStock = true
                                     };
                                     var updatedLinks = matchedGame.PurchaseLinks
-                                        .Select(p => string.Equals(p.StoreName, "Devir", StringComparison.OrdinalIgnoreCase) ? updatedLink : p)
+                                        .Select(p => string.Equals(p.StoreName, "Maldito Games", StringComparison.OrdinalIgnoreCase) ? updatedLink : p)
                                         .ToList();
                                     matchedGame.UpdatePurchaseLinks(updatedLinks);
                                     modified = true;
@@ -246,14 +247,14 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                             {
                                 await _gameRepository.UpdateAsync(matchedGame, workCt).ConfigureAwait(false);
                                 totalUpdated++;
-                                _logger.LogInformation("Actualizados datos/imágenes/oferta para '{Title}' ({Slug}) desde Devir.", matchedGame.SpanishTitle, matchedGame.Slug);
+                                _logger.LogInformation("Actualizados datos/imágenes/oferta para '{Title}' ({Slug}) desde Maldito Games.", matchedGame.SpanishTitle, matchedGame.Slug);
                             }
                             else
                             {
                                 totalSkipped++;
                             }
 
-                            // Pausa defensiva de cortesía para no saturar Devir
+                            // Pausa defensiva de cortesía para no saturar Maldito Games
                             await Task.Delay(250, workCt).ConfigureAwait(false);
                         }
                         catch (Exception ex) when (ex is not OperationCanceledException || !workCt.IsCancellationRequested)
@@ -266,11 +267,11 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                     hasMore = pageResult.HasNextPage;
                     page++;
 
-                    // Breve pausa cortés entre páginas del catálogo para Cloudflare WAF
+                    // Breve pausa cortés entre páginas del catálogo
                     await Task.Delay(750, workCt).ConfigureAwait(false);
                 }
 
-                string summary = $"Barrido de imágenes de Devir finalizado. Catálogo evaluado: {totalCatalogItems}, Coincidentes: {totalMatched}, Actualizados: {totalUpdated}, Omitidos: {totalSkipped}, Fallos: {totalFailed}.";
+                string summary = $"Barrido de catálogo de Maldito Games finalizado. Evaluados: {totalCatalogItems}, Coincidentes: {totalMatched}, Actualizados: {totalUpdated}, Omitidos: {totalSkipped}, Fallos: {totalFailed}.";
                 _logger.LogInformation(summary);
 
                 return new JobWorkResult(totalUpdated, totalFailed, summary);

@@ -163,6 +163,8 @@ public class LudekaPersistenceAndDomainServicesTests
     {
         public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? catalogHtml = null) => throw new NotImplementedException();
+        public Task<MalditoProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<MalditoCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     /// <summary>
