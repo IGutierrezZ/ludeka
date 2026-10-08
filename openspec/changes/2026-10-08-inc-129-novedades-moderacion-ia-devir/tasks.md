@@ -25,10 +25,10 @@
 - [x] 4.4 Actualizar `EditorialReleasesSyncServiceTests.cs` validando el nuevo flujo sin descartes de Maldito Games.
 
 ## Tarea 5: Bandeja de Moderación y Visualización en `/novedades`
-- [ ] 5.1 Extender `WeeklyReleaseDto.cs` y `IWeeklyReleaseService.cs` con métodos de aprobación y rechazo.
-- [ ] 5.2 Añadir pestaña y tarjetas de moderación comparativa en `News.razor` para usuarios moderadores (`CanApproveMedia`).
-- [ ] 5.3 Implementar botones para Aprobar con enlace BGG, Aprobar sin enlace, y Descartar.
-- [ ] 5.4 Pruebas de integración y componentes para la vista de moderación.
+- [x] 5.1 Extender `WeeklyReleaseDto.cs` y `IWeeklyReleaseService.cs` con métodos de aprobación y rechazo.
+- [x] 5.2 Añadir pestaña y tarjetas de moderación comparativa en `News.razor` para usuarios moderadores (`CanApproveMedia`).
+- [x] 5.3 Implementar botones para Aprobar con enlace BGG, Aprobar sin enlace, y Descartar.
+- [x] 5.4 Pruebas de integración y componentes para la vista de moderación.
 
 ## Tarea 6: Jerarquía de Imágenes (3D como Principal) y Galería
 - [ ] 6.1 Asegurar que `face3d` tenga prioridad como `CoverImageUrl` principal del juego y de la novedad.

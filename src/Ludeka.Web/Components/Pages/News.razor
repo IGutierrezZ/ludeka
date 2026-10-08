@@ -97,6 +97,18 @@
                     Reimpresiones (@_releases.Count(r => r.IsReprint))
                 </button>
 
+                @if (IsModerator)
+                {
+                    <button type="button"
+                            @onclick='() => SetFilter("pending")'
+                            class="h-10 px-4 sm:px-5 rounded-full text-xs sm:text-sm font-extrabold transition-all @(_typeFilter == "pending" ? "bg-[var(--mustard)] text-[#22180F] border-2 border-[var(--mustard)] shadow-sm" : "border-2 border-amber-400/50 text-amber-200 bg-amber-500/15 hover:bg-amber-500/25")">
+                        <span class="inline-flex items-center gap-1.5">
+                            <Icon Name="shield-alert" Size="14" />
+                            <span>Pendientes (@_pendingReleases.Count)</span>
+                        </span>
+                    </button>
+                }
+
                 @if (Publishers.Count > 1)
                 {
                     <select value="@_selectedPublisher"
@@ -132,6 +144,179 @@
         <div class="py-20 text-center text-[var(--muted)]">
             <div class="inline-block animate-spin text-[var(--brand)] mb-3"><Icon Name="package" Size="36" /></div>
             <p class="text-sm font-semibold">Cargando lanzamientos de tiendas...</p>
+        </div>
+    }
+    else if (_typeFilter == "pending" && IsModerator)
+    {
+        @* BANDEJA DE MODERACIÓN COMPARATIVA *@
+        <div class="flex flex-col gap-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b-[3px] border-[var(--rule)]">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black tracking-tight text-[var(--ink)] m-0 flex items-center gap-2">
+                        <Icon Name="shield-alert" Size="22" Class="text-amber-500" />
+                        <span>Bandeja de Moderación Editorial</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-[var(--muted)] m-0 mt-1">
+                        Novedades extraídas automáticamente pendientes de confirmación. Compara los datos oficiales de la editorial con la propuesta de la IA y decide su publicación o vinculación.
+                    </p>
+                </div>
+                <span class="px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-700 border border-amber-500/30">
+                    @_pendingReleases.Count pendientes
+                </span>
+            </div>
+
+            @if (_pendingReleases.Count == 0)
+            {
+                <div class="p-12 text-center rounded-2xl bg-[var(--card)] border border-[var(--line)] max-w-lg mx-auto">
+                    <span class="inline-block mb-3 text-emerald-500"><Icon Name="check-circle-2" Size="44" /></span>
+                    <h3 class="text-base font-black text-[var(--ink)] mb-1">¡Al día! Todo revisado</h3>
+                    <p class="text-xs text-[var(--muted)] mb-5">
+                        No hay novedades pendientes de moderación en este momento. Todos los lanzamientos han sido aprobados o descartados.
+                    </p>
+                    <button type="button"
+                            @onclick='() => SetFilter("all")'
+                            class="h-10 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs inline-flex items-center gap-1.5 shadow-sm">
+                        <span>Ver calendario público</span>
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="flex flex-col gap-5">
+                    @foreach (var release in _pendingReleases)
+                    {
+                        <div class="p-5 sm:p-6 rounded-2xl bg-[var(--card)] border-2 border-[var(--line)] shadow-sm hover:border-[var(--brand)]/40 transition-all flex flex-col gap-5">
+                            @* Cabecera de la tarjeta: Editorial, Fecha y Estado *@
+                            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--line)]">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)]">
+                                        @release.Publisher
+                                    </span>
+                                    @if (release.ReleaseDate.HasValue)
+                                    {
+                                        <span class="text-xs font-bold text-[var(--muted)] flex items-center gap-1">
+                                            <Icon Name="calendar" Size="13" />
+                                            <span>@(release.IsMonthOnly ? release.ReleaseDate.Value.ToString("MMMM yyyy") : release.ReleaseDate.Value.ToString("d MMMM yyyy"))</span>
+                                        </span>
+                                    }
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/15 text-amber-700 border border-amber-400/40 flex items-center gap-1">
+                                    <Icon Name="clock" Size="12" />
+                                    <span>Pendiente de moderación</span>
+                                </span>
+                            </div>
+
+                            @* Cuerpo comparativo en 2 columnas *@
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                @* Columna 1: Datos Oficiales Editorial *@
+                                <div class="flex items-start gap-4 p-4 rounded-xl bg-[var(--paper)] border border-[var(--line)]">
+                                    <div class="w-20 h-24 sm:w-24 sm:h-28 rounded-lg overflow-hidden bg-[var(--paper-2)] border border-[var(--line)] shrink-0 flex items-center justify-center">
+                                        @if (!string.IsNullOrWhiteSpace(release.CoverImageUrl))
+                                        {
+                                            <img src="@release.CoverImageUrl" alt="@release.Title" class="w-full h-full object-cover" />
+                                        }
+                                        else
+                                        {
+                                            <Icon Name="image" Size="28" Class="text-[var(--muted)] opacity-50" />
+                                        }
+                                    </div>
+                                    <div class="flex flex-col gap-1.5 min-w-0 flex-1">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">Datos oficiales editorial</span>
+                                        <h4 class="text-base sm:text-lg font-black text-[var(--ink)] leading-snug m-0">@release.Title</h4>
+                                        <div class="flex flex-wrap items-center gap-3 text-xs text-[var(--muted)] font-semibold mt-0.5">
+                                            @if (release.EstimatedPvp.HasValue)
+                                            {
+                                                <span class="font-bold text-[var(--ink)]">PVP: @($"{release.EstimatedPvp.Value:F2} €")</span>
+                                            }
+                                            @if (release.IsReprint)
+                                            {
+                                                <span class="text-amber-600 font-bold">· Reimpresión</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(release.Notes))
+                                        {
+                                            <p class="text-xs text-[var(--muted)] m-0 mt-1 line-clamp-2">@release.Notes</p>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(release.SourceUrl))
+                                        {
+                                            <a href="@release.SourceUrl" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[var(--brand)] hover:underline inline-flex items-center gap-1 mt-1">
+                                                <span>Ver en tienda oficial</span>
+                                                <Icon Name="external-link" Size="12" />
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+
+                                @* Columna 2: Sugerencia de la IA *@
+                                <div class="flex flex-col gap-3 p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                                            <Icon Name="sparkles" Size="12" />
+                                            <span>Propuesta IA (Gemini &amp; BGG)</span>
+                                        </span>
+                                        @if (release.AiSuggestedBggId.HasValue)
+                                        {
+                                            <span class="text-xs font-mono font-bold text-purple-600">BGG #@release.AiSuggestedBggId</span>
+                                        }
+                                    </div>
+
+                                    @if (release.AiSuggestedBggId.HasValue)
+                                    {
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-baseline gap-2">
+                                                <h5 class="text-base font-black text-[var(--ink)] m-0">@release.AiSuggestedTitle</h5>
+                                                <a href="@($"https://boardgamegeek.com/boardgame/{release.AiSuggestedBggId}")" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-purple-600 hover:underline inline-flex items-center gap-0.5">
+                                                    <span>Ficha BGG</span>
+                                                    <Icon Name="external-link" Size="11" />
+                                                </a>
+                                            </div>
+                                            <p class="text-xs text-[var(--muted)] m-0 leading-relaxed italic">
+                                                «@release.AiMatchReasoning»
+                                            </p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="py-2 text-xs text-[var(--muted)]">
+                                            <p class="m-0">Sin inferencia automática concluyente. Se puede publicar como novedad independiente o buscar manualmente el juego en el catálogo.</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            @* Acciones de moderación *@
+                            <div class="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-[var(--line)]">
+                                <button type="button"
+                                        @onclick="() => HandleReject(release.Id)"
+                                        disabled="@(_moderatingReleaseId == release.Id)"
+                                        class="h-9 px-4 rounded-full border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-extrabold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                                    <Icon Name="x-circle" Size="14" />
+                                    <span>Descartar</span>
+                                </button>
+
+                                <button type="button"
+                                        @onclick="() => HandleApprove(release.Id, false)"
+                                        disabled="@(_moderatingReleaseId == release.Id)"
+                                        class="h-9 px-4 rounded-full border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] text-xs font-extrabold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                                    <Icon Name="check" Size="14" />
+                                    <span>Aprobar sin enlace BGG</span>
+                                </button>
+
+                                @if (release.AiSuggestedBggId.HasValue)
+                                {
+                                    <button type="button"
+                                            @onclick="() => HandleApprove(release.Id, true)"
+                                            disabled="@(_moderatingReleaseId == release.Id)"
+                                            class="h-9 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] text-xs font-black inline-flex items-center gap-1.5 shadow-sm hover:opacity-95 transition-opacity disabled:opacity-50">
+                                        <Icon Name="check-circle-2" Size="14" />
+                                        <span>Aprobar y vincular a BGG (@release.AiSuggestedBggId)</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     }
     else if (FilteredReleases.Count == 0)
@@ -510,6 +695,8 @@
 @code {
     private bool _isLoading = true;
     private IReadOnlyList<WeeklyReleaseDto> _releases = new List<WeeklyReleaseDto>();
+    private IReadOnlyList<WeeklyReleaseDto> _pendingReleases = new List<WeeklyReleaseDto>();
+    private Guid? _moderatingReleaseId;
     private string _searchTerm = string.Empty;
     private string _selectedPublisher = string.Empty;
     private string _typeFilter = "all";
@@ -628,10 +815,68 @@
         try
         {
             _releases = await ReleaseService.GetReleasesAsync();
+            if (IsModerator)
+            {
+                _pendingReleases = await ReleaseService.GetPendingModerationReleasesAsync();
+            }
+            else
+            {
+                _pendingReleases = [];
+            }
         }
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task HandleApprove(Guid releaseId, bool linkToAiSuggestion)
+    {
+        _moderatingReleaseId = releaseId;
+        _syncFeedbackMessage = null;
+        StateHasChanged();
+        try
+        {
+            await ReleaseService.ApproveReleaseAsync(releaseId, linkedGameId: null, useAiSuggestionIfAvailable: linkToAiSuggestion);
+            _syncFeedbackIsError = false;
+            _syncFeedbackMessage = linkToAiSuggestion
+                ? "Novedad aprobada y vinculada al catálogo con éxito."
+                : "Novedad aprobada como novedad editorial independiente.";
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _syncFeedbackIsError = true;
+            _syncFeedbackMessage = $"Error al aprobar la novedad: {ex.Message}";
+        }
+        finally
+        {
+            _moderatingReleaseId = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleReject(Guid releaseId)
+    {
+        _moderatingReleaseId = releaseId;
+        _syncFeedbackMessage = null;
+        StateHasChanged();
+        try
+        {
+            await ReleaseService.RejectReleaseAsync(releaseId);
+            _syncFeedbackIsError = false;
+            _syncFeedbackMessage = "Novedad descartada de moderación.";
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _syncFeedbackIsError = true;
+            _syncFeedbackMessage = $"Error al descartar la novedad: {ex.Message}";
+        }
+        finally
+        {
+            _moderatingReleaseId = null;
+            StateHasChanged();
         }
     }
 

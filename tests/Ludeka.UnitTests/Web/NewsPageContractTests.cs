@@ -81,6 +81,29 @@ public class NewsPageContractTests
         }
     }
 
+    [Fact]
+    public void Page_ShouldContainComparativeModerationInboxForModerators()
+    {
+        var source = ReadSource(PagePath);
+
+        // Pestaña y contenedor de moderación
+        Assert.Contains("Pendientes", source, StringComparison.Ordinal);
+        Assert.Contains("Bandeja de Moderación Editorial", source, StringComparison.Ordinal);
+        Assert.Contains("_pendingReleases", source, StringComparison.Ordinal);
+
+        // Comparativa y sugerencia IA
+        Assert.Contains("Propuesta IA (Gemini &amp; BGG)", source, StringComparison.Ordinal);
+        Assert.Contains("AiSuggestedBggId", source, StringComparison.Ordinal);
+        Assert.Contains("AiMatchReasoning", source, StringComparison.Ordinal);
+
+        // Acciones de moderación
+        Assert.Contains("HandleApprove", source, StringComparison.Ordinal);
+        Assert.Contains("HandleReject", source, StringComparison.Ordinal);
+        Assert.Contains("Aprobar y vincular a BGG", source, StringComparison.Ordinal);
+        Assert.Contains("Aprobar sin enlace BGG", source, StringComparison.Ordinal);
+        Assert.Contains("Descartar", source, StringComparison.Ordinal);
+    }
+
     private static string ReadSource(string relativePath)
     {
         var path = Path.Combine(GetRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));

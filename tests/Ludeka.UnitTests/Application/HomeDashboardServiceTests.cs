@@ -55,9 +55,12 @@ public class HomeDashboardServiceTests
             return Task.FromResult<IReadOnlyList<WeeklyReleaseDto>>(ReleasesToReturn);
         }
 
+        public Task<IReadOnlyList<WeeklyReleaseDto>> GetPendingModerationReleasesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyReleaseDto>>([]);
         public Task<WeeklyReleaseDto?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<WeeklyReleaseDto?>(null);
         public Task<WeeklyReleaseDto> CreateReleaseAsync(CreateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<WeeklyReleaseDto> UpdateReleaseAsync(Guid id, UpdateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<WeeklyReleaseDto> ApproveReleaseAsync(Guid id, Guid? linkedGameId = null, bool useAiSuggestionIfAvailable = true, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task RejectReleaseAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteReleaseAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
     }
 
