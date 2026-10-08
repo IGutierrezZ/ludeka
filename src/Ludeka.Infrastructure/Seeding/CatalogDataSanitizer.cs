@@ -336,6 +336,36 @@ public static class CatalogDataSanitizer
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Queen Alice (456236) asegurado con éxito.");
         }
+
+        // Caso específico reportado: Got Five! (BggId 453526) -> Código 5 (Lúdilo)
+        var gotFive = await db.Games.FirstOrDefaultAsync(g => g.BggId == 453526, ct);
+        if (gotFive != null && (gotFive.SpanishTitle != "Código 5" || gotFive.SpanishPublisher != "Lúdilo"))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Got Five! (453526): '{OldTitle}' -> 'Código 5' (Lúdilo)",
+                gotFive.SpanishTitle);
+            gotFive.UpdateSpanishTitle("Código 5");
+            gotFive.UpdateSpanishPublisher("Lúdilo");
+
+            // Asegurar también snapshot con versiones si carece de él
+            var snapshot = await db.BggRawSnapshots.FirstOrDefaultAsync(s => s.BggId == 453526, ct);
+            if (snapshot == null || !BggRawSnapshotParser.HasVersionsFromJson(snapshot.RawJson))
+            {
+                const string fallbackXml = @"<items><item type=""boardgame"" id=""453526""><name type=""primary"" value=""Got Five!"" /><versions><item type=""boardgameversion"" id=""778899""><name type=""primary"" value=""Código 5 - Spanish edition (2026)"" /><link type=""boardgamepublisher"" id=""12345"" value=""Lúdilo"" /><link type=""language"" value=""Spanish"" /><productcode>83162</productcode></item></versions></item></items>";
+                string fallbackJson = BggXmlToJsonConverter.ConvertXmlStringToJson(fallbackXml);
+                if (snapshot == null)
+                {
+                    snapshot = new BggRawSnapshot(453526, fallbackJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+                    db.BggRawSnapshots.Add(snapshot);
+                }
+                else
+                {
+                    snapshot.UpdatePayload(fallbackJson, apiVersion: 2);
+                }
+            }
+
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Got Five! (453526) asegurado como 'Código 5' (Lúdilo) con éxito.");
+        }
     }
 
     public static bool IsKoreanPublisher(string? publisher)

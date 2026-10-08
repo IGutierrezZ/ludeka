@@ -643,7 +643,11 @@ public class BggRawSnapshotSyncService : IBggRawSnapshotSyncService
         var targetIds = await _snapshotRepo.GetBggIdsMissingVersionsAsync(batchSize, ct);
         if (targetIds.Count == 0)
         {
-            return new BggRawSnapshotSyncResultDto(0, 0, 0, [], [], "Todos los snapshots almacenados ya cuentan con datos de versiones.");
+            targetIds = await _snapshotRepo.GetBggIdsNeedingVersionRefreshAsync(minYear: DateTime.UtcNow.Year - 1, limit: batchSize, ct: ct);
+            if (targetIds.Count == 0)
+            {
+                return new BggRawSnapshotSyncResultDto(0, 0, 0, [], [], "Todos los snapshots almacenados ya cuentan con datos de versiones.");
+            }
         }
 
         int successCount = 0;

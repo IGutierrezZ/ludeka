@@ -208,11 +208,39 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Ciudadelas: Edición Deluxe", "Ciudadelas")]
     [InlineData("Queen Alice - ENG/GER/FRE/SPA edition", "Queen Alice")]
     [InlineData("Ark Nova: Mundo Marino - Spanish edition (2024)", "Ark Nova: Mundo Marino")]
+    [InlineData("Código 5 - Spanish edition (2026)", "Código 5")]
+    [InlineData("Código 5 - Spanish edition", "Código 5")]
     [InlineData("Spanish edition (2024)", null)]
     public void CleanVersionTitle_ShouldStripSuffixOrReturnNull(string rawTitle, string? expectedCleaned)
     {
         string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
         Assert.Equal(expectedCleaned, cleaned);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractCodigo5AndLudilo_WhenVersionIsSpanishEditionOfGotFive()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""453526"">
+    <name type=""primary"" value=""Got Five!"" />
+    <versions>
+      <item type=""boardgameversion"" id=""778899"">
+        <name type=""primary"" value=""Código 5 - Spanish edition (2026)"" />
+        <link type=""boardgamepublisher"" id=""12345"" value=""Lúdilo"" />
+        <link type=""language"" id=""2194"" value=""Spanish"" />
+        <productcode>83162</productcode>
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Código 5", result.Title);
+        Assert.Equal("Lúdilo", result.Publisher);
     }
 
     [Fact]
