@@ -146,6 +146,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-131** | Calificación en Tarjetas de Expansión y Ordenación por Nota | ✅ Archivado | [inc-131-expansiones-nota-ordenacion.md](archive/inc-131-expansiones-nota-ordenacion.md) |
 | **INC-132** | Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa | ✅ Archivado | [inc-132-dureza-numerica-bgg.md](archive/inc-132-dureza-numerica-bgg.md) |
 | **INC-133** | Saneamiento de Novedades Devir y Maldito, Galería Fotográfica y Job de Barrido de Catálogo | ✅ Archivado | [inc-133-devir-galeria-filtros-novedades.md](archive/inc-133-devir-galeria-filtros-novedades.md) |
+| **INC-134** | Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo | ⏳ En progreso | [inc-134-ordenacion-dureza-backfill.md](inc-134-ordenacion-dureza-backfill.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -174,6 +175,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
+- **INC-134** (`inc/ordenacion-dureza-catalogo` en `F:\repos\ludeka-wt\ordenacion-dureza-catalogo`): Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo. En curso.
 
 *(INC-133 entregó su verificación con 2.705 pruebas unitarias + 10 de integración en verde al 100% [2.715 en total], y quedó archivada y desplegada en Google Cloud Run el 2026-10-08. Implementa la exclusión de secciones en desarrollo, rol y meses anteriores en el extractor de Devir, descarte de duplicados espurios por fragmentos de texto, captura de la galería completa en Magento [caja 3D, mesa y contraportada con EAN-13 y PVP], límite defensivo de 4 segundos con fallback en GeminiReleaseMatcherService para erradicar desconexiones de WebSocket en Cloud Run, y el job autónomo devir-images-backfill para enriquecer fichas del catálogo local).*
 
