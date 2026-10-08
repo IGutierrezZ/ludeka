@@ -1,6 +1,6 @@
 # INC-136: Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo
 
-**Estado:** ⏳ En progreso  
+**Estado:** ✅ Archivado  
 **Fecha:** 2026-10-08  
 **Tipo:** Feature / Bugfix / Data Integrity  
 **Alcance:** Core, Application, Infrastructure, Seeding, Tests  
