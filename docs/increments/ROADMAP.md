@@ -141,6 +141,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-126** | Ficha Editorial Limpia (Alineación Claude Design: 4 Columnas, Veredicto Integrado y Filtro Estricto de Stock) | ✅ Archivado | [inc-126-ficha-editorial-limpia.md](archive/inc-126-ficha-editorial-limpia.md) |
 | **INC-127** | Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design) | ⏳ En progreso (Verificado 2.627 tests) | [inc-127-cuenta-movil-gestion.md](inc-127-cuenta-movil-gestion.md) |
 | **INC-128** | Extractor Determinista de Novedades y Reimpresiones de Maldito Games | ✅ Archivado | [inc-128-extractor-novedades-maldito.md](archive/inc-128-extractor-novedades-maldito.md) |
+| **INC-129** | Moderación Asistida por IA (Gemini) de Novedades Editoriales, Filtros de Calendario en Devir y Jerarquía de Imágenes 3D | ⏳ En progreso | [inc-129-novedades-moderacion-ia-devir.md](inc-129-novedades-moderacion-ia-devir.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
