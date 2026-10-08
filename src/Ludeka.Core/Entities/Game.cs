@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Ludeka.Core.Enums;
+using Ludeka.Core.Helpers;
 using Ludeka.Core.ValueObjects;
 
 namespace Ludeka.Core.Entities;
@@ -26,7 +27,9 @@ public partial class Game
     public string? Description { get; private set; }
     public double BggRating { get; private set; }
     public int? BggRank { get; private set; }
+    public double? BggWeight { get; private set; }
     public double LudistRating { get; private set; }
+    public GameComplexity Complexity => ComplexityCalculator.Calculate(this);
     public ConfrontationType Confrontation { get; private set; }
     public GameStyle Style { get; private set; }
     public bool IsOfficialSolo { get; private set; }
@@ -101,7 +104,8 @@ public partial class Game
         IEnumerable<LocalizedTitleEntry>? localizedTitles = null,
         string? ean = null,
         IEnumerable<string>? additionalBarcodes = null,
-        string? asin = null)
+        string? asin = null,
+        double? bggWeight = null)
     {
         if (bggId <= 0) throw new ArgumentOutOfRangeException(nameof(bggId), "El BggId debe ser positivo.");
         if (string.IsNullOrWhiteSpace(originalTitle)) throw new ArgumentException("El título original no puede estar vacío.", nameof(originalTitle));
@@ -149,6 +153,7 @@ public partial class Game
         WhatItBringsSummary = whatItBringsSummary?.Trim();
         ExtraPlayerCount = extraPlayerCount;
         ExtraDurationMinutes = extraDurationMinutes;
+        UpdateBggWeight(bggWeight);
     }
 
     public string IdealPlayerCountText => CalculateIdealPlayerCountText();
@@ -197,6 +202,17 @@ public partial class Game
     public void UpdateLudistRating(double newAverageRating)
     {
         LudistRating = Math.Clamp(Math.Round(newAverageRating, 1), 0.0, 10.0);
+    }
+
+    public void UpdateBggWeight(double? weight)
+    {
+        if (!weight.HasValue || weight.Value <= 0.0)
+        {
+            BggWeight = null;
+            return;
+        }
+
+        BggWeight = Math.Round(Math.Clamp(weight.Value, 1.0, 5.0), 2);
     }
 
     public void UpdateBggId(int bggId)

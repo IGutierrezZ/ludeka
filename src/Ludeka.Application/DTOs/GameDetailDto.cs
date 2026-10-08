@@ -46,7 +46,8 @@ public record GameDetailDto(
     IReadOnlyList<RegionalPublisherEntry>? RegionalPublishers = null,
     IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null,
     string? Ean = null,
-    IReadOnlyList<string>? AdditionalBarcodes = null
+    IReadOnlyList<string>? AdditionalBarcodes = null,
+    double? BggWeight = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
@@ -129,6 +130,7 @@ public record GameDetailDto(
         (g.RegionalPublishers ?? new List<RegionalPublisherEntry>()).AsReadOnly(),
         (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly(),
         g.Ean,
-        (g.AdditionalBarcodes ?? new List<string>()).AsReadOnly()
+        (g.AdditionalBarcodes ?? new List<string>()).AsReadOnly(),
+        g.BggWeight
     );
 }

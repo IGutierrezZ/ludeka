@@ -62,7 +62,7 @@ public static class BggXmlParser
         var language = ParseLanguageDependence(item);
 
         // Ratings y Rankings
-        var (bggRating, bggRank) = ParseStatistics(item);
+        var (bggRating, bggRank, bggWeight) = ParseStatistics(item);
 
         // ADN lúdico heurístico según enlaces y categorías
         var (confrontation, style, isSolo) = InferGameDna(item, quality.Scalability);
@@ -91,7 +91,8 @@ public static class BggXmlParser
             sleeves: quality.Sleeves,
             type: gameType,
             spanishPublisher: quality.SpanishPublisher,
-            regionalPublishers: quality.RegionalPublishers
+            regionalPublishers: quality.RegionalPublishers,
+            bggWeight: bggWeight
         );
     }
 
@@ -214,10 +215,10 @@ public static class BggXmlParser
         };
     }
 
-    private static (double Rating, int? Rank) ParseStatistics(XElement item)
+    private static (double Rating, int? Rank, double? Weight) ParseStatistics(XElement item)
     {
         var stats = item.Element("statistics")?.Element("ratings");
-        if (stats == null) return (0.0, null);
+        if (stats == null) return (0.0, null, null);
 
         double rating = 0.0;
         if (double.TryParse(stats.Element("average")?.Attribute("value")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double avg))
@@ -234,7 +235,13 @@ public static class BggXmlParser
             rank = rk;
         }
 
-        return (rating, rank);
+        double? weight = null;
+        if (double.TryParse(stats.Element("averageweight")?.Attribute("value")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double wt) && wt > 0)
+        {
+            weight = Math.Round(Math.Clamp(wt, 1.0, 5.0), 2);
+        }
+
+        return (rating, rank, weight);
     }
 
     public static (

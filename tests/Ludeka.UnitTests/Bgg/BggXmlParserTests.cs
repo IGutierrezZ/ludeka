@@ -76,6 +76,7 @@ public class BggXmlParserTests
         <ranks>
           <rank type=""subtype"" id=""1"" name=""boardgame"" friendlyname=""Board Game Rank"" value=""28"" bayesaverage=""7.96"" />
         </ranks>
+        <averageweight value=""2.4632"" />
       </ratings>
     </statistics>
   </item>
@@ -100,6 +101,8 @@ public class BggXmlParserTests
         Assert.Equal("Maldito Games", game.Publisher);
         Assert.Equal(28, game.BggRank);
         Assert.True(game.BggRating >= 8.0);
+        Assert.Equal(2.46, game.BggWeight);
+        Assert.Equal(GameComplexity.Medium, game.Complexity);
     }
 
     [Fact]

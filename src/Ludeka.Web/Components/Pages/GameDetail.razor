@@ -612,6 +612,10 @@ else
                                 @if (_isTechOpen)
                                 {
                                     <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
+                                        <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Dureza / Peso</span>
+                                        <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetComplexityAdnText()</b>
+                                    </div>
+                                    <div class="flex flex-col gap-1 pt-2.5 border-t border-[var(--line)] animate-in fade-in duration-200">
                                         <span class="text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Confrontación</span>
                                         <b class="text-sm sm:text-base font-extrabold text-[var(--ink)] leading-snug">@GetConfrontationText(Game.Confrontation)</b>
                                     </div>
@@ -1242,11 +1246,23 @@ else
     private string GetComplexityShortText()
     {
         if (Game == null) return "Medio";
-        if (Game.Style == GameStyle.PartyGame || Game.Style == GameStyle.FillerAbstract || (Game.Duration.MaxMinutes <= 30 && Game.Age.CommunityAge <= 10))
-            return "Ligero";
-        if (Game.Duration.MaxMinutes >= 120 || Game.Age.CommunityAge >= 14 || (Game.Duration.MaxMinutes >= 90 && Game.Style == GameStyle.Eurogame))
-            return "Duro";
-        return "Medio";
+        return ComplexityCalculator.Calculate(Game.BggWeight, Game.Style, Game.Duration?.MaxMinutes ?? 0, Game.Age?.CommunityAge ?? 0) switch
+        {
+            GameComplexity.Light => "Ligero",
+            GameComplexity.Heavy => "Duro",
+            _ => "Medio"
+        };
+    }
+
+    private string GetComplexityAdnText()
+    {
+        if (Game == null) return "Medio";
+        var qualitative = GetComplexityShortText();
+        if (Game.BggWeight.HasValue && Game.BggWeight.Value > 0)
+        {
+            return $"{Game.BggWeight.Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} / 5 ({qualitative})";
+        }
+        return $"{qualitative} (estimada)";
     }
 
     private string GetDurationDisplayText()
@@ -1267,8 +1283,17 @@ else
         var parts = new List<string>();
         var styleName = Game.Style == GameStyle.Eurogame ? "EUROGAME" : GetStyleShortText(Game.Style).ToUpperInvariant();
         parts.Add(styleName);
+
         var comp = GetComplexityShortText().ToUpperInvariant();
-        if (!string.IsNullOrWhiteSpace(comp)) parts.Add(comp);
+        if (Game.BggWeight.HasValue && Game.BggWeight.Value > 0)
+        {
+            parts.Add($"{Game.BggWeight.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}/5 {comp}");
+        }
+        else if (!string.IsNullOrWhiteSpace(comp))
+        {
+            parts.Add(comp);
+        }
+
         var age = Game.Age.BoxAge > 0 ? Game.Age.BoxAge : Game.Age.CommunityAge;
         if (age > 0) parts.Add($"{age}+");
         parts.Add($"{Game.YearPublished}");
