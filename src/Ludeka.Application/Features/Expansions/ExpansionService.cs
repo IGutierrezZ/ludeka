@@ -24,7 +24,12 @@ public class ExpansionService : IExpansionService
     public async Task<IReadOnlyList<ExpansionSummaryDto>> GetExpansionsForBaseGameAsync(Guid baseGameId, CancellationToken ct = default)
     {
         var expansions = await _expansionRepository.GetExpansionsByBaseGameIdAsync(baseGameId, ct);
-        return expansions.Select(ExpansionSummaryDto.FromEntity).ToList();
+        return expansions
+            .Select(ExpansionSummaryDto.FromEntity)
+            .OrderByDescending(e => e.LudistRating > 0 ? e.LudistRating : e.BggRating)
+            .ThenByDescending(e => e.BggRating)
+            .ThenBy(e => e.SpanishTitle)
+            .ToList();
     }
 
     public async Task<ParentGameSummaryDto?> GetParentGameForExpansionAsync(Guid expansionId, CancellationToken ct = default)
