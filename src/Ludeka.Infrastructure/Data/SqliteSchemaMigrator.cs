@@ -645,6 +645,12 @@ public static class SqliteSchemaMigrator
                     cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"SourceUrl\" TEXT NULL;";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
+                if (!releaseCols.Contains("IsMonthOnly"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"WeeklyReleases\" ADD COLUMN \"IsMonthOnly\" INTEGER NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
             }
 
             // Crear tabla InstagramPostDrafts si no existe (Incremento 28)

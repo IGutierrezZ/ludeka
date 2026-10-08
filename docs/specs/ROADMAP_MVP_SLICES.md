@@ -1215,5 +1215,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-123-ficha-juego-revista.md`](../increments/archive/inc-123-ficha-juego-revista.md).
 - **Módulo del Sistema:** [`sistema/55-alineacion-editorial-ficha-juego-revista.md`](sistema/55-alineacion-editorial-ficha-juego-revista.md).
 
+---
+
+## Incremento 128: Extractor Determinista de Novedades y Reimpresiones de Maldito Games
+- **Identificador SDD:** `maldito-releases-extractor`
+- **Objetivo Principal:**
+  1. **Extracción Multisección de Portada:** Parsear los bloques de productos reales bajo `A puntito de llegar`, `Volverán a estar disponibles en breve` (reimpresiones oficiales) y `Últimas novedades`.
+  2. **Parseo Determinista de Fechas en Castellano:** Soporte para formatos `d 'de' MMMM`, `MMMM yyyy` y `yyyy` calculando el año de forma adaptativa.
+  3. **Extracción de EAN-13 desde URL de Imagen de Portada:** Obtención del código de barras de 13 dígitos para emparejamiento directo sin depender de concordancia exacta de títulos.
+  4. **Decodificación de Entidades HTML y Limpieza Heurística:** `HtmlDecode` y depuración de coletillas comerciales en la búsqueda de respaldo en BGG.
+  5. **Compatibilidad SQLite:** Adición de columna `IsMonthOnly` en `SqliteSchemaMigrator`.
+- **Estado:** ⏳ **En revisión (PR pendiente)** (INC-128 · 2.652 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/inc-128-extractor-novedades-maldito.md`](../increments/inc-128-extractor-novedades-maldito.md).
+
 
 
