@@ -1285,3 +1285,16 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md).
 - **Módulo del Sistema:** [`sistema/57-novedades-moderacion-ia-devir.md`](sistema/57-novedades-moderacion-ia-devir.md).
 - **Pruebas unitarias:** 2.749 verificadas al 100%.
+
+---
+
+## Incremento 139: Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL
+- **Identificador SDD:** `espacio-buscador-catalogo`
+- **Objetivo Principal:**
+  1. **Preservación de Espacios en `CatalogFilterState.ToQueryDictionary()`:** Evitar recorte involuntario con `.Trim()` al serializar parámetros de URL en búsquedas con espacios en progreso.
+  2. **Guarda Anti-Reentrada en `Home.razor`:** Implementar `_lastSyncedUri` para comparar `PathAndQuery` en `OnLocationChanged`, evitando que las navegaciones internas disparadas por `SyncUrl()` reentren a `ReadQueryParameters()` y ejecuten consultas dobles en segundo plano.
+  3. **Pruebas de Contrato y Regresión:** Garantizar que los espacios se preserven bidireccionalmente y que el ciclo de vida del catálogo sea determinista.
+- **Estado:** ⏳ **En progreso** (INC-139).
+- **Documento:** [`../increments/inc-139-preservar-espacios-buscador-catalogo.md`](../increments/inc-139-preservar-espacios-buscador-catalogo.md).
+- **Módulo del Sistema:** [`sistema/01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md).
+
