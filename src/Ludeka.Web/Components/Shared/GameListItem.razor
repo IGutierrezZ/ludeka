@@ -82,6 +82,11 @@
                 {
                     <span class="text-[var(--muted)]">· @(Game.EstimatedPerPlayerMinutes)'</span>
                 }
+
+                @* Dureza cuantitativa o cualitativa con accesibilidad WCAG *@
+                <span class="text-[var(--muted)]" title="@Game.ComplexityTooltip" aria-label="@Game.ComplexityTooltip">
+                    · @Game.ComplexityDisplayBadge
+                </span>
             </div>
         </div>
 
