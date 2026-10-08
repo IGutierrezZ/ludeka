@@ -123,4 +123,4 @@ La arquitectura ha sido verificada mediante pruebas automáticas exhaustivas en 
 - `WeeklyReleaseServiceTests.cs`: 14 pruebas de filtrado público, consulta de pendientes, aprobación con/sin BGG ID y rechazo.
 - `NewsPageContractTests.cs`: 6 pruebas de contrato UI para la visibilidad de la pestaña de moderación según roles y botones de acción.
 
-**Total de la suite tras la incorporación del módulo:** 2.675 pruebas unitarias verificadas al 100% en verde.
+**Total de la suite tras la incorporación del módulo:** 2.676 pruebas unitarias verificadas al 100% en verde.

@@ -7,7 +7,7 @@
 - **Rama:** `inc/novedades-moderacion-ia-devir`
 - **Worktree:** `F:\repos\ludeka-wt\novedades-moderacion-ia-devir`
 - **Directorio SDD:** `openspec/changes/2026-10-08-inc-129-novedades-moderacion-ia-devir/`
-- **Pruebas Verificadas:** `2.675 pruebas unitarias verificadas al 100% en verde`
+- **Pruebas Verificadas:** `2.676 pruebas unitarias verificadas al 100% en verde`
 
 ---
 
