@@ -147,6 +147,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-132** | Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa | ✅ Archivado | [inc-132-dureza-numerica-bgg.md](archive/inc-132-dureza-numerica-bgg.md) |
 | **INC-133** | Saneamiento de Novedades Devir y Maldito, Galería Fotográfica y Job de Barrido de Catálogo | ✅ Archivado | [inc-133-devir-galeria-filtros-novedades.md](archive/inc-133-devir-galeria-filtros-novedades.md) |
 | **INC-134** | Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo | ✅ Archivado | [inc-134-ordenacion-dureza-backfill.md](archive/inc-134-ordenacion-dureza-backfill.md) |
+| **INC-135** | Saneamiento de Descriptores de Edición en Títulos BGG y Reparación Automática de Catálogo | ✅ Archivado | [inc-135-saneamiento-titulos-edicion.md](archive/inc-135-saneamiento-titulos-edicion.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -175,6 +176,10 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
+
+*(INC-135 entregó su verificación con 2.730 pruebas unitarias en verde al 100%, incorporando el reconocimiento exhaustivo de acrónimos lingüísticos [ENG, GER, FRE, SPA, ES, EN, etc.] y descriptores de tirada [Retail edition, Deluxe edition, Kickstarter edition, Multilingual edition] en IsGenericEditionTitle y CleanVersionTitle en BggRawSnapshotParser, blindaje en ExtractSpanishTitle de BggXmlParser, ampliación del filtro SQL y saneamiento determinista en CatalogDataSanitizer restaurando al título canónico y asegurando prioritariamente el caso reportado de Queen Alice [BggId 456236]).*
+
+*(INC-134 entregó su verificación con 2.712 pruebas unitarias en verde al 100%, incorporando el motor canónico GetEffectiveWeight en ComplexityCalculator con valores extrapolados continuos [1.60 Ligero, 2.70 Medio, 3.80 Duro], ordenación resiliente y continua tanto en SQL nativo [ApplyQuerySorting] como en índice en memoria [ApplyIndexSorting] evitando relegar nulos al final desempatados por BggRank, ejecución autónoma e idempotente de BackfillBggWeightsFromSnapshotsAsync en el arranque de Program.cs, e indicador de dureza accesible con badge y tooltip en las tarjetas de catálogo GameCard.razor y GameListItem.razor).*
 
 *(INC-134 entregó su verificación con 2.712 pruebas unitarias en verde al 100%, incorporando el motor canónico GetEffectiveWeight en ComplexityCalculator con valores extrapolados continuos [1.60 Ligero, 2.70 Medio, 3.80 Duro], ordenación resiliente y continua tanto en SQL nativo [ApplyQuerySorting] como en índice en memoria [ApplyIndexSorting] evitando relegar nulos al final desempatados por BggRank, ejecución autónoma e idempotente de BackfillBggWeightsFromSnapshotsAsync en el arranque de Program.cs, e indicador de dureza accesible con badge y tooltip en las tarjetas de catálogo GameCard.razor y GameListItem.razor).*
 

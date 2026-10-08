@@ -469,36 +469,52 @@ public static class BggRawSnapshotParser
     /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "Korean edition", "Edición en español")
     /// y no a un título comercial auténtico de juego o expansión.
     /// </summary>
+    /// <summary>
+    /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "ENG/GER/FRE/SPA edition", "Retail edition")
+    /// y no a un título comercial auténtico de juego o expansión.
+    /// </summary>
     public static bool IsGenericEditionTitle(string? title)
     {
         if (string.IsNullOrWhiteSpace(title)) return true;
 
         string t = title.Trim();
 
-        // 1. Descriptores puros de idioma
-        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|internacional)$", RegexOptions.IgnoreCase))
+        // 1. Descriptores puros de idioma o combinaciones de acrónimos (ej. "Spanish", "ENG/GER/FRE/SPA", "ES/EN")
+        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|portuguese|portuguesa|multilingual|multilingüe|international|internacional)$", RegexOptions.IgnoreCase))
             return true;
 
-        // 2. Títulos que consisten únicamente en [editorial/idioma/ordinal/adjetivo] + edition/edición/version/versión
-        if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version)\b", RegexOptions.IgnoreCase))
-        {
-            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|english|korean|coreana|german|alemana|french|francesa|italian|italiana|multilingual|international|internacional|first|second|third|1st|2nd|3rd|deluxe|collector['’]?s?|limited|retail|kickstarter|special|edition|edici[oó]n|versi[oó]n|version|en|de|la|el|los|las|(?:19|20)\d{2})\b", "", RegexOptions.IgnoreCase);
-            stripped = Regex.Replace(stripped, @"[-_–—/:(),.']", " ").Trim();
+        if (Regex.IsMatch(t, @"^(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})+)$", RegexOptions.IgnoreCase))
+            return true;
 
-            // Si no queda nada, era un descriptor genérico puro (ej. "Spanish edition", "Edición en español")
+        // 2. Títulos que contienen indicadores de edición / versión / tirada / caja
+        if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version|release|box|caja)\b", RegexOptions.IgnoreCase))
+        {
+            // Reemplazar tokens de idioma, descriptores de tirada, editoriales y números/años
+            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|catalan|català|galician|galego|basque|euskera|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|holandesa|polish|polaco|polaca|czech|checo|checa|russian|ruso|rusa|japanese|japonés|japonesa|chinese|chino|china|multilingual|multilingüe|international|internacional|nordic|scandinavian|european|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th|primera|segunda|tercera|cuarta|quinta|sexta|deluxe|collector['’]?s?|coleccionista|limited|limitada|retail|tiendas|kickstarter|ks|gamefound|crowdfunding|backer|mecenas|special|especial|standard|est[aá]ndar|essential|esencial|anniversary|aniversario|big\s+box|pocket|travel|viaje|mini|compact|promo|master\s+print|edition|edici[oó]n|versi[oó]n|version|release|box|caja|en|de|del|la|el|los|las|in|for|with|con|and|und|et|y|e|(?:19|20)\d{2}|[ivxIVX\d]+)\b", "", RegexOptions.IgnoreCase);
+
+            // Reemplazar códigos lingüísticos de 2 a 4 letras (ej. ENG, GER, FRE, SPA, ES, EN)
+            stripped = Regex.Replace(stripped, @"\b(?:eng|spa|esp|ger|deu|fre|fra|ita|por|dut|nld|pol|cze|ces|rus|kor|jpn|chi|zho|hun|ell|gre|dan|nor|swe|fin|en|es|de|fr|it|pt|nl|pl|cs|cz|ru|ko|ja|zh)\b", "", RegexOptions.IgnoreCase);
+
+            // Reemplazar editoriales conocidas que suelen acompañar a ediciones
+            stripped = Regex.Replace(stripped, @"\b(?:combo\s+games(?:\s+\(ii\))?|combo\s+games|angry\s+lion(?:\s+games)?|lotus\s+frog(?:\s+games)?|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|edge|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|dire\s+wolf|ravensburger|kosmos|queen\s+games|cmon)\b", "", RegexOptions.IgnoreCase);
+
+            // Limpiar separadores y puntuación
+            stripped = Regex.Replace(stripped, @"[-_–—/:(),.+'&\\#]", " ").Trim();
+
+            // Si no queda nada, era un descriptor genérico puro (ej. "ENG/GER/FRE/SPA edition", "Spanish edition", "Retail edition", "Combo Games edition")
             if (string.IsNullOrWhiteSpace(stripped)) return true;
 
-            // Si lo que queda coincide con nombres de editoriales conocidas o palabras breves que acompañan a edition (ej. "Angry Lion", "Devir", "Maldito Games")
-            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx)$", RegexOptions.IgnoreCase))
+            // Si lo que queda coincide con nombres de editoriales conocidas o palabras breves de edición
+            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|combo\s+games)$", RegexOptions.IgnoreCase))
             {
                 return true;
             }
 
-            // Si no contiene separadores de subtítulo y es una frase corta de edición (ej. "Angry Lion Korean edition")
+            // Si no contiene separadores de subtítulo y es una frase corta de edición (<= 5 palabras)
             if (!t.Contains(':') && !t.Contains('-') && !t.Contains('—') && !t.Contains('–'))
             {
-                var words = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (words.Length <= 4 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french)\b", RegexOptions.IgnoreCase))
+                var words = t.Split(new[] { ' ', '/', '-', '+', '&' }, StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length <= 5 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french|italian|multilingual|international|eng|spa|ger|fre|fra|ita|por|es|en|de|fr)\b", RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
@@ -510,17 +526,18 @@ public static class BggRawSnapshotParser
 
     /// <summary>
     /// Limpia sufijos o coletillas de edición de un título de versión (ej. "Alta Tensión (Edición en español)" -> "Alta Tensión",
-    /// "Ark Nova: Mundo Marino - Spanish edition (2024)" -> "Ark Nova: Mundo Marino").
-    /// Si el título resultante es un descriptor genérico (ej. "Spanish edition"), devuelve null para evitar sobreescribir el título canónico del juego.
+    /// "Ark Nova: Mundo Marino - Spanish edition (2024)" -> "Ark Nova: Mundo Marino",
+    /// "Queen Alice - ENG/GER/FRE/SPA edition" -> "Queen Alice").
+    /// Si el título resultante es un descriptor genérico (ej. "Spanish edition", "ENG/GER/FRE/SPA edition"), devuelve null para evitar sobreescribir el título canónico del juego.
     /// </summary>
     public static string? CleanVersionTitle(string? rawTitle)
     {
         if (string.IsNullOrWhiteSpace(rawTitle)) return null;
 
         // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.),
-        // contemplando posibles años asociados antes o después del término de edición (ej. " - Spanish edition (2024)").
+        // contemplando posibles acrónimos lingüísticos, idiomas, tiradas o años asociados.
         string cleaned = Regex.Replace(rawTitle.Trim(),
-            @"\s*[\(\[\-:–—]\s*(?:(?:primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
+            @"\s*[\(\[\-:–—]\s*(?:(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})*|primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail|[A-Za-z]{2,4}))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
             "", RegexOptions.IgnoreCase).Trim();
 
         if (string.IsNullOrWhiteSpace(cleaned) || IsGenericEditionTitle(cleaned))
