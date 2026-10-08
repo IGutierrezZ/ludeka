@@ -1282,8 +1282,10 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   3. **Desacoplo y Aislamiento en Extracción de Maldito Games:** Separar la obtención de la portada y el catálogo para que un fallo en el catálogo Magento no descarte las más de 40 novedades de la portada, garantizando su llegada a la bandeja de moderación.
   4. **Ritmo Cortés y Tolerancia en Job de Barrido:** Throttle de 750 ms entre páginas y tolerancia de hasta 2 fallos consecutivos en `DevirImagesBackfillJobRunner`.
   5. **Despliegue Continuo de `devir-images-backfill`:** Registro en `.github/workflows/ci-cd.yml` para despliegue automático en Google Cloud Run Jobs.
-- **Estado:** ⏳ **En progreso** (INC-138).
-- **Documento:** [`../increments/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/inc-138-resiliencia-devir-maldito-novedades.md).
+- **Estado:** ✅ **Completado y Archivado** (INC-138 · 2.749 pruebas unitarias en verde al 100% · PR #251 desplegado en Google Cloud Run).
+- **Documento:** [`../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md).
+- **Módulo del Sistema:** [`sistema/57-novedades-moderacion-ia-devir.md`](sistema/57-novedades-moderacion-ia-devir.md).
+- **Pruebas unitarias:** 2.749 verificadas al 100%.
 
 ---
 
