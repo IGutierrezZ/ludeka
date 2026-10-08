@@ -7,7 +7,7 @@ using Ludeka.Core.Enums;
 namespace Ludeka.Core.Helpers;
 
 /// <summary>
-/// Motor canónico de cálculo y extrapolación de complejidad/dureza para juegos de mesa (INC-130).
+/// Motor canónico de cálculo y extrapolación de complejidad/dureza para juegos de mesa (INC-131).
 /// Si existe un peso BGG continuo (1.0 - 5.0), se aplican umbrales comunitarios contrastados.
 /// En caso contrario, se aplica la heurística de respaldo por duración, edad y estilo.
 /// </summary>
