@@ -1281,6 +1281,7 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   2. **Reintento Comedido (Opción 2):** Implementar a lo sumo 1 reintento con retardo de 1.5s ante 403, 429 o errores 5xx transitorios de Cloudflare en Devir y Maldito Games.
   3. **Desacoplo y Aislamiento en Extracción de Maldito Games:** Separar la obtención de la portada y el catálogo para que un fallo en el catálogo Magento no descarte las más de 40 novedades de la portada, garantizando su llegada a la bandeja de moderación.
   4. **Ritmo Cortés y Tolerancia en Job de Barrido:** Throttle de 750 ms entre páginas y tolerancia de hasta 2 fallos consecutivos en `DevirImagesBackfillJobRunner`.
+  5. **Despliegue Continuo de `devir-images-backfill`:** Registro en `.github/workflows/ci-cd.yml` para despliegue automático en Google Cloud Run Jobs.
 - **Estado:** ✅ **Completado y Archivado** (INC-138 · 2.749 pruebas unitarias en verde al 100% · PR #251 desplegado en Google Cloud Run).
 - **Documento:** [`../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md`](../increments/archive/inc-138-resiliencia-devir-maldito-novedades.md).
 - **Módulo del Sistema:** [`sistema/57-novedades-moderacion-ia-devir.md`](sistema/57-novedades-moderacion-ia-devir.md).
@@ -1298,3 +1299,15 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/inc-139-preservar-espacios-buscador-catalogo.md`](../increments/inc-139-preservar-espacios-buscador-catalogo.md).
 - **Módulo del Sistema:** [`sistema/01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md).
 
+---
+
+## Incremento 140: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
+- **Identificador SDD:** `galeria-dinamica-fichas`
+- **Objetivo Principal:**
+  1. **Modelo de Dominio (`Ludeka.Core`):** Value Object `GameGalleryImage` con `Url` obligatoria y `Title` opcional; métodos de dominio en `Game.cs` (`UpdateAdditionalImages`, `AddGalleryImage`, `RemoveGalleryImage`).
+  2. **Persistencia e Infraestructura (`Ludeka.Infrastructure`):** Mapeo JSONB con `OwnsMany(g => g.AdditionalImages, b => b.ToJson())`, migración EF Core `AddGameAdditionalImages` y reconciliación en `SqliteSchemaMigrator`.
+  3. **Capa de Aplicación y Auditoría (`Ludeka.Application`):** Extensión de DTOs (`GameDetailDto`, `UpdateGameDetailsCommand`), control de permisos `CanUploadImages` y registro detallado en `GameEditLog` e `IAuditService`.
+  4. **UI Blazor (`Ludeka.Web`):** Sección «4. Galería Complementaria» en `GameEditorModal.razor` para subida de archivos y alta de URLs con título; renderizado dinámico en `GameImageCarousel.razor` y `GameDetail.razor`.
+- **Estado:** ⏳ **En progreso** (INC-140).
+- **Documento:** [`../increments/inc-140-galeria-dinamica-fichas.md`](../increments/inc-140-galeria-dinamica-fichas.md).
+- **Pruebas unitarias:** 2.760 verificadas al 100%.

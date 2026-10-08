@@ -76,7 +76,8 @@ public static class SqliteSchemaMigrator
                 ("Ean", "TEXT NULL"),
                 ("AdditionalBarcodes", "TEXT NOT NULL DEFAULT '[]'"),
                 ("Asin", "TEXT NULL"),
-                ("BggWeight", "REAL NULL")
+                ("BggWeight", "REAL NULL"),
+                ("AdditionalImages", "TEXT NOT NULL DEFAULT '[]'")
             };
 
             foreach (var (colName, colDef) in columnsToAdd)
@@ -98,6 +99,7 @@ public static class SqliteSchemaMigrator
                     UPDATE "Games" SET "RegionalPublishers" = '[]' WHERE "RegionalPublishers" IS NULL;
                     UPDATE "Games" SET "LocalizedTitles" = '[]' WHERE "LocalizedTitles" IS NULL;
                     UPDATE "Games" SET "AdditionalBarcodes" = '[]' WHERE "AdditionalBarcodes" IS NULL;
+                    UPDATE "Games" SET "AdditionalImages" = '[]' WHERE "AdditionalImages" IS NULL;
                     UPDATE "Games" SET "Type" = 0 WHERE "Type" IS NULL;
                     """;
                 await fixCmd.ExecuteNonQueryAsync(ct);

@@ -323,7 +323,7 @@
                     <div class="space-y-6">
                         <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
                             <Icon Name="image" Size="16" />
-                            <span>Gestiona las 3 imágenes del carrusel de la ficha: portada frontal, trasera de caja y despliegue de componentes en mesa.</span>
+                            <span>Gestiona las imágenes de la ficha: portada frontal, trasera de caja, despliegue en mesa y fotos adicionales de galería.</span>
                         </div>
 
                         @* SLOT 1: CARÁTULA FRONTAL *@
@@ -456,6 +456,94 @@
                                         <button type="button" @onclick="ApplyTableUrl" class="px-3 py-1.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-xs font-bold border border-[var(--border-subtle)]">Aplicar</button>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        @* SECCIÓN 4: OTRAS IMÁGENES / GALERÍA COMPLEMENTARIA *@
+                        <div class="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon Name="images" Size="14" /> 4. Galería Complementaria (@_additionalImages.Count fotos)
+                                    </h4>
+                                    <p class="text-[0.7rem] text-[var(--text-secondary)]">Fotos de componentes, partidas reales, tableros o detalles adicionales del juego.</p>
+                                </div>
+                            </div>
+
+                            @* Listado de fotos adicionales *@
+                            @if (_additionalImages.Count > 0)
+                            {
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    @for (int i = 0; i < _additionalImages.Count; i++)
+                                    {
+                                        int imgIdx = i;
+                                        var photo = _additionalImages[imgIdx];
+                                        <div class="p-3 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center gap-3">
+                                            <div class="w-16 h-16 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden shrink-0 flex items-center justify-center">
+                                                <img src="@photo.Url" alt="@(photo.Title ?? "Foto")" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/game-placeholder.svg';" />
+                                            </div>
+                                            <div class="flex-1 min-w-0 space-y-1">
+                                                <span class="text-xs font-bold text-[var(--text-primary)] truncate block">
+                                                    @(!string.IsNullOrWhiteSpace(photo.Title) ? photo.Title : $"Foto #{imgIdx + 1}")
+                                                </span>
+                                                <span class="text-[0.65rem] text-[var(--text-muted)] truncate block font-mono">
+                                                    @photo.Url
+                                                </span>
+                                            </div>
+                                            <button type="button"
+                                                    @onclick="() => RemoveAdditionalImage(imgIdx)"
+                                                    class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs transition-colors shrink-0"
+                                                    title="Eliminar esta foto de la galería">
+                                                <Icon Name="trash-2" Size="13" />
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 rounded-xl bg-[var(--bg-surface-elevated)]/50 border border-dashed border-[var(--border-subtle)] text-xs text-[var(--text-muted)] text-center">
+                                    No hay fotos adicionales añadidas todavía. Puedes subir archivos o enlazar imágenes por URL.
+                                </div>
+                            }
+
+                            @* Formulario para añadir nueva foto a la galería *@
+                            <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] space-y-3">
+                                <h5 class="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                    <Icon Name="plus" Size="13" /> Añadir Nueva Foto a la Galería
+                                </h5>
+
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <label for="input-gallery-file" class="px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:opacity-90 cursor-pointer inline-flex items-center gap-1.5">
+                                        <Icon Name="folder" Size="13" /> Subir archivo
+                                    </label>
+                                    <InputFile id="input-gallery-file" OnChange='e => HandleFileSelectedForSlot(e, "gallery")' accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+                                    @if (_uploadingSlot == "gallery")
+                                    {
+                                        <span class="text-xs text-amber-400 flex items-center gap-1"><Icon Name="settings" Size="12" class="animate-spin" /> Subiendo a galería...</span>
+                                    }
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                                    <div class="sm:col-span-2">
+                                        <input type="url"
+                                               @bind="_newGalleryImageUrl"
+                                               placeholder="O pega una URL: https://..."
+                                               class="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <input type="text"
+                                               @bind="_newGalleryImageTitle"
+                                               placeholder="Título o pie (opcional)"
+                                               class="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none" />
+                                    </div>
+                                </div>
+
+                                <button type="button"
+                                        @onclick="AddGalleryImageFromUrl"
+                                        class="w-full py-1.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] transition-colors flex items-center justify-center gap-1.5">
+                                    <Icon Name="plus" Size="13" /> Añadir Foto por URL
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -682,6 +770,9 @@
     private string _customBackCoverUrl = string.Empty;
     private string? _tableImageUrl;
     private string _customTableUrl = string.Empty;
+    private List<GameGalleryImage> _additionalImages = [];
+    private string _newGalleryImageUrl = string.Empty;
+    private string _newGalleryImageTitle = string.Empty;
     private string? _uploadingSlot;
     private string? _resolutionNotes;
 
@@ -724,6 +815,7 @@
             _tableImageUrl = Game.TableImageUrl;
             _customTableUrl = Game.TableImageUrl ?? string.Empty;
 
+            _additionalImages = Game.AdditionalImages != null ? new List<GameGalleryImage>(Game.AdditionalImages) : [];
             _sleeves = Game.Sleeves != null ? new List<SleeveItem>(Game.Sleeves) : [];
         }
     }
@@ -779,9 +871,10 @@
         try
         {
             using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var actualSlot = slot == "gallery" ? $"gallery-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}" : slot;
             var result = slot == "cover"
                 ? await ImageStorageService.SaveGameCoverAsync(Game.Slug, stream, file.Name, file.ContentType)
-                : await ImageStorageService.SaveGameImageAsync(Game.Slug, slot, stream, file.Name, file.ContentType);
+                : await ImageStorageService.SaveGameImageAsync(Game.Slug, actualSlot, stream, file.Name, file.ContentType);
 
             if (result.Success && !string.IsNullOrWhiteSpace(result.RelativePath))
             {
@@ -800,6 +893,11 @@
                     _tableImageUrl = result.RelativePath;
                     _customTableUrl = result.RelativePath;
                 }
+                else if (slot == "gallery")
+                {
+                    var title = Path.GetFileNameWithoutExtension(file.Name);
+                    _additionalImages.Add(new GameGalleryImage(result.RelativePath, title));
+                }
             }
             else
             {
@@ -813,6 +911,35 @@
         finally
         {
             _uploadingSlot = null;
+        }
+    }
+
+    private void AddGalleryImageFromUrl()
+    {
+        if (string.IsNullOrWhiteSpace(_newGalleryImageUrl))
+        {
+            _errorMessage = "Debes indicar una URL válida para la imagen de galería.";
+            return;
+        }
+
+        try
+        {
+            _additionalImages.Add(new GameGalleryImage(_newGalleryImageUrl.Trim(), _newGalleryImageTitle));
+            _newGalleryImageUrl = string.Empty;
+            _newGalleryImageTitle = string.Empty;
+            _errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void RemoveAdditionalImage(int index)
+    {
+        if (index >= 0 && index < _additionalImages.Count)
+        {
+            _additionalImages.RemoveAt(index);
         }
     }
 
@@ -944,7 +1071,8 @@
                 AssociatedReportId: AssociatedReportId,
                 ResolutionNotes: _resolutionNotes,
                 Sleeves: _sleeves,
-                Ean: string.IsNullOrWhiteSpace(_ean) ? null : _ean.Trim()
+                Ean: string.IsNullOrWhiteSpace(_ean) ? null : _ean.Trim(),
+                AdditionalImages: _additionalImages
             );
 
             var updatedGame = await GameEditorService.UpdateGameAsync(cmd);

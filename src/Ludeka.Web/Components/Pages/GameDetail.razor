@@ -1090,6 +1090,7 @@ else
             CoverImageUrl="@Game.CoverImageUrl"
             BackCoverImageUrl="@Game.BackCoverImageUrl"
             TableImageUrl="@Game.TableImageUrl"
+            AdditionalImages="@Game.AdditionalImages"
             GameTitle="@Game.SpanishTitle"
             IsExpansion="@Game.IsExpansion"
             @bind-SelectedKey="_selectedHeroImageKey" />
@@ -1185,6 +1186,19 @@ else
                     list.Add(new HeroImageInfo("back", "Contraportada", Game.BackCoverImageUrl));
                 if (!string.IsNullOrWhiteSpace(Game.TableImageUrl))
                     list.Add(new HeroImageInfo("table", "En mesa", Game.TableImageUrl));
+                if (Game.AdditionalImages != null)
+                {
+                    int extraIdx = 1;
+                    foreach (var extra in Game.AdditionalImages)
+                    {
+                        if (!string.IsNullOrWhiteSpace(extra.Url))
+                        {
+                            var label = !string.IsNullOrWhiteSpace(extra.Title) ? extra.Title : $"Foto #{extraIdx}";
+                            list.Add(new HeroImageInfo($"gallery-{extraIdx}", label, extra.Url));
+                            extraIdx++;
+                        }
+                    }
+                }
             }
             if (_foundingVerdict?.Photos != null)
             {

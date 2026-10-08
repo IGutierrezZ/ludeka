@@ -660,6 +660,67 @@ public class GameEditorServiceTests
         var snapshot = await snapshotRepo.GetByBggIdAsync(453526);
         Assert.NotNull(snapshot);
     }
+
+    [Fact]
+    public async Task UpdateGameAsync_ConAdditionalImages_ActualizaGaleriaYAuditoria()
+    {
+        // Arrange
+        var game = CreateGame();
+        var gameRepo = new FakeGameRepository();
+        await gameRepo.UpdateAsync(game);
+
+        var logRepo = new FakeEditLogRepository();
+        var userSvc = new FakeCurrentUserService { Roles = ["Moderator"], Permissions = ModeratorPermission.CanEditGames | ModeratorPermission.CanUploadImages };
+        var catalogSvc = new FakeCatalogService();
+
+        var service = new GameEditorService(gameRepo, userSvc, logRepo, catalogSvc);
+
+        var galleryImages = new List<GameGalleryImage>
+        {
+            new("https://cdn.ludeka.es/img1.webp", "Tablero central"),
+            new("https://cdn.ludeka.es/img2.webp", "Miniaturas")
+        };
+
+        var cmd = new UpdateGameDetailsCommand(
+            GameId: game.Id,
+            SpanishTitle: game.SpanishTitle,
+            OriginalTitle: game.OriginalTitle,
+            Designer: game.Designer,
+            Publisher: game.Publisher,
+            YearPublished: game.YearPublished,
+            Description: game.Description,
+            MinPlayers: 1,
+            MaxPlayers: 4,
+            MinDurationMinutes: 40,
+            MaxDurationMinutes: 70,
+            EstimatedPerPlayerMinutes: 20,
+            BoxAge: 10,
+            CommunityAge: 10,
+            Confrontation: ConfrontationType.Competitive,
+            Style: GameStyle.Eurogame,
+            IsOfficialSolo: true,
+            Language: LanguageDependence.Low,
+            Footprint: TableFootprint.StandardTable,
+            CoverImageUrl: game.CoverImageUrl,
+            AdditionalImages: galleryImages
+        );
+
+        // Act
+        var result = await service.UpdateGameAsync(cmd);
+
+        // Assert
+        Assert.NotNull(result.AdditionalImages);
+        Assert.Equal(2, result.AdditionalImages.Count);
+        Assert.Equal("https://cdn.ludeka.es/img1.webp", result.AdditionalImages[0].Url);
+        Assert.Equal("Tablero central", result.AdditionalImages[0].Title);
+
+        var savedGame = await gameRepo.GetByIdAsync(game.Id);
+        Assert.NotNull(savedGame);
+        Assert.Equal(2, savedGame.AdditionalImages.Count);
+
+        Assert.Single(logRepo.Logs);
+        Assert.Contains("Galería de fotos actualizada (2 imágenes)", logRepo.Logs[0].SummaryOfChanges);
+    }
 }
 
 
