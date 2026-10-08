@@ -209,6 +209,29 @@ public class CatalogHybridContractTests
         Assert.Equal(new[] { LanguageDependence.Low }, reconstructed.Languages);
     }
 
+    [Theory]
+    [InlineData("got ")]
+    [InlineData("Ark Nova ")]
+    [InlineData(" The Mind ")]
+    public void CatalogFilterState_ToQueryDictionary_ShouldPreserveSpacesInSearchTerm(string termWithSpaces)
+    {
+        var state = new CatalogFilterState { SearchTerm = termWithSpaces };
+        var query = state.ToQueryDictionary();
+
+        Assert.True(query.ContainsKey("q"));
+        Assert.Equal(termWithSpaces, query["q"]);
+
+        // Simular deserialización de QueryHelpers
+        var stringValuesDict = new Dictionary<string, StringValues>
+        {
+            ["q"] = new StringValues(query["q"]!)
+        };
+        var reconstructed = new CatalogFilterState();
+        reconstructed.FromQueryDictionary(stringValuesDict);
+
+        Assert.Equal(termWithSpaces, reconstructed.SearchTerm);
+    }
+
     [Fact]
     public void CatalogFilterState_ToCriteria_ShouldMapAllFacets()
     {

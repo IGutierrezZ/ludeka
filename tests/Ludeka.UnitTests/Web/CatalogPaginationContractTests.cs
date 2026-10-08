@@ -110,6 +110,8 @@ public class CatalogPaginationContractTests
         Assert.Contains("ReadQueryParameters", source, StringComparison.Ordinal);
         Assert.Contains("QueryHelpers.AddQueryString", source, StringComparison.Ordinal);
         Assert.Contains("replace: true", source, StringComparison.Ordinal);
+        Assert.Contains("_lastSyncedUri", source, StringComparison.Ordinal);
+        Assert.Contains("lastSyncedPathAndQuery", source, StringComparison.Ordinal);
     }
 
     private static string ReadSource(string relativePath)
