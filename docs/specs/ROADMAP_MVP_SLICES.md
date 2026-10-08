@@ -1225,8 +1225,9 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   3. **Extracción de EAN-13 desde URL de Imagen de Portada:** Obtención del código de barras de 13 dígitos para emparejamiento directo sin depender de concordancia exacta de títulos.
   4. **Decodificación de Entidades HTML y Limpieza Heurística:** `HtmlDecode` y depuración de coletillas comerciales en la búsqueda de respaldo en BGG.
   5. **Compatibilidad SQLite:** Adición de columna `IsMonthOnly` en `SqliteSchemaMigrator`.
-- **Estado:** ⏳ **En revisión (PR pendiente)** (INC-128 · 2.652 pruebas unitarias en verde al 100%).
-- **Documento:** [`../increments/inc-128-extractor-novedades-maldito.md`](../increments/inc-128-extractor-novedades-maldito.md).
+- **Estado:** ✅ **Completado y Archivado** (INC-128 · 2.652 pruebas unitarias en verde al 100% · PR #232 desplegado en Google Cloud Run).
+- **Documento:** [`../increments/archive/inc-128-extractor-novedades-maldito.md`](../increments/archive/inc-128-extractor-novedades-maldito.md).
+- **Módulo del Sistema:** [`sistema/56-extractor-novedades-reimpresiones-maldito-games.md`](sistema/56-extractor-novedades-reimpresiones-maldito-games.md).
 
 
 
