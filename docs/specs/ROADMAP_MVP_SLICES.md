@@ -1308,6 +1308,7 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   2. **Persistencia e Infraestructura (`Ludeka.Infrastructure`):** Mapeo JSONB con `OwnsMany(g => g.AdditionalImages, b => b.ToJson())`, migración EF Core `AddGameAdditionalImages` y reconciliación en `SqliteSchemaMigrator`.
   3. **Capa de Aplicación y Auditoría (`Ludeka.Application`):** Extensión de DTOs (`GameDetailDto`, `UpdateGameDetailsCommand`), control de permisos `CanUploadImages` y registro detallado en `GameEditLog` e `IAuditService`.
   4. **UI Blazor (`Ludeka.Web`):** Sección «4. Galería Complementaria» en `GameEditorModal.razor` para subida de archivos y alta de URLs con título; renderizado dinámico en `GameImageCarousel.razor` y `GameDetail.razor`.
-- **Estado:** ⏳ **En progreso** (INC-140).
-- **Documento:** [`../increments/inc-140-galeria-dinamica-fichas.md`](../increments/inc-140-galeria-dinamica-fichas.md).
+- **Estado:** ✅ **Completado y Archivado** (INC-140 · 2.760 pruebas unitarias + 10 de integración en verde al 100% [2.770 totales] · PR #253 desplegado en Google Cloud Run).
+- **Documento:** [`../increments/archive/inc-140-galeria-dinamica-fichas.md`](../increments/archive/inc-140-galeria-dinamica-fichas.md).
+- **Módulo del Sistema:** [`sistema/59-galeria-dinamica-editor-fichas.md`](sistema/59-galeria-dinamica-editor-fichas.md).
 - **Pruebas unitarias:** 2.760 verificadas al 100%.
