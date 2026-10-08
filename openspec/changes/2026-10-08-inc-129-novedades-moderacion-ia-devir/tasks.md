@@ -13,10 +13,10 @@
 - [x] 2.4 Actualizar y ampliar las pruebas unitarias en `DevirReleasesExtractorTests.cs`.
 
 ## Tarea 3: Asistente IA de Enlace (`IReleaseAiMatcherService`)
-- [ ] 3.1 Definir interfaces y DTOs en `src/Ludeka.Application/Contracts/IReleaseAiMatcherService.cs` y `src/Ludeka.Application/DTOs/`.
-- [ ] 3.2 Implementar `GeminiReleaseMatcherService.cs` en `src/Ludeka.Infrastructure/Services/` con soporte de simulación determinista para títulos clave en español (*Crucero Galáctico*, *Los 12 trabajos de Hércules*, etc.).
-- [ ] 3.3 Registrar el servicio en la inyección de dependencias (`LudekaServiceCollectionExtensions.cs`).
-- [ ] 3.4 Crear pruebas unitarias en `GeminiReleaseMatcherServiceTests.cs`.
+- [x] 3.1 Definir interfaces y DTOs en `src/Ludeka.Application/Contracts/IReleaseAiMatcherService.cs` y `src/Ludeka.Application/DTOs/`.
+- [x] 3.2 Implementar `GeminiReleaseMatcherService.cs` en `src/Ludeka.Infrastructure/Services/` con soporte de simulación determinista para títulos clave en español (*Crucero Galáctico*, *Los 12 trabajos de Hércules*, etc.).
+- [x] 3.3 Registrar el servicio en la inyección de dependencias (`LudekaServiceCollectionExtensions.cs`).
+- [x] 3.4 Crear pruebas unitarias en `GeminiReleaseMatcherServiceTests.cs`.
 
 ## Tarea 4: Orquestación No Bloqueante en `EditorialReleasesSyncService`
 - [ ] 4.1 Modificar `EditorialReleasesSyncService.cs` para que los elementos que no crucen de inmediato no se descarten, sino que se guarden en `PendingModeration`.
