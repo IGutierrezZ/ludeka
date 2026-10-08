@@ -50,7 +50,7 @@ else
              class="bg-[var(--brand)] text-[var(--on-brand)] selection:bg-[var(--mustard)] selection:text-[#22180F]">
 
         @* Barra superior de navegación y reporte *@
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-4 pb-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-black">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-5 pb-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs font-black">
             <div class="flex items-center gap-4">
                 <a href="/catalogo" class="text-[var(--on-brand)]/90 hover:text-[var(--mustard)] transition-colors inline-flex items-center gap-1.5">
                     <span>&larr;</span> Volver al catálogo
@@ -84,25 +84,25 @@ else
         }
 
         @* Versión de Escritorio (lg:grid) *@
-        <div class="hidden lg:grid max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-5 pb-11 grid-cols-[minmax(0,1fr)_minmax(300px,380px)] gap-10 xl:gap-14 items-center">
-            @* Columna Izquierda: Metadatos, Titular, Píldoras, Veredicto y Botonera *@
-            <div class="flex flex-col gap-4.5 min-w-0">
-                <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--mustard)]">
+        <div class="hidden lg:grid max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 pb-16 lg:pt-10 lg:pb-20 grid-cols-[minmax(0,1fr)_minmax(320px,390px)] gap-12 xl:gap-16 items-center">
+            @* Columna Izquierda: Metadatos, Titular, Píldoras y Botonera *@
+            <div class="flex flex-col gap-6 lg:gap-7 min-w-0">
+                <span class="text-xs font-black uppercase tracking-[0.2em] text-[var(--mustard)]">
                     @GetEyebrowText()
                 </span>
 
-                <h1 class="m-0 text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.04] sm:leading-[1.0] lg:leading-[0.98] tracking-[-0.035em] sm:tracking-[-0.04em] text-balance text-[var(--on-brand)]">
+                <h1 class="m-0 text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.12] sm:leading-[1.08] lg:leading-[1.04] tracking-[-0.03em] sm:tracking-[-0.035em] text-balance text-[var(--on-brand)]">
                     @TitleForCountry
                 </h1>
 
                 @if (!string.Equals(TitleForCountry, Game.OriginalTitle, StringComparison.OrdinalIgnoreCase))
                 {
-                    <p class="text-sm text-[var(--on-brand)]/70 italic -mt-2">
+                    <p class="text-sm text-[var(--on-brand)]/70 italic -mt-3">
                         Título original: @Game.OriginalTitle
                     </p>
                 }
 
-                <p class="text-[15px] sm:text-base font-semibold text-[var(--on-brand)]/90 my-1 flex flex-wrap items-center gap-2">
+                <p class="text-base sm:text-lg font-semibold text-[var(--on-brand)]/90 my-2 flex flex-wrap items-center gap-3">
                     <span>@Game.Designer</span>
                     <span class="text-[var(--on-brand)]/50">&bull;</span>
                     @if (HasLocalPublisher)
@@ -115,44 +115,33 @@ else
                     }
                 </p>
 
-                @* 4 Cifras Clave (Claude Magazine Stat Columns) *@
-                <div class="grid grid-cols-4 justify-start max-w-[560px] pt-1">
-                    <span class="flex flex-col gap-1 pr-7" title="Consenso Ludeka">
+                @* 4 Cifras Clave (Claude Magazine Stat Columns con mayor espaciado y separación) *@
+                <div class="grid grid-cols-4 justify-start max-w-[580px] py-4.5 my-1 border-y border-white/20">
+                    <span class="flex flex-col gap-2 pr-7" title="Consenso Ludeka">
                         <b class="text-[34px] tracking-[-0.04em] leading-none text-[#FFC145] font-black">@Game.LudistRating.ToString("0.0")</b>
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Ludeka</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Ludeka</span>
                     </span>
-                    <span class="flex flex-col gap-1 px-7 border-l border-white/30" title="Rating BGG">
+                    <span class="flex flex-col gap-2 px-7 border-l border-white/30" title="Rating BGG">
                         <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">BGG</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
                     </span>
-                    <span class="flex flex-col gap-1 px-7 border-l border-white/30" title="Jugadores ideales">
+                    <span class="flex flex-col gap-2 px-7 border-l border-white/30" title="Jugadores ideales">
                         <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetIdealShortPlayerText()</b>
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Jugadores</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Jugadores</span>
                     </span>
-                    <span class="flex flex-col gap-1 pl-7 border-l border-white/30" title="Minutos">
+                    <span class="flex flex-col gap-2 pl-7 border-l border-white/30" title="Minutos">
                         <b class="text-[30px] lg:text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black whitespace-nowrap">@GetDurationNumber()′</b>
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Minutos</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Minutos</span>
                     </span>
                 </div>
 
-                @* Botón de Veredicto *@
-                <button type="button"
-                        @onclick='() => SelectTab("veredicto")'
-                        style="align-self:flex-start;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px 0 6px;border-radius:999px;border:0;background:rgba(34,24,15,.22);color:#FFF8EE;font-weight:800;font-size:14px"
-                        class="cursor-pointer hover:bg-black/30 transition-colors">
-                    <span style="padding:5px 10px;border-radius:999px;background:#FFC145;color:#22180F;font-size:11px;text-transform:uppercase;letter-spacing:.06em">
-                        @GetFoundingBadgeText()
-                    </span>
-                    <span>Leer el veredicto &rarr;</span>
-                </button>
-
                 @* Botonera de Acciones *@
-                <div class="flex flex-wrap items-center gap-2.5 relative pt-1">
+                <div class="flex flex-wrap items-center gap-4 relative pt-3">
                     @* Split button en negro/inverso para ludoteca *@
-                    <div class="flex h-[50px] rounded-full bg-[#22180F] text-[#FFC145] overflow-hidden shadow-md">
+                    <div class="flex h-[52px] rounded-full bg-[#22180F] text-[#FFC145] overflow-hidden shadow-md">
                         <button type="button"
                                 @onclick="HandlePrimaryCollectionClick"
-                                class="border-0 bg-transparent text-inherit px-5 font-extrabold text-sm whitespace-nowrap overflow-hidden text-ellipsis hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2">
+                                class="border-0 bg-transparent text-inherit px-6 font-extrabold text-sm whitespace-nowrap overflow-hidden text-ellipsis hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2">
                             <Icon Name="@GetCollectionIconName()" Size="16" />
                             <span>@GetCollectionButtonLabel()</span>
                         </button>
@@ -167,7 +156,7 @@ else
                     @* Menú desplegable flotante de ludoteca *@
                     @if (_isLibMenuOpen)
                     {
-                        <div class="absolute left-0 top-[58px] w-64 rounded-2xl bg-[#FFF8EE] text-[#22180F] shadow-2xl p-1.5 flex flex-col z-30 border border-[#22180F]/15 animate-in fade-in zoom-in-95 duration-150">
+                        <div class="absolute left-0 top-[60px] w-64 rounded-2xl bg-[#FFF8EE] text-[#22180F] shadow-2xl p-1.5 flex flex-col z-30 border border-[#22180F]/15 animate-in fade-in zoom-in-95 duration-150">
                             <button type="button"
                                     @onclick="() => SelectCollectionStatus(CollectionStatus.InCollection)"
                                     class="w-full text-left py-2.5 px-3 rounded-xl font-extrabold text-sm transition-colors flex items-center justify-between cursor-pointer @(_collectionItem?.Status == CollectionStatus.InCollection ? "bg-[var(--paper-2)] text-[var(--ink)]" : "hover:bg-[var(--paper-2)] text-[var(--ink)]")">
@@ -201,18 +190,9 @@ else
                     @* Botón contorneado: Registrar partida *@
                     <button type="button"
                             @onclick="() => _isRecordPlayModalOpen = true"
-                            class="h-[50px] px-5 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-extrabold text-sm hover:bg-white/10 transition-colors inline-flex items-center gap-2 cursor-pointer">
+                            class="h-[52px] px-6 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-extrabold text-sm hover:bg-white/10 transition-colors inline-flex items-center gap-2 cursor-pointer">
                         <Icon Name="dices" Size="16" />
                         <span>Registrar partida @(_userPlaysCount > 0 ? $"({_userPlaysCount})" : "")</span>
-                    </button>
-
-                    @* Botón circular contorneado: Compartir *@
-                    <button type="button"
-                            @onclick="HandleShareClick"
-                            aria-label="Compartir ficha"
-                            title="Copiar enlace para compartir"
-                            class="h-[50px] w-[50px] shrink-0 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-black text-lg hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer">
-                        <Icon Name="share-2" Size="18" />
                     </button>
                 </div>
 
@@ -290,7 +270,7 @@ else
         </div>
 
         @* Versión Móvil (<lg) *@
-        <div class="lg:hidden px-4 pt-4 pb-6 flex flex-col gap-3.5">
+        <div class="lg:hidden px-4 pt-5 pb-9 flex flex-col gap-6">
             @* Carátula 4:3 con controles táctiles y dots *@
             <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 shadow-xl">
                 <img src="@CurrentHeroImageUrl" alt="@Game.SpanishTitle" class="w-full h-full object-cover" />
@@ -316,9 +296,9 @@ else
             </div>
 
             @* Metadatos y título *@
-            <div class="flex flex-col gap-2.5">
+            <div class="flex flex-col gap-4">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--mustard)]">
+                    <span class="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--mustard)]">
                         @GetEyebrowText()
                     </span>
                     @if (Game.BggRank.HasValue && Game.BggRank.Value <= 500)
@@ -330,11 +310,11 @@ else
                     }
                 </div>
 
-                <h1 class="m-0 text-4xl font-black leading-[0.92] tracking-[-0.05em] text-balance text-[var(--on-brand)]">
+                <h1 class="m-0 text-3xl sm:text-4xl font-black leading-[1.12] tracking-[-0.035em] text-balance text-[var(--on-brand)] mt-1 mb-0.5">
                     @TitleForCountry
                 </h1>
 
-                <p class="text-sm font-semibold text-[var(--on-brand)]/92 my-1 flex flex-wrap items-center gap-1.5">
+                <p class="text-sm sm:text-base font-semibold text-[var(--on-brand)]/92 my-1.5 flex flex-wrap items-center gap-2">
                     <span>@Game.Designer</span>
                     <span class="text-[var(--on-brand)]/50">&bull;</span>
                     @if (HasLocalPublisher)
@@ -347,43 +327,32 @@ else
                     }
                 </p>
 
-                @* 4 Cifras Clave Móvil *@
-                <div class="grid grid-cols-4 gap-0 max-w-full pt-1">
-                    <span class="flex flex-col gap-1 pr-2.5" title="Consenso Ludeka">
+                @* 4 Cifras Clave Móvil con mayor separación *@
+                <div class="grid grid-cols-4 gap-0 max-w-full py-3.5 my-1 border-y border-white/20">
+                    <span class="flex flex-col gap-1.5 pr-2.5" title="Consenso Ludeka">
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[#FFC145] font-black">@Game.LudistRating.ToString("0.0")</b>
-                        <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Ludeka</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Ludeka</span>
                     </span>
-                    <span class="flex flex-col gap-1 px-2.5 border-l border-white/30" title="Rating BGG">
+                    <span class="flex flex-col gap-1.5 px-2.5 border-l border-white/30" title="Rating BGG">
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
-                        <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">BGG</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
                     </span>
-                    <span class="flex flex-col gap-1 px-2.5 border-l border-white/30" title="Jugadores ideales">
+                    <span class="flex flex-col gap-1.5 px-2.5 border-l border-white/30" title="Jugadores ideales">
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetIdealShortPlayerText()</b>
-                        <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Jugadores</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Jugadores</span>
                     </span>
-                    <span class="flex flex-col gap-1 pl-2.5 border-l border-white/30" title="Minutos">
+                    <span class="flex flex-col gap-1.5 pl-2.5 border-l border-white/30" title="Minutos">
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black whitespace-nowrap">@GetDurationNumber()′</b>
-                        <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--on-brand)]/85">Minutos</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Minutos</span>
                     </span>
                 </div>
 
-                @* Botón de Veredicto Móvil *@
-                <button type="button"
-                        @onclick='() => SelectTab("veredicto")'
-                        style="align-self:flex-start;display:flex;align-items:center;gap:10px;height:40px;padding:0 14px 0 6px;border-radius:999px;border:0;background:rgba(34,24,15,.22);color:#FFF8EE;font-weight:800;font-size:13px"
-                        class="cursor-pointer hover:bg-black/30 transition-colors">
-                    <span style="padding:5px 10px;border-radius:999px;background:#FFC145;color:#22180F;font-size:11px;text-transform:uppercase;letter-spacing:.06em">
-                        @GetFoundingBadgeText()
-                    </span>
-                    <span>Leer el veredicto &rarr;</span>
-                </button>
-
-                @* Botonera móvil compacta *@
-                <div class="flex items-center gap-2 relative pt-1">
-                    <div class="flex h-11 rounded-full bg-[#22180F] text-[#FFC145] overflow-hidden flex-1 min-w-0 shadow-sm">
+                @* Botonera móvil limpia y espaciada *@
+                <div class="flex items-center gap-3 relative pt-2">
+                    <div class="flex h-12 rounded-full bg-[#22180F] text-[#FFC145] overflow-hidden flex-1 min-w-0 shadow-sm">
                         <button type="button"
                                 @onclick="HandlePrimaryCollectionClick"
-                                class="flex-1 min-w-0 border-0 bg-transparent text-inherit px-3.5 font-extrabold text-xs whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer">
+                                class="flex-1 min-w-0 border-0 bg-transparent text-inherit px-4 font-extrabold text-xs whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer">
                             @GetCollectionButtonLabel()
                         </button>
                         <button type="button"
@@ -396,14 +365,8 @@ else
                     <button type="button"
                             @onclick="() => _isRecordPlayModalOpen = true"
                             aria-label="Registrar partida"
-                            class="h-11 w-11 shrink-0 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-black text-lg flex items-center justify-center cursor-pointer">
+                            class="h-12 w-12 shrink-0 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-black text-xl flex items-center justify-center cursor-pointer">
                         +
-                    </button>
-                    <button type="button"
-                            @onclick="HandleShareClick"
-                            aria-label="Compartir"
-                            class="h-11 w-11 shrink-0 rounded-full border-2 border-white/80 bg-transparent text-[var(--on-brand)] font-black text-sm flex items-center justify-center cursor-pointer">
-                        <Icon Name="share-2" Size="16" />
                     </button>
 
                     @if (_isLibMenuOpen)
@@ -1270,21 +1233,6 @@ else
     {
         _isLibMenuOpen = false;
         await HandleTogglePlayed();
-    }
-
-    private async Task HandleShareClick()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", Navigation.Uri);
-            _actionFeedbackType = "success";
-            _actionFeedbackMessage = "¡Enlace copiado al portapapeles!";
-        }
-        catch
-        {
-            _actionFeedbackType = "success";
-            _actionFeedbackMessage = "Comparte este juego copiando la dirección de tu navegador.";
-        }
     }
 
     private string GetBestPriceLabel()
