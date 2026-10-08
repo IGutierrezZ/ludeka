@@ -149,6 +149,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-134** | Backfill Autónomo de Dureza BGG, Extrapolación de Peso Efectivo y Ordenación Resiliente en Catálogo | ✅ Archivado | [inc-134-ordenacion-dureza-backfill.md](archive/inc-134-ordenacion-dureza-backfill.md) |
 | **INC-135** | Saneamiento de Descriptores de Edición en Títulos BGG y Reparación Automática de Catálogo | ✅ Archivado | [inc-135-saneamiento-titulos-edicion.md](archive/inc-135-saneamiento-titulos-edicion.md) |
 | **INC-136** | Refresco de Versiones BGG de Novedades, Soporte Editorial Lúdilo y Saneamiento de Catálogo | ✅ Archivado | [inc-136-refresco-versiones-ludilo.md](archive/inc-136-refresco-versiones-ludilo.md) |
+| **INC-137** | Forzar Sincronización BGG desde Ficha de Juego (Snapshot, Versiones, Imágenes y Datos) | ✅ Archivado | [inc-137-sincronizacion-bgg-ficha.md](archive/inc-137-sincronizacion-bgg-ficha.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -177,6 +178,8 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
+
+*(INC-137 entregó su verificación con 2.742 pruebas unitarias en verde al 100%, incorporando la sincronización forzada bajo demanda con BGG desde la sección de gestión de la ficha editorial [ForceSyncFromBggAsync], persistencia de snapshots y versiones físicas, actualización reactiva en GameDetail y GameStaffToolsPanel de título en castellano, editorial española, código EAN-13 e imágenes, y registro de auditoría).*
 
 *(INC-135 entregó su verificación con 2.730 pruebas unitarias en verde al 100%, incorporando el reconocimiento exhaustivo de acrónimos lingüísticos [ENG, GER, FRE, SPA, ES, EN, etc.] y descriptores de tirada [Retail edition, Deluxe edition, Kickstarter edition, Multilingual edition] en IsGenericEditionTitle y CleanVersionTitle en BggRawSnapshotParser, blindaje en ExtractSpanishTitle de BggXmlParser, ampliación del filtro SQL y saneamiento determinista en CatalogDataSanitizer restaurando al título canónico y asegurando prioritariamente el caso reportado de Queen Alice [BggId 456236]).*
 

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
@@ -23,6 +24,8 @@ public class GameEditorService : IGameEditorService
     private readonly ICatalogService _catalogService;
     private readonly IGameIssueReportService? _issueReportService;
     private readonly IAuditService? _auditService;
+    private readonly IBggClient? _bggClient;
+    private readonly IBggRawSnapshotRepository? _snapshotRepo;
 
     public GameEditorService(
         IGameRepository gameRepository,
@@ -30,7 +33,9 @@ public class GameEditorService : IGameEditorService
         IGameEditLogRepository editLogRepository,
         ICatalogService catalogService,
         IGameIssueReportService? issueReportService = null,
-        IAuditService? auditService = null)
+        IAuditService? auditService = null,
+        IBggClient? bggClient = null,
+        IBggRawSnapshotRepository? snapshotRepo = null)
     {
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
@@ -38,7 +43,10 @@ public class GameEditorService : IGameEditorService
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _issueReportService = issueReportService;
         _auditService = auditService;
+        _bggClient = bggClient;
+        _snapshotRepo = snapshotRepo;
     }
+
 
     public async Task<GameDetailDto> UpdateGameAsync(UpdateGameDetailsCommand command, CancellationToken ct = default)
     {
@@ -314,4 +322,188 @@ public class GameEditorService : IGameEditorService
             l.EditedAt
         )).ToList();
     }
+
+    public async Task<GameBggSyncResultDto> ForceSyncFromBggAsync(Guid gameId, CancellationToken ct = default)
+    {
+        string editorUserId = SessionIdentity.Require(_currentUserService);
+        if (!_currentUserService.IsFoundingTeam)
+        {
+            if (!_currentUserService.IsInRole("Moderator") || !_currentUserService.HasPermission(ModeratorPermission.CanEditGames))
+            {
+                throw new UnauthorizedAccessException("Se requiere el permiso de moderación 'CanEditGames' para forzar la sincronización con BGG.");
+            }
+        }
+
+        var game = await _gameRepository.GetByIdAsync(gameId, ct);
+        if (game == null)
+        {
+            throw new KeyNotFoundException($"No se encontró ningún juego con ID '{gameId}'.");
+        }
+
+        if (game.BggId <= 0)
+        {
+            throw new InvalidOperationException("El juego no tiene asignado un identificador válido de BoardGameGeek (BGG ID).");
+        }
+
+        if (_bggClient == null)
+        {
+            throw new InvalidOperationException("El cliente de BGG no está configurado.");
+        }
+
+        string? rawJson = await _bggClient.FetchRawThingJsonAsync(game.BggId, includeVersions: true, ct);
+        if (string.IsNullOrWhiteSpace(rawJson))
+        {
+            return new GameBggSyncResultDto(
+                Success: false,
+                BggId: game.BggId,
+                OldSpanishTitle: game.SpanishTitle,
+                NewSpanishTitle: game.SpanishTitle,
+                OldSpanishPublisher: game.SpanishPublisher,
+                NewSpanishPublisher: game.SpanishPublisher,
+                OldEan: game.Ean,
+                NewEan: game.Ean,
+                CoverImageUrl: game.CoverImageUrl,
+                ThumbnailUrl: game.ThumbnailUrl,
+                UpdatedFields: [],
+                Message: $"No se pudo obtener información desde BGG para el ID {game.BggId}."
+            );
+        }
+
+        if (_snapshotRepo != null)
+        {
+            var snapshot = new BggRawSnapshot(game.BggId, rawJson, apiVersion: 2, fetchedAt: DateTimeOffset.UtcNow);
+            await _snapshotRepo.UpsertAsync(snapshot, ct);
+        }
+
+
+        var vInfo = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(rawJson);
+        var (rootCover, rootThumb) = BggRawSnapshotParser.ExtractRootImagesFromJson(rawJson);
+
+        var updatedFields = new List<string>();
+        var fieldChanges = new List<FieldChangeDto>();
+
+        string oldTitle = game.SpanishTitle;
+        string? oldPublisher = game.SpanishPublisher;
+        string? oldEan = game.Ean;
+        string? oldCover = game.CoverImageUrl;
+        string? oldThumb = game.ThumbnailUrl;
+
+        // 1. Título en español
+        if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Title))
+        {
+            string candidateTitle = BggRawSnapshotParser.CleanVersionTitle(vInfo.Title) ?? vInfo.Title;
+            if (!BggRawSnapshotParser.IsGenericEditionTitle(candidateTitle) && candidateTitle != game.SpanishTitle)
+            {
+                fieldChanges.Add(new FieldChangeDto("SpanishTitle", game.SpanishTitle, candidateTitle));
+                game.UpdateSpanishTitle(candidateTitle);
+                updatedFields.Add("Título en español");
+            }
+        }
+        else if (BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle))
+        {
+            if (game.SpanishTitle != game.OriginalTitle)
+            {
+                fieldChanges.Add(new FieldChangeDto("SpanishTitle", game.SpanishTitle, game.OriginalTitle));
+                game.UpdateSpanishTitle(game.OriginalTitle);
+                updatedFields.Add("Título en español");
+            }
+        }
+
+        // 2. Editorial española
+        string? candidatePublisher = vInfo?.Publisher?.Trim();
+
+
+        if (!string.IsNullOrWhiteSpace(candidatePublisher) && candidatePublisher != game.SpanishPublisher)
+        {
+            fieldChanges.Add(new FieldChangeDto("SpanishPublisher", game.SpanishPublisher ?? string.Empty, candidatePublisher));
+            game.UpdateSpanishPublisher(candidatePublisher);
+            updatedFields.Add("Editorial española");
+        }
+
+        // 3. Código EAN-13
+        if (vInfo != null && !string.IsNullOrWhiteSpace(vInfo.Ean) && vInfo.Ean != game.Ean)
+        {
+            fieldChanges.Add(new FieldChangeDto("Ean", game.Ean ?? string.Empty, vInfo.Ean));
+            game.UpdateEan(vInfo.Ean);
+            updatedFields.Add("Código EAN");
+        }
+
+        // 4. Portada y Miniatura
+        string? targetCover = (!string.IsNullOrWhiteSpace(vInfo?.CoverImageUrl))
+            ? vInfo.CoverImageUrl
+            : (!string.IsNullOrWhiteSpace(rootCover) ? rootCover : game.CoverImageUrl);
+
+        string? targetThumb = (!string.IsNullOrWhiteSpace(vInfo?.ThumbnailUrl))
+            ? vInfo.ThumbnailUrl
+            : (!string.IsNullOrWhiteSpace(rootThumb) ? rootThumb : game.ThumbnailUrl);
+
+        if (string.IsNullOrWhiteSpace(game.CoverImageUrl) && !string.IsNullOrWhiteSpace(targetCover))
+        {
+            fieldChanges.Add(new FieldChangeDto("CoverImageUrl", game.CoverImageUrl ?? string.Empty, targetCover));
+            game.UpdateImages(targetCover, targetThumb ?? game.ThumbnailUrl);
+            updatedFields.Add("Imagen de portada");
+        }
+        else if (!string.IsNullOrWhiteSpace(vInfo?.CoverImageUrl) && vInfo.CoverImageUrl != game.CoverImageUrl)
+        {
+            fieldChanges.Add(new FieldChangeDto("CoverImageUrl", game.CoverImageUrl ?? string.Empty, vInfo.CoverImageUrl));
+            game.UpdateImages(vInfo.CoverImageUrl, vInfo.ThumbnailUrl ?? targetThumb);
+            updatedFields.Add("Imagen de portada");
+        }
+
+        // 5. Persistencia y Auditoría si hubo cambios
+        if (updatedFields.Count > 0)
+        {
+            await _gameRepository.UpdateAsync(game, ct);
+
+            string summary = $"Sincronización forzada desde BGG #{game.BggId}: {string.Join(", ", updatedFields)}";
+            var log = new GameEditLog(
+                game.Id,
+                editorUserId,
+                _currentUserService.UserName,
+                summary,
+                null
+            );
+            await _editLogRepository.AddAsync(log, ct);
+
+            if (_auditService != null)
+            {
+                await _auditService.RecordChangeAsync(new RecordAuditCommand(
+                    UserId: editorUserId,
+                    UserName: _currentUserService.UserName,
+                    Action: AuditAction.Updated,
+                    EntityType: AuditEntityType.Game,
+                    EntityId: game.Slug,
+                    EntityName: game.SpanishTitle,
+                    Summary: summary,
+                    Changes: fieldChanges
+                ), ct);
+            }
+
+            if (_catalogService is CachedCatalogService cached)
+            {
+                cached.Invalidate(game.Slug);
+            }
+        }
+
+        string message = updatedFields.Count > 0
+            ? $"Sincronización con BGG exitosa. Se actualizaron: {string.Join(", ", updatedFields)}."
+            : "Sincronización con BGG completada: el snapshot se actualizó y los datos de la ficha ya estaban al día.";
+
+        return new GameBggSyncResultDto(
+            Success: true,
+            BggId: game.BggId,
+            OldSpanishTitle: oldTitle,
+            NewSpanishTitle: game.SpanishTitle,
+            OldSpanishPublisher: oldPublisher,
+            NewSpanishPublisher: game.SpanishPublisher,
+            OldEan: oldEan,
+            NewEan: game.Ean,
+            CoverImageUrl: game.CoverImageUrl,
+            ThumbnailUrl: game.ThumbnailUrl,
+            UpdatedFields: updatedFields,
+            Message: message
+        );
+    }
 }
+
+

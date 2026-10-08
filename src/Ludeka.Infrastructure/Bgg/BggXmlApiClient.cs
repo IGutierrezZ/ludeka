@@ -69,6 +69,15 @@ public class BggXmlApiClient : IBggClient, IDisposable
         return FetchRawThingsXmlAsync([bggId], includeVersions, ct);
     }
 
+    public async Task<string?> FetchRawThingJsonAsync(int bggId, bool includeVersions = true, CancellationToken ct = default)
+    {
+        if (bggId <= 0) return null;
+        string? xml = await FetchRawThingXmlAsync(bggId, includeVersions, ct);
+        if (string.IsNullOrWhiteSpace(xml)) return null;
+        return BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+    }
+
+
     public Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
         => FetchRawThingsXmlAsync(bggIds, false, ct);
 

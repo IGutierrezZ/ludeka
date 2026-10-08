@@ -1257,6 +1257,22 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
 - **Pruebas unitarias:** 2.712 verificadas al 100%.
 
+---
+
+## Incremento 137: Forzar Sincronización BGG desde Ficha de Juego (Snapshot, Versiones, Imágenes y Datos)
+- **Identificador SDD:** `sincronizacion-bgg-ficha`
+- **Objetivo Principal:**
+  1. **Acción bajo demanda en `IGameEditorService`:** Método `ForceSyncFromBggAsync(Guid gameId)` que valida permisos Staff (`CanEditGames` o Mesa Fundadora) y BggId válido.
+  2. **Descarga y Persistencia de Snapshot BGG:** Consulta en tiempo real a BGG XMLAPI2 con `&versions=1`, deserialización estructurada mediante `BggXmlToJsonConverter` y upsert idempotente en `BggRawSnapshots`.
+  3. **Extracción y Actualización Atómica:** Extracción mediante `BggRawSnapshotParser` de versión en español (título no genérico, editorial local con matcher de editoriales, código EAN-13 validado por dígito de control módulo 10 e imágenes oficiales de caja/miniatura).
+  4. **Auditoría e Invalidación de Caché:** Registro atómico en `GameEditLog` e `IAuditService`, e invalidación inmediata de caché L1 de catálogo (`CachedCatalogService`).
+  5. **Controles Reactivos en UI Blazor:** Integración en `GameStaffToolsPanel.razor`, en la botonera de staff de `GameDetail.razor` y en el marco polaroid junto a «Ver en BGG ↗», con estado `IsSyncingBgg`, spinner de progreso y mensaje de retroalimentación editorial.
+- **Estado:** ✅ **Completado y Archivado** (INC-137 · 2.742 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/archive/inc-137-sincronizacion-bgg-ficha.md`](../increments/archive/inc-137-sincronizacion-bgg-ficha.md).
+- **Módulo del Sistema:** [`sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
+- **Pruebas unitarias:** 2.742 verificadas al 100%.
+
+
 
 
 
