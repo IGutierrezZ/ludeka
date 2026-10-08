@@ -1252,8 +1252,10 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   2. **Backfill Autónomo en Arranque:** Integrar la ejecución de `BackfillBggWeightsFromSnapshotsAsync` en `Program.cs` / `SqliteSchemaMigrator`.
   3. **Ordenación Resiliente en `SqliteGameRepository`:** Actualizar `ApplyQuerySorting` y `ApplyIndexSorting` para emplear el peso efectivo en `ComplexityAsc` y `ComplexityDesc`, evitando que los registros sin peso de BGG queden relegados al final agrupados por ranking BGG.
   4. **Presentación Editorial en Catálogo:** Exhibición visual de la dureza en `GameCard.razor` y `GameListItem.razor`.
-- **Estado:** ⏳ **En progreso** (INC-134).
-- **Documento:** [`../increments/inc-134-ordenacion-dureza-backfill.md`](../increments/inc-134-ordenacion-dureza-backfill.md).
+- **Estado:** ✅ **Completado y Archivado** (INC-134 · 2.712 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/archive/inc-134-ordenacion-dureza-backfill.md`](../increments/archive/inc-134-ordenacion-dureza-backfill.md).
+- **Módulo del Sistema:** [`sistema/58-dureza-numerica-bgg-y-ordenacion.md`](sistema/58-dureza-numerica-bgg-y-ordenacion.md).
+- **Pruebas unitarias:** 2.712 verificadas al 100%.
 
 
 
