@@ -152,7 +152,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-137** | Forzar Sincronización BGG desde Ficha de Juego (Snapshot, Versiones, Imágenes y Datos) | ✅ Archivado | [inc-137-sincronizacion-bgg-ficha.md](archive/inc-137-sincronizacion-bgg-ficha.md) |
 | **INC-138** | Resiliencia en Extracción de Novedades (Devir y Maldito Games) y Despliegue de Jobs | ✅ Archivado | [inc-138-resiliencia-devir-maldito-novedades.md](archive/inc-138-resiliencia-devir-maldito-novedades.md) |
 | **INC-139** | Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL | ⏳ En progreso | [inc-139-preservar-espacios-buscador-catalogo.md](inc-139-preservar-espacios-buscador-catalogo.md) |
-| **INC-140** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ⏳ En progreso | [inc-140-galeria-dinamica-fichas.md](inc-140-galeria-dinamica-fichas.md) |
+| **INC-140** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ✅ Archivado | [inc-140-galeria-dinamica-fichas.md](archive/inc-140-galeria-dinamica-fichas.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -182,7 +182,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
 - **INC-139** (`inc/espacio-buscador-catalogo` en `F:\repos\ludeka-wt\espacio-buscador-catalogo`): Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL. En curso.
-- **INC-140** (`inc/galeria-dinamica-fichas` en `F:\repos\ludeka-wt\galeria-dinamica-fichas`): Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas de Juego. En curso.
+
+*(INC-140 entregó su PR #253, verificada con 2.760 pruebas unitarias + 10 de integración en verde al 100% [2.770 totales], y quedó archivada y desplegada en Google Cloud Run el 2026-10-09. Implementa la galería fotográfica dinámica en el modelo de dominio con GameGalleryImage y Game, persistencia JSONB en PostgreSQL y SQLite con reconciliación defensiva en SqliteSchemaMigrator y canario de 25 migraciones en PostgresSchemaVerificationTests, permisos CanUploadImages y log de auditoría en GameEditorService, editor editorial con subida directa y URL en GameEditorModal.razor, y renderizado dinámico en GameImageCarousel.razor y visor a pantalla completa de GameDetail.razor).*
 
 *(INC-138 entregó su PR #251, verificada con 2.749 pruebas unitarias en verde al 100%, incorporando saneamiento de cabeceras de navegación y reintento educado [máx. 1 con retardo de 1.5s] ante 403 de Cloudflare en Devir, desacoplamiento y tolerancia en Maldito Games para salvaguardar más de 40 lanzamientos de la portada ante lentitud o fallos del catálogo, ritmo cortés con throttle de 750 ms y tolerancia a fallos aislados en DevirImagesBackfillJobRunner, y despliegue automatizado del Cloud Run Job devir-images-backfill en GitHub Actions).*
 
