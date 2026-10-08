@@ -1,4 +1,4 @@
-# INC-139: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
+# INC-140: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
 
 ## 1. Contexto y Motivación
 Hasta ahora, la ficha editorial de juego en `GameEditorModal.razor` únicamente permitía editar o sustituir las tres imágenes estáticas predefinidas del modelo clásico:
@@ -8,7 +8,7 @@ Hasta ahora, la ficha editorial de juego en `GameEditorModal.razor` únicamente 
 
 Cuando el equipo editorial, moderadores o colaboradores deseaban documentar componentes especiales, cartas, tableros modulares, insertos o perspectivas adicionales de la mesa, no existía mecanismo en la interfaz ni en el modelo de dominio para incorporar más fotografías.
 
-El incremento **INC-139** dota al catálogo de Ludeka de soporte integral para colecciones dinámicas de imágenes adicionales (`AdditionalImages`), persistidas en base de datos mediante JSONB, editables desde el modal de staff (subida directa de archivos a storage/R2 o adición por URL con pie de foto opcional) y visibles en el carrusel polaroid y en el visor a pantalla completa de la ficha pública de juego.
+El incremento **INC-140** dota al catálogo de Ludeka de soporte integral para colecciones dinámicas de imágenes adicionales (`AdditionalImages`), persistidas en base de datos mediante JSONB, editables desde el modal de staff (subida directa de archivos a storage/R2 o adición por URL con pie de foto opcional) y visibles en el carrusel polaroid y en el visor a pantalla completa de la ficha pública de juego.
 
 ---
 

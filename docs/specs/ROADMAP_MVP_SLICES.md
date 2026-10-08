@@ -1289,13 +1289,25 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 
 ---
 
-## Incremento 139: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
+## Incremento 139: Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL
+- **Identificador SDD:** `espacio-buscador-catalogo`
+- **Objetivo Principal:**
+  1. **Preservación de Espacios en `CatalogFilterState.ToQueryDictionary()`:** Evitar recorte involuntario con `.Trim()` al serializar parámetros de URL en búsquedas con espacios en progreso.
+  2. **Guarda Anti-Reentrada en `Home.razor`:** Implementar `_lastSyncedUri` para comparar `PathAndQuery` en `OnLocationChanged`, evitando que las navegaciones internas disparadas por `SyncUrl()` reentren a `ReadQueryParameters()` y ejecuten consultas dobles en segundo plano.
+  3. **Pruebas de Contrato y Regresión:** Garantizar que los espacios se preserven bidireccionalmente y que el ciclo de vida del catálogo sea determinista.
+- **Estado:** ⏳ **En progreso** (INC-139).
+- **Documento:** [`../increments/inc-139-preservar-espacios-buscador-catalogo.md`](../increments/inc-139-preservar-espacios-buscador-catalogo.md).
+- **Módulo del Sistema:** [`sistema/01-catalogo-y-fichas.md`](sistema/01-catalogo-y-fichas.md).
+
+---
+
+## Incremento 140: Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas
 - **Identificador SDD:** `galeria-dinamica-fichas`
 - **Objetivo Principal:**
   1. **Modelo de Dominio (`Ludeka.Core`):** Value Object `GameGalleryImage` con `Url` obligatoria y `Title` opcional; métodos de dominio en `Game.cs` (`UpdateAdditionalImages`, `AddGalleryImage`, `RemoveGalleryImage`).
   2. **Persistencia e Infraestructura (`Ludeka.Infrastructure`):** Mapeo JSONB con `OwnsMany(g => g.AdditionalImages, b => b.ToJson())`, migración EF Core `AddGameAdditionalImages` y reconciliación en `SqliteSchemaMigrator`.
   3. **Capa de Aplicación y Auditoría (`Ludeka.Application`):** Extensión de DTOs (`GameDetailDto`, `UpdateGameDetailsCommand`), control de permisos `CanUploadImages` y registro detallado en `GameEditLog` e `IAuditService`.
   4. **UI Blazor (`Ludeka.Web`):** Sección «4. Galería Complementaria» en `GameEditorModal.razor` para subida de archivos y alta de URLs con título; renderizado dinámico en `GameImageCarousel.razor` y `GameDetail.razor`.
-- **Estado:** ⏳ **En progreso** (INC-139).
-- **Documento:** [`../increments/inc-139-galeria-dinamica-fichas.md`](../increments/inc-139-galeria-dinamica-fichas.md).
+- **Estado:** ⏳ **En progreso** (INC-140).
+- **Documento:** [`../increments/inc-140-galeria-dinamica-fichas.md`](../increments/inc-140-galeria-dinamica-fichas.md).
 - **Pruebas unitarias:** 2.760 verificadas al 100%.

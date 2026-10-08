@@ -795,6 +795,7 @@
     private int _totalPages = 0;
     private const int _pageSize = 24;
     private bool _isInternalNavigation = false;
+    private string? _lastSyncedUri;
     private IReadOnlyList<GameSummaryDto> _games = [];
     private System.Threading.Timer? _searchDebounceTimer;
 
@@ -876,6 +877,16 @@
     {
         if (_isInternalNavigation) return;
 
+        if (!string.IsNullOrEmpty(_lastSyncedUri))
+        {
+            var currentPathAndQuery = Navigation.ToAbsoluteUri(e.Location).PathAndQuery;
+            var lastSyncedPathAndQuery = Navigation.ToAbsoluteUri(_lastSyncedUri).PathAndQuery;
+            if (string.Equals(currentPathAndQuery, lastSyncedPathAndQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
         _ = InvokeAsync(async () =>
         {
             ReadQueryParameters();
@@ -886,6 +897,7 @@
     private void ReadQueryParameters()
     {
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        _lastSyncedUri = uri.AbsoluteUri;
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
         if (query.TryGetValue("orden", out var oVal) && !string.IsNullOrWhiteSpace(oVal))
@@ -952,7 +964,15 @@
         }
 
         var targetUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/catalogo", queryParams);
+        var targetAbsoluteUri = Navigation.ToAbsoluteUri(targetUrl).AbsoluteUri;
 
+        if (string.Equals(Navigation.Uri, targetAbsoluteUri, StringComparison.OrdinalIgnoreCase))
+        {
+            _lastSyncedUri = targetAbsoluteUri;
+            return;
+        }
+
+        _lastSyncedUri = targetAbsoluteUri;
         try
         {
             _isInternalNavigation = true;

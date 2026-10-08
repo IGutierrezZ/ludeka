@@ -403,7 +403,7 @@ public class CatalogFilterState
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
-            q["q"] = SearchTerm.Trim();
+            q["q"] = SearchTerm;
         }
 
         if (CurrentPage > 1)
