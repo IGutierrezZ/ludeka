@@ -113,6 +113,48 @@ public class GameBggWeightAndComplexityTests
         Assert.Null(ComplexityCalculator.ExtractWeightFromJson(null));
     }
 
+    [Fact]
+    public void ComplexityCalculator_GetEffectiveWeight_WithBggWeight_ShouldReturnBggWeight()
+    {
+        var eff1 = ComplexityCalculator.GetEffectiveWeight(2.35, GameStyle.PartyGame, 15, 6);
+        Assert.Equal(2.35, eff1);
+
+        var eff2 = ComplexityCalculator.GetEffectiveWeight(4.12, GameStyle.FillerAbstract, 20, 8);
+        Assert.Equal(4.12, eff2);
+    }
+
+    [Fact]
+    public void ComplexityCalculator_GetEffectiveWeight_WithoutBggWeight_ShouldReturnExtrapolatedWeight()
+    {
+        // Light -> 1.60
+        var effLight = ComplexityCalculator.GetEffectiveWeight(null, GameStyle.PartyGame, 20, 8);
+        Assert.Equal(ComplexityCalculator.DefaultExtrapolatedLight, effLight);
+        Assert.Equal(1.60, effLight);
+
+        // Heavy -> 3.80
+        var effHeavy = ComplexityCalculator.GetEffectiveWeight(0.0, GameStyle.Eurogame, 150, 14);
+        Assert.Equal(ComplexityCalculator.DefaultExtrapolatedHeavy, effHeavy);
+        Assert.Equal(3.80, effHeavy);
+
+        // Medium -> 2.70
+        var effMed = ComplexityCalculator.GetEffectiveWeight(null, GameStyle.Ameritrash, 60, 10);
+        Assert.Equal(ComplexityCalculator.DefaultExtrapolatedMedium, effMed);
+        Assert.Equal(2.70, effMed);
+    }
+
+    [Fact]
+    public void ComplexityCalculator_GetEffectiveWeight_GameOverload_ShouldResolveCorrectly()
+    {
+        var gameWithWeight = CreateSampleGame(bggWeight: 3.15);
+        Assert.Equal(3.15, ComplexityCalculator.GetEffectiveWeight(gameWithWeight));
+
+        var gameWithoutWeight = CreateSampleGame(bggWeight: null);
+        // Sample game tiene Eurogame, maxMinutes 60, age 10 -> Medium (2.70)
+        Assert.Equal(2.70, ComplexityCalculator.GetEffectiveWeight(gameWithoutWeight));
+
+        Assert.Equal(ComplexityCalculator.DefaultExtrapolatedMedium, ComplexityCalculator.GetEffectiveWeight(null as Game));
+    }
+
     private static Game CreateSampleGame(double? bggWeight = null)
     {
         return new Game(

@@ -16,6 +16,10 @@ public static class ComplexityCalculator
     public const double LightThreshold = 2.20;
     public const double HeavyThreshold = 3.25;
 
+    public const double DefaultExtrapolatedLight = 1.60;
+    public const double DefaultExtrapolatedMedium = 2.70;
+    public const double DefaultExtrapolatedHeavy = 3.80;
+
     public static GameComplexity Calculate(double? bggWeight, GameStyle style, int maxMinutes, int communityAge)
     {
         if (bggWeight.HasValue && bggWeight.Value > 0)
@@ -39,6 +43,33 @@ public static class ComplexityCalculator
     {
         if (game == null) return GameComplexity.Medium;
         return Calculate(game.BggWeight, game.Style, game.Duration?.MaxMinutes ?? 0, game.Age?.CommunityAge ?? 0);
+    }
+
+    /// <summary>
+    /// Devuelve el peso continuo de BGG si está disponible, o un peso extrapolado representativo
+    /// (1.60 Ligero, 2.70 Medio, 3.80 Duro) basado en la heurística canónica (INC-134).
+    /// Garantiza una ordenación matemática continua sin relegar juegos sin votos a nulos.
+    /// </summary>
+    public static double GetEffectiveWeight(double? bggWeight, GameStyle style, int maxMinutes, int communityAge)
+    {
+        if (bggWeight.HasValue && bggWeight.Value > 0)
+        {
+            return bggWeight.Value;
+        }
+
+        var qualitative = Calculate(null, style, maxMinutes, communityAge);
+        return qualitative switch
+        {
+            GameComplexity.Light => DefaultExtrapolatedLight,
+            GameComplexity.Heavy => DefaultExtrapolatedHeavy,
+            _ => DefaultExtrapolatedMedium
+        };
+    }
+
+    public static double GetEffectiveWeight(Game? game)
+    {
+        if (game == null) return DefaultExtrapolatedMedium;
+        return GetEffectiveWeight(game.BggWeight, game.Style, game.Duration?.MaxMinutes ?? 0, game.Age?.CommunityAge ?? 0);
     }
 
     /// <summary>
