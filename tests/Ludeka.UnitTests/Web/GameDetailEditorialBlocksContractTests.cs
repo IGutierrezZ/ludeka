@@ -236,8 +236,9 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("aria-expanded=\"@_isTechOpen\"", source, StringComparison.Ordinal);
         Assert.Contains("@(_isTechOpen ? \"Ver menos\" : \"Ver todos los detalles\")", source, StringComparison.Ordinal);
 
-        // Los 4 atributos extendidos del ADN lúdico deben condicionarse a @_isTechOpen
+        // Los atributos extendidos del ADN lúdico deben condicionarse a @_isTechOpen
         Assert.Contains("@if (_isTechOpen)", source, StringComparison.Ordinal);
+        Assert.Contains("Dureza / Peso", source, StringComparison.Ordinal);
         Assert.Contains("Confrontación", source, StringComparison.Ordinal);
         Assert.Contains("Huella en mesa", source, StringComparison.Ordinal);
         Assert.Contains("Modo solitario", source, StringComparison.Ordinal);
@@ -259,6 +260,22 @@ public class GameDetailEditorialBlocksContractTests
         // Debe soportar expansiones hijas mediante ExpansionAporteCard y ExpansionSisterList
         Assert.Contains("<ExpansionAporteCard", source, StringComparison.Ordinal);
         Assert.Contains("<ExpansionSisterList", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameDetail_ShouldDisplayBggWeightAndComplexityCanonicalHelpers()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // Bloque ADN Lúdico debe mostrar Dureza / Peso y llamar a GetComplexityAdnText()
+        Assert.Contains("Dureza / Peso", source, StringComparison.Ordinal);
+        Assert.Contains("@GetComplexityAdnText()", source, StringComparison.Ordinal);
+
+        // Lógica de cálculo debe delegar en ComplexityCalculator.Calculate
+        Assert.Contains("ComplexityCalculator.Calculate", source, StringComparison.Ordinal);
+
+        // Eyebrow debe formatear BggWeight si está presente
+        Assert.Contains("Game.BggWeight.HasValue", source, StringComparison.Ordinal);
     }
 }
 
