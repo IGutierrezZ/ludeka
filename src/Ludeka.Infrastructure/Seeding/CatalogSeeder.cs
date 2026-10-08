@@ -29,6 +29,7 @@ public static class CatalogSeeder
         public string? Description { get; set; }
         public double BggRating { get; set; }
         public int? BggRank { get; set; }
+        public double? BggWeight { get; set; }
         public double LudistRating { get; set; }
         public string Confrontation { get; set; } = "Competitive";
         public string Style { get; set; } = "Eurogame";
@@ -122,6 +123,12 @@ public static class CatalogSeeder
                                 match.UpdatePurchaseLinks(links);
                                 modified = true;
                             }
+
+                            if (match.BggWeight == null && m.BggWeight != null)
+                            {
+                                match.UpdateBggWeight(m.BggWeight);
+                                modified = true;
+                            }
                         }
                         else
                         {
@@ -204,7 +211,8 @@ public static class CatalogSeeder
             duration: new GameDuration(m.MinMinutes, m.MaxMinutes, m.EstimatedPerPlayerMinutes),
             scalability: scalabilityEntries,
             sleeves: sleeves,
-            purchaseLinks: purchaseLinks
+            purchaseLinks: purchaseLinks,
+            bggWeight: m.BggWeight
         );
     }
 

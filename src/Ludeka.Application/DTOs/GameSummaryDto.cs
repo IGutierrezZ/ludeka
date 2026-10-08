@@ -36,7 +36,8 @@ public record GameSummaryDto(
     string? SpanishPublisher = null,
     IReadOnlyList<RegionalPublisherEntry>? RegionalPublishers = null,
     IReadOnlyList<LocalizedTitleEntry>? LocalizedTitles = null,
-    int? TrendingRank = null
+    int? TrendingRank = null,
+    double? BggWeight = null
 )
 {
     public bool IsExpansion => Type == GameType.Expansion || Type == GameType.StandaloneExpansion;
@@ -107,6 +108,8 @@ public record GameSummaryDto(
         baseGameTitle,
         g.SpanishPublisher,
         (g.RegionalPublishers ?? new List<RegionalPublisherEntry>()).AsReadOnly(),
-        (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly()
+        (g.LocalizedTitles ?? new List<LocalizedTitleEntry>()).AsReadOnly(),
+        null,
+        g.BggWeight
     );
 }

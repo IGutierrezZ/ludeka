@@ -144,6 +144,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-129** | Moderación Asistida por IA (Gemini) de Novedades Editoriales, Filtros de Calendario en Devir y Jerarquía de Imágenes 3D | ✅ Archivado | [inc-129-novedades-moderacion-ia-devir.md](archive/inc-129-novedades-moderacion-ia-devir.md) |
 | **INC-130** | Pestaña de Expansiones Editorial Limpia (Alineación Claude Design y Retirada del Mezclador) | ✅ Archivado | [inc-130-expansiones-editorial-claude.md](archive/inc-130-expansiones-editorial-claude.md) |
 | **INC-131** | Calificación en Tarjetas de Expansión y Ordenación por Nota | ✅ Archivado | [inc-131-expansiones-nota-ordenacion.md](archive/inc-131-expansiones-nota-ordenacion.md) |
+| **INC-132** | Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa | ⏳ En progreso | [inc-132-dureza-numerica-bgg.md](inc-132-dureza-numerica-bgg.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -172,6 +173,7 @@ Backlog del 2026-09-22 agrupado en seis fases. El orden intra-fase es el de nume
 Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<slug>` + PR a `main`. Crear con `scripts/sdd-worktree.ps1 new <slug>`, cerrar con `pr <slug>` y limpiar con `done <slug>` tras el merge. Un solo escritor por worktree; los artefactos del incremento (specs, roadmap) viven en su rama y entran al PR.
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
+- **INC-132** (`inc/dureza-numerica-bgg` en `F:\repos\ludeka-wt\dureza-numerica-bgg`): Dureza Numérica BGG, Extrapolación de Complejidad y Ordenación Precisa. En curso.
 
 *(INC-131 entregó su PR #243, verificada con 2.679 pruebas unitarias en verde al 100%, y quedó archivada y desplegada en Google Cloud Run el 2026-10-08. Incorpora la insignia de calificación cuantitativa con icono de estrella Lucide [★ X.X] en cada tarjeta de expansión en ExpansionEcosystemSection.razor resolviendo la nota efectiva entre LudistRating y BggRating, y la ordenación predeterminada descendente por nota tanto en la capa de aplicación [ExpansionService.cs] como en la iteración del componente Blazor [SortedExpansions]).*
 

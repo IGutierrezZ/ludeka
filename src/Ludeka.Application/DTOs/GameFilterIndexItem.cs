@@ -19,5 +19,6 @@ public sealed record GameFilterIndexItem(
     int? BggRank,
     double BggRating,
     int YearPublished = 0,
-    string SpanishTitle = ""
+    string SpanishTitle = "",
+    double? BggWeight = null
 );
