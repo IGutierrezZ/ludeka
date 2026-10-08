@@ -59,3 +59,22 @@ public record GameEditLogDto(
     Guid? AssociatedReportId,
     DateTimeOffset EditedAt
 );
+
+/// <summary>
+/// Resultado de forzar la sincronización puntual de un juego desde BoardGameGeek.
+/// </summary>
+public record GameBggSyncResultDto(
+    bool Success,
+    int BggId,
+    string? OldSpanishTitle,
+    string? NewSpanishTitle,
+    string? OldSpanishPublisher,
+    string? NewSpanishPublisher,
+    string? OldEan,
+    string? NewEan,
+    string? CoverImageUrl,
+    string? ThumbnailUrl,
+    IReadOnlyList<string> UpdatedFields,
+    string Message
+);
+

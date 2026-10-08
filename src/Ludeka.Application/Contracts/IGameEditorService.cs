@@ -20,4 +20,9 @@ public interface IGameEditorService
         Guid gameId,
         int bggId,
         CancellationToken ct = default);
+
+    Task<GameBggSyncResultDto> ForceSyncFromBggAsync(
+        Guid gameId,
+        CancellationToken ct = default);
 }
+

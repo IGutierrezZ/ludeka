@@ -30,6 +30,10 @@ public interface IBggClient
     Task<string?> FetchRawThingXmlAsync(int bggId, bool includeVersions, CancellationToken ct = default)
         => Task.FromResult<string?>(null);
 
+    Task<string?> FetchRawThingJsonAsync(int bggId, bool includeVersions = true, CancellationToken ct = default)
+        => Task.FromResult<string?>(null);
+
+
     Task<string?> FetchRawThingsXmlAsync(IEnumerable<int> bggIds, CancellationToken ct = default)
         => FetchRawThingsXmlAsync(bggIds, false, ct);
 
