@@ -49,22 +49,20 @@ public static class CatalogDataSanitizer
                 var candidates = await db.Games
                     .Where(g => g.BggId > lastBggId && (
                         g.BggId == 368966 ||
+                        g.BggId == 456236 ||
                         (g.SpanishTitle != null && (
                             g.SpanishTitle.ToLower().Contains("korean") ||
+                            g.SpanishTitle.ToLower().Contains("edition") ||
+                            g.SpanishTitle.ToLower().Contains("edicion") ||
+                            g.SpanishTitle.ToLower().Contains("edición") ||
+                            g.SpanishTitle.ToLower().Contains("version") ||
+                            g.SpanishTitle.ToLower().Contains("versión") ||
+                            g.SpanishTitle.Contains("/") ||
                             g.SpanishTitle.ToLower().Contains("angry lion") ||
                             g.SpanishTitle.ToLower().Contains("lotus frog") ||
                             g.SpanishTitle.ToLower().Contains("board m") ||
                             g.SpanishTitle.ToLower().Contains("popcorn games") ||
-                            g.SpanishTitle.ToLower().Contains("mandoo games") ||
-                            g.SpanishTitle.ToLower() == "korean edition" ||
-                            g.SpanishTitle.ToLower() == "korean version" ||
-                            g.SpanishTitle.ToLower() == "spanish edition" ||
-                            g.SpanishTitle.ToLower() == "edicion en espanol" ||
-                            g.SpanishTitle.ToLower() == "edición en español" ||
-                            g.SpanishTitle.ToLower() == "edicion en castellano" ||
-                            g.SpanishTitle.ToLower() == "edición en castellano" ||
-                            g.SpanishTitle.ToLower() == "version en espanol" ||
-                            g.SpanishTitle.ToLower() == "versión en español"
+                            g.SpanishTitle.ToLower().Contains("mandoo games")
                         )) ||
                         (g.SpanishPublisher != null && (
                             g.SpanishPublisher.ToLower().Contains("angry lion") ||
@@ -322,6 +320,21 @@ public static class CatalogDataSanitizer
                 await db.SaveChangesAsync(ct);
                 logger.LogInformation("Ark Nova: Mundo Marino asegurado con éxito.");
             }
+        }
+
+        // Caso específico reportado: Queen Alice (BggId 456236) -> Restaurar título canónico si está degradado a edición
+        var queenAlice = await db.Games.FirstOrDefaultAsync(g => g.BggId == 456236, ct);
+        if (queenAlice != null && (queenAlice.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(queenAlice.SpanishTitle)))
+        {
+            logger.LogInformation("Garantizando título canónico para Queen Alice (456236): '{OldTitle}' -> '{NewTitle}'",
+                queenAlice.SpanishTitle, queenAlice.OriginalTitle);
+            queenAlice.UpdateSpanishTitle(queenAlice.OriginalTitle);
+            if (string.IsNullOrWhiteSpace(queenAlice.SpanishPublisher))
+            {
+                queenAlice.UpdateSpanishPublisher("Combo Games (II)");
+            }
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Queen Alice (456236) asegurado con éxito.");
         }
     }
 

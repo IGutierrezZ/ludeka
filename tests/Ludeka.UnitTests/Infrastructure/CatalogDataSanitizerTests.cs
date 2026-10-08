@@ -133,6 +133,49 @@ public sealed class CatalogDataSanitizerTests : IDisposable
     }
 
     [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRestoreQueenAliceOriginalTitle_WhenSpanishTitleIsGenericMultilingualEdition()
+    {
+        // Arrange: Queen Alice con título corrupto "ENG/GER/FRE/SPA edition" y snapshot de BGG
+        var game = CreateTestGame(
+            bggId: 456236,
+            originalTitle: "Queen Alice",
+            spanishTitle: "ENG/GER/FRE/SPA edition",
+            spanishPublisher: "Combo Games (II)"
+        );
+        _context.Games.Add(game);
+
+        const string snapshotJson = @"{
+          ""item"": {
+            ""@id"": ""456236"",
+            ""name"": [
+              { ""@type"": ""primary"", ""@value"": ""Queen Alice"" }
+            ],
+            ""versions"": {
+              ""item"": {
+                ""name"": { ""@value"": ""ENG/GER/FRE/SPA edition"" },
+                ""link"": [
+                  { ""@type"": ""language"", ""@id"": ""2184"", ""@value"": ""English"" },
+                  { ""@type"": ""language"", ""@id"": ""2194"", ""@value"": ""Spanish"" },
+                  { ""@type"": ""boardgamepublisher"", ""@value"": ""Combo Games (II)"" }
+                ]
+              }
+            }
+          }
+        }";
+        var snapshot = new BggRawSnapshot(456236, snapshotJson, 2);
+        _context.BggRawSnapshots.Add(snapshot);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 456236);
+        Assert.Equal("Queen Alice", refreshed.SpanishTitle);
+        Assert.Equal("Combo Games (II)", refreshed.SpanishPublisher);
+    }
+
+    [Fact]
     public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRestoreValidSpanishTitle_WhenSpanishVersionInSnapshot()
     {
         // Arrange: juego corrupto con "Korean edition" pero el snapshot sí tiene versión en español

@@ -6,6 +6,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Ludeka.Application.DTOs;
+using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
@@ -153,7 +154,7 @@ public static class BggXmlParser
             {
                 // Limpiar sufijos como "(Edición en español)", "(Spanish edition)"
                 string cleaned = Regex.Replace(val, @"\s*\([^)]*(español|spanish|castellano)[^)]*\)", "", RegexOptions.IgnoreCase).Trim();
-                if (!string.IsNullOrWhiteSpace(cleaned))
+                if (!string.IsNullOrWhiteSpace(cleaned) && !BggRawSnapshotParser.IsGenericEditionTitle(cleaned))
                 {
                     return cleaned;
                 }

@@ -170,11 +170,22 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Edición castellano", true)]
     [InlineData("Devir Spanish edition", true)]
     [InlineData("Maldito Games edition", true)]
+    [InlineData("Combo Games edition", true)]
     [InlineData("First edition", true)]
+    [InlineData("2nd edition", true)]
+    [InlineData("Retail edition", true)]
+    [InlineData("Deluxe edition", true)]
+    [InlineData("Kickstarter edition", true)]
+    [InlineData("Multilingual edition", true)]
+    [InlineData("International edition", true)]
+    [InlineData("ENG/GER/FRE/SPA edition", true)]
+    [InlineData("ENG/SPA edition", true)]
+    [InlineData("ES/EN edition", true)]
     [InlineData("Spanish", true)]
     [InlineData("Español", true)]
     [InlineData("Alta Tensión", false)]
     [InlineData("Ciudadelas", false)]
+    [InlineData("Queen Alice", false)]
     [InlineData("Ark Nova: Mundos Marinos", false)]
     [InlineData("Terraforming Mars: Preludio", false)]
     public void IsGenericEditionTitle_ShouldClassifyCorrectly(string title, bool expectedGeneric)
@@ -187,16 +198,47 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Spanish edition", null)]
     [InlineData("Edición en español", null)]
     [InlineData("Angry Lion Korean edition", null)]
+    [InlineData("ENG/GER/FRE/SPA edition", null)]
+    [InlineData("ENG/SPA edition", null)]
+    [InlineData("Multilingual edition", null)]
+    [InlineData("Retail edition", null)]
     [InlineData("Alta Tensión", "Alta Tensión")]
     [InlineData("Alta Tensión (Edición en español)", "Alta Tensión")]
     [InlineData("Alta Tensión - Spanish edition", "Alta Tensión")]
     [InlineData("Ciudadelas: Edición Deluxe", "Ciudadelas")]
+    [InlineData("Queen Alice - ENG/GER/FRE/SPA edition", "Queen Alice")]
     [InlineData("Ark Nova: Mundo Marino - Spanish edition (2024)", "Ark Nova: Mundo Marino")]
     [InlineData("Spanish edition (2024)", null)]
     public void CleanVersionTitle_ShouldStripSuffixOrReturnNull(string rawTitle, string? expectedCleaned)
     {
         string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
         Assert.Equal(expectedCleaned, cleaned);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldReturnNullTitle_WhenVersionIsEngGerFreSpaEdition()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""456236"">
+    <name type=""primary"" value=""Queen Alice"" />
+    <versions>
+      <item type=""boardgameversion"" id=""776699"">
+        <name type=""primary"" value=""ENG/GER/FRE/SPA edition"" />
+        <link type=""boardgamepublisher"" id=""56127"" value=""Combo Games (II)"" />
+        <link type=""language"" id=""2184"" value=""English"" />
+        <link type=""language"" id=""2194"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Null(result.Title); // No debe asumir 'ENG/GER/FRE/SPA edition' como título comercial en español
+        Assert.Equal("Combo Games (II)", result.Publisher);
     }
 
     [Fact]
