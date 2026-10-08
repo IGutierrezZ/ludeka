@@ -4,6 +4,21 @@
 # WebStartupGuards activa, un valor por defecto de Production abortaría aquí el arranque, al no
 # haber ninguna conexión PostgreSQL configurada en este fichero.
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ludeka-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ludeka
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ludeka-network
+
   ludeka-web:
     build:
       context: .
@@ -35,6 +50,8 @@ volumes:
     name: ludeka_data
   ludeka_logs:
     name: ludeka_logs
+  postgres_data:
+    name: postgres_data
 
 networks:
   ludeka-network:
