@@ -176,6 +176,12 @@ public class WeeklyReleaseService : IWeeklyReleaseService
         await _repository.DeleteAsync(id, ct);
     }
 
+    public async Task<WeeklyReleaseDto?> GetUpcomingReprintByGameIdAsync(Guid gameId, CancellationToken ct = default)
+    {
+        var release = await _repository.GetUpcomingReprintByGameIdAsync(gameId, ct);
+        return release is null ? null : MapToDto(release);
+    }
+
     private static WeeklyReleaseDto MapToDto(WeeklyRelease r)
     {
         return new WeeklyReleaseDto(

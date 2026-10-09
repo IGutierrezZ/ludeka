@@ -1,10 +1,12 @@
 @using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 @inject IUserLocationService LocationService
 @inject IStoreStockService StockService
 @inject IAffiliateUrlResolver AffiliateResolver
 @inject IPriceRadarService PriceRadarService
+@inject IWeeklyReleaseService? WeeklyReleaseService
 
 @if (IsSidebar)
 {
@@ -19,6 +21,32 @@
                 </span>
             }
         </div>
+
+        @if (_upcomingReprint != null)
+        {
+            <div class="mt-3 mb-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[var(--ink)] flex flex-col gap-1.5 shadow-sm">
+                <div class="flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    <Icon Name="bell" Size="14" />
+                    <span>Reimpresión anunciada</span>
+                </div>
+                <div class="text-sm font-extrabold leading-snug">
+                    @(_upcomingReprint.ReleaseDate.HasValue 
+                        ? (_upcomingReprint.IsMonthOnly ? _upcomingReprint.ReleaseDate.Value.ToString("MMMM yyyy") : _upcomingReprint.ReleaseDate.Value.ToString("d 'de' MMMM 'de' yyyy")) 
+                        : "Próximamente")
+                    <span class="font-normal text-xs text-[var(--muted)]">por @_upcomingReprint.Publisher</span>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_upcomingReprint.Notes))
+                {
+                    <p class="text-xs text-[var(--muted)] m-0">@_upcomingReprint.Notes</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(_upcomingReprint.SourceUrl))
+                {
+                    <a href="@_upcomingReprint.SourceUrl" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1 self-start mt-0.5">
+                        <span>Ver anuncio de la editorial</span> &nearr;
+                    </a>
+                }
+            </div>
+        }
 
         @if (!_isReferenceFallback && _displayedOffers != null && _displayedOffers.Count > 0)
         {
@@ -171,6 +199,26 @@ else
             <Icon Name="shield" Size="12" /> 100% Transparente
         </a>
     </div>
+
+    @if (_upcomingReprint != null)
+    {
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between flex-wrap gap-2 shadow-sm">
+            <div class="flex items-center gap-2">
+                <Icon Name="bell" Size="16" />
+                <span class="text-xs font-bold text-amber-800 dark:text-amber-200">
+                    Reimpresión oficial anunciada: @(_upcomingReprint.ReleaseDate.HasValue 
+                        ? (_upcomingReprint.IsMonthOnly ? _upcomingReprint.ReleaseDate.Value.ToString("MMMM yyyy") : _upcomingReprint.ReleaseDate.Value.ToString("d 'de' MMMM 'de' yyyy")) 
+                        : "Próximamente") por @_upcomingReprint.Publisher
+                </span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_upcomingReprint.SourceUrl))
+            {
+                <a href="@_upcomingReprint.SourceUrl" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-amber-700 dark:text-amber-300 underline inline-flex items-center gap-1">
+                    <span>Ver anuncio de la editorial</span> &nearr;
+                </a>
+            }
+        </div>
+    }
 
     @if (!_isReferenceFallback && _displayedOffers != null && _displayedOffers.Count > 0)
     {
@@ -457,6 +505,7 @@ else
     private bool _isCheckingStock;
     private GamePriceMetrics? _priceMetrics;
     private bool _isReferenceFallback;
+    private WeeklyReleaseDto? _upcomingReprint;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -471,6 +520,18 @@ else
             catch
             {
                 // Silencioso por resiliencia
+            }
+
+            if (WeeklyReleaseService != null)
+            {
+                try
+                {
+                    _upcomingReprint = await WeeklyReleaseService.GetUpcomingReprintByGameIdAsync(GameId.Value);
+                }
+                catch
+                {
+                    // Silencioso por resiliencia
+                }
             }
         }
 

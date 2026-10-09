@@ -63,4 +63,41 @@ public class EditorialReleaseDtosTests
         Assert.Single(summary.PublisherResults);
         Assert.Empty(summary.Errors);
     }
+
+    [Fact]
+    public void ArrakisDtos_InitializePropertiesCorrectly()
+    {
+        var gallery = new ArrakisProductGalleryDto(
+            CoverImageUrl: "https://arrakisgames.com/wp-content/uploads/spirit.jpg",
+            TableImageUrl: "https://arrakisgames.com/wp-content/uploads/spirit-table.jpg",
+            BackCoverImageUrl: null,
+            FrontFlatImageUrl: null,
+            Ean: "8421005001106",
+            Pvp: 84.95m,
+            BggId: 162886,
+            BggUrl: "https://boardgamegeek.com/boardgame/162886/spirit-island",
+            Title: "Spirit Island",
+            StatusText: "Reimpresión: Noviembre 2026");
+
+        Assert.Equal("https://arrakisgames.com/wp-content/uploads/spirit.jpg", gallery.CoverImageUrl);
+        Assert.Equal("8421005001106", gallery.Ean);
+        Assert.Equal(84.95m, gallery.Pvp);
+        Assert.Equal(162886, gallery.BggId);
+        Assert.Equal("https://boardgamegeek.com/boardgame/162886/spirit-island", gallery.BggUrl);
+        Assert.Equal("Spirit Island", gallery.Title);
+
+        var item = new ArrakisCatalogItemDto(
+            ProductUrl: "https://arrakisgames.com/spirit-island/",
+            Title: "Spirit Island",
+            Ean: "8421005001106",
+            CoverImageUrl: "https://arrakisgames.com/wp-content/uploads/spirit.jpg",
+            BggId: 162886,
+            Pvp: 84.95m);
+
+        Assert.Equal("https://arrakisgames.com/spirit-island/", item.ProductUrl);
+        Assert.Equal("Spirit Island", item.Title);
+        Assert.Equal("8421005001106", item.Ean);
+        Assert.Equal(162886, item.BggId);
+        Assert.Equal(84.95m, item.Pvp);
+    }
 }

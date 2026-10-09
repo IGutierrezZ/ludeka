@@ -16,4 +16,6 @@ public interface IWeeklyReleaseService
     Task<WeeklyReleaseDto> ApproveReleaseAsync(Guid id, Guid? linkedGameId = null, bool useAiSuggestionIfAvailable = true, CancellationToken ct = default);
     Task RejectReleaseAsync(Guid id, CancellationToken ct = default);
     Task DeleteReleaseAsync(Guid id, CancellationToken ct = default);
+    Task<WeeklyReleaseDto?> GetUpcomingReprintByGameIdAsync(Guid gameId, CancellationToken ct = default)
+        => Task.FromResult<WeeklyReleaseDto?>(null);
 }

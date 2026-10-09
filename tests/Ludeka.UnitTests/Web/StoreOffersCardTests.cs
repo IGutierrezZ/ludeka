@@ -212,4 +212,65 @@ public class StoreOffersCardTests
         Assert.NotEmpty(displayed);
         Assert.Contains(displayed, o => string.Equals(o.StoreName, "Amazon", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public async Task WhenGameHasUpcomingReprint_LoadsUpcomingReprintDetails()
+    {
+        var gameId = Guid.NewGuid();
+        var component = CreateComponent([], gameTitle: "Spirit Island", gameId: gameId);
+
+        var fakeReleaseService = new FakeWeeklyReleaseService
+        {
+            ReprintToReturn = new WeeklyReleaseDto(
+                Id: Guid.NewGuid(),
+                Title: "Spirit Island",
+                Publisher: "Arrakis Games",
+                ReleaseDate: new DateOnly(2026, 11, 1),
+                GameId: gameId,
+                CoverImageUrl: "https://arrakisgames.com/spirit.png",
+                EstimatedPvp: 84.95m,
+                IsReprint: true,
+                Notes: "Reimpresión oficial anunciada",
+                InstagramPermalink: null,
+                IsPublishedOnInstagram: false,
+                SourceUrl: "https://arrakisgames.com/spirit-island/",
+                CreatedAt: DateTimeOffset.UtcNow,
+                IsMonthOnly: true,
+                Status: Ludeka.Core.Enums.WeeklyReleaseStatus.Published,
+                AiSuggestedBggId: null,
+                AiSuggestedTitle: null,
+                AiMatchReasoning: null)
+        };
+
+        InjectService(component, "WeeklyReleaseService", fakeReleaseService);
+
+        // Act
+        await InvokeOnParametersSetAsync(component);
+
+        // Assert: El campo privado _upcomingReprint tiene los datos de Arrakis
+        var field = typeof(StoreOffersCard).GetField("_upcomingReprint", BindingFlags.Instance | BindingFlags.NonPublic);
+        var reprint = field?.GetValue(component) as WeeklyReleaseDto;
+
+        Assert.NotNull(reprint);
+        Assert.Equal("Arrakis Games", reprint.Publisher);
+        Assert.True(reprint.IsReprint);
+        Assert.Equal("https://arrakisgames.com/spirit-island/", reprint.SourceUrl);
+    }
+
+    private class FakeWeeklyReleaseService : IWeeklyReleaseService
+    {
+        public WeeklyReleaseDto? ReprintToReturn { get; set; }
+
+        public Task<WeeklyReleaseDto?> GetUpcomingReprintByGameIdAsync(Guid gameId, CancellationToken ct = default)
+            => Task.FromResult(ReprintToReturn);
+
+        public Task<IReadOnlyList<WeeklyReleaseDto>> GetReleasesAsync(DateOnly? fromDate = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyReleaseDto>>([]);
+        public Task<IReadOnlyList<WeeklyReleaseDto>> GetPendingModerationReleasesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WeeklyReleaseDto>>([]);
+        public Task<WeeklyReleaseDto?> GetByIdAsync(Guid id, CancellationToken ct = default) => Task.FromResult<WeeklyReleaseDto?>(null);
+        public Task<WeeklyReleaseDto> CreateReleaseAsync(CreateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<WeeklyReleaseDto> UpdateReleaseAsync(Guid id, UpdateWeeklyReleaseRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<WeeklyReleaseDto> ApproveReleaseAsync(Guid id, Guid? linkedGameId = null, bool useAiSuggestionIfAvailable = true, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task RejectReleaseAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteReleaseAsync(Guid id, CancellationToken ct = default) => Task.CompletedTask;
+    }
 }
