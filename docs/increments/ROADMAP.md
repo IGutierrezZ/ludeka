@@ -186,6 +186,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
 - **INC-139** (`inc/espacio-buscador-catalogo` en `F:\repos\ludeka-wt\espacio-buscador-catalogo`): Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL. En curso.
+- **Ajuste Operativo** (`inc/cloud-run-websocket-timeout` en `F:\repos\ludeka-wt\cloud-run-websocket-timeout`): Configuración de `--timeout=3600` en Google Cloud Run para prevenir desconexiones cíclicas de WebSocket (código 1006) en Blazor Server. En curso.
 
 *(INC-140 entregó su PR #253, verificada con 2.760 pruebas unitarias + 10 de integración en verde al 100% [2.770 totales], y quedó archivada y desplegada en Google Cloud Run el 2026-10-09. Implementa la galería fotográfica dinámica en el modelo de dominio con GameGalleryImage y Game, persistencia JSONB en PostgreSQL y SQLite con reconciliación defensiva en SqliteSchemaMigrator y canario de 25 migraciones en PostgresSchemaVerificationTests, permisos CanUploadImages y log de auditoría en GameEditorService, editor editorial con subida directa y URL en GameEditorModal.razor, y renderizado dinámico en GameImageCarousel.razor y visor a pantalla completa de GameDetail.razor).*
 
