@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace Ludeka.Infrastructure.Extractors;
 public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
 {
     private const string DefaultMalditoHomeUrl = "https://tienda.malditogames.com/";
-    private const string DefaultMalditoCatalogUrl = "https://tienda.malditogames.com/juegos?product_list_order=creation_time&product_list_dir=desc";
+    private const string DefaultMalditoCatalogUrl = "https://tienda.malditogames.com/juegos";
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<MalditoReleasesExtractor> _logger;
@@ -32,7 +33,7 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
 
     public async Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Descargando novedades de Maldito Games desde portada y catálogo...");
+        _logger.LogInformation("Descargando novedades de Maldito Games desde la portada oficial...");
 
         string? homeHtml = null;
         try
@@ -44,23 +45,51 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
             _logger.LogWarning(ex, "Fallo al obtener la portada de Maldito Games.");
         }
 
-        string? catalogHtml = null;
-        try
+        if (string.IsNullOrWhiteSpace(homeHtml))
         {
-            catalogHtml = await FetchHtmlWithRetryAsync(DefaultMalditoCatalogUrl, referer: DefaultMalditoHomeUrl, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
-        {
-            _logger.LogWarning(ex, "Fallo al obtener el catálogo de Maldito Games. Se continuará con los lanzamientos de portada.");
-        }
-
-        if (string.IsNullOrWhiteSpace(homeHtml) && string.IsNullOrWhiteSpace(catalogHtml))
-        {
-            _logger.LogError("No se pudo obtener contenido de ninguna fuente de Maldito Games.");
+            _logger.LogError("No se pudo obtener la portada de Maldito Games.");
             return Array.Empty<EditorialReleaseItem>();
         }
 
-        return ParseHtml(homeHtml ?? string.Empty, catalogHtml);
+        var releases = ParseHtml(homeHtml, null);
+
+        // Enriquecer con galería de producto (caja 3D, mesa, contraportada, EAN y PVP) para aquellos ítems con SourceUrl de ficha
+        var enrichedItems = new List<EditorialReleaseItem>(releases.Count);
+        foreach (var item in releases)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            if (!string.IsNullOrWhiteSpace(item.SourceUrl) &&
+                item.SourceUrl.StartsWith("https://tienda.malditogames.com/", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(item.SourceUrl, DefaultMalditoHomeUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var gallery = await ExtractProductGalleryAsync(item.SourceUrl, ct).ConfigureAwait(false);
+                    if (gallery != null)
+                    {
+                        var enriched = item with
+                        {
+                            CoverImageUrl = gallery.CoverImageUrl ?? item.CoverImageUrl,
+                            TableImageUrl = gallery.TableImageUrl ?? gallery.FrontFlatImageUrl ?? item.TableImageUrl,
+                            BackCoverImageUrl = gallery.BackCoverImageUrl ?? item.BackCoverImageUrl,
+                            Ean = !string.IsNullOrWhiteSpace(gallery.Ean) ? gallery.Ean : item.Ean,
+                            EstimatedPvp = gallery.Pvp ?? item.EstimatedPvp
+                        };
+                        enrichedItems.Add(enriched);
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "No se pudo extraer la galería para '{Title}' desde '{Url}'.", item.Title, item.SourceUrl);
+                }
+            }
+
+            enrichedItems.Add(item);
+        }
+
+        return enrichedItems;
     }
 
     private async Task<string?> FetchHtmlWithRetryAsync(string url, string? referer, CancellationToken ct)
@@ -133,13 +162,13 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
     {
         var itemsMap = new Dictionary<string, EditorialReleaseItem>(StringComparer.OrdinalIgnoreCase);
 
-        // 1. Extraer bloques seccionales de la portada
+        // 1. Extraer bloques seccionales de la portada («A puntito de llegar» y «Volverán a estar disponibles»)
         if (!string.IsNullOrWhiteSpace(homeHtml))
         {
             ParseHomeSections(homeHtml, itemsMap);
         }
 
-        // 2. Extraer o enriquecer novedades recientes del catálogo
+        // 2. Si se proporciona catálogo, solo enriquecer los productos ya identificados en la portada (no crear novedades ajenas)
         if (!string.IsNullOrWhiteSpace(catalogHtml))
         {
             ParseCatalog(catalogHtml, itemsMap);
@@ -159,28 +188,28 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
             var secTitle = WebUtility.HtmlDecode(rawSecTitle).Trim();
             var secContent = secMatch.Groups["content"].Value;
 
-            bool isReprintSection = secTitle.Contains("Volver", StringComparison.OrdinalIgnoreCase) &&
+            // Descartar explícitamente secciones que ya salieron a la venta ("Últimas novedades") o anuncios lejanos sin datos ("Lo que se viene")
+            if (secTitle.Contains("últimas novedades", StringComparison.OrdinalIgnoreCase) ||
+                secTitle.Contains("ultimas novedades", StringComparison.OrdinalIgnoreCase) ||
+                secTitle.Contains("lo que se viene", StringComparison.OrdinalIgnoreCase) ||
+                secTitle.Contains("se viene", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            bool isPuntito = secTitle.Contains("puntito", StringComparison.OrdinalIgnoreCase) ||
+                             secTitle.Contains("llegar", StringComparison.OrdinalIgnoreCase);
+
+            bool isReprintSection = secTitle.Contains("volver", StringComparison.OrdinalIgnoreCase) &&
                                     secTitle.Contains("disponible", StringComparison.OrdinalIgnoreCase);
 
-            bool isLoQueSeViene = secTitle.Contains("Lo que se viene", StringComparison.OrdinalIgnoreCase) ||
-                                  secTitle.Contains("Se viene", StringComparison.OrdinalIgnoreCase);
-
-            if (isLoQueSeViene)
+            // Solo procesamos las dos secciones de interés
+            if (!isPuntito && !isReprintSection)
             {
-                // Sección de banners inferiores con fecha año (ej. 2027)
-                ParseSeVieneBanners(secContent, itemsMap);
+                continue;
             }
-            else
-            {
-                // Secciones de cuadrícula con productos estructurados (Últimas novedades, A puntito de llegar, Volverán a estar disponibles)
-                ParseProductGridSection(secTitle, secContent, isReprintSection, itemsMap);
-            }
-        }
 
-        // Si la portada no contuviera h2 estructurados, fallback a buscar directamente los banners de "Se viene"
-        if (sectionMatches.Count == 0)
-        {
-            ParseSeVieneBanners(homeHtml, itemsMap);
+            ParseProductGridSection(secTitle, secContent, isReprintSection, itemsMap);
         }
     }
 
@@ -255,45 +284,9 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
         }
     }
 
-    private void ParseSeVieneBanners(string html, Dictionary<string, EditorialReleaseItem> itemsMap)
-    {
-        var matches = SeVieneRegex().Matches(html);
-
-        foreach (Match match in matches)
-        {
-            var imgSrc = match.Groups["img"].Value.Trim();
-            var rawDate = match.Groups["date"].Value;
-            var dateText = CleanHtml(rawDate);
-
-            var title = InferTitleFromFilename(imgSrc);
-            if (string.IsNullOrWhiteSpace(title))
-                continue;
-
-            // Si ya fue extraído de las secciones con productos reales, no sobreescribir con el banner
-            if (itemsMap.ContainsKey(title))
-                continue;
-
-            var (releaseDate, isMonthOnly) = ParseSpanishDate(dateText);
-
-            itemsMap[title] = new EditorialReleaseItem(
-                Title: title,
-                Publisher: "Maldito Games",
-                ReleaseDate: releaseDate,
-                TargetDateText: !string.IsNullOrWhiteSpace(dateText) ? dateText : null,
-                EstimatedPvp: null,
-                Ean: ExtractEanFromImageUrl(imgSrc),
-                CoverImageUrl: imgSrc,
-                Notes: "Próximamente en Maldito Games (Lo que se viene)",
-                SourceUrl: DefaultMalditoHomeUrl,
-                IsReprint: false,
-                IsMonthOnly: isMonthOnly);
-        }
-    }
-
     private void ParseCatalog(string catalogHtml, Dictionary<string, EditorialReleaseItem> itemsMap)
     {
         var catalogMatches = CatalogProductRegex().Matches(catalogHtml);
-        _logger.LogInformation("Productos encontrados en catálogo reciente de Maldito: {Count}", catalogMatches.Count);
 
         foreach (Match match in catalogMatches)
         {
@@ -309,6 +302,7 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
             decimal? price = ParsePrice(rawPrice);
             string? ean = ExtractEanFromImageUrl(imgSrc);
 
+            // Solo enriquecer si ya estaba en las novedades de portada (no añadir productos viejos del catálogo)
             if (itemsMap.TryGetValue(title, out var existing))
             {
                 itemsMap[title] = existing with
@@ -319,22 +313,245 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
                     SourceUrl = !string.IsNullOrWhiteSpace(productUrl) ? productUrl : existing.SourceUrl
                 };
             }
-            else
+        }
+    }
+
+    public async Task<MalditoProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(productUrl) || !productUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+
+            using var request = CreateBrowserNavRequest(HttpMethod.Get, productUrl, DefaultMalditoHomeUrl);
+            var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
             {
-                itemsMap[title] = new EditorialReleaseItem(
-                    Title: title,
-                    Publisher: "Maldito Games",
-                    ReleaseDate: null,
-                    TargetDateText: null,
-                    EstimatedPvp: price,
-                    Ean: ean,
-                    CoverImageUrl: !string.IsNullOrWhiteSpace(imgSrc) ? imgSrc : null,
-                    Notes: "Novedad en catálogo de Maldito Games",
-                    SourceUrl: productUrl,
-                    IsReprint: false,
-                    IsMonthOnly: false);
+                _logger.LogDebug("HTTP {StatusCode} al obtener la galería de Maldito Games en '{Url}'.", response.StatusCode, productUrl);
+                return null;
+            }
+
+            var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+            return ParseProductGalleryHtml(html);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "No se pudo extraer la galería de producto de Maldito Games desde '{Url}'.", productUrl);
+            return null;
+        }
+    }
+
+    public MalditoProductGalleryDto? ParseProductGalleryHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+            return null;
+
+        string? coverUrl = null;
+        string? tableUrl = null;
+        string? backCoverUrl = null;
+        string? frontFlatUrl = null;
+        string? ean = null;
+        decimal? pvp = null;
+
+        // 1. Extraer JSON de galería Magento
+        var galleryMatch = GalleryScriptRegex().Match(html);
+        if (galleryMatch.Success)
+        {
+            try
+            {
+                var jsonText = galleryMatch.Groups["json"].Value;
+                using var doc = JsonDocument.Parse(jsonText);
+                if (doc.RootElement.TryGetProperty("[data-gallery-role=gallery-placeholder]", out var ph) &&
+                    ph.TryGetProperty("mage/gallery/gallery", out var mg) &&
+                    mg.TryGetProperty("data", out var dataArr) &&
+                    dataArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var imgObj in dataArr.EnumerateArray())
+                    {
+                        var full = imgObj.TryGetProperty("full", out var f) ? f.GetString() : null;
+                        var img = imgObj.TryGetProperty("img", out var im) ? im.GetString() : null;
+                        var targetUrl = !string.IsNullOrWhiteSpace(full) ? full : img;
+                        if (string.IsNullOrWhiteSpace(targetUrl)) continue;
+
+                        if (targetUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                            targetUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                            targetUrl.Contains("caja", StringComparison.OrdinalIgnoreCase))
+                        {
+                            coverUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("components", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("mesa", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("contenido", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tableUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("backflat", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("trasera", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("contra", StringComparison.OrdinalIgnoreCase))
+                        {
+                            backCoverUrl = targetUrl;
+                        }
+                        else if (targetUrl.Contains("frontflat", StringComparison.OrdinalIgnoreCase))
+                        {
+                            frontFlatUrl = targetUrl;
+                        }
+
+                        if (coverUrl == null && imgObj.TryGetProperty("isMain", out var isMain) && isMain.GetBoolean())
+                        {
+                            coverUrl = targetUrl;
+                        }
+
+                        if (ean == null)
+                        {
+                            var eanM = ExtractEanFromImageUrl(targetUrl);
+                            if (!string.IsNullOrWhiteSpace(eanM))
+                            {
+                                ean = eanM;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error al parsear el JSON de galería de producto Maldito Games.");
             }
         }
+
+        // Si no se detectó imagen de mesa pero hay frontal plano, usar frontal plano
+        tableUrl ??= frontFlatUrl;
+
+        // 2. Extraer EAN desde el SKU del formulario si faltaba
+        if (ean == null)
+        {
+            var skuMatch = ProductSkuRegex().Match(html);
+            if (skuMatch.Success)
+            {
+                var sku = skuMatch.Groups["sku"].Value.Trim();
+                if (sku.Length == 13 && long.TryParse(sku, out _))
+                {
+                    ean = sku;
+                }
+            }
+        }
+
+        // 3. Extraer PVP (Meta property o price span)
+        var metaPriceMatch = ProductMetaPriceRegex().Match(html);
+        if (metaPriceMatch.Success)
+        {
+            var pStr = metaPriceMatch.Groups["price"].Value.Replace(',', '.');
+            if (decimal.TryParse(pStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+            {
+                pvp = p;
+            }
+        }
+
+        if (!pvp.HasValue)
+        {
+            var priceM = PriceRegex().Match(html);
+            if (priceM.Success)
+            {
+                pvp = ParsePrice(priceM.Groups["price"].Value);
+            }
+        }
+
+        if (coverUrl == null && tableUrl == null && backCoverUrl == null && frontFlatUrl == null && ean == null && !pvp.HasValue)
+        {
+            return null;
+        }
+
+        return new MalditoProductGalleryDto(coverUrl, tableUrl, backCoverUrl, frontFlatUrl, ean, pvp);
+    }
+
+    public async Task<MalditoCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)
+    {
+        var targetUrl = page <= 1
+            ? DefaultMalditoCatalogUrl
+            : $"{DefaultMalditoCatalogUrl}?p={page}";
+
+        var referer = page > 1 ? DefaultMalditoCatalogUrl : DefaultMalditoHomeUrl;
+
+        for (int attempt = 1; attempt <= 2; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
+
+                using var request = CreateBrowserNavRequest(HttpMethod.Get, targetUrl, referer);
+                var response = await _httpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var html = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+                    return ParseCatalogPageHtml(html);
+                }
+
+                _logger.LogWarning("HTTP {StatusCode} al obtener la página {Page} del catálogo de Maldito Games (intento {Attempt}/2).", response.StatusCode, page, attempt);
+
+                if (attempt == 1 && ((int)response.StatusCode == 403 || (int)response.StatusCode == 429 || (int)response.StatusCode >= 500))
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return new MalditoCatalogPageResultDto(Array.Empty<MalditoCatalogItemDto>(), HasNextPage: false, Success: false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Error al extraer la página {Page} del catálogo general de Maldito Games (intento {Attempt}/2).", page, attempt);
+                if (attempt == 1)
+                {
+                    await Task.Delay(1500, ct).ConfigureAwait(false);
+                    continue;
+                }
+
+                return new MalditoCatalogPageResultDto(Array.Empty<MalditoCatalogItemDto>(), HasNextPage: false, Success: false);
+            }
+        }
+
+        return new MalditoCatalogPageResultDto(Array.Empty<MalditoCatalogItemDto>(), HasNextPage: false, Success: false);
+    }
+
+    public MalditoCatalogPageResultDto ParseCatalogPageHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return new MalditoCatalogPageResultDto(Array.Empty<MalditoCatalogItemDto>(), false);
+        }
+
+        var items = new List<MalditoCatalogItemDto>();
+        var itemMatches = ProductItemBlockRegex().Matches(html);
+
+        foreach (Match match in itemMatches)
+        {
+            var itemHtml = match.Value;
+
+            var linkMatch = ProductLinkRegex().Match(itemHtml);
+            if (!linkMatch.Success) continue;
+
+            var productUrl = linkMatch.Groups["url"].Value.Trim();
+            var title = CleanTitle(linkMatch.Groups["title"].Value);
+            var imgMatch = ProductImageRegex().Match(itemHtml);
+            var imgSrc = imgMatch.Success ? imgMatch.Groups["src"].Value.Trim() : null;
+
+            string? ean = ExtractEanFromImageUrl(imgSrc);
+
+            items.Add(new MalditoCatalogItemDto(
+                ProductUrl: productUrl,
+                Title: !string.IsNullOrWhiteSpace(title) ? title : null,
+                Ean: ean,
+                CoverImageUrl: imgSrc));
+        }
+
+        bool hasNextPage = html.Contains("pages-item-next", StringComparison.OrdinalIgnoreCase) ||
+                           Regex.IsMatch(html, @"\baction\s+next\b", RegexOptions.IgnoreCase);
+
+        return new MalditoCatalogPageResultDto(items, hasNextPage);
     }
 
     public static string? ExtractEanFromImageUrl(string? imageUrl)
@@ -445,50 +662,6 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
         return Regex.Replace(decoded, @"\s+", " ");
     }
 
-    private static string InferTitleFromFilename(string imageUrl)
-    {
-        try
-        {
-            var uri = new Uri(imageUrl);
-            var filename = Path.GetFileNameWithoutExtension(uri.LocalPath);
-
-            // Quitar prefijos comunes como SQ_, SQ-
-            if (filename.StartsWith("SQ_", StringComparison.OrdinalIgnoreCase) ||
-                filename.StartsWith("SQ-", StringComparison.OrdinalIgnoreCase))
-            {
-                filename = filename[3..];
-            }
-
-            // Quitar sufijos comunes como _1, -ESP
-            filename = filename.Replace("-ESP", "", StringComparison.OrdinalIgnoreCase)
-                               .Replace("_ESP", "", StringComparison.OrdinalIgnoreCase)
-                               .Replace("_1", "", StringComparison.OrdinalIgnoreCase);
-
-            // Reemplazar guiones y barras por espacios
-            var title = filename.Replace('-', ' ').Replace('_', ' ').Trim();
-
-            // Capitalizar palabras
-            var words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            for (int i = 0; i < words.Length; i++)
-            {
-                if (words[i].Length > 1)
-                {
-                    words[i] = char.ToUpperInvariant(words[i][0]) + words[i][1..];
-                }
-                else if (words[i].Length == 1)
-                {
-                    words[i] = char.ToUpperInvariant(words[i][0]).ToString();
-                }
-            }
-
-            return string.Join(" ", words);
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
-
     private static string CleanHtml(string html)
     {
         if (string.IsNullOrWhiteSpace(html))
@@ -538,9 +711,6 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
     [GeneratedRegex(@"(?si)<span class=""price""[^>]*>(?<price>[^<]+)</span>")]
     private static partial Regex PriceRegex();
 
-    [GeneratedRegex(@"src=""(?<img>[^""]*media/wysiwyg/SQ[^""]+)"".*?<div class=""fecha-home""[^>]*>(?<date>.*?)</div>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
-    private static partial Regex SeVieneRegex();
-
     [GeneratedRegex(@"(?si)<div class=""product-item-info"".*?<a class=""product-item-link""\s+href=""(?<url>[^""]+)"">\s*(?<title>[^<]+)\s*</a>.*?(?:<img[^>]*src=""(?<img>[^""]+)""|).*?<span class=""price"">(?<price>[^<]+)</span>")]
     private static partial Regex CatalogProductRegex();
 
@@ -555,4 +725,13 @@ public partial class MalditoReleasesExtractor : IMalditoReleasesExtractor
 
     [GeneratedRegex(@"^(?<month>[a-zA-ZáéíóúÁÉÍÓÚ]+)(?:\s+de)?\s+(?<year>\d{4})$", RegexOptions.IgnoreCase)]
     private static partial Regex MonthYearRegex();
+
+    [GeneratedRegex(@"<script[^>]*type=""text/x-magento-init""[^>]*>\s*(?<json>\{.*?data-gallery-role=gallery-placeholder.*?\})\s*</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex GalleryScriptRegex();
+
+    [GeneratedRegex(@"data-product-sku=""(?<sku>\d+)""", RegexOptions.IgnoreCase)]
+    private static partial Regex ProductSkuRegex();
+
+    [GeneratedRegex(@"<meta\s+property=""product:price:amount""\s+content=""(?<price>[^""]+)""", RegexOptions.IgnoreCase)]
+    private static partial Regex ProductMetaPriceRegex();
 }

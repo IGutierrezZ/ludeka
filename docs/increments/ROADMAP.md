@@ -154,6 +154,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-139** | Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL | ⏳ En progreso | [inc-139-preservar-espacios-buscador-catalogo.md](inc-139-preservar-espacios-buscador-catalogo.md) |
 | **INC-140** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ✅ Archivado | [inc-140-galeria-dinamica-fichas.md](archive/inc-140-galeria-dinamica-fichas.md) |
 | **INC-141** | Búsqueda Insensible a Tildes y Diacríticos en Catálogo y Búsqueda Rápida | ⏳ En progreso | [inc-141-busqueda-insensible-tildes.md](inc-141-busqueda-insensible-tildes.md) |
+| **INC-142** | Filtro Estricto de Novedades Maldito Games, Enriquecimiento de Imágenes, EAN y Precios en Catálogo (Maldito y Devir) | ⏳ En progreso | [inc-142-maldito-filtros-backfill-catalogo.md](inc-142-maldito-filtros-backfill-catalogo.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

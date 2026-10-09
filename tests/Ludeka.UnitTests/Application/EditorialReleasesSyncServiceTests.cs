@@ -460,6 +460,10 @@ public class EditorialReleasesSyncServiceTests
         public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<EditorialReleaseItem>>(ItemsToReturn);
         public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? catalogHtml = null) => ItemsToReturn;
+        public Task<MalditoProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default)
+            => Task.FromResult<MalditoProductGalleryDto?>(null);
+        public Task<MalditoCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)
+            => Task.FromResult(new MalditoCatalogPageResultDto([], false));
     }
 
     private class FakeWeeklyReleaseRepository : IWeeklyReleaseRepository

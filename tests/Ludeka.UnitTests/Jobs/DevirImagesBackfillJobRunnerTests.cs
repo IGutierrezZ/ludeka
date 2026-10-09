@@ -103,7 +103,15 @@ public class DevirImagesBackfillJobRunnerTests
             => Task.FromResult<(IReadOnlyList<Game>, int)>((Games.Take(pageSize).ToList(), Games.Count));
     }
 
-    private static Game CreateGame(int bggId, string slug, string title, string? ean = null, string? cover = null, string? table = null, string? back = null)
+    private static Game CreateGame(
+        int bggId,
+        string slug,
+        string title,
+        string? ean = null,
+        string? cover = null,
+        string? table = null,
+        string? back = null,
+        IEnumerable<GamePurchaseLink>? purchaseLinks = null)
     {
         var game = new Game(
             bggId: bggId,
@@ -125,6 +133,7 @@ public class DevirImagesBackfillJobRunnerTests
             language: LanguageDependence.Low,
             footprint: TableFootprint.StandardTable,
             duration: new GameDuration(45, 45, 45),
+            purchaseLinks: purchaseLinks,
             customSlug: slug);
 
         if (!string.IsNullOrWhiteSpace(table) || !string.IsNullOrWhiteSpace(back))
@@ -187,9 +196,9 @@ public class DevirImagesBackfillJobRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_WhenGameAlreadyHasCompleteMedia_SkipsGalleryExtraction()
+    public async Task RunAsync_WhenGameAlreadyHasCompleteMediaEanAndOffer_SkipsGalleryExtraction()
     {
-        // Arrange: un juego que ya tiene cover 3D, mesa y contraportada
+        // Arrange: un juego que ya tiene cover 3D, mesa, contraportada, EAN y oferta de Devir
         var coordinator = new FakeCoordinator();
         var extractor = new FakeDevirExtractor();
         var gameRepo = new FakeGameRepository();
@@ -201,7 +210,8 @@ public class DevirImagesBackfillJobRunnerTests
             ean: "8436017220018",
             cover: "https://devir.es/catan-face3d.jpg",
             table: "https://devir.es/catan-components1.jpg",
-            back: "https://devir.es/catan-backflat.jpg");
+            back: "https://devir.es/catan-backflat.jpg",
+            purchaseLinks: new[] { new GamePurchaseLink("Devir", "https://devir.es/catan", 45.00m) });
         gameRepo.Games.Add(catan);
 
         extractor.Pages[1] = new DevirCatalogPageResultDto(
@@ -221,6 +231,54 @@ public class DevirImagesBackfillJobRunnerTests
         Assert.Empty(extractor.RequestedGalleryUrls); // No se consumió la ficha ni la red
         Assert.Empty(gameRepo.UpdatedGames);
         Assert.Equal(0, coordinator.CapturedResult!.Processed);
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenGameHasImages_StillUpdatesEanAndDevirOfferIfMissing()
+    {
+        // Arrange: juego con imágenes pero sin EAN ni oferta de Devir
+        var coordinator = new FakeCoordinator();
+        var extractor = new FakeDevirExtractor();
+        var gameRepo = new FakeGameRepository();
+
+        var game = CreateGame(
+            14,
+            "fantasma-blitz",
+            "Fantasma Blitz",
+            ean: null,
+            cover: "https://devir.es/fantasma-face3d.jpg",
+            table: "https://devir.es/fantasma-components1.jpg",
+            back: "https://devir.es/fantasma-backflat.jpg");
+        gameRepo.Games.Add(game);
+
+        extractor.Pages[1] = new DevirCatalogPageResultDto(
+            Items: new List<DevirCatalogItemDto>
+            {
+                new("https://devir.es/fantasma-blitz", "Fantasma Blitz", "8436017220124", null)
+            },
+            HasNextPage: false);
+
+        extractor.Galleries["https://devir.es/fantasma-blitz"] = new DevirProductGalleryDto(
+            CoverImageUrl: "https://devir.es/fantasma-face3d.jpg",
+            TableImageUrl: "https://devir.es/fantasma-components1.jpg",
+            BackCoverImageUrl: "https://devir.es/fantasma-backflat.jpg",
+            FrontFlatImageUrl: null,
+            Ean: "8436017220124",
+            Pvp: 16.50m);
+
+        var runner = new DevirImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<DevirImagesBackfillJobRunner>.Instance);
+
+        // Act
+        var outcome = await runner.RunAsync(CancellationToken.None);
+
+        // Assert
+        Assert.Equal(JobLeaseOutcome.Completed, outcome);
+        Assert.Single(gameRepo.UpdatedGames);
+        var updated = gameRepo.UpdatedGames[0];
+        Assert.Equal("8436017220124", updated.Ean);
+        var devirOffer = Assert.Single(updated.PurchaseLinks, p => p.StoreName == "Devir");
+        Assert.Equal(16.50m, devirOffer.Price);
+        Assert.Equal("https://devir.es/fantasma-blitz", devirOffer.AffiliateUrl);
     }
 
     [Fact]

@@ -74,3 +74,32 @@ public record DevirCatalogPageResultDto(
     bool HasNextPage,
     bool Success = true);
 
+/// <summary>
+/// Representa la galería y datos de producto extraídos de la ficha de un juego en Maldito Games.
+/// </summary>
+public record MalditoProductGalleryDto(
+    string? CoverImageUrl,
+    string? TableImageUrl,
+    string? BackCoverImageUrl,
+    string? FrontFlatImageUrl,
+    string? Ean = null,
+    decimal? Pvp = null);
+
+/// <summary>
+/// Representa una entrada de producto en el catálogo general de Maldito Games.
+/// </summary>
+public record MalditoCatalogItemDto(
+    string ProductUrl,
+    string? Title = null,
+    string? Ean = null,
+    string? CoverImageUrl = null);
+
+/// <summary>
+/// Resultado del raspado de una página del catálogo general de Maldito Games.
+/// </summary>
+public record MalditoCatalogPageResultDto(
+    IReadOnlyList<MalditoCatalogItemDto> Items,
+    bool HasNextPage,
+    bool Success = true);
+
+

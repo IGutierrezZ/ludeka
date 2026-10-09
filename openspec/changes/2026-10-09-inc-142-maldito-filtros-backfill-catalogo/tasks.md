@@ -1,0 +1,21 @@
+# Tareas de Implementación: INC-142
+
+- [ ] **Tarea 1: DTOs e interfaces de catálogo y galería de Maldito Games**
+  - Añadir `MalditoProductGalleryDto`, `MalditoCatalogItemDto` y `MalditoCatalogPageResultDto` en `src/Ludeka.Application/DTOs/EditorialReleaseDtos.cs`.
+  - Actualizar `IMalditoReleasesExtractor` con `ExtractProductGalleryAsync` y `ExtractCatalogPageAsync`.
+- [ ] **Tarea 2: Filtrado estricto y extracción de galería en `MalditoReleasesExtractor`**
+  - Modificar `ParseHomeSections` para filtrar estrictamente por «A puntito de llegar» y «Volverán a estar disponibles».
+  - Eliminar descarte de banners «Lo que se viene» y lectura de catálogo reciente en `ExtractReleasesAsync`.
+  - Implementar `ExtractProductGalleryAsync` y `ParseProductGalleryHtml` soportando `mage/gallery/gallery`, SKU y precio.
+  - Implementar `ExtractCatalogPageAsync` y `ParseCatalogPageHtml`.
+- [ ] **Tarea 3: Corrección de actualización de ofertas y precios en `DevirImagesBackfillJobRunner`**
+  - Modificar condición de omisión para evaluar EAN y oferta de Devir en `PurchaseLinks`.
+  - Actualizar o insertar oferta de Devir con su PVP oficial en `matchedGame.PurchaseLinks`.
+- [ ] **Tarea 4: Implementación del runner `MalditoImagesBackfillJobRunner`**
+  - Crear `src/Ludeka.Jobs/Runners/MalditoImagesBackfillJobRunner.cs`.
+  - Añadir constante `JobNames.MalditoImagesBackfill` y registrar en `JobRunnerServiceCollectionExtensions.cs`.
+  - Implementar recorrido por páginas, cruce por EAN/título, extracción de galería y actualización de imágenes, EAN y `PurchaseLinks`.
+- [ ] **Tarea 5: Pruebas unitarias de extractor y jobs**
+  - Añadir pruebas en `tests/Ludeka.UnitTests/Extractors/MalditoReleasesExtractorTests.cs` para el filtro de secciones, la extracción de galería y la paginación de catálogo.
+  - Añadir pruebas unitarias para `DevirImagesBackfillJobRunner` y `MalditoImagesBackfillJobRunner`.
+  - Verificar suite completa en verde.

@@ -26,6 +26,7 @@ public static class JobNames
     public const string BggImagesTop3000 = "bgg-images-top3000";
     public const string EditorialReleasesSync = "editorial-releases-sync";
     public const string DevirImagesBackfill = "devir-images-backfill";
+    public const string MalditoImagesBackfill = "maldito-images-backfill";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -47,6 +48,7 @@ public static class JobNames
         YouTubeAutoIngest,
         BggImagesTop3000,
         EditorialReleasesSync,
-        DevirImagesBackfill
+        DevirImagesBackfill,
+        MalditoImagesBackfill
     ];
 }
