@@ -192,6 +192,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
 
             var cleanedTitle = CleanCommercialTitle(item.Title);
             var baseTitle = ExtractBaseTitle(cleanedTitle);
+            bool matchedByBaseTitleOnly = false;
 
             // 2. Cruce por Título normalizado si no se encontró por EAN
             if (matchedGame == null)
@@ -210,6 +211,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                          titleIndex.TryGetValue(Normalize(baseTitle), out var gameByBase))
                 {
                     matchedGame = gameByBase;
+                    matchedByBaseTitleOnly = true;
                 }
             }
 
@@ -283,50 +285,59 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                     isReprint = true;
                 }
 
-                bool gameModified = false;
-                if (!string.IsNullOrWhiteSpace(item.Ean) && string.IsNullOrWhiteSpace(matchedGame.Ean))
+                bool isSubtitleProduct = !string.IsNullOrWhiteSpace(baseTitle) &&
+                                         !string.Equals(cleanedTitle, baseTitle, StringComparison.OrdinalIgnoreCase);
+
+                // PROTECCIÓN ESTRICTA: Solo mutar metadatos del juego si la coincidencia fue directa (por EAN o por título completo),
+                // NUNCA si fue una vinculación laxa por título base (ej. "Viticulture: Bordeaux" cortado a "Viticulture")
+                // ni cuando el producto editorial tiene subtítulo y el juego vinculado es un juego base.
+                if (!matchedByBaseTitleOnly && !(isSubtitleProduct && !matchedGame.IsExpansion))
                 {
-                    matchedGame.UpdateEan(item.Ean);
-                    gameModified = true;
-                }
-
-                if (string.IsNullOrWhiteSpace(matchedGame.SpanishPublisher))
-                {
-                    matchedGame.UpdateSpanishPublisher(item.Publisher);
-                    gameModified = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(item.CoverImageUrl) &&
-                    (item.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
-                     item.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
-                     string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)))
-                {
-                    matchedGame.UpdateImages(item.CoverImageUrl, matchedGame.ThumbnailUrl ?? item.CoverImageUrl);
-                    gameModified = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(item.TableImageUrl) || !string.IsNullOrWhiteSpace(item.BackCoverImageUrl))
-                {
-                    var currentTable = matchedGame.TableImageUrl;
-                    var currentBack = matchedGame.BackCoverImageUrl;
-
-                    var newTable = !string.IsNullOrWhiteSpace(item.TableImageUrl) ? item.TableImageUrl : currentTable;
-                    var newBack = !string.IsNullOrWhiteSpace(item.BackCoverImageUrl) ? item.BackCoverImageUrl : currentBack;
-
-                    if (newTable != currentTable || newBack != currentBack)
+                    bool gameModified = false;
+                    if (!string.IsNullOrWhiteSpace(item.Ean) && string.IsNullOrWhiteSpace(matchedGame.Ean))
                     {
-                        matchedGame.UpdateMediaUrls(
-                            coverImageUrl: matchedGame.CoverImageUrl,
-                            thumbnailUrl: matchedGame.ThumbnailUrl,
-                            backCoverImageUrl: newBack,
-                            tableImageUrl: newTable);
+                        matchedGame.UpdateEan(item.Ean);
                         gameModified = true;
                     }
-                }
 
-                if (gameModified)
-                {
-                    await _gameRepository.UpdateAsync(matchedGame, ct).ConfigureAwait(false);
+                    if (string.IsNullOrWhiteSpace(matchedGame.SpanishPublisher))
+                    {
+                        matchedGame.UpdateSpanishPublisher(item.Publisher);
+                        gameModified = true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(item.CoverImageUrl) &&
+                        (item.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
+                         item.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
+                         string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)))
+                    {
+                        matchedGame.UpdateImages(item.CoverImageUrl, matchedGame.ThumbnailUrl ?? item.CoverImageUrl);
+                        gameModified = true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(item.TableImageUrl) || !string.IsNullOrWhiteSpace(item.BackCoverImageUrl))
+                    {
+                        var currentTable = matchedGame.TableImageUrl;
+                        var currentBack = matchedGame.BackCoverImageUrl;
+
+                        var newTable = !string.IsNullOrWhiteSpace(item.TableImageUrl) ? item.TableImageUrl : currentTable;
+                        var newBack = !string.IsNullOrWhiteSpace(item.BackCoverImageUrl) ? item.BackCoverImageUrl : currentBack;
+
+                        if (newTable != currentTable || newBack != currentBack)
+                        {
+                            matchedGame.UpdateMediaUrls(
+                                coverImageUrl: matchedGame.CoverImageUrl,
+                                thumbnailUrl: matchedGame.ThumbnailUrl,
+                                backCoverImageUrl: newBack,
+                                tableImageUrl: newTable);
+                            gameModified = true;
+                        }
+                    }
+
+                    if (gameModified)
+                    {
+                        await _gameRepository.UpdateAsync(matchedGame, ct).ConfigureAwait(false);
+                    }
                 }
             }
 

@@ -408,6 +408,54 @@ public class EditorialReleasesSyncServiceTests
         Assert.Equal(expected, baseTitle);
     }
 
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_WhenItemHasSubtitleOrIsModule_DoesNotOverwriteBaseGameCoverOrEan()
+    {
+        // Arrange: juego base Viticulture en catálogo con carátula oficial limpia y sin EAN
+        var viticulture = CreateSampleGame(180263, "viticulture", "Viticulture Essential Edition", "Viticulture", yearPublished: 2015);
+        viticulture.UpdateImages("/images/games/viticulture.png", "/images/games/viticulture.webp");
+        _gameRepo.Add(viticulture);
+
+        // Maldito extractor devuelve una expansión o módulo con subtítulo ("Viticulture: Bordeaux") y caja 3D
+        const string bordeauxCover = "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625618092-1200-face3d.jpg";
+        _malditoExtractor.ItemsToReturn = new List<EditorialReleaseItem>
+        {
+            new(
+                Title: "Viticulture: Bordeaux",
+                Publisher: "Maldito Games",
+                ReleaseDate: new DateOnly(2026, 10, 1),
+                TargetDateText: "Octubre 2026",
+                EstimatedPvp: 20.00m,
+                Ean: "8436625618092",
+                CoverImageUrl: bordeauxCover,
+                Notes: "Novedad en catálogo de Maldito Games",
+                SourceUrl: "https://tienda.malditogames.com/viticulture-bordeaux.html")
+        };
+
+        var service = CreateService();
+
+        // Act
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        // Assert
+        Assert.Equal(1, summary.TotalFound);
+        Assert.Equal(1, summary.CreatedCount);
+        Assert.Equal(1, summary.GamesLinkedCount);
+
+        // La novedad semanal se vincula a Viticulture para que el usuario pueda navegar a la ficha
+        var release = _weeklyReleaseRepo.Releases.First();
+        Assert.Equal(viticulture.Id, release.GameId);
+        Assert.Equal("Viticulture: Bordeaux", release.Title);
+        Assert.Equal(bordeauxCover, release.CoverImageUrl);
+
+        // PERO el juego base NUNCA debe ver su carátula, miniatura o EAN contaminados por la expansión
+        var storedGame = await _gameRepo.GetByIdAsync(viticulture.Id);
+        Assert.NotNull(storedGame);
+        Assert.Equal("/images/games/viticulture.png", storedGame.CoverImageUrl);
+        Assert.Equal("/images/games/viticulture.webp", storedGame.ThumbnailUrl);
+        Assert.Null(storedGame.Ean);
+    }
+
     private static Game CreateSampleGame(int bggId, string slug, string originalTitle, string spanishTitle, int yearPublished)
     {
         return new Game(
