@@ -181,6 +181,14 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("ENG/GER/FRE/SPA edition", true)]
     [InlineData("ENG/SPA edition", true)]
     [InlineData("ES/EN edition", true)]
+    [InlineData("CAT/ENG/ITA/POR/SPA edition", true)]
+    [InlineData("EN/FR/GE/IT/NL/SP edition", true)]
+    [InlineData("EN/JA/KO Cube box edition", true)]
+    [InlineData("Chilean/Colombian edition", true)]
+    [InlineData("Print & Play edition", true)]
+    [InlineData("Z-Man Spanish edition", true)]
+    [InlineData("Z-Man edition", true)]
+    [InlineData("Iberian edition", true)]
     [InlineData("Spanish", true)]
     [InlineData("Español", true)]
     [InlineData("Alta Tensión", false)]
@@ -188,6 +196,7 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Queen Alice", false)]
     [InlineData("Ark Nova: Mundos Marinos", false)]
     [InlineData("Terraforming Mars: Preludio", false)]
+    [InlineData("Pandemic Legacy: Segunda temporada", false)]
     public void IsGenericEditionTitle_ShouldClassifyCorrectly(string title, bool expectedGeneric)
     {
         bool isGeneric = BggRawSnapshotParser.IsGenericEditionTitle(title);
@@ -200,8 +209,12 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Angry Lion Korean edition", null)]
     [InlineData("ENG/GER/FRE/SPA edition", null)]
     [InlineData("ENG/SPA edition", null)]
+    [InlineData("CAT/ENG/ITA/POR/SPA edition", null)]
     [InlineData("Multilingual edition", null)]
     [InlineData("Retail edition", null)]
+    [InlineData("Z-Man Spanish edition", null)]
+    [InlineData("Iberian edition", null)]
+    [InlineData("Print & Play edition", null)]
     [InlineData("Alta Tensión", "Alta Tensión")]
     [InlineData("Alta Tensión (Edición en español)", "Alta Tensión")]
     [InlineData("Alta Tensión - Spanish edition", "Alta Tensión")]
@@ -211,10 +224,70 @@ public class BggRawSnapshotParserVersionsTests
     [InlineData("Código 5 - Spanish edition (2026)", "Código 5")]
     [InlineData("Código 5 - Spanish edition", "Código 5")]
     [InlineData("Spanish edition (2024)", null)]
+    [InlineData("Pandemic Legacy: Segunda temporada", "Pandemic Legacy: Segunda temporada")]
     public void CleanVersionTitle_ShouldStripSuffixOrReturnNull(string rawTitle, string? expectedCleaned)
     {
         string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
         Assert.Equal(expectedCleaned, cleaned);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractPandemicLegacySegundaTemporadaAndDevir_WhenVersionHasZManAndDevirEditions()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""221107"">
+    <name type=""primary"" value=""Pandemic Legacy: Season 2"" />
+    <name type=""alternate"" value=""Pandemic Legacy: Segunda temporada"" />
+    <versions>
+      <item type=""boardgameversion"" id=""375764"">
+        <name type=""primary"" value=""Devir Spanish edition"" />
+        <canonicalname value=""Pandemic Legacy: Segunda temporada"" />
+        <link type=""boardgamepublisher"" id=""2366"" value=""Devir"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+      <item type=""boardgameversion"" id=""428178"">
+        <name type=""primary"" value=""Z-Man Spanish edition"" />
+        <canonicalname value=""Pandemic Legacy: Segunda temporada"" />
+        <link type=""boardgamepublisher"" id=""538"" value=""Z-Man Games"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Pandemic Legacy: Segunda temporada", result.Title);
+        Assert.Equal("Devir", result.Publisher);
+    }
+
+    [Fact]
+    public void ExtractSpanishVersionInfoFromJson_ShouldExtractBeaconPatrol_WhenVersionNameIsIberianEditionWithCanonicalName()
+    {
+        const string xml = @"
+<items>
+  <item type=""boardgame"" id=""362976"">
+    <name type=""primary"" value=""Beacon Patrol"" />
+    <versions>
+      <item type=""boardgameversion"" id=""700000"">
+        <name type=""primary"" value=""Iberian edition"" />
+        <canonicalname value=""Beacon Patrol"" />
+        <link type=""boardgamepublisher"" id=""2366"" value=""Devir"" />
+        <link type=""language"" value=""Spanish"" />
+      </item>
+    </versions>
+  </item>
+</items>";
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+
+        var result = BggRawSnapshotParser.ExtractSpanishVersionInfoFromJson(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Beacon Patrol", result.Title);
+        Assert.Equal("Devir", result.Publisher);
     }
 
     [Fact]
