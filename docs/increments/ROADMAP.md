@@ -154,7 +154,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-139** | Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL | ⏳ En progreso | [inc-139-preservar-espacios-buscador-catalogo.md](inc-139-preservar-espacios-buscador-catalogo.md) |
 | **INC-140** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ✅ Archivado | [inc-140-galeria-dinamica-fichas.md](archive/inc-140-galeria-dinamica-fichas.md) |
 | **INC-141** | Búsqueda Insensible a Tildes y Diacríticos en Catálogo y Búsqueda Rápida | ⏳ En progreso | [inc-141-busqueda-insensible-tildes.md](inc-141-busqueda-insensible-tildes.md) |
-| **INC-142** | Filtro Estricto de Novedades Maldito Games, Enriquecimiento de Imágenes, EAN y Precios en Catálogo (Maldito y Devir) | ⏳ En progreso | [inc-142-maldito-filtros-backfill-catalogo.md](inc-142-maldito-filtros-backfill-catalogo.md) |
+| **INC-142** | Filtro Estricto de Novedades Maldito Games, Enriquecimiento de Imágenes, EAN y Precios en Catálogo (Maldito y Devir) | ✅ Archivado | [inc-142-maldito-filtros-backfill-catalogo.md](archive/inc-142-maldito-filtros-backfill-catalogo.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -186,6 +186,8 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 - **INC-139** (`inc/espacio-buscador-catalogo` en `F:\repos\ludeka-wt\espacio-buscador-catalogo`): Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL. En curso.
 
 *(INC-140 entregó su PR #253, verificada con 2.760 pruebas unitarias + 10 de integración en verde al 100% [2.770 totales], y quedó archivada y desplegada en Google Cloud Run el 2026-10-09. Implementa la galería fotográfica dinámica en el modelo de dominio con GameGalleryImage y Game, persistencia JSONB en PostgreSQL y SQLite con reconciliación defensiva en SqliteSchemaMigrator y canario de 25 migraciones en PostgresSchemaVerificationTests, permisos CanUploadImages y log de auditoría en GameEditorService, editor editorial con subida directa y URL en GameEditorModal.razor, y renderizado dinámico en GameImageCarousel.razor y visor a pantalla completa de GameDetail.razor).*
+
+*(INC-142 entregó su PR #258, verificada con 2.795 pruebas unitarias en verde al 100%, incorporando el filtro estricto de novedades en Maldito Games [exclusivamente «A puntito de llegar» y «Volverán a estar disponibles en breve», descartando «Últimas novedades» y «Lo que se viene»], extracción de galería completa JSON de Magento [caja 3D, mesa y contraportada con EAN-13 y PVP], nuevo runner autónomo de catálogo maldito-images-backfill y enriquecimiento de devir-images-backfill con alta de ofertas oficiales con PVP en PurchaseLinks y validación matemática de EAN-13 módulo 10).*
 
 *(INC-138 entregó su PR #251, verificada con 2.749 pruebas unitarias en verde al 100%, incorporando saneamiento de cabeceras de navegación y reintento educado [máx. 1 con retardo de 1.5s] ante 403 de Cloudflare en Devir, desacoplamiento y tolerancia en Maldito Games para salvaguardar más de 40 lanzamientos de la portada ante lentitud o fallos del catálogo, ritmo cortés con throttle de 750 ms y tolerancia a fallos aislados en DevirImagesBackfillJobRunner, y despliegue automatizado del Cloud Run Job devir-images-backfill en GitHub Actions).*
 
