@@ -138,6 +138,100 @@ public class ArrakisReleasesExtractorTests
     }
 
     [Fact]
+    public void ParseHtml_RealElementorLayout_ExtractsAllUpcomingGamesAndThumbs()
+    {
+        var html = @"
+        <h2 class=""elementor-heading-title elementor-size-default"">Próximos lanzamientos</h2>
+        <section class=""elementor-section elementor-top-section elementor-element"">
+            <div class=""elementor-column elementor-col-25 elementor-top-column elementor-element"">
+                <div class=""elementor-widget-wrap elementor-element-populated"">
+                    <section class=""elementor-section elementor-inner-section elementor-element"">
+                        <div class=""elementor-column elementor-col-100 elementor-inner-column elementor-element"">
+                            <div class=""elementor-widget-container"">
+                                <h2 class=""elementor-heading-title elementor-size-default""><a href=""https://arrakisgames.com/pilgrims-curiosas-aventuras/"">PILGRIMS, CURIOSAS AVENTURAS</a></h2>
+                            </div>
+                        </div>
+                    </section>
+                    <div class=""elementor-element elementor-widget elementor-widget-image"">
+                        <div class=""elementor-widget-container"">
+                            <a href=""https://arrakisgames.com/pilgrims-curiosas-aventuras/"" target=""_blank"">
+                                <img decoding=""async"" src=""https://arrakisgames.com/wp-content/uploads/elementor/thumbs/Pilgrims_portada_web.png"" />
+                            </a>
+                        </div>
+                    </div>
+                    <div class=""elementor-element elementor-widget elementor-widget-text-editor"">
+                        <div class=""elementor-widget-container"">
+                            <p>En Noviembre</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=""elementor-column elementor-col-25 elementor-top-column elementor-element"">
+                <div class=""elementor-widget-wrap elementor-element-populated"">
+                    <section class=""elementor-section elementor-inner-section elementor-element"">
+                        <div class=""elementor-column elementor-col-100 elementor-inner-column elementor-element"">
+                            <div class=""elementor-widget-container"">
+                                <h2 class=""elementor-heading-title elementor-size-default""><a href=""https://arrakisgames.com/spirit-island/"">SPIRIT ISLAND (Reimpresión)</a></h2>
+                            </div>
+                        </div>
+                    </section>
+                    <div class=""elementor-element elementor-widget elementor-widget-image"">
+                        <div class=""elementor-widget-container"">
+                            <img decoding=""async"" src=""https://arrakisgames.com/wp-content/uploads/elementor/thumbs/SpiritIsland-Cover.jpg"" />
+                        </div>
+                    </div>
+                    <div class=""elementor-element elementor-widget elementor-widget-text-editor"">
+                        <div class=""elementor-widget-container"">
+                            <p>En Noviembre</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=""elementor-column elementor-col-25 elementor-top-column elementor-element"">
+                <div class=""elementor-widget-wrap elementor-element-populated"">
+                    <section class=""elementor-section elementor-inner-section elementor-element"">
+                        <div class=""elementor-column elementor-col-100 elementor-inner-column elementor-element"">
+                            <div class=""elementor-widget-container"">
+                                <h2 class=""elementor-heading-title elementor-size-default"">MYTHOLOGIES</h2>
+                            </div>
+                        </div>
+                    </section>
+                    <div class=""elementor-element elementor-widget elementor-widget-image"">
+                        <div class=""elementor-widget-container"">
+                            <img decoding=""async"" src=""https://arrakisgames.com/wp-content/uploads/elementor/thumbs/Mythologies.jpg"" />
+                        </div>
+                    </div>
+                    <div class=""elementor-element elementor-widget elementor-widget-text-editor"">
+                        <div class=""elementor-widget-container"">
+                            <p>Próximamente</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>";
+
+        var items = _extractor.ParseHtml(html, null);
+
+        Assert.Equal(3, items.Count);
+
+        var pilgrims = items.First(i => i.Title.Contains("Pilgrims", StringComparison.OrdinalIgnoreCase));
+        Assert.False(pilgrims.IsReprint);
+        Assert.Equal("En Noviembre", pilgrims.TargetDateText);
+        Assert.Equal("https://arrakisgames.com/pilgrims-curiosas-aventuras/", pilgrims.SourceUrl);
+        Assert.Equal("https://arrakisgames.com/wp-content/uploads/elementor/thumbs/Pilgrims_portada_web.png", pilgrims.CoverImageUrl);
+
+        var spirit = items.First(i => i.Title.Contains("Spirit Island", StringComparison.OrdinalIgnoreCase));
+        Assert.True(spirit.IsReprint);
+        Assert.Equal("En Noviembre", spirit.TargetDateText);
+        Assert.Equal("https://arrakisgames.com/wp-content/uploads/elementor/thumbs/SpiritIsland-Cover.jpg", spirit.CoverImageUrl);
+
+        var myth = items.First(i => i.Title.Contains("Mythologies", StringComparison.OrdinalIgnoreCase));
+        Assert.False(myth.IsReprint);
+        Assert.Equal("Próximamente", myth.TargetDateText);
+        Assert.Equal("https://arrakisgames.com/wp-content/uploads/elementor/thumbs/Mythologies.jpg", myth.CoverImageUrl);
+    }
+
+    [Fact]
     public void ParseProductFicha_ExtractsEanPvpBggAndCover()
     {
         var details = _extractor.ParseProductFichaHtml(SampleFichaSpiritIslandHtml, "https://arrakisgames.com/spirit-island/");

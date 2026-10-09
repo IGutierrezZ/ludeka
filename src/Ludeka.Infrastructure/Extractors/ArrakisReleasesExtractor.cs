@@ -24,6 +24,18 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
     private const string DefaultCatalogUrl = "https://arrakisgames.com/catalogo/";
     private const string DefaultProductSitemapUrl = "https://arrakisgames.com/product-sitemap.xml";
 
+    private static readonly Regex HomeItemRegex = new(
+        @"(?si)<h2[^>]*class=""[^""]*elementor-heading-title[^""]*""[^>]*>\s*(?:<a\s+[^>]*href=""(?<url>[^""]+)""[^>]*>)?(?<title>[^<]+?)(?:</a>)?\s*</h2>(?<between>(?:(?!<h2).)*?)<div[^>]*class=""[^""]*elementor-widget-text-editor[^""]*""[^>]*>\s*(?:<div[^>]*class=""[^""]*elementor-widget-container[^""]*""[^>]*>\s*)?<p>(?<status>[^<]+?)</p>",
+        RegexOptions.Compiled);
+
+    private static readonly Regex ImageSrcRegex = new(
+        @"(?si)<img[^>]+(?:src|data-src)=""(?<src>[^""]+)""",
+        RegexOptions.Compiled);
+
+    private static readonly Regex NewsRegex = new(
+        @"(?si)<h2[^>]*class=""[^""]*elementor-heading-title[^""]*""[^>]*>\s*LANZAMIENTO:\s*(?<fecha>[^<]+?)\s*</h2>(?<between>(?:(?!<h2).)*?)<h2[^>]*class=""[^""]*elementor-heading-title[^""]*""[^>]*>\s*<a\s+[^>]*href=""(?<url>[^""]+)""[^>]*>(?<title>[^<]+?)</a>\s*</h2>",
+        RegexOptions.Compiled);
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<ArrakisReleasesExtractor> _logger;
 
@@ -127,21 +139,26 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
 
     private void ParseHomeSections(string html, Dictionary<string, EditorialReleaseItem> itemsMap)
     {
-        // Bloques de elementos en Elementor: h2 con título/enlace y párrafo siguiente con estado
-        var columnRegex = new Regex(
-            @"(?si)<div class=""elementor-column[^""]*"">.*?" +
-            @"<h2 class=""elementor-heading-title[^""]*"">\s*(?:<a\s+[^>]*href=""(?<url>[^""]+)""[^>]*>)?(?<title>[^<]+?)(?:</a>)?\s*</h2>" +
-            @"(?:.*?<div class=""elementor-widget-image"">.*?<img[^>]+src=""(?<imgUrl>[^""]+)""[^>]*>)?.*?" +
-            @"<div class=""elementor-widget-text-editor"">\s*<p>(?<status>[^<]+)</p>",
-            RegexOptions.Compiled);
+        if (string.IsNullOrWhiteSpace(html)) return;
 
-        var matches = columnRegex.Matches(html);
+        // Acotar la búsqueda a la sección de próximos lanzamientos si está presente en el documento
+        int sectionIdx = html.IndexOf("ximos lanzamientos", StringComparison.OrdinalIgnoreCase);
+        string searchHtml = sectionIdx >= 0 ? html.Substring(sectionIdx) : html;
+
+        var matches = HomeItemRegex.Matches(searchHtml);
         foreach (Match match in matches)
         {
             var rawTitle = match.Groups["title"].Value.Trim();
             var url = match.Groups["url"].Value.Trim();
-            var imgUrl = match.Groups["imgUrl"].Value.Trim();
             var rawStatus = match.Groups["status"].Value.Trim();
+
+            string? imgUrl = null;
+            var between = match.Groups["between"].Value;
+            var imgMatch = ImageSrcRegex.Match(between);
+            if (imgMatch.Success)
+            {
+                imgUrl = imgMatch.Groups["src"].Value.Trim();
+            }
 
             ProcessExtractedEntry(rawTitle, url, imgUrl, rawStatus, itemsMap);
         }
@@ -149,21 +166,24 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
 
     private void ParseNewsSections(string html, Dictionary<string, EditorialReleaseItem> itemsMap)
     {
-        // En /noticias/ los bloques se estructuran con:
-        // <h2>LANZAMIENTO: [FECHA]</h2> seguido de <h2><a href="...">TITULO</a></h2>
-        var newsRegex = new Regex(
-            @"(?si)<h2 class=""elementor-heading-title[^""]*"">\s*LANZAMIENTO:\s*(?<fecha>[^<]+?)\s*</h2>.*?" +
-            @"<h2 class=""elementor-heading-title[^""]*"">\s*<a\s+[^>]*href=""(?<url>[^""]+)""[^>]*>(?<title>[^<]+?)</a>\s*</h2>",
-            RegexOptions.Compiled);
+        if (string.IsNullOrWhiteSpace(html)) return;
 
-        var matches = newsRegex.Matches(html);
+        var matches = NewsRegex.Matches(html);
         foreach (Match match in matches)
         {
             var rawFecha = match.Groups["fecha"].Value.Trim();
             var url = match.Groups["url"].Value.Trim();
             var rawTitle = match.Groups["title"].Value.Trim();
 
-            ProcessExtractedEntry(rawTitle, url, null, rawFecha, itemsMap);
+            string? imgUrl = null;
+            var between = match.Groups["between"].Value;
+            var imgMatch = ImageSrcRegex.Match(between);
+            if (imgMatch.Success)
+            {
+                imgUrl = imgMatch.Groups["src"].Value.Trim();
+            }
+
+            ProcessExtractedEntry(rawTitle, url, imgUrl, rawFecha, itemsMap);
         }
     }
 
@@ -177,7 +197,7 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
         if (string.IsNullOrWhiteSpace(rawTitle)) return;
 
         // Descartar cabeceras y elementos del sistema
-        if (IsSystemHeading(rawTitle)) return;
+        if (IsSystemHeading(rawTitle) || IsSystemHeading(rawStatus)) return;
 
         // REGLA FUNDAMENTAL DE USUARIO: descartar aquellos que ya están en tienda ("Ya disponible!", "Ya disponible")
         if (IsAlreadyAvailable(rawStatus))
@@ -250,6 +270,7 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
                t.Contains("proximos lanzamientos") ||
                t.Contains("aviso legal") ||
                t.Contains("política") ||
+               t.Contains("politica") ||
                t.Contains("redes sociales");
     }
 
@@ -314,10 +335,10 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
 
         // 4. Portada de alta calidad
         string? coverUrl = null;
-        var coverMatch = Regex.Match(html, @"<img[^>]+src=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+)""[^>]+class=""[^""]*attachment-woocommerce_thumbnail", RegexOptions.IgnoreCase);
+        var coverMatch = Regex.Match(html, @"<img[^>]+src=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+)""[^>]+class=""[^""]*(?:attachment-woocommerce_thumbnail|wp-post-image|size-full)", RegexOptions.IgnoreCase);
         if (!coverMatch.Success)
         {
-            coverMatch = Regex.Match(html, @"<img[^>]+class=""[^""]*attachment-woocommerce_thumbnail[^""]*""[^>]+src=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+)""", RegexOptions.IgnoreCase);
+            coverMatch = Regex.Match(html, @"<img[^>]+class=""[^""]*(?:attachment-woocommerce_thumbnail|wp-post-image|size-full)[^""]*""[^>]+src=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+)""", RegexOptions.IgnoreCase);
         }
         if (coverMatch.Success)
         {
