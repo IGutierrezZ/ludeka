@@ -22,6 +22,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
 {
     private readonly IDevirReleasesExtractor _devirExtractor;
     private readonly IMalditoReleasesExtractor _malditoExtractor;
+    private readonly IArrakisReleasesExtractor? _arrakisExtractor;
     private readonly IWeeklyReleaseRepository _weeklyReleaseRepository;
     private readonly IGameRepository _gameRepository;
     private readonly IBggClient? _bggClient;
@@ -31,6 +32,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
     public EditorialReleasesSyncService(
         IDevirReleasesExtractor devirExtractor,
         IMalditoReleasesExtractor malditoExtractor,
+        IArrakisReleasesExtractor? arrakisExtractor,
         IWeeklyReleaseRepository weeklyReleaseRepository,
         IGameRepository gameRepository,
         IBggClient? bggClient,
@@ -39,6 +41,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
     {
         _devirExtractor = devirExtractor ?? throw new ArgumentNullException(nameof(devirExtractor));
         _malditoExtractor = malditoExtractor ?? throw new ArgumentNullException(nameof(malditoExtractor));
+        _arrakisExtractor = arrakisExtractor;
         _weeklyReleaseRepository = weeklyReleaseRepository ?? throw new ArgumentNullException(nameof(weeklyReleaseRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _bggClient = bggClient;
@@ -52,8 +55,20 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         IWeeklyReleaseRepository weeklyReleaseRepository,
         IGameRepository gameRepository,
         IBggClient? bggClient,
+        IReleaseAiMatcherService? aiMatcherService,
         ILogger<EditorialReleasesSyncService> logger)
-        : this(devirExtractor, malditoExtractor, weeklyReleaseRepository, gameRepository, bggClient, null, logger)
+        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, aiMatcherService, logger)
+    {
+    }
+
+    public EditorialReleasesSyncService(
+        IDevirReleasesExtractor devirExtractor,
+        IMalditoReleasesExtractor malditoExtractor,
+        IWeeklyReleaseRepository weeklyReleaseRepository,
+        IGameRepository gameRepository,
+        IBggClient? bggClient,
+        ILogger<EditorialReleasesSyncService> logger)
+        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, null, logger)
     {
     }
 
@@ -64,7 +79,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         var publisherResults = new List<EditorialSyncResultDto>();
         var errors = new List<string>();
 
-        var publishers = new[] { "Devir", "Maldito Games" };
+        var publishers = new[] { "Devir", "Maldito Games", "Arrakis Games" };
 
         foreach (var pub in publishers)
         {
@@ -116,6 +131,14 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         else if (publisher.Contains("Maldito", StringComparison.OrdinalIgnoreCase))
         {
             extractedItems = await _malditoExtractor.ExtractReleasesAsync(ct).ConfigureAwait(false);
+        }
+        else if (publisher.Contains("Arrakis", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_arrakisExtractor == null)
+            {
+                return new EditorialSyncResultDto(publisher, false, 0, 0, 0, 0, 0, "Extractor de Arrakis Games no configurado.");
+            }
+            extractedItems = await _arrakisExtractor.ExtractReleasesAsync(ct).ConfigureAwait(false);
         }
         else
         {
@@ -212,6 +235,28 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 {
                     matchedGame = gameByBase;
                     matchedByBaseTitleOnly = true;
+                }
+            }
+
+            // 2.5 Si el item incluye BggId directo (como las fichas de Arrakis Games) y no se localizó en catálogo local:
+            if (matchedGame == null && item.BggId.HasValue && _bggClient != null)
+            {
+                try
+                {
+                    var bggGame = await _bggClient.FetchGameByBggIdAsync(item.BggId.Value, ct).ConfigureAwait(false);
+                    if (bggGame != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.Ean)) bggGame.UpdateEan(item.Ean);
+                        bggGame.UpdateSpanishPublisher(item.Publisher);
+                        await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
+                        IndexGame(barcodeIndex, titleIndex, bggGame);
+                        matchedGame = bggGame;
+                        importedCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "No se pudo importar directamente de BGG con BggId {BggId} para '{Title}'.", item.BggId.Value, item.Title);
                 }
             }
 

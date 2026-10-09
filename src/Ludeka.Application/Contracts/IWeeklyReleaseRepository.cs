@@ -13,4 +13,6 @@ public interface IWeeklyReleaseRepository
     Task AddAsync(WeeklyRelease release, CancellationToken ct = default);
     Task UpdateAsync(WeeklyRelease release, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
+    Task<WeeklyRelease?> GetUpcomingReprintByGameIdAsync(Guid gameId, CancellationToken ct = default)
+        => Task.FromResult<WeeklyRelease?>(null);
 }

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ludeka.Application.Contracts;
 using Ludeka.Core.Entities;
+using Ludeka.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -80,5 +81,19 @@ public class SqliteWeeklyReleaseRepository : DbContextRepositoryBase, IWeeklyRel
             scope.Context.WeeklyReleases.Remove(item);
             await scope.Context.SaveChangesAsync(ct);
         }
+    }
+
+    public async Task<WeeklyRelease?> GetUpcomingReprintByGameIdAsync(Guid gameId, CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return await scope.Context.WeeklyReleases
+            .AsNoTracking()
+            .Where(r => r.GameId == gameId &&
+                        r.Status == WeeklyReleaseStatus.Published &&
+                        r.IsReprint &&
+                        (!r.ReleaseDate.HasValue || r.ReleaseDate.Value >= today.AddMonths(-1)))
+            .OrderByDescending(r => r.ReleaseDate)
+            .FirstOrDefaultAsync(ct);
     }
 }

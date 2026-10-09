@@ -18,6 +18,7 @@ public class EditorialReleasesSyncServiceTests
 {
     private readonly FakeDevirExtractor _devirExtractor = new();
     private readonly FakeMalditoExtractor _malditoExtractor = new();
+    private readonly FakeArrakisExtractor _arrakisExtractor = new();
     private readonly FakeWeeklyReleaseRepository _weeklyReleaseRepo = new();
     private readonly FakeGameRepository _gameRepo = new();
     private readonly FakeBggClient _bggClient = new();
@@ -28,6 +29,7 @@ public class EditorialReleasesSyncServiceTests
         return new EditorialReleasesSyncService(
             _devirExtractor,
             _malditoExtractor,
+            _arrakisExtractor,
             _weeklyReleaseRepo,
             _gameRepo,
             _bggClient,
@@ -124,6 +126,52 @@ public class EditorialReleasesSyncServiceTests
         Assert.Equal(1, summary.TotalFound);
         Assert.Equal(1, summary.GamesLinkedCount);
         Assert.Contains("face3d", game.CoverImageUrl);
+    }
+
+    [Fact]
+    public async Task SyncAllEditorialReleasesAsync_IncludesArrakisGamesPublisher()
+    {
+        _arrakisExtractor.ItemsToReturn =
+        [
+            new("Spirit Island", "Arrakis Games", new DateOnly(2026, 11, 1), "En Noviembre", 84.95m, "8421005001106", "https://arrakisgames.com/spirit.png", IsReprint: true)
+        ];
+
+        var service = CreateService();
+        var summary = await service.SyncAllEditorialReleasesAsync();
+
+        Assert.Contains(summary.PublisherResults, p => p.Publisher == "Arrakis Games");
+        var arrakisResult = summary.PublisherResults.First(p => p.Publisher == "Arrakis Games");
+        Assert.True(arrakisResult.Success);
+        Assert.Equal(1, arrakisResult.ItemsFound);
+        Assert.Equal(1, arrakisResult.ReleasesCreated);
+    }
+
+    [Fact]
+    public async Task SyncPublisherReleasesAsync_Arrakis_ImportsFromBggDirectlyUsingBggId()
+    {
+        _arrakisExtractor.ItemsToReturn =
+        [
+            new("Spirit Island", "Arrakis Games", new DateOnly(2026, 11, 1), "En Noviembre", 84.95m, "8421005001106", "https://arrakisgames.com/spirit.png", IsReprint: true, BggId: 162886)
+        ];
+
+        var bggGame = CreateSampleGame(162886, "spirit-island", "Spirit Island", "Spirit Island", yearPublished: 2017);
+        _bggClient.GamesById[162886] = bggGame;
+
+        var service = CreateService();
+        var result = await service.SyncPublisherReleasesAsync("Arrakis Games");
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ItemsFound);
+        Assert.Equal(1, result.GamesImported);
+        Assert.Equal(1, result.GamesLinked);
+
+        var release = Assert.Single(_weeklyReleaseRepo.Releases);
+        Assert.Equal("Spirit Island", release.Title);
+        Assert.Equal("Arrakis Games", release.Publisher);
+        Assert.Equal(bggGame.Id, release.GameId);
+        Assert.True(release.IsReprint);
+        Assert.Equal("8421005001106", bggGame.Ean);
+        Assert.Equal("Arrakis Games", bggGame.SpanishPublisher);
     }
 
     [Fact]
@@ -512,6 +560,20 @@ public class EditorialReleasesSyncServiceTests
             => Task.FromResult<MalditoProductGalleryDto?>(null);
         public Task<MalditoCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)
             => Task.FromResult(new MalditoCatalogPageResultDto([], false));
+    }
+
+    private class FakeArrakisExtractor : IArrakisReleasesExtractor
+    {
+        public List<EditorialReleaseItem> ItemsToReturn { get; set; } = [];
+        public Task<IReadOnlyList<EditorialReleaseItem>> ExtractReleasesAsync(CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<EditorialReleaseItem>>(ItemsToReturn);
+        public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? catalogHtml = null) => ItemsToReturn;
+        public Task<ArrakisProductGalleryDto?> ExtractProductGalleryAsync(string productUrl, CancellationToken ct = default)
+            => Task.FromResult<ArrakisProductGalleryDto?>(null);
+        public ArrakisProductGalleryDto? ParseProductFichaHtml(string html, string productUrl) => null;
+        public Task<IReadOnlyList<ArrakisCatalogItemDto>> ExtractFullCatalogAsync(CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<ArrakisCatalogItemDto>>([]);
+        public IReadOnlyList<ArrakisCatalogItemDto> ParseCatalogHtml(string html) => [];
     }
 
     private class FakeWeeklyReleaseRepository : IWeeklyReleaseRepository

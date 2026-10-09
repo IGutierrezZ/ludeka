@@ -19,7 +19,8 @@ public record EditorialReleaseItem(
     bool IsReprint = false,
     bool IsMonthOnly = false,
     string? TableImageUrl = null,
-    string? BackCoverImageUrl = null);
+    string? BackCoverImageUrl = null,
+    int? BggId = null);
 
 /// <summary>
 /// Representa la galería y datos de producto extraídos de la ficha de un juego en Devir Iberia.
@@ -101,5 +102,31 @@ public record MalditoCatalogPageResultDto(
     IReadOnlyList<MalditoCatalogItemDto> Items,
     bool HasNextPage,
     bool Success = true);
+
+/// <summary>
+/// Representa la galería y datos de producto extraídos de la ficha de un juego en Arrakis Games.
+/// </summary>
+public record ArrakisProductGalleryDto(
+    string? CoverImageUrl,
+    string? TableImageUrl,
+    string? BackCoverImageUrl,
+    string? FrontFlatImageUrl,
+    string? Ean = null,
+    decimal? Pvp = null,
+    int? BggId = null,
+    string? BggUrl = null,
+    string? Title = null,
+    string? StatusText = null);
+
+/// <summary>
+/// Representa una entrada de producto en el catálogo general de Arrakis Games.
+/// </summary>
+public record ArrakisCatalogItemDto(
+    string ProductUrl,
+    string? Title = null,
+    string? Ean = null,
+    string? CoverImageUrl = null,
+    int? BggId = null,
+    decimal? Pvp = null);
 
 
