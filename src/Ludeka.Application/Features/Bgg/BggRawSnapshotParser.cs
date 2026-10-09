@@ -480,7 +480,7 @@ public static class BggRawSnapshotParser
         string t = title.Trim();
 
         // 1. Descriptores puros de idioma o combinaciones de acrónimos (ej. "Spanish", "ENG/GER/FRE/SPA", "ES/EN")
-        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|portuguese|portuguesa|multilingual|multilingüe|international|internacional)$", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|portuguese|portuguesa|multilingual|multilingüe|international|internacional|iberian|ibérica|iberica)$", RegexOptions.IgnoreCase))
             return true;
 
         if (Regex.IsMatch(t, @"^(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})+)$", RegexOptions.IgnoreCase))
@@ -490,31 +490,31 @@ public static class BggRawSnapshotParser
         if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version|release|box|caja)\b", RegexOptions.IgnoreCase))
         {
             // Reemplazar tokens de idioma, descriptores de tirada, editoriales y números/años
-            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|catalan|català|galician|galego|basque|euskera|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|holandesa|polish|polaco|polaca|czech|checo|checa|russian|ruso|rusa|japanese|japonés|japonesa|chinese|chino|china|multilingual|multilingüe|international|internacional|nordic|scandinavian|european|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th|primera|segunda|tercera|cuarta|quinta|sexta|deluxe|collector['’]?s?|coleccionista|limited|limitada|retail|tiendas|kickstarter|ks|gamefound|crowdfunding|backer|mecenas|special|especial|standard|est[aá]ndar|essential|esencial|anniversary|aniversario|big\s+box|pocket|travel|viaje|mini|compact|promo|master\s+print|edition|edici[oó]n|versi[oó]n|version|release|box|caja|en|de|del|la|el|los|las|in|for|with|con|and|und|et|y|e|(?:19|20)\d{2}|[ivxIVX\d]+)\b", "", RegexOptions.IgnoreCase);
+            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|catalan|català|galician|galego|basque|euskera|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|holandesa|polish|polaco|polaca|czech|checo|checa|russian|ruso|rusa|japanese|japonés|japonesa|chinese|chino|china|multilingual|multilingüe|international|internacional|nordic|scandinavian|european|iberian|ibérica|iberica|ibérico|iberico|chilean|chileno|chilena|colombian|colombiano|colombiana|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th|primera|segunda|tercera|cuarta|quinta|sexta|deluxe|collector['’]?s?|coleccionista|limited|limitada|retail|tiendas|kickstarter|ks|gamefound|crowdfunding|backer|mecenas|special|especial|standard|est[aá]ndar|essential|esencial|anniversary|aniversario|big\s+box|pocket|travel|viaje|mini|compact|promo|master\s+print|cube\s+box|print\s*&\s*play|pnp|edition|edici[oó]n|versi[oó]n|version|release|box|caja|en|de|del|la|el|los|las|in|for|with|con|and|und|et|y|e|(?:19|20)\d{2}|[ivxIVX\d]+)\b", "", RegexOptions.IgnoreCase);
 
-            // Reemplazar códigos lingüísticos de 2 a 4 letras (ej. ENG, GER, FRE, SPA, ES, EN)
-            stripped = Regex.Replace(stripped, @"\b(?:eng|spa|esp|ger|deu|fre|fra|ita|por|dut|nld|pol|cze|ces|rus|kor|jpn|chi|zho|hun|ell|gre|dan|nor|swe|fin|en|es|de|fr|it|pt|nl|pl|cs|cz|ru|ko|ja|zh)\b", "", RegexOptions.IgnoreCase);
+            // Reemplazar códigos lingüísticos de 2 a 4 letras (ej. ENG, GER, FRE, SPA, ES, EN, CAT, SP, GE, JA, KO)
+            stripped = Regex.Replace(stripped, @"\b(?:eng|spa|esp|ger|deu|fre|fra|ita|por|dut|nld|pol|cze|ces|rus|kor|jpn|chi|zho|hun|ell|gre|dan|nor|swe|fin|cat|sp|ge|ja|ko|en|es|de|fr|it|pt|nl|pl|cs|cz|ru|ko|ja|zh)\b", "", RegexOptions.IgnoreCase);
 
             // Reemplazar editoriales conocidas que suelen acompañar a ediciones
-            stripped = Regex.Replace(stripped, @"\b(?:combo\s+games(?:\s+\(ii\))?|combo\s+games|angry\s+lion(?:\s+games)?|lotus\s+frog(?:\s+games)?|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|edge|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|dire\s+wolf|ravensburger|kosmos|queen\s+games|cmon)\b", "", RegexOptions.IgnoreCase);
+            stripped = Regex.Replace(stripped, @"\b(?:combo\s+games(?:\s+\(ii\))?|combo\s+games|angry\s+lion(?:\s+games)?|lotus\s+frog(?:\s+games)?|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|edge|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|dire\s+wolf|ravensburger|kosmos|queen\s+games|cmon|z[\s-]man(?:\s+games)?|zman(?:\s+games)?|lúdilo|ludilo|salt\s+&\s+pepper(?:\s+games)?|salt\s+and\s+pepper|tranjis(?:\s+games)?|gdm(?:\s+games)?|bumby\s+games|bumby|doit\s+games|doit|2tomatoes(?:\s+games)?|masqueoca|másqueoca|falomir(?:\s+juegos)?|mercurio(?:\s+distribuciones)?|loki|playte|two\s+acorns(?:\s+games)?|underdog(?:\s+games)?|jocus(?:\s+\(ii\))?|mattel(?:\s*,\s*inc\.?)?)\b", "", RegexOptions.IgnoreCase);
 
             // Limpiar separadores y puntuación
             stripped = Regex.Replace(stripped, @"[-_–—/:(),.+'&\\#]", " ").Trim();
 
-            // Si no queda nada, era un descriptor genérico puro (ej. "ENG/GER/FRE/SPA edition", "Spanish edition", "Retail edition", "Combo Games edition")
+            // Si no queda nada, era un descriptor genérico puro (ej. "ENG/GER/FRE/SPA edition", "Spanish edition", "Retail edition", "Combo Games edition", "Z-Man Spanish edition", "Iberian edition")
             if (string.IsNullOrWhiteSpace(stripped)) return true;
 
             // Si lo que queda coincide con nombres de editoriales conocidas o palabras breves de edición
-            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|combo\s+games)$", RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|combo\s+games|z[\s-]man(?:\s+games)?|zman|lúdilo|ludilo|salt\s+&\s+pepper|tranjis|loki|playte|two\s+acorns|underdog|jocus|mattel)$", RegexOptions.IgnoreCase))
             {
                 return true;
             }
 
             // Si no contiene separadores de subtítulo y es una frase corta de edición (<= 5 palabras)
-            if (!t.Contains(':') && !t.Contains('-') && !t.Contains('—') && !t.Contains('–'))
+            if (!t.Contains(':') && !t.Contains('-') && !t.Contains('(') && !t.Contains('[') && !t.Contains('—') && !t.Contains('–'))
             {
                 var words = t.Split(new[] { ' ', '/', '-', '+', '&' }, StringSplitOptions.RemoveEmptyEntries);
-                if (words.Length <= 5 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french|italian|multilingual|international|eng|spa|ger|fre|fra|ita|por|es|en|de|fr)\b", RegexOptions.IgnoreCase))
+                if (words.Length <= 5 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french|italian|multilingual|international|iberian|eng|spa|ger|fre|fra|ita|por|es|en|de|fr|cat|sp|ge|ja|ko|z[\s-]man|zman|print|pnp|cube)\b", RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
@@ -534,9 +534,12 @@ public static class BggRawSnapshotParser
     {
         if (string.IsNullOrWhiteSpace(rawTitle)) return null;
 
+        string trimmed = rawTitle.Trim();
+        if (IsGenericEditionTitle(trimmed)) return null;
+
         // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.),
         // contemplando posibles acrónimos lingüísticos, idiomas, tiradas o años asociados.
-        string cleaned = Regex.Replace(rawTitle.Trim(),
+        string cleaned = Regex.Replace(trimmed,
             @"\s*[\(\[\-:–—]\s*(?:(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})*|primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail|[A-Za-z]{2,4}))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
             "", RegexOptions.IgnoreCase).Trim();
 
@@ -589,6 +592,21 @@ public static class BggRawSnapshotParser
 
     private static string? ExtractVersionTitle(JsonElement versionElem)
     {
+        // 1. Priorizar canonicalname si está disponible en la versión y es un título válido no genérico
+        if (versionElem.TryGetProperty("canonicalname", out var canonicalProp))
+        {
+            string? canonicalVal = ExtractStringValue(canonicalProp);
+            if (!string.IsNullOrWhiteSpace(canonicalVal))
+            {
+                string? cleanedCanonical = CleanVersionTitle(canonicalVal);
+                if (!string.IsNullOrWhiteSpace(cleanedCanonical) && !IsGenericEditionTitle(cleanedCanonical))
+                {
+                    return cleanedCanonical;
+                }
+            }
+        }
+
+        // 2. Extraer de la propiedad name
         if (!versionElem.TryGetProperty("name", out var nameProp)) return null;
 
         if (nameProp.ValueKind == JsonValueKind.Array)

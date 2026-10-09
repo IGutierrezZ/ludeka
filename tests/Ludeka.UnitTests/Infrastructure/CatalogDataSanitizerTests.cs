@@ -490,4 +490,27 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Equal("/images/games/viticulture.webp", refreshed.ThumbnailUrl);
         Assert.DoesNotContain(refreshed.PurchaseLinks, p => p.AffiliateUrl != null && p.AffiliateUrl.Contains("bordeaux"));
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRepairPandemicLegacy2_ToSegundaTemporadaAndDevir()
+    {
+        // Arrange: Pandemic Legacy Season 2 (221107) con título genérico "Z-Man Spanish edition" y editorial Asmodee Ibérica
+        var pandemic2 = CreateTestGame(
+            bggId: 221107,
+            originalTitle: "Pandemic Legacy: Season 2",
+            spanishTitle: "Z-Man Spanish edition",
+            spanishPublisher: "Asmodee Ibérica"
+        );
+
+        _context.Games.Add(pandemic2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 221107);
+        Assert.Equal("Pandemic Legacy: Segunda temporada", refreshed.SpanishTitle);
+        Assert.Equal("Devir", refreshed.SpanishPublisher);
+    }
 }

@@ -50,6 +50,8 @@ public static class CatalogDataSanitizer
                     .Where(g => g.BggId > lastBggId && (
                         g.BggId == 368966 ||
                         g.BggId == 456236 ||
+                        g.BggId == 453526 ||
+                        g.BggId == 221107 ||
                         (g.SpanishTitle != null && (
                             g.SpanishTitle.ToLower().Contains("korean") ||
                             g.SpanishTitle.ToLower().Contains("edition") ||
@@ -62,7 +64,9 @@ public static class CatalogDataSanitizer
                             g.SpanishTitle.ToLower().Contains("lotus frog") ||
                             g.SpanishTitle.ToLower().Contains("board m") ||
                             g.SpanishTitle.ToLower().Contains("popcorn games") ||
-                            g.SpanishTitle.ToLower().Contains("mandoo games")
+                            g.SpanishTitle.ToLower().Contains("mandoo games") ||
+                            g.SpanishTitle.ToLower().Contains("iberian") ||
+                            g.SpanishTitle.ToLower().Contains("z-man")
                         )) ||
                         (g.SpanishPublisher != null && (
                             g.SpanishPublisher.ToLower().Contains("angry lion") ||
@@ -365,6 +369,19 @@ public static class CatalogDataSanitizer
 
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Got Five! (453526) asegurado como 'Código 5' (Lúdilo) con éxito.");
+        }
+
+        // Caso específico reportado: Pandemic Legacy: Season 2 (BggId 221107) -> Pandemic Legacy: Segunda temporada (Devir)
+        var pandemic2 = await db.Games.FirstOrDefaultAsync(g => g.BggId == 221107, ct);
+        if (pandemic2 != null && (pandemic2.SpanishTitle != "Pandemic Legacy: Segunda temporada" || pandemic2.SpanishPublisher != "Devir"))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Pandemic Legacy: Season 2 (221107): '{OldTitle}' -> 'Pandemic Legacy: Segunda temporada' (Devir)",
+                pandemic2.SpanishTitle);
+            pandemic2.UpdateSpanishTitle("Pandemic Legacy: Segunda temporada");
+            pandemic2.UpdateSpanishPublisher("Devir");
+
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Pandemic Legacy: Season 2 (221107) asegurado como 'Pandemic Legacy: Segunda temporada' (Devir) con éxito.");
         }
 
         // Caso específico reportado: Viticulture (BggId 180263) -> Restaurar carátula si fue contaminada por la expansión Bordeaux
