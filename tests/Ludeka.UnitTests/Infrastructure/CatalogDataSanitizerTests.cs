@@ -457,4 +457,37 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.NotNull(snap);
         Assert.True(BggRawSnapshotParser.HasVersionsFromJson(snap.RawJson));
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRestoreViticultureCover_WhenContaminatedByBordeauxExpansion()
+    {
+        // Arrange: Viticulture (180263) contaminado con la imagen y oferta de Bordeaux
+        var viticulture = CreateTestGame(
+            bggId: 180263,
+            originalTitle: "Viticulture Essential Edition",
+            spanishTitle: "Viticulture",
+            spanishPublisher: "Maldito Games"
+        );
+        viticulture.UpdateImages(
+            "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625618092-1200-face3d.jpg",
+            "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436625618092-1200-face3d.jpg"
+        );
+        viticulture.AddPurchaseLink(new GamePurchaseLink(
+            storeName: "Maldito Games",
+            affiliateUrl: "https://tienda.malditogames.com/viticulture-bordeaux.html",
+            price: 20.00m
+        ));
+
+        _context.Games.Add(viticulture);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert: Carátula restaurada a la oficial y oferta errónea de Bordeaux retirada
+        var refreshed = await _context.Games.Include(g => g.PurchaseLinks).FirstAsync(g => g.BggId == 180263);
+        Assert.Equal("/images/games/viticulture.png", refreshed.CoverImageUrl);
+        Assert.Equal("/images/games/viticulture.webp", refreshed.ThumbnailUrl);
+        Assert.DoesNotContain(refreshed.PurchaseLinks, p => p.AffiliateUrl != null && p.AffiliateUrl.Contains("bordeaux"));
+    }
 }

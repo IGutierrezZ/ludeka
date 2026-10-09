@@ -366,6 +366,52 @@ public static class CatalogDataSanitizer
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Got Five! (453526) asegurado como 'Código 5' (Lúdilo) con éxito.");
         }
+
+        // Caso específico reportado: Viticulture (BggId 180263) -> Restaurar carátula si fue contaminada por la expansión Bordeaux
+        var viticulture = await db.Games.Include(g => g.PurchaseLinks).FirstOrDefaultAsync(g => g.BggId == 180263, ct);
+        if (viticulture != null)
+        {
+            bool hasBordeauxCover = !string.IsNullOrWhiteSpace(viticulture.CoverImageUrl) &&
+                (viticulture.CoverImageUrl.Contains("8436625618092") || viticulture.CoverImageUrl.Contains("bordeaux", StringComparison.OrdinalIgnoreCase));
+
+            bool hasBordeauxBack = !string.IsNullOrWhiteSpace(viticulture.BackCoverImageUrl) &&
+                (viticulture.BackCoverImageUrl.Contains("8436625618092") || viticulture.BackCoverImageUrl.Contains("bordeaux", StringComparison.OrdinalIgnoreCase));
+
+            bool hasBordeauxTable = !string.IsNullOrWhiteSpace(viticulture.TableImageUrl) &&
+                (viticulture.TableImageUrl.Contains("8436625618092") || viticulture.TableImageUrl.Contains("bordeaux", StringComparison.OrdinalIgnoreCase));
+
+            bool hasBordeauxInOffers = viticulture.PurchaseLinks.Any(p =>
+                p.AffiliateUrl != null && p.AffiliateUrl.Contains("bordeaux", StringComparison.OrdinalIgnoreCase));
+
+            if (hasBordeauxCover || hasBordeauxBack || hasBordeauxTable || hasBordeauxInOffers)
+            {
+                logger.LogInformation("Restaurando carátula y ofertas oficiales para Viticulture (180263)...");
+                if (hasBordeauxCover)
+                {
+                    viticulture.UpdateImages("/images/games/viticulture.png", "/images/games/viticulture.webp");
+                }
+
+                if (hasBordeauxBack || hasBordeauxTable)
+                {
+                    viticulture.UpdateMediaUrls(
+                        coverImageUrl: viticulture.CoverImageUrl,
+                        thumbnailUrl: viticulture.ThumbnailUrl,
+                        backCoverImageUrl: hasBordeauxBack ? null : viticulture.BackCoverImageUrl,
+                        tableImageUrl: hasBordeauxTable ? null : viticulture.TableImageUrl);
+                }
+
+                if (hasBordeauxInOffers)
+                {
+                    var cleanOffers = viticulture.PurchaseLinks
+                        .Where(p => p.AffiliateUrl == null || !p.AffiliateUrl.Contains("bordeaux", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    viticulture.UpdatePurchaseLinks(cleanOffers);
+                }
+
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("Viticulture (180263) restaurado con éxito.");
+            }
+        }
     }
 
     public static bool IsKoreanPublisher(string? publisher)
