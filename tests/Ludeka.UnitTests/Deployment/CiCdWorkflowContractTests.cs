@@ -111,6 +111,16 @@ public class CiCdWorkflowContractTests
         Assert.DoesNotContain("AdminUser__", jobsBlock, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void WebFlags_ShouldConfigureExtendedTimeoutForWebSockets()
+    {
+        // Y6: Blazor Server mantiene una conexión persistente por WebSocket.
+        // Cloud Run aplica un timeout por defecto de 300s (5 min), provocando desconexiones
+        // anormales cíclicas (código 1006). El paso de despliegue web debe configurar --timeout=3600 (60m).
+        var source = ReadSource(".github/workflows/ci-cd.yml");
+        Assert.Contains("--timeout=3600", source, StringComparison.Ordinal);
+    }
+
     private static IReadOnlyList<string> ExtractEnabledProviders(string envVarsBlock)
     {
         return EnabledProviderPattern.Matches(envVarsBlock)

@@ -205,6 +205,19 @@ El contenedor escucha en el puerto 8080, así que `ci-cd.yml` configura:
 > [!WARNING]
 > **Verificado solo contra la documentación oficial de `gcloud run deploy`, nunca contra un despliegue real** — no existe entorno de GCP en este ciclo. Es el mismo tipo de hueco que dejó INC-47 con la ortografía de `gcloud run jobs deploy` (§9.0, paso 5): quien provisione por primera vez debe comprobar que ambas banderas se aceptan tal cual antes de darlo por bueno.
 
+### 8.2. Timeout de conexión para WebSockets (Blazor Server)
+
+Google Cloud Run aplica por defecto un tiempo límite de petición (*request timeout*) de 300 segundos (5 minutos). En aplicaciones Blazor Web App con interactividad en servidor (`InteractiveServer`), el túnel de comunicación SignalR opera mediante una conexión WebSocket persistente.
+
+Al transcurrir 300 segundos, el balanceador de Google Cloud Run cierra el socket por agotamiento del tiempo de petición, produciendo en la consola del navegador la desconexión anormal periódica:
+`WebSocket closed with status code: 1006 (no reason given)`.
+
+Aunque Blazor se reconecta inmediatamente, esta reconexión cíclica genera sobrecarga innecesaria y riesgo de pérdida de estado efímero en componentes interactivos. Para prevenirlo, `ci-cd.yml` añade a las banderas de despliegue:
+```
+--timeout=3600
+```
+Extendiendo la duración máxima de la conexión a 60 minutos (el valor máximo permitido por Google Cloud Run).
+
 ---
 
 ## 9. Trabajos en Segundo Plano: Cloud Run Jobs + Cloud Scheduler (INC-47)
