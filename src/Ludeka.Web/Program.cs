@@ -258,6 +258,10 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+// Incremento 143: soporte transparente de peticiones HTTP HEAD para validadores y crawlers (Awin, Google)
+app.UseHeadMethodSupport();
+app.UseRouting();
+
 // Incremento 48 (PR1b), diseño D2: entrega HTTP real del fallback de medios en disco.
 // MapStaticAssets() (más abajo) solo sirve el manifiesto de activos generado en compilación; no
 // sirve ficheros escritos en tiempo de ejecución por PhysicalFileImageStorageService, que es
