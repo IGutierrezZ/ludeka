@@ -78,46 +78,53 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
 
         var releases = ParseHtml(homeHtml ?? string.Empty, newsHtml);
 
-        // Enriquecer cada ítem desde su ficha de producto (EAN, PVP, BGG ID y portada en alta resolución)
-        var enrichedItems = new List<EditorialReleaseItem>(releases.Count);
-        foreach (var item in releases)
+        // Enriquecer cada ítem desde su ficha de producto (EAN, PVP, BGG ID y portada en alta resolución) concurrentemente
+        var enrichedResults = new EditorialReleaseItem[releases.Count];
+        var parallelOptions = new ParallelOptions
         {
-            if (ct.IsCancellationRequested) break;
+            MaxDegreeOfParallelism = 4,
+            CancellationToken = ct
+        };
 
-            if (!string.IsNullOrWhiteSpace(item.SourceUrl) &&
-                item.SourceUrl.StartsWith("https://arrakisgames.com/", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(item.SourceUrl, DefaultHomeUrl, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(item.SourceUrl, DefaultNewsUrl, StringComparison.OrdinalIgnoreCase))
+        await Parallel.ForEachAsync(
+            releases.Select((item, index) => (item, index)),
+            parallelOptions,
+            async (tuple, token) =>
             {
-                try
+                var (item, index) = tuple;
+                if (!string.IsNullOrWhiteSpace(item.SourceUrl) &&
+                    item.SourceUrl.StartsWith("https://arrakisgames.com/", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(item.SourceUrl, DefaultHomeUrl, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(item.SourceUrl, DefaultNewsUrl, StringComparison.OrdinalIgnoreCase))
                 {
-                    var gallery = await ExtractProductGalleryAsync(item.SourceUrl, ct).ConfigureAwait(false);
-                    if (gallery != null)
+                    try
                     {
-                        var enriched = item with
+                        var gallery = await ExtractProductGalleryAsync(item.SourceUrl, token).ConfigureAwait(false);
+                        if (gallery != null)
                         {
-                            CoverImageUrl = gallery.CoverImageUrl ?? item.CoverImageUrl,
-                            TableImageUrl = gallery.TableImageUrl ?? item.TableImageUrl,
-                            BackCoverImageUrl = gallery.BackCoverImageUrl ?? item.BackCoverImageUrl,
-                            Ean = !string.IsNullOrWhiteSpace(gallery.Ean) ? gallery.Ean : item.Ean,
-                            EstimatedPvp = gallery.Pvp ?? item.EstimatedPvp,
-                            BggId = gallery.BggId ?? item.BggId,
-                            Notes = !string.IsNullOrWhiteSpace(gallery.StatusText) ? gallery.StatusText : item.Notes
-                        };
-                        enrichedItems.Add(enriched);
-                        continue;
+                            enrichedResults[index] = item with
+                            {
+                                CoverImageUrl = gallery.CoverImageUrl ?? item.CoverImageUrl,
+                                TableImageUrl = gallery.TableImageUrl ?? item.TableImageUrl,
+                                BackCoverImageUrl = gallery.BackCoverImageUrl ?? item.BackCoverImageUrl,
+                                Ean = !string.IsNullOrWhiteSpace(gallery.Ean) ? gallery.Ean : item.Ean,
+                                EstimatedPvp = gallery.Pvp ?? item.EstimatedPvp,
+                                BggId = gallery.BggId ?? item.BggId,
+                                Notes = !string.IsNullOrWhiteSpace(gallery.StatusText) ? gallery.StatusText : item.Notes
+                            };
+                            return;
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogDebug(ex, "No se pudo extraer la ficha detallada para '{Title}' desde '{Url}'.", item.Title, item.SourceUrl);
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "No se pudo extraer la ficha detallada para '{Title}' desde '{Url}'.", item.Title, item.SourceUrl);
-                }
-            }
 
-            enrichedItems.Add(item);
-        }
+                enrichedResults[index] = item;
+            }).ConfigureAwait(false);
 
-        return enrichedItems;
+        return enrichedResults.Where(x => x != null).ToList();
     }
 
     public IReadOnlyList<EditorialReleaseItem> ParseHtml(string homeHtml, string? newsHtml = null)

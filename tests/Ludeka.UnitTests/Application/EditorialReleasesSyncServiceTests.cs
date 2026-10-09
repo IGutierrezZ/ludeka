@@ -175,6 +175,35 @@ public class EditorialReleasesSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncPublisherReleasesAsync_Arrakis_MatchesExistingCatalogGameDirectlyByBggId_EvenWhenTitleDiffers()
+    {
+        // Juego preexistente en catálogo con BggId pero título diferente ("Pilgrims: Curious Adventures" vs "Pilgrims, Curiosas Aventuras")
+        var existingGame = CreateSampleGame(444683, "pilgrims-curious-adventures", "Pilgrims: Curious Adventures", "Pilgrims: Aventuras Curiosas", yearPublished: 2026);
+        _gameRepo.Add(existingGame);
+
+        _arrakisExtractor.ItemsToReturn =
+        [
+            new("Pilgrims, Curiosas Aventuras", "Arrakis Games", new DateOnly(2026, 11, 1), "En Noviembre", 39.95m, "8421005001106", "https://arrakisgames.com/pilgrims.png", IsReprint: false, BggId: 444683)
+        ];
+
+        var service = CreateService();
+        var result = await service.SyncPublisherReleasesAsync("Arrakis Games");
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ItemsFound);
+        Assert.Equal(0, result.GamesImported); // NO debe importar de BGG porque ya existía en catálogo
+        Assert.Equal(1, result.GamesLinked);
+
+        var release = Assert.Single(_weeklyReleaseRepo.Releases);
+        Assert.Equal("Pilgrims, Curiosas Aventuras", release.Title);
+        Assert.Equal("Arrakis Games", release.Publisher);
+        Assert.Equal(existingGame.Id, release.GameId);
+        Assert.Equal(WeeklyReleaseStatus.Published, release.Status);
+        Assert.Equal("8421005001106", existingGame.Ean);
+        Assert.Equal("Arrakis Games", existingGame.SpanishPublisher);
+    }
+
+    [Fact]
     public async Task SyncAllEditorialReleasesAsync_IsIdempotent_UpdatesExistingReleaseWithoutDuplicating()
     {
         var floeGame = CreateSampleGame(2001, "floe", "Floe", "Floe", yearPublished: 2026);

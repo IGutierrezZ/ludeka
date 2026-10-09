@@ -179,10 +179,11 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         var allGames = await _gameRepository.GetAllGamesAsync(ct).ConfigureAwait(false);
         var barcodeIndex = new Dictionary<string, Game>(StringComparer.OrdinalIgnoreCase);
         var titleIndex = new Dictionary<string, Game>(StringComparer.OrdinalIgnoreCase);
+        var bggIndex = new Dictionary<int, Game>();
 
         foreach (var g in allGames)
         {
-            IndexGame(barcodeIndex, titleIndex, g);
+            IndexGame(barcodeIndex, titleIndex, bggIndex, g);
         }
 
         int createdCount = 0;
@@ -213,11 +214,17 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 matchedGame = gameByEan;
             }
 
+            // 1.5 Cruce canónico por BggId en memoria si el ítem lo incluye (fichas directas de Arrakis Games)
+            if (matchedGame == null && item.BggId.HasValue && bggIndex.TryGetValue(item.BggId.Value, out var gameByBgg))
+            {
+                matchedGame = gameByBgg;
+            }
+
             var cleanedTitle = CleanCommercialTitle(item.Title);
             var baseTitle = ExtractBaseTitle(cleanedTitle);
             bool matchedByBaseTitleOnly = false;
 
-            // 2. Cruce por Título normalizado si no se encontró por EAN
+            // 2. Cruce por Título normalizado si no se encontró por EAN ni por BggId
             if (matchedGame == null)
             {
                 var normTitle = Normalize(item.Title);
@@ -238,25 +245,55 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 }
             }
 
-            // 2.5 Si el item incluye BggId directo (como las fichas de Arrakis Games) y no se localizó en catálogo local:
-            if (matchedGame == null && item.BggId.HasValue && _bggClient != null)
+            // 2.5 Si el item incluye BggId directo y no se localizó en catálogo local en memoria:
+            if (matchedGame == null && item.BggId.HasValue)
             {
                 try
                 {
-                    var bggGame = await _bggClient.FetchGameByBggIdAsync(item.BggId.Value, ct).ConfigureAwait(false);
-                    if (bggGame != null)
+                    var existingByBgg = await _gameRepository.GetByBggIdAsync(item.BggId.Value, ct).ConfigureAwait(false);
+                    if (existingByBgg != null)
                     {
-                        if (!string.IsNullOrWhiteSpace(item.Ean)) bggGame.UpdateEan(item.Ean);
-                        bggGame.UpdateSpanishPublisher(item.Publisher);
-                        await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
-                        IndexGame(barcodeIndex, titleIndex, bggGame);
-                        matchedGame = bggGame;
-                        importedCount++;
+                        IndexGame(barcodeIndex, titleIndex, bggIndex, existingByBgg);
+                        matchedGame = existingByBgg;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "No se pudo importar directamente de BGG con BggId {BggId} para '{Title}'.", item.BggId.Value, item.Title);
+                    _logger.LogDebug(ex, "Error al consultar juego por BggId {BggId}.", item.BggId.Value);
+                }
+
+                if (matchedGame == null && _bggClient != null)
+                {
+                    try
+                    {
+                        var bggGame = await _bggClient.FetchGameByBggIdAsync(item.BggId.Value, ct).ConfigureAwait(false);
+                        if (bggGame != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(item.Ean)) bggGame.UpdateEan(item.Ean);
+                            bggGame.UpdateSpanishPublisher(item.Publisher);
+                            await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
+                            IndexGame(barcodeIndex, titleIndex, bggIndex, bggGame);
+                            matchedGame = bggGame;
+                            importedCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "No se pudo importar directamente de BGG con BggId {BggId} para '{Title}'.", item.BggId.Value, item.Title);
+                        try
+                        {
+                            var concurrentGame = await _gameRepository.GetByBggIdAsync(item.BggId.Value, ct).ConfigureAwait(false);
+                            if (concurrentGame != null)
+                            {
+                                IndexGame(barcodeIndex, titleIndex, bggIndex, concurrentGame);
+                                matchedGame = concurrentGame;
+                            }
+                        }
+                        catch
+                        {
+                            // Ignorar fallback secundario
+                        }
+                    }
                 }
             }
 
@@ -307,7 +344,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                                 if (!string.IsNullOrWhiteSpace(item.Ean)) bggGame.UpdateEan(item.Ean);
                                 bggGame.UpdateSpanishPublisher(item.Publisher);
                                 await _gameRepository.AddRangeAsync(new[] { bggGame }, ct).ConfigureAwait(false);
-                                IndexGame(barcodeIndex, titleIndex, bggGame);
+                                IndexGame(barcodeIndex, titleIndex, bggIndex, bggGame);
                                 matchedGame = bggGame;
                                 importedCount++;
                             }
@@ -467,8 +504,17 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
             importedCount);
     }
 
-    private static void IndexGame(Dictionary<string, Game> barcodeIndex, Dictionary<string, Game> titleIndex, Game g)
+    private static void IndexGame(
+        Dictionary<string, Game> barcodeIndex,
+        Dictionary<string, Game> titleIndex,
+        Dictionary<int, Game> bggIndex,
+        Game g)
     {
+        if (g.BggId > 0)
+        {
+            bggIndex[g.BggId] = g;
+        }
+
         if (!string.IsNullOrWhiteSpace(g.Ean))
         {
             barcodeIndex[g.Ean] = g;
