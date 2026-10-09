@@ -1336,8 +1336,8 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
   1. **Priorización de `canonicalname` en Versiones (`BggRawSnapshotParser.cs`):** Extraer prioritariamente el título comercial traducido oficial de `canonicalname` en lugar de relying on `name` en versiones de BGG.
   2. **Robustecimiento de `IsGenericEditionTitle`:** Reconocer editoriales pendientes (`z-man`, `lúdilo`, etc.), descriptores geográficos (`iberian`, etc.), códigos multilingües y formatos de tirada, eliminando el bloqueo por guiones.
   3. **Saneamiento Prioritario y Sistemático (`CatalogDataSanitizer.cs`):** Reparar BggId 221107 (*Pandemic Legacy: Season 2*) a `"Pandemic Legacy: Segunda temporada"` (editorial `"Devir"`), y sanear candidatos contaminados con descriptores genéricos.
-- **Estado:** ⏳ **En progreso** (INC-145).
-- **Documento:** [`../increments/inc-145-titulos-bgg-canonical.md`](../increments/inc-145-titulos-bgg-canonical.md).
+- **Estado:** ✅ **Archivado** (INC-145).
+- **Documento:** [`../increments/archive/inc-145-titulos-bgg-canonical.md`](../increments/archive/inc-145-titulos-bgg-canonical.md).
 - **Módulo del Sistema:** [`sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
 

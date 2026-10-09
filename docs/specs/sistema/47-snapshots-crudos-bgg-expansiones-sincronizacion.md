@@ -242,4 +242,17 @@ Para permitir que moderadores y miembros de la Mesa Fundadora puedan corregir di
    - Botón contextual «Sincronizar» en el pie del marco polaroid junto a «Ver en BGG ↗».
    - Estados de carga `IsSyncingBgg` con spinner e información reactiva de cambios en `_actionFeedbackMessage`.
 
+### 7.12 Priorización de canonicalname en Versiones BGG y Saneamiento Sistemático de Títulos (INC-145)
+Para erradicar discrepancias donde las ediciones físicas de BGG usan nombres de tirada (ej. `Z-Man Spanish edition` o `Iberian edition`) en vez del título comercial localizado oficial (ej. `Pandemic Legacy: Segunda temporada`), preservando las portadas y editoriales reales (ej. Devir):
+1. **Priorización de `canonicalname` sobre `name` (`BggRawSnapshotParser`):**
+   - En la estructura de BGG, cada elemento `boardgameversion` contiene invariablemente `canonicalname` con el título del juego traducido legítimo, mientras que `name` es únicamente una etiqueta de inventario o descriptor físico de tirada.
+   - `ExtractVersionTitle` consulta en primer término `canonicalname`, extrayendo el título comercial limpio traducido en BGG y recurriendo a `name` como fallback seguro únicamente si `canonicalname` está ausente.
+2. **Robustecimiento de Detección de Descriptores Genéricos (`IsGenericEditionTitle` / `CleanVersionTitle`):**
+   - Incorporación a `IsGenericEditionTitle` de marcas y sellos editoriales no registrados previamente (`z-man`, `zman`, `lúdilo`, `ludilo`, `salt & pepper`, `tranjis`, `loki`, `playte`, etc.).
+   - Reconocimiento de descriptores regionales (`iberian`, `chilean`, `colombian`), acrónimos multilingües (`cat`, `sp`, `ge`, `ja`, `ko`) y formatos de producción (`print & play`, `pnp`, `cube box`).
+   - Retorno inmediato de `null` en `CleanVersionTitle` ante descriptores genéricos sin degradar títulos legítimos que contienen guiones o separadores.
+3. **Saneamiento Determinista y Reparación Prioritaria (`CatalogDataSanitizer`):**
+   - Reparación prioritaria O(1) en `EnsureKnownPriorityGamesRepairedAsync` para BggId 221107 fijando `SpanishTitle = "Pandemic Legacy: Segunda temporada"` y `SpanishPublisher = "Devir"`.
+   - Ampliación del predicado SQL de EF Core en `SanitizeCorruptedSpanishTitlesAsync` para incluir patrones de `iberian` y `z-man`, garantizando la limpieza del catálogo en arranques y barridos.
+
 
