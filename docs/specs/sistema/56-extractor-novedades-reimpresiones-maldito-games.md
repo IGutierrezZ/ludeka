@@ -1,9 +1,9 @@
 # 56. Extractor Determinista de Novedades y Reimpresiones de Maldito Games
 
-> **Estado:** Implementado, Verificado y Desplegado en Producción (INC-128)  
-> **Incremento SDD:** [`inc-128-extractor-novedades-maldito`](../increments/archive/inc-128-extractor-novedades-maldito.md)  
-> **Componentes Afectados:** `MalditoReleasesExtractor.cs`, `EditorialReleasesSyncService.cs`, `SqliteSchemaMigrator.cs`, `/novedades`  
-> **Tests:** 2.652 pruebas unitarias pasando al 100% (incluye cobertura de parsing multisección, fechas en español, EAN desde CDN y cruce heurístico de títulos comerciales).
+> **Estado:** Implementado, Verificado y Desplegado en Producción (INC-128 e INC-142)  
+> **Incrementos SDD:** [`inc-128-extractor-novedades-maldito`](../increments/archive/inc-128-extractor-novedades-maldito.md), [`inc-142-maldito-filtros-backfill-catalogo`](../increments/archive/inc-142-maldito-filtros-backfill-catalogo.md)  
+> **Componentes Afectados:** `MalditoReleasesExtractor.cs`, `EditorialReleasesSyncService.cs`, `MalditoImagesBackfillJobRunner.cs`, `DevirImagesBackfillJobRunner.cs`, `SqliteSchemaMigrator.cs`, `/novedades`  
+> **Tests:** 2.795 pruebas unitarias pasando al 100% (incluye filtros estrictos seccionales, galería de producto, validación EAN-13 módulo 10 y runners de barrido).
 
 ---
 
@@ -82,16 +82,38 @@ Se asegura que la columna `IsMonthOnly` esté presente en la tabla `WeeklyReleas
 
 ---
 
-## 5. Pruebas y Cobertura Automática
+## 5. Filtros Estrictos de Novedades y Enriquecimiento de Galería (INC-142)
+
+En INC-142 se perfeccionó la lógica de ingesta tras el análisis del ciclo de vida editorial de Maldito Games:
+
+1. **Filtro Estricto de Secciones:**
+   - **Conservadas:** Exclusivamente `A puntito de llegar` (próximos lanzamientos en preventa con fecha estimada) y `Volverán a estar disponibles en breve` (reimpresiones oficiales confirmadas).
+   - **Descartadas:** `Últimas novedades` (juegos que ya están en distribución física y tiendas) y `Lo que se viene` (banners conceptuales a largo plazo sin fecha concreta ni precio).
+2. **Enriquecimiento Multinivel desde Ficha de Producto:**
+   - Para cada producto de las secciones válidas, se descarga su ficha en segundo plano y se parsea el script `mage/gallery/gallery`.
+   - Se prioriza la imagen 3D (`*-face3d.jpg`) como portada principal de alta resolución, asignando vistas de componentes/mesa y contraportada (`*-backflat.jpg`) si existen.
+   - Se extrae el código EAN-13 desde el atributo `data-product-sku` o desde la URL de las fotos del CDN (`devirinvestments.s3.eu-west-1.amazonaws.com`).
+   - Se extrae el PVP oficial desde `<meta property="product:price:amount">` o selectores de precio de Magento.
+3. **Runners de Barrido y Enriquecimiento de Catálogo (`maldito-images-backfill` y `devir-images-backfill`):**
+   - Nuevo runner autónomo `MalditoImagesBackfillJobRunner` para recorrer la paginación del catálogo general (`/juegos?p={page}`) en local, resolviendo el bloqueo de Cloudflare en entornos Cloud Run.
+   - Cruce bidireccional por EAN-13 validado (módulo 10) y por título normalizado.
+   - Enriquecimiento automático de recursos multimedia (caja 3D, mesa, contraportada), código EAN faltante y alta/actualización de la oferta oficial con su PVP en `PurchaseLinks`.
+   - Corrección simétrica en `DevirImagesBackfillJobRunner` para no omitir juegos con fotos existentes si les falta EAN o la oferta oficial de Devir.
+
+---
+
+## 6. Pruebas y Cobertura Automática
 
 - **`MalditoReleasesExtractorTests`:**
-  - Extracción seccional de portada (`Últimas novedades`, `A puntito de llegar`, `Volverán a estar disponibles en breve`, `Lo que se viene`).
-  - Extracción determinista de EAN de 13 dígitos desde URLs del CDN.
-  - Parseo robusto de fechas en castellano.
-  - Decodificación y limpieza de entidades HTML.
-- **`EditorialReleasesSyncServiceTests`:**
-  - Cruce de novedades de Maldito Games con EAN extraído de imagen.
-  - Vinculación exitosa por título comercial limpio (`CleanCommercialTitle`).
-  - Vinculación exitosa por título base (`ExtractBaseTitle`).
-  - Pruebas unitarias de purga de huérfanos e idempotencia.
-- **Total Suite:** 2.652 pruebas unitarias superadas al 100%.
+  - Filtro estricto: confirmación de inclusión de preventas/reimpresiones y exclusión de novedades y proyectos futuros.
+  - Extracción de galería JSON Magento (`mage/gallery/gallery`), imágenes 3D, mesa y contraportada.
+  - Parseo de PVP y EAN desde SKU o CDN.
+  - Paginación del catálogo general y detección de página siguiente con regex.
+- **`MalditoImagesBackfillJobRunnerTests`:**
+  - Emparejamiento por EAN y por título normalizado.
+  - Asignación de recursos multimedia y oferta oficial de tienda con PVP.
+  - Tolerancia a fallos transitorios en páginas individuales.
+  - Validación matemática estricta de códigos de barras comerciales mediante `BarcodeValidator.TryNormalizeEan13`.
+- **`DevirImagesBackfillJobRunnerTests`:**
+  - Verificación de no omisión cuando falta EAN o la oferta de compra con PVP oficial.
+- **Total Suite:** 2.795 pruebas unitarias superadas al 100%.
