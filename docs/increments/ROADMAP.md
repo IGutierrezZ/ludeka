@@ -155,6 +155,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-140** | Galería Dinámica e Imágenes Adicionales en el Editor Editorial de Fichas | ✅ Archivado | [inc-140-galeria-dinamica-fichas.md](archive/inc-140-galeria-dinamica-fichas.md) |
 | **INC-141** | Búsqueda Insensible a Tildes y Diacríticos en Catálogo y Búsqueda Rápida | ⏳ En progreso | [inc-141-busqueda-insensible-tildes.md](inc-141-busqueda-insensible-tildes.md) |
 | **INC-142** | Filtro Estricto de Novedades Maldito Games, Enriquecimiento de Imágenes, EAN y Precios en Catálogo (Maldito y Devir) | ✅ Archivado | [inc-142-maldito-filtros-backfill-catalogo.md](archive/inc-142-maldito-filtros-backfill-catalogo.md) |
+| **INC-143** | Soporte de Peticiones HTTP HEAD y Verificación de Dominio Awin | ⏳ En progreso | [inc-143-soporte-head-verificacion-awin.md](inc-143-soporte-head-verificacion-awin.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
