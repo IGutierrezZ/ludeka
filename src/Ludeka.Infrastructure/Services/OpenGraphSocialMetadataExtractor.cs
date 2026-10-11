@@ -108,7 +108,10 @@ public class OpenGraphSocialMetadataExtractor : ISocialMetadataExtractor
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+            var userAgent = platform == SocialPlatform.Instagram
+                ? "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+                : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+            request.Headers.UserAgent.ParseAdd(userAgent);
             request.Headers.AcceptLanguage.ParseAdd("es-ES,es;q=0.9,en;q=0.8");
 
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);

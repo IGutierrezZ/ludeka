@@ -66,6 +66,19 @@
                     </div>
                 }
 
+                @if (!string.IsNullOrWhiteSpace(_cropWarningMessage))
+                {
+                    <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 text-xs flex items-start gap-2.5">
+                        <Icon Name="triangle-alert" Size="18" Class="shrink-0 text-amber-500 mt-0.5" />
+                        <div>
+                            <span class="font-bold">Aviso sobre la foto de portada</span>
+                            <p class="text-[0.7rem] text-amber-600/90 dark:text-amber-400/90 mt-0.5 leading-relaxed">
+                                @_cropWarningMessage
+                            </p>
+                        </div>
+                    </div>
+                }
+
                 @if (!string.IsNullOrWhiteSpace(_successMessage))
                 {
                     <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
@@ -393,6 +406,7 @@
     private bool _isSubmitting;
     private string? _errorMessage;
     private string? _successMessage;
+    private string? _cropWarningMessage;
 
     // Campos pestaña 0 (Multimodal)
     private string _expressUrl = string.Empty;
@@ -623,7 +637,20 @@
                 result = await IngestionService.IngestManualAdvancedAsync(input);
             }
 
-            _successMessage = "¡Publicación enviada a la bandeja de moderación!";
+            bool hasCropWarning = result.AiAnalysisNotes?.Contains("No se ha podido recortar", StringComparison.OrdinalIgnoreCase) == true ||
+                                  result.AiAnalysisNotes?.Contains("No se pudo recortar", StringComparison.OrdinalIgnoreCase) == true;
+
+            if (hasCropWarning)
+            {
+                _cropWarningMessage = "No se ha podido recortar la imagen automáticamente con IA. Se ha guardado la foto original completa sin recortar. Puedes editar la publicación en la bandeja para recortar o sustituir la foto a mano.";
+                _successMessage = "¡Publicación enviada a la bandeja de moderación!";
+            }
+            else
+            {
+                _cropWarningMessage = null;
+                _successMessage = "¡Publicación enviada a la bandeja de moderación!";
+            }
+
             await OnItemCreated.InvokeAsync(result);
 
             // Resetear campos
@@ -637,7 +664,7 @@
             _selectedGameId = null;
             _selectedGameTitle = null;
 
-            await Task.Delay(800);
+            await Task.Delay(hasCropWarning ? 3500 : 800);
             await HandleClose();
         }
         catch (Exception ex)
@@ -656,6 +683,7 @@
         _searchCts?.Cancel();
         _errorMessage = null;
         _successMessage = null;
+        _cropWarningMessage = null;
         await OnClose.InvokeAsync();
     }
 

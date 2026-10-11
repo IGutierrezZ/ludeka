@@ -152,7 +152,8 @@ public class SocialIngestionService : ISocialIngestionService
         string? finalThumbnailUrl = null;
 
         // 3. Componer o guardar portada horizontal 16:9
-        if (hasCoverImage && _giveawayCoverComposer != null)
+        bool hasValidCrop = analysis.CropBoundingBox != null && analysis.CropBoundingBox.IsValid;
+        if (hasCoverImage && hasValidCrop && _giveawayCoverComposer != null)
         {
             try
             {
@@ -171,6 +172,7 @@ public class SocialIngestionService : ISocialIngestionService
         }
         else if (hasCoverImage)
         {
+            // Sin recorte válido por IA: almacenar la imagen original completa directamente sin fondo por defecto
             using var directStream = new MemoryStream(input.CoverImageBytes!);
             var storageKey = $"social-inbox/{itemId:N}/thumbnail.webp";
             finalThumbnailUrl = await _imageStorageService.UploadOptimizedImageAsync(directStream, storageKey, ct: ct);
@@ -191,6 +193,21 @@ public class SocialIngestionService : ISocialIngestionService
             ? await ResolveCountryAsync(rawLocation, organizer, analysis.Collaborator, ct)
             : null;
 
+        var aiNotes = analysis.Notes;
+        if (hasCoverImage && !hasValidCrop)
+        {
+            const string cropWarning = "Aviso: No se ha podido recortar la imagen automáticamente con IA. Se ha guardado la imagen original completa. Ve a la publicación en la moderación o edición para sustituir o recortar la foto a mano.";
+            if (string.IsNullOrWhiteSpace(aiNotes))
+            {
+                aiNotes = cropWarning;
+            }
+            else if (!aiNotes.Contains("No se ha podido recortar", StringComparison.OrdinalIgnoreCase) &&
+                     !aiNotes.Contains("No se pudo recortar", StringComparison.OrdinalIgnoreCase))
+            {
+                aiNotes = $"{aiNotes} | {cropWarning}";
+            }
+        }
+
         var item = new SocialInboxItem(
             sourceUrl: input.SourceUrl,
             platform: platform,
@@ -209,7 +226,7 @@ public class SocialIngestionService : ISocialIngestionService
             originalCaption: rawCaption,
             thumbnailUrl: finalThumbnailUrl,
             isVideo: metadata?.IsVideo ?? false,
-            aiAnalysisNotes: analysis.Notes);
+            aiAnalysisNotes: aiNotes);
 
         var savedItem = await _inboxRepository.AddAsync(item, ct);
         _logger.LogInformation("Ítem multimodal creado en bandeja de moderación con ID {Id} (Tipo: {Type})", savedItem.Id, savedItem.DetectedType);

@@ -148,10 +148,33 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
   ""notes"": ""Resumen o bases breves del contenido""
 }}";
 
-        var effectiveModel = string.IsNullOrWhiteSpace(_options.Model)
-            ? GeminiOptions.DefaultModel
-            : _options.Model;
+        var models = _options.GetModelCandidateChain();
+        foreach (var model in models)
+        {
+            try
+            {
+                var result = await TryCallGeminiApiWithModelAsync(model, prompt, text, authorOrChannel, ct);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al invocar modelo Gemini {Model} para análisis de texto. Continuando con el siguiente modelo en la cascada.", model);
+            }
+        }
 
+        return null;
+    }
+
+    private async Task<SocialAiAnalysisResultDto?> TryCallGeminiApiWithModelAsync(
+        string model,
+        string prompt,
+        string text,
+        string? authorOrChannel,
+        CancellationToken ct)
+    {
         var requestBody = new
         {
             contents = new[]
@@ -171,13 +194,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         var jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
         using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
+        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_options.ApiKey}";
 
         using var response = await _httpClient.PostAsync(requestUri, content, ct);
         if (!response.IsSuccessStatusCode)
         {
             var err = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Gemini API devolvió código {Code}: {Error}", response.StatusCode, err);
+            _logger.LogWarning("Gemini API ({Model}) devolvió código {Code}: {Error}", model, response.StatusCode, err);
             return null;
         }
 
@@ -290,10 +313,6 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
   ""cropBoundingBox"": [ymin, xmin, ymax, xmax] o null
 }}";
 
-        var effectiveModel = string.IsNullOrWhiteSpace(_options.Model)
-            ? GeminiOptions.DefaultModel
-            : _options.Model;
-
         var partsList = new System.Collections.Generic.List<object>
         {
             new { text = prompt }
@@ -323,6 +342,37 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             });
         }
 
+        var models = _options.GetModelCandidateChain();
+        foreach (var model in models)
+        {
+            try
+            {
+                var result = await TryCallGeminiMultimodalApiWithModelAsync(
+                    model,
+                    partsList,
+                    authorOrChannel,
+                    ct);
+
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al invocar modelo Gemini Vision {Model} para análisis multimodal. Continuando con el siguiente modelo en la cascada.", model);
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<SocialAiAnalysisResultDto?> TryCallGeminiMultimodalApiWithModelAsync(
+        string model,
+        System.Collections.Generic.List<object> partsList,
+        string? authorOrChannel,
+        CancellationToken ct)
+    {
         var requestBody = new
         {
             contents = new[]
@@ -339,13 +389,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         var jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
         using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
+        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_options.ApiKey}";
 
         using var response = await _httpClient.PostAsync(requestUri, content, ct);
         if (!response.IsSuccessStatusCode)
         {
             var err = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Gemini Vision API devolvió código {Code}: {Error}", response.StatusCode, err);
+            _logger.LogWarning("Gemini Vision API ({Model}) devolvió código {Code}: {Error}", model, response.StatusCode, err);
             return null;
         }
 
@@ -602,12 +652,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
 
         if (hasImages)
         {
-            var defaultBox = new NormalizedBoundingBoxDto(45, 0, 945, 1000);
             return res with
             {
                 DetectedType = SocialSubmissionType.Giveaway,
-                CropBoundingBox = defaultBox,
-                TerritorialScope = res.TerritorialScope ?? "Península"
+                CropBoundingBox = null,
+                TerritorialScope = res.TerritorialScope ?? "Península",
+                Notes = "Aviso: No se pudo recortar la imagen automáticamente con IA. Se ha conservado la imagen completa sin recortar. Puedes recortarla o sustituirla manualmente en la edición."
             };
         }
 
