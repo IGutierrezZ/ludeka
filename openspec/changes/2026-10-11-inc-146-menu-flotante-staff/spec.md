@@ -3,75 +3,97 @@
 ## Requisitos Funcionales
 
 - **RF-01 (Componente Global `StaffFloatingMenu.razor` en `MainLayout`):**
-  - Debe renderizarse en `MainLayout.razor` exclusivamente cuando el usuario autenticado cuente con privilegios de staff (`CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator")`).
-  - Para usuarios anónimos o sin roles administrativos, el componente no debe emitir ningún elemento en el DOM.
-  - Ubicación fija en la esquina inferior derecha (`fixed bottom-20 right-4 sm:right-6 z-40`), garantizando la separación de la barra de navegación móvil (`MobileBottomNav`) y el respeto de las áreas seguras (`safe-area-inset`).
-  - Disparador FAB accesible con icono de staff (`zap`), etiqueta responsiva ("Staff Tools" en escritorio, "Staff" en móvil) y soporte de apertura/cierre.
-  - Al abrirse, despliega una tarjeta flotante (`role="dialog"`, `aria-label="Panel rápido de moderación y gestión"`) con cabecera de rol, listado de acciones contextuales y enlace al panel central de gestión.
-  - Debe cerrarse de forma automática al ejecutar cualquiera de las acciones, al pulsar la tecla `Escape` o al hacer clic fuera del panel.
+  - Se renderiza en `MainLayout.razor` exclusivamente si el usuario cuenta con rol de staff (`CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator")`).
+  - No emite ningún nodo en el DOM para visitantes o usuarios sin rol staff.
+  - Posicionamiento en esquina inferior derecha (`fixed bottom-20 right-4 sm:right-6 z-40`), elevado 80 px para sobrevolar la barra táctil fija móvil `MobileBottomNav` sin solapamiento ni bloqueo táctil.
+  - Disparador FAB accesible con icono de staff (`zap`), etiqueta adaptativa ("Staff Tools" en escritorio, "Staff" en móvil) y área táctil >=44×44 px.
+  - Tarjeta desplegable flotante con `role="dialog"`, cabecera de rol, lista de acciones contextuales activas y enlace fijo a `/admin`.
+  - Cierre automático al ejecutar una acción, al pulsar la tecla `Escape` o al hacer clic fuera del panel.
 
-- **RF-02 (Retirada de la Barra Superior Fija `StaffBar.razor`):**
-  - La barra superior horizontal `StaffBar.razor` ubicada bajo la cabecera en `MainLayout.razor` queda eliminada de la maquetación.
-  - La cabecera editorial y el flujo visual superior recuperan su altura limpia sin la franja fija mostaza de administración.
+- **RF-02 (Retirada de la Barra Superior `StaffBar.razor` y `StaffActionBar.razor`):**
+  - Se retira `<StaffBar />` de `MainLayout.razor`. La cabecera superior y el inicio de página recuperan su altura editorial limpia sin la barra mostaza fija.
 
 - **RF-03 (Acceso Canónico Permanente a Administración):**
-  - El menú flotante debe incluir siempre, en la parte inferior de la tarjeta, un acceso directo a `/admin` («Panel de gestión» / Ludeka Gestión) con icono distintivo.
-  - Debe mostrar con claridad el rol activo del usuario («Mesa Fundadora» o «Moderador»).
+  - El menú flotante incluye siempre en su pie un enlace a `/admin` («Panel de gestión» / Ludeka Gestión) con flecha accesible.
+  - Muestra la insignia del rol activo: «Mesa Fundadora» o «Moderador».
 
-- **RF-04 (Consolidación de `GameStaffToolsPanel.razor` en la Ficha de Juego):**
-  - En la ficha de juego (`GameDetail.razor` en `/juego/{slug}`):
-    - Se retira el componente local `GameStaffToolsPanel.razor`.
-    - `GameDetail.razor` publica sus acciones contextuales a través de `IStaffActionService`:
-      1. `Editar Metadatos` -> abre modal `GameEditorModal`.
-      2. `Generar con IA` / `Sintetizando...` / `Forzar Resíntesis IA` -> invoca generación/resíntesis IA.
-      3. `Asociar BGG` -> abre modal `AssociateBggModal`.
-      4. `Sincronizar BGG` (cuando BggId > 0) -> invoca sincronización forzada BGG.
-      5. `Veredicto Fundador` (para Mesa Fundadora) -> abre modal `FoundingVerdictModal`.
-      6. `Cartel para Redes` -> abre modal `SocialCardModal`.
-      7. `Incidencias / Erratas` -> abre modal `GameReportModal`.
-    - La vista implementa `IDisposable` para limpiar sus acciones al navegar a otra pantalla.
+- **RF-04 (Consolidación Exhaustiva de la Ficha de Juego — `GameDetail.razor`):**
+  - Se retira el panel local `GameStaffToolsPanel.razor`.
+  - Se retiran del DOM de `GameDetail.razor`:
+    - El botón de sincronización BGG incrustado junto a la foto hero.
+    - La caja con borde mostaza incrustada en la sección de veredicto con botones de edición duplicados.
+    - Los botones incrustados en la pestaña multimedia ("Hub Multimedia (Moderar)", "Buscar en YouTube").
+  - `GameDetail.razor` registra en `IStaffActionService` sus acciones contextuales completas:
+    1. `Editar Metadatos` -> abre modal `GameEditorModal`.
+    2. `Generar síntesis IA` / `Forzar Resíntesis IA` -> invoca síntesis Gemini.
+    3. `Buscar en YouTube` -> abre modal `YouTubeSearchModal` con el título pre-cargado.
+    4. `Ingesta Flash de Vídeo` -> abre modal de ingesta por URL.
+    5. `Asociar BGG (@Game.BggId)` -> abre modal `AssociateBggModal`.
+    6. `Sincronizar BGG (@Game.BggId)` (si BggId > 0) -> invoca sincronización forzada BGG.
+    7. `Veredicto Fundador` (para Mesa Fundadora) -> abre modal `FoundingVerdictModal`.
+    8. `Cartel para Redes` -> abre modal `SocialCardModal`.
+    9. `Incidencias / Erratas` -> abre modal `GameReportModal`.
 
-- **RF-05 (Matriz de Acciones Contextuales por Pantalla en Listados y Hubs):**
-  - El menú flotante resuelve y muestra las acciones contextuales correspondientes a la ruta activa:
-    - **Catálogo (`/catalogo`):**
-      - `+ Añadir juego desde BGG` (abre `BggSearchModal`).
-      - `Cola BGG` (enlace a `/admin/cola-catalogacion`).
-      - `Reportes` (enlace a `/admin/reportes`).
-    - **Sorteos (`/sorteos`):**
-      - `Ingesta Social` (enlace a `/admin/ingesta-social`).
-    - **Eventos (`/eventos`):**
-      - `Gestión de Eventos` (enlace a `/admin/eventos`).
-    - **Novedades (`/novedades`):**
-      - `Ingesta Social` (enlace a `/admin/ingesta-social`).
-    - **Tiendas (`/tiendas`):**
-      - `Feeds & Afiliados` (enlace a `/admin/afiliados`).
-    - **Creadores / Editoriales (`/creadores`, `/editoriales`):**
-      - `Canales Monitorizados` (enlace a `/admin/canales-monitorizados`).
+- **RF-05 (Matriz Contextual Completa en Listados y Hubs):**
+  - **Sorteos (`/sorteos` — `Radar.razor`):**
+    - Publica en `IStaffActionService`:
+      1. `+ Alta exprés de sorteo` (abre modal `SocialExpressIngestModal`).
+      2. `+ Proponer / Crear sorteo` (abre modal manual `EditorialModal`).
+      3. `Bandeja de ingesta social` (enlace a `/admin/ingesta-social`).
+    - Se retiran los botones `✎` incrustados en cada tarjeta del listado para dejar las tarjetas públicas limpias.
+  - **Eventos (`/eventos` — `Events.razor`):**
+    - Publica en `IStaffActionService`:
+      1. `+ Alta exprés de evento` (abre modal `SocialExpressIngestModal`).
+      2. `Gestión de eventos` (enlace a `/admin/eventos`).
+    - Se retiran los botones de staff incrustados en la cabecera y en el estado vacío.
+  - **Novedades (`/novedades` — `News.razor`):**
+    - Publica en `IStaffActionService`:
+      1. `+ Alta exprés de novedad` (abre modal `SocialExpressIngestModal`).
+      2. `+ Publicar novedad` (abre modal manual `_isCreateModalOpen`).
+      3. `Sincronizar editoriales` (invoca `HandleSyncEditorialReleases`).
+      4. `Bandeja pendientes` (activa filtro de moderación pendiente).
+      5. `Ingesta social` (enlace a `/admin/ingesta-social`).
+    - Se retiran los botones de moderación incrustados en la cabecera de la sección.
+  - **Catálogo (`/catalogo` — `Home.razor`):**
+    - `+ Añadir juego desde BGG` (abre modal `BggSearchModal`).
+    - `Cola de catalogación BGG` (enlace a `/admin/cola-catalogacion`).
+    - `Reportes e incidencias` (enlace a `/admin/reportes`).
+  - **Directorios (`/creadores`, `/editoriales`, `/tiendas`):**
+    - `+ Nuevo Creador / Editorial / Tienda` (abre modal de creación respectivo).
+    - `Sincronizar padrón` (para Mesa Fundadora).
+    - `Canales monitorizados` (en creadores/editoriales) o `Feeds y afiliados` (en tiendas).
+    - Se retiran los botones administrativos incrustados en cabecera y tarjetas de los directorios.
+  - **Portada (`/` — `HomeDashboard.razor`):**
+    - `Editar destacados de portada` (abre modal `_isFeaturedModalOpen`).
 
 - **RF-06 (Matriz Contextual en Fichas de Detalle Individuales):**
-  - **Ficha de Sorteo (`/sorteos/{id}`):**
-    - Publica la acción `Editar Sorteo` (que abre el modal de edición existente en `GiveawayDetail.razor`).
-  - **Ficha de Evento (`/eventos/{slug}` o modal):**
-    - Publica la acción de edición / gestión de eventos.
-  - **Fichas de Directorio (Creador, Editorial, Tienda):**
-    - Publican acciones de edición y verificación cuando aplique.
-
-- **RF-07 (Limpieza Sistemática de la Interfaz Editorial):**
-  - Retirada de botones dispersos con `@if (IsStaff)` o `@if (CanModerate)` que saturaban las vistas públicas (como enlaces duplicados a `/admin/...` incrustados en tarjetas o encabezados).
+  - **Ficha de Sorteo (`/sorteos/{id}` — `GiveawayDetail.razor`):**
+    - `Editar sorteo` (abre modal de edición de sorteo y carátula R2).
+    - `Eliminar sorteo` (destructivo con confirmación).
+    - Se retira el botón incrustado "Cambiar o subir carátula" de la tarjeta.
+  - **Ficha de Novedad (`/novedades/{id}` — `ReleaseDetail.razor`):**
+    - `Editar novedad` (abre modal de edición de lanzamiento).
+    - `Crear post Instagram` (enlace a `/admin/instagram`).
+    - `Eliminar novedad` (destructivo con confirmación).
+    - Se retiran los botones administrativos incrustados en la cabecera y en la sección de noticia.
+  - **Ficha de Evento (`/eventos/{slug}` — `EventDetail.razor`):**
+    - `Editar evento` (abre modal de edición de datos y cartel).
+    - `Eliminar evento` (destructivo con confirmación).
+    - `Panel de gestión` (enlace a `/admin/eventos`).
+    - Se retiran los botones administrativos incrustados en la cabecera y tarjeta del cartel.
+  - **Fichas de Directorio (`/creadores/{slug}`, `/editoriales/{slug}`, `/tiendas/{slug}`):**
+    - `Editar ficha` (abre modal `CreatorEditModal`, `PublisherEditModal`, `StoreEditModal`).
+    - Se retira el botón "Editar" incrustado en el hero de la ficha.
 
 ## Requisitos No Funcionales
 
 - **RNF-01 (Accesibilidad WCAG 2.2 AA):**
-  - El botón flotante debe ofrecer un tamaño táctil mínimo de 44×44 px.
-  - Diálogo con atributos accesibles `role="dialog"`, `aria-label="Panel rápido de moderación y gestión"` y `aria-expanded`.
-  - Navegación por teclado completa, foco atrapable en el diálogo y cierre con tecla `Escape`.
-- **RNF-02 (Responsive y Safe-Area Móvil):**
-  - Ubicación calculada en `bottom-20` (80 px desde el fondo) para sobrevolar limpiamente la barra de navegación móvil (`MobileBottomNav`) sin bloquearla.
-  - Adaptabilidad para pantallas estrechas (320 px a 420 px) manteniendo legibilidad sin desbordamientos horizontales.
-- **RNF-03 (Cero Regresiones y Resiliencia de Circuito Blazor):**
-  - Preservación del 100% de la suite de pruebas unitarias existente (2.795+ pruebas en verde).
-  - Pruebas de contrato de marcado web y pruebas unitarias dedicadas en `tests/Ludeka.UnitTests/` para verificar:
-    - Ausencia de `StaffBar` en el layout.
-    - Presencia y comportamiento del `StaffFloatingMenu` para usuarios staff.
-    - Ausencia total del componente para visitantes y usuarios no autorizados.
-    - Correcto registro y desregistro de acciones en `IStaffActionService`.
+  - Área táctil del botón flotante >=44×44 px.
+  - Contenedor con `role="dialog"`, `aria-label="Panel rápido de moderación y gestión"` y `aria-expanded`.
+  - Cierre accesible con tecla `Escape` y restablecimiento seguro del foco.
+- **RNF-02 (Mobile Safe-Area y No Solapamiento):**
+  - Offset `bottom-20` (80 px) para elevar el botón por encima de `MobileBottomNav` en móvil.
+  - Respeto del safe-area-inset de iOS (`env(safe-area-inset-bottom)`).
+- **RNF-03 (Cero Regresiones y Resiliencia en Blazor Circuit):**
+  - Toda la suite de 2.795+ pruebas unitarias debe permanecer en verde.
+  - Nuevas pruebas de contrato de marcado web y de servicio para certificar la presencia/ausencia del FAB y el registro de acciones.

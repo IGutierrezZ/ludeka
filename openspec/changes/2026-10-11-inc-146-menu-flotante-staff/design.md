@@ -20,14 +20,20 @@
                            │ Publica acciones contextuales
 ┌──────────────────────────┴─────────────────────────────┐
 │  Vistas y Fichas de Detalle                            │
-│  - GameDetail.razor: 7 acciones (Editor, IA, BGG, etc.)│
-│  - GiveawayDetail.razor: Editar sorteo                 │
-│  - Eventos, Novedades, Catálogo, Directorios:          │
-│    Limpieza de botones DOM y atajos centralizados      │
+│  - GameDetail.razor: 9 acciones (Editor, IA, YouTube,  │
+│    Ingesta Flash, BGG, Veredicto, Cartel, Erratas)     │
+│  - Radar.razor: Alta Exprés, Crear sorteo, Ingesta     │
+│  - Events.razor / EventDetail.razor: Alta Exprés,      │
+│    Editar evento, Eliminar, Gestión                    │
+│  - News.razor / ReleaseDetail.razor: Alta Exprés,      │
+│    Publicar, Sincronizar editoriales, Editar, IG       │
+│  - Home.razor: Añadir BGG, Cola BGG, Reportes          │
+│  - Directorios y Fichas: Nuevo, Sincronizar, Editar    │
+│  - HomeDashboard.razor: Editar destacados              │
 └────────────────────────────────────────────────────────┘
 ```
 
-## 2. Decisiones de Diseño
+## 2. Decisiones de Diseño Detalladas
 
 ### A. Componente `StaffFloatingMenu.razor`
 - **Ubicación:** `src/Ludeka.Web/Components/Shared/StaffFloatingMenu.razor`.
@@ -38,9 +44,9 @@
   Si `!IsStaff`, el componente retorna inmediatamente sin renderizar ningún nodo DOM.
 - **Disparador Flotante (FAB):**
   - Posicionamiento: `fixed bottom-20 right-4 sm:right-6 z-40 flex flex-col items-end`.
-  - El offset `bottom-20` (5rem / 80px) asegura que en vista móvil el botón quede elevado por encima de la barra táctil fija `MobileBottomNav` (que ocupa `h-16` / 4rem con safe-area).
+  - El offset `bottom-20` (5rem / 80px) sitúa el botón flotante claramente por encima de `MobileBottomNav` (altura 4rem) en dispositivos móviles.
   - Estilo: Píldora con fondo `var(--inverse)` (`#22180F`), texto `var(--ticker)`, borde de 2px en `var(--mustard)`, sombra `shadow-2xl` y microinteracción `hover:scale-105 active:scale-95`.
-  - Icono Lucide `zap` (14px) y texto "Staff Tools" en `sm:inline` / "Staff" en móvil.
+  - Icono Lucide `zap` (14px) y texto "Staff Tools" en escritorio / "Staff" en móvil.
 - **Tarjeta Desplegable (`_isOpen`):**
   - Contenedor flotante `w-72 sm:w-80 rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-4 shadow-2xl space-y-3 animate-fade-in`.
   - Atributos accesibles: `role="dialog"`, `aria-label="Panel rápido de moderación y gestión"`.
@@ -49,77 +55,93 @@
     - Píldora con el rol: `Mesa Fundadora` o `Moderador`.
     - Botón de cierre `&times;` con `aria-label="Cerrar panel"`.
   - Cuerpo de Acciones:
-    - **Caso 1:** Si `StaffActionService.CustomActions.Count > 0`, se listan las acciones publicadas activamente por la página en curso.
-    - **Caso 2:** Si la lista está vacía, se evalúa la ruta (`IsCurrentPage(...)`) para ofrecer los atajos canónicos:
-      - Catálogo (`/catalogo`): `+ Añadir juego desde BGG`, `Cola BGG`, `Reportes`.
-      - Sorteos (`/sorteos`): `Ingesta Social`.
-      - Eventos (`/eventos`): `Gestión de Eventos`.
-      - Novedades (`/novedades`): `Ingesta Social`.
-      - Tiendas (`/tiendas`): `Feeds & Afiliados`.
-      - Directorios (`/creadores`, `/editoriales`): `Canales Monitorizados`.
+    - Si `StaffActionService.CustomActions.Count > 0`, renderiza las acciones registradas activamente por la página en curso.
+    - Si la lista está vacía, evalúa `IsCurrentPage(...)` para proporcionar atajos canónicos por defecto (Catálogo, Sorteos, Eventos, Novedades, Tiendas, Directorios).
   - Pie de Tarjeta:
     - Enlace destacado permanente a `/admin` («Panel de gestión») con flecha accesible.
-- **Interacción y Accesibilidad:**
-  - Cierre automático al hacer clic en cualquiera de las acciones.
-  - Atajo de teclado: `onkeydown` para cerrar con `Escape`.
-  - Cierre con backdrop transparente al hacer clic fuera del panel.
 
-### B. Sustitución en `MainLayout.razor`
-- Se retira `<StaffBar />` bajo el header.
-- Se añade `<StaffFloatingMenu />` como componente global compartido en la raíz del layout, justo antes del cierre del contenedor principal.
-- `StaffBar.razor` se retira o se redirige hacia `StaffFloatingMenu.razor`.
+### B. Consolidación de la Ficha de Juego (`GameDetail.razor`)
+1. **Retirada de `GameStaffToolsPanel.razor`:** Se elimina el componente local redundante.
+2. **Retirada de elementos incrustados en la vista:**
+   - Botón "Sincronizar" BGG al lado del contador de fotos hero.
+   - Caja con borde mostaza y botones "Generar síntesis IA", "Editar veredicto", "Editar Ficha" en la sección de veredicto.
+   - Botones "Hub Multimedia (Moderar)" y "Buscar en YouTube" en la sección de vídeos.
+3. **Registro completo en `IStaffActionService`:**
+   - `Editar Metadatos` -> `_isEditorModalOpen = true`
+   - `Generar síntesis IA` / `Forzar Resíntesis IA` -> `HandleRequestAiSummary`
+   - `Buscar en YouTube` -> abre `YouTubeSearchModal`
+   - `Ingesta Flash de Vídeo` -> abre modal de ingesta de vídeo por URL
+   - `Asociar BGG (@Game.BggId)` -> `_isAssociateBggModalOpen = true`
+   - `Sincronizar BGG (@Game.BggId)` -> `HandleForceSyncBgg` (si BggId > 0)
+   - `Veredicto Fundador` -> `_isFoundingModalOpen = true` (si `CurrentUserService.IsFoundingTeam`)
+   - `Cartel para Redes` -> `OpenSocialCardModal()`
+   - `Incidencias / Erratas` -> `_isReportModalOpen = true`
+4. **Ciclo de vida:** Limpieza estricta en `Dispose()` mediante `StaffActionService.ClearCustomActions()`.
 
-### C. Desacople y Consolidación de `GameDetail.razor`
-- Se elimina el componente local redundante `GameStaffToolsPanel.razor`.
-- `GameDetail.razor` inyecta `IStaffActionService` y registra sus acciones en un método privado `RegisterStaffActions()` invocado en el ciclo de vida:
-  ```csharp
-  private void RegisterStaffActions()
-  {
-      if (!IsStaff) return;
+### C. Consolidación en Sorteos (`Radar.razor` y `GiveawayDetail.razor`)
+1. **`Radar.razor`:**
+   - Registra en `IStaffActionService`:
+     - `+ Alta exprés de sorteo` (`_isExpressModalOpen = true`)
+     - `+ Nuevo sorteo manual` (`OpenCreateGiveawayModal()`)
+     - `Bandeja de ingesta social` (enlace a `/admin/ingesta-social`)
+   - Se retiran los botones de lápiz `✎` en cada tarjeta de sorteo.
+2. **`GiveawayDetail.razor`:**
+   - Registra en `IStaffActionService`:
+     - `Editar sorteo` (`OpenEditModal()`)
+     - `Eliminar sorteo` (`_isDeleteConfirmOpen = true`, destructivo)
+   - Se retira el botón incrustado "Cambiar o subir carátula" de la tarjeta.
 
-      var actions = new List<StaffActionItem>
-      {
-          new("Editar Metadatos", () => { _isEditorModalOpen = true; StateHasChanged(); return Task.CompletedTask; }, Icon: "pen-line"),
-          new(_isGeneratingAiSummary ? "Sintetizando..." : (_aiSummary != null ? "Forzar Resíntesis IA" : "Generar con IA"), HandleRequestAiSummary, Icon: "bot"),
-          new($"Asociar BGG ({(Game?.BggId ?? 0)})", () => { _isAssociateBggModalOpen = true; StateHasChanged(); return Task.CompletedTask; }, Icon: "globe")
-      };
+### D. Consolidación en Eventos (`Events.razor` y `EventDetail.razor`)
+1. **`Events.razor`:**
+   - Registra en `IStaffActionService`:
+     - `+ Alta exprés de evento` (`_isExpressModalOpen = true`)
+     - `Gestión de eventos` (enlace a `/admin/eventos`)
+   - Se retiran los botones administrativos incrustados de la cabecera y del estado vacío.
+2. **`EventDetail.razor`:**
+   - Registra en `IStaffActionService`:
+     - `Editar evento` (`OpenEditModal()`)
+     - `Eliminar evento` (`_isDeleteConfirmOpen = true`, destructivo)
+     - `Panel de gestión` (enlace a `/admin/eventos`)
+   - Se retiran los botones incrustados en la cabecera y en el cartel.
 
-      if (Game?.BggId > 0)
-      {
-          actions.Add(new($"Sincronizar BGG ({Game.BggId})", HandleForceSyncBgg, Icon: "refresh-cw"));
-      }
+### E. Consolidación en Novedades (`News.razor` y `ReleaseDetail.razor`)
+1. **`News.razor`:**
+   - Registra en `IStaffActionService`:
+     - `+ Alta exprés de novedad` (`_isExpressModalOpen = true`)
+     - `+ Publicar novedad` (`_isCreateModalOpen = true`)
+     - `Sincronizar editoriales` (`HandleSyncEditorialReleases`)
+     - `Bandeja de pendientes` (`SetFilter("pending")`)
+     - `Ingesta social` (enlace a `/admin/ingesta-social`)
+   - Se retiran los botones administrativos de la cabecera.
+2. **`ReleaseDetail.razor`:**
+   - Registra en `IStaffActionService`:
+     - `Editar novedad` (`OpenEditModal()`)
+     - `Crear post Instagram` (enlace a `/admin/instagram...`)
+     - `Eliminar novedad` (`_isDeleteConfirmOpen = true`, destructivo)
+   - Se retiran los botones administrativos incrustados en la vista y en la sección de enlace oficial.
 
-      if (CurrentUserService.IsFoundingTeam)
-      {
-          actions.Add(new("Veredicto Fundador", () => { _isFoundingModalOpen = true; StateHasChanged(); return Task.CompletedTask; }, Icon: "award"));
-      }
+### F. Consolidación en Catálogo y Directorios
+1. **`Home.razor` (`/catalogo`):**
+   - Ofrece a través del menú flotante: `+ Añadir juego desde BGG`, `Cola BGG & Catalogación` y `Reportes de Catálogo`.
+   - Se aloja o vincula `BggSearchModal` para activarse fluidamente.
+2. **Directorios (`CreatorsDirectory`, `PublishersDirectory`, `StoresDirectory`):**
+   - Registran en el menú flotante: `+ Nuevo [Creador/Editorial/Tienda]`, `Sincronizar padrón` (Mesa Fundadora) y enlaces de gestión.
+   - Se retiran los botones incrustados en las cabeceras y en las tarjetas individuales.
+3. **Fichas de Directorio (`CreatorDetail`, `PublisherDetail`, `StoreDetail`):**
+   - Registran la acción `Editar` en `IStaffActionService` y retiran el botón incrustado en el hero.
 
-      actions.Add(new("Cartel para Redes", () => { OpenSocialCardModal(); StateHasChanged(); return Task.CompletedTask; }, Icon: "palette"));
-      actions.Add(new("Incidencias / Erratas", () => { _isReportModalOpen = true; StateHasChanged(); return Task.CompletedTask; }, Icon: "flag"));
+## 3. Matriz Resumen de Acciones en Menú Flotante
 
-      StaffActionService.SetCustomActions(actions);
-  }
-  ```
-- `GameDetail.razor` implementa `IDisposable` y en `Dispose()` ejecuta `StaffActionService.ClearCustomActions()`.
-
-### D. Ficha de Sorteos (`GiveawayDetail.razor`)
-- Se inyecta `IStaffActionService`.
-- Si el usuario tiene permisos de moderación (`CanModerate`), publica la acción contextual:
-  - `Editar Sorteo` (icono `pen-line`), que activa `_isEditModalOpen = true`.
-- Implementa `Dispose()` para limpiar las acciones registradas al salir.
-
-### E. Limpieza de Interfaz Editorial en Listados y Tarjetas
-- En `Events.razor`, `News.razor`, `Radar.razor`, etc., se retiran botones con `@if (IsModerator)` o enlaces directos a `/admin/...` incrustados en la vista, ya que ahora están permanentemente accesibles en el botón flotante contextual.
-
-## 3. Plan de Pruebas y Validación (TDD)
-1. **Pruebas de Contrato de Marcado (`WebMarkupContractTests.cs` o suite dedicada):**
-   - Validar que `MainLayout` ya no renderiza la barra `StaffBar` (región `role="region"` con `aria-label="Barra de gestión staff"`).
-   - Validar que `StaffFloatingMenu` se renderiza para usuarios con rol `Moderator` o `FoundingTeam`.
-   - Validar que `StaffFloatingMenu` no se renderiza en absoluto para usuarios sin rol staff o anónimos.
-2. **Pruebas de `IStaffActionService`:**
-   - Registro reactivo, notificación por evento `OnActionsChanged` y limpieza con `ClearCustomActions()`.
-3. **Pruebas Unitarias de `StaffFloatingMenu` (bUnit / ComponentTests):**
-   - Apertura y cierre del diálogo al pulsar el botón FAB.
-   - Presencia de acciones personalizadas cuando `CustomActions` está poblado.
-   - Presencia de acciones canónicas por defecto según ruta cuando `CustomActions` está vacío.
-   - Enlace canónico visible hacia `/admin`.
+| Vista / Pantalla | Acciones Contextuales en el Menú Flotante | Elementos Limpiados del DOM |
+|---|---|---|
+| **Ficha de Juego** (`/juego/{slug}`) | `Editar Metadatos`, `Síntesis IA`, `Buscar en YouTube`, `Ingesta Flash`, `Asociar BGG`, `Sincronizar BGG`, `Veredicto Fundador`, `Cartel Redes`, `Erratas` | `GameStaffToolsPanel`, botón BGG en foto hero, caja mostaza en veredicto, botones en multimedia |
+| **Sorteos** (`/sorteos`) | `+ Alta exprés de sorteo`, `+ Nuevo sorteo manual`, `Bandeja de ingesta social` | Botones `✎` en tarjetas de listado |
+| **Ficha Sorteo** (`/sorteos/{id}`) | `Editar sorteo`, `Eliminar sorteo` | Botón "Cambiar o subir carátula" |
+| **Eventos** (`/eventos`) | `+ Alta exprés de evento`, `Gestión de eventos` | Botones de cabecera y estado vacío |
+| **Ficha Evento** (`/eventos/{slug}`) | `Editar evento`, `Eliminar evento`, `Gestión de eventos` | Botones de cabecera y pie de cartel |
+| **Novedades** (`/novedades`) | `+ Alta exprés de novedad`, `+ Publicar novedad`, `Sincronizar editoriales`, `Bandeja pendientes`, `Ingesta social` | Botones de cabecera |
+| **Ficha Novedad** (`/novedades/{id}`) | `Editar novedad`, `Crear post Instagram`, `Eliminar novedad` | Botones de cabecera y enlace oficial |
+| **Catálogo** (`/catalogo`) | `+ Añadir juego desde BGG`, `Cola BGG & Catalogación`, `Reportes de catálogo` | Sustituye la antigua `StaffBar` |
+| **Directorios** (Creadores, Editoriales, Tiendas) | `+ Registrar nuevo`, `Sincronizar padrón`, `Panel de canales / feeds` | Botones de cabecera y lápices en tarjetas |
+| **Fichas de Directorio** | `Editar datos de ficha`, `Ver canales / feeds` | Botón "Editar" en hero |
+| **Portada** (`/`) | `Editar destacados de portada` | Sustituye la antigua `StaffBar` |
