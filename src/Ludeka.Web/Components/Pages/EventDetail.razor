@@ -12,7 +12,9 @@
 @inject IImageStorageService ImageStorageService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
+@inject IStaffActionService StaffActionService
 @inject ILogger<EventDetail> Logger
+@implements IDisposable
 
 <PageTitle>@(_event != null ? $"{_event.Title} — Cita Lúdica | Ludeka" : "Evento no encontrado — Ludeka")</PageTitle>
 
@@ -49,31 +51,6 @@ else
                 <a href="/eventos" class="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5">
                     <span>&larr;</span> Volver al calendario de eventos
                 </a>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                @if (CanModerate)
-                {
-                    <a href="/admin/eventos"
-                       class="px-3 py-1 rounded-lg bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="settings" Size="12" /> Panel de Gestión
-                    </a>
-
-                    <div class="flex items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
-                        <button type="button"
-                                @onclick="OpenEditModal"
-                                title="Editar datos y cartel del evento"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-warning-bg)] hover:bg-[var(--state-warning-border)] text-[var(--state-warning)] border border-[var(--state-warning-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="pen-line" Size="12" /> Editar Evento
-                        </button>
-                        <button type="button"
-                                @onclick="() => _isDeleteConfirmOpen = true"
-                                title="Eliminar este evento"
-                                class="px-3 py-1 rounded-lg bg-[var(--state-error-bg)] hover:bg-[var(--state-error-border)] text-[var(--state-error)] border border-[var(--state-error-border)] font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="trash-2" Size="12" /> Eliminar
-                        </button>
-                    </div>
-                }
             </div>
         </div>
     </div>
@@ -117,17 +94,6 @@ else
                             </span>
                         </div>
                     </div>
-
-                    @if (CanModerate)
-                    {
-                        <div class="pt-2 px-1 text-center">
-                            <button type="button"
-                                    @onclick="OpenEditModal"
-                                    class="text-xs font-semibold text-[var(--brand-primary)] hover:underline inline-flex items-center gap-1">
-                                <Icon Name="pen-line" Size="12" /> Cambiar o subir cartel
-                            </button>
-                        </div>
-                    }
                 </div>
 
                 @* Botón de Acción Principal: Web Oficial *@
@@ -489,16 +455,65 @@ else
         try
         {
             _event = await EventService.GetByIdAsync(Id);
+            if (_event != null)
+            {
+                RegisterStaffActions();
+            }
+            else
+            {
+                StaffActionService.ClearCustomActions();
+            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error al cargar el evento {EventId}", Id);
             _event = null;
+            StaffActionService.ClearCustomActions();
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!CanModerate || _event == null) return;
+        StaffActionService.SetCustomActions(
+        [
+            new StaffActionItem(
+                Label: "Editar evento",
+                Icon: "pen-line",
+                OnClick: () =>
+                {
+                    OpenEditModal();
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Panel de gestión",
+                Icon: "settings",
+                OnClick: () =>
+                {
+                    Navigation.NavigateTo("/admin/eventos");
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Eliminar evento",
+                Icon: "trash-2",
+                IsDestructive: true,
+                OnClick: () =>
+                {
+                    _isDeleteConfirmOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                })
+        ]);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 
     private void OpenEditModal()
@@ -597,6 +612,8 @@ else
         {
             _event = await EventService.UpdateEventAsync(Id, request);
             _isEditModalOpen = false;
+            RegisterStaffActions();
+            StateHasChanged();
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -620,6 +637,7 @@ else
         {
             await EventService.DeleteEventAsync(Id);
             _isDeleteConfirmOpen = false;
+            StaffActionService.ClearCustomActions();
             Navigation.NavigateTo("/eventos");
         }
         catch (UnauthorizedAccessException ex)

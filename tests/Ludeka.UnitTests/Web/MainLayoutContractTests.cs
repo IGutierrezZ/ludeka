@@ -13,7 +13,7 @@ namespace Ludeka.UnitTests.Web;
 public class MainLayoutContractTests
 {
     private const string MainLayoutPath = "src/Ludeka.Web/Components/Layout/MainLayout.razor";
-    private const string StaffBarPath = "src/Ludeka.Web/Components/Shared/StaffBar.razor";
+    private const string StaffFloatingMenuPath = "src/Ludeka.Web/Components/Shared/StaffFloatingMenu.razor";
 
     [Fact]
     public void MainLayout_HeaderStructure_ShouldBe72pxWithReactiveSectionTinting()
@@ -60,23 +60,25 @@ public class MainLayoutContractTests
     }
 
     [Fact]
-    public void MainLayout_StaffBar_ShouldMountUnderHeaderAndExposeShortcuts()
+    public void MainLayout_StaffManagement_ShouldMountFloatingMenuAndExposeShortcuts()
     {
         var source = ReadSource(MainLayoutPath);
 
-        // Montaje condicional o directo del componente de gestión staff bajo la cabecera
-        Assert.Contains("<StaffBar />", source, StringComparison.Ordinal);
+        // Ya no debe contener la antigua barra fija superior bajo la cabecera
+        Assert.DoesNotContain("<StaffBar />", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<StaffActionBar />", source, StringComparison.Ordinal);
 
-        // Contrato del componente StaffBar.razor
-        var staffSource = ReadSource(StaffBarPath);
+        // Montaje del componente de gestión staff flotante
+        Assert.Contains("<StaffFloatingMenu />", source, StringComparison.Ordinal);
+
+        // Contrato del componente StaffFloatingMenu.razor
+        var staffSource = ReadSource(StaffFloatingMenuPath);
         Assert.Contains("CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole(\"Moderator\")", staffSource, StringComparison.Ordinal);
-        Assert.Contains("role=\"region\"", staffSource, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"Barra de gestión staff\"", staffSource, StringComparison.Ordinal);
-        Assert.Contains("border-dashed border-[var(--mustard)]", staffSource, StringComparison.Ordinal);
+        Assert.Contains("role=\"dialog\"", staffSource, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Panel rápido de moderación y gestión\"", staffSource, StringComparison.Ordinal);
 
         // Enlace al panel central de administración y atajos
         Assert.Contains("href=\"/admin\"", staffSource, StringComparison.Ordinal);
-        Assert.Contains("href=\"/moderacion/reportes\"", staffSource, StringComparison.Ordinal);
         Assert.Contains("href=\"/admin/cola-catalogacion\"", staffSource, StringComparison.Ordinal);
         Assert.Contains("href=\"/admin/afiliados\"", staffSource, StringComparison.Ordinal);
         Assert.Contains("href=\"/admin/ingesta-social\"", staffSource, StringComparison.Ordinal);

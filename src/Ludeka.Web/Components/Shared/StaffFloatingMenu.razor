@@ -1,0 +1,280 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Core.ValueObjects
+@implements IDisposable
+@inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
+@inject NavigationManager Navigation
+
+@*
+    Menú Flotante Global de Moderación y Staff (INC-146).
+    Reemplaza la antigua barra StaffBar fija superior y unifica el acceso
+    a herramientas de moderación y administración en escritorio y móvil.
+*@
+
+@if (IsStaff)
+{
+    <aside class="fixed bottom-20 right-4 sm:right-6 z-40 flex flex-col items-end print:hidden select-none"
+           aria-label="Herramientas de gestión y moderación staff">
+        @if (_isOpen)
+        {
+            <div class="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
+                 @onclick="() => _isOpen = false"
+                 aria-hidden="true"></div>
+
+            <div class="relative z-50 mb-3 w-72 sm:w-80 rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-4 shadow-2xl space-y-3 animate-fade-in text-[var(--ink)] max-h-[75vh] overflow-y-auto"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="Panel rápido de moderación y gestión"
+                 @onkeydown="HandleKeyDown"
+                 tabindex="-1">
+
+                @* Cabecera *@
+                <div class="flex items-center justify-between border-b border-[var(--line)] pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[var(--mustard)] text-[#22180F] flex items-center justify-center font-black text-xs">
+                            <Icon Name="zap" Size="12" />
+                        </span>
+                        <span class="text-xs font-black uppercase tracking-wider text-[var(--ink)]">
+                            Herramientas Staff
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full bg-[var(--mustard)] text-[#22180F] text-[10px] font-extrabold uppercase tracking-wider">
+                            @RoleLabel
+                        </span>
+                        <button type="button"
+                                @onclick="() => _isOpen = false"
+                                class="text-[var(--muted)] hover:text-[var(--ink)] text-lg font-black p-0.5 cursor-pointer leading-none"
+                                aria-label="Cerrar panel">
+                            &times;
+                        </button>
+                    </div>
+                </div>
+
+                @* Cuerpo de Acciones *@
+                <div class="space-y-1.5 text-xs font-black">
+                    @if (StaffActionService.CustomActions.Count > 0)
+                    {
+                        @foreach (var action in StaffActionService.CustomActions)
+                        {
+                            <button type="button"
+                                    @onclick="() => ExecuteActionAsync(action)"
+                                    class="w-full h-9 px-3 rounded-xl border border-[var(--line)] @(action.IsDestructive ? "bg-rose-600/10 text-rose-600 hover:bg-rose-600 hover:text-white" : "bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)]") flex items-center gap-2 transition-colors cursor-pointer text-left">
+                                @if (!string.IsNullOrWhiteSpace(action.Icon))
+                                {
+                                    <Icon Name="@action.Icon" Size="14" />
+                                }
+                                <span class="truncate">@action.Label</span>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        @* 2. Acciones contextuales por defecto basadas en la ruta actual *@
+                        @if (IsCurrentPage("catalogo"))
+                        {
+                            <button type="button"
+                                    @onclick="OpenBggModal"
+                                    class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors cursor-pointer text-left">
+                                <Icon Name="plus" Size="14" />
+                                <span>+ Añadir juego desde BGG</span>
+                            </button>
+
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanEditGames))
+                            {
+                                <a href="/admin/cola-catalogacion"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="moon" Size="14" />
+                                    <span>Cola BGG & Catalogación</span>
+                                </a>
+                            }
+
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
+                            {
+                                <a href="/admin/reportes"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="flag" Size="14" />
+                                    <span>Reportes de Catálogo</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("sorteos"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
+                            {
+                                <a href="/admin/ingesta-social"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="sparkles" Size="14" />
+                                    <span>Bandeja de Ingesta Social</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("eventos"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageEvents))
+                            {
+                                <a href="/admin/eventos"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="tent" Size="14" />
+                                    <span>Gestión de Eventos</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("novedades"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
+                            {
+                                <a href="/admin/ingesta-social"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="sparkles" Size="14" />
+                                    <span>Bandeja de Ingesta Social</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("tiendas"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks))
+                            {
+                                <a href="/admin/afiliados"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="shopping-bag" Size="14" />
+                                    <span>Feeds & Afiliados</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("creadores") || IsCurrentPage("editoriales"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanApproveMedia))
+                            {
+                                <a href="/admin/canales-monitorizados"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="tv" Size="14" />
+                                    <span>Canales Monitorizados</span>
+                                </a>
+                            }
+                        }
+                        else if (IsCurrentPage("moderacion") || IsCurrentPage("juegos"))
+                        {
+                            @if (CurrentUserService.IsFoundingTeam || CurrentUserService.HasPermission(ModeratorPermission.CanResolveReports))
+                            {
+                                <a href="/admin/reportes"
+                                   @onclick="() => _isOpen = false"
+                                   class="w-full h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--paper-2)] hover:bg-[var(--paper)] text-[var(--ink)] flex items-center gap-2 transition-colors text-left">
+                                    <Icon Name="flag" Size="14" />
+                                    <span>Reportes de Catálogo</span>
+                                </a>
+                            }
+                        }
+                    }
+                </div>
+
+                @* Enlace al panel de control central de administración (siempre al pie) *@
+                <div class="pt-2 border-t border-[var(--line)] flex items-center justify-between">
+                    <a href="/admin"
+                       @onclick="() => _isOpen = false"
+                       class="text-xs font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1.5 py-1">
+                        <Icon Name="shield" Size="13" />
+                        <span>Panel de gestión</span>
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+            </div>
+        }
+
+        @* Disparador Flotante (FAB) *@
+        <button type="button"
+                @onclick="() => _isOpen = !_isOpen"
+                aria-expanded="@_isOpen"
+                aria-haspopup="dialog"
+                title="Herramientas de gestión y moderación staff"
+                class="h-11 px-4 rounded-full font-black text-xs bg-[var(--inverse)] text-[var(--ticker)] border-2 border-[var(--mustard)] shadow-2xl hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer">
+            <Icon Name="zap" Size="14" />
+            <span class="hidden sm:inline">Staff Tools</span>
+            <span class="sm:hidden">Staff</span>
+        </button>
+    </aside>
+}
+
+<BggSearchModal IsVisible="_showBggModal"
+                OnClose="() => _showBggModal = false" />
+
+@code {
+    private bool _isOpen;
+    private bool _showBggModal;
+
+    private bool IsStaff => CurrentUserService.IsFoundingTeam || CurrentUserService.IsInRole("Moderator");
+
+    private string RoleLabel
+    {
+        get
+        {
+            if (CurrentUserService.IsFoundingTeam)
+            {
+                return "Mesa Fundadora";
+            }
+
+            if (CurrentUserService.IsInRole("Moderator"))
+            {
+                return "Moderador";
+            }
+
+            return "Staff";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        StaffActionService.OnActionsChanged += HandleActionsChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleActionsChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _isOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsCurrentPage(string segment)
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+        return relative.StartsWith(segment, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ExecuteActionAsync(StaffActionItem action)
+    {
+        _isOpen = false;
+        await action.OnClick();
+    }
+
+    private void OpenBggModal()
+    {
+        _isOpen = false;
+        _showBggModal = true;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _isOpen = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.OnActionsChanged -= HandleActionsChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
+    }
+}

@@ -12,6 +12,8 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ILogger<GameDetail> Logger
+@inject IStaffActionService StaffActionService
+@implements IDisposable
 
 <PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Editorial | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
 
@@ -249,17 +251,6 @@ else
                     <div class="flex justify-between items-center gap-2 pt-0.5 px-0.5">
                         <b class="text-xs font-extrabold text-[#22180F] truncate">@CurrentHeroImageLabel</b>
                         <div class="flex items-center gap-2">
-                            @if (IsStaff && Game.BggId > 0)
-                            {
-                                <button type="button"
-                                        @onclick="HandleForceSyncBgg"
-                                        disabled="@_isSyncingBgg"
-                                        title="Sincronizar datos y versiones desde BoardGameGeek"
-                                        class="text-xs font-black text-[#22180F] hover:opacity-80 transition-opacity whitespace-nowrap inline-flex items-center gap-1 border-b border-dashed border-[#22180F] cursor-pointer disabled:opacity-50">
-                                    <Icon Name="refresh-cw" Size="11" class="@(_isSyncingBgg ? "animate-spin" : "")" />
-                                    <span>@(_isSyncingBgg ? "Sincronizando..." : "Sincronizar")</span>
-                                </button>
-                            }
                             <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
                                target="_blank"
                                rel="noopener noreferrer"
@@ -526,50 +517,6 @@ else
                             </div>
                         }
 
-                        @* Herramientas de Staff en Veredicto *@
-                        @if (IsStaff)
-                        {
-                            <div class="flex flex-wrap items-center gap-2 p-3.5 rounded-2xl border-2 border-dashed border-[var(--mustard)] mt-2">
-                                <button type="button"
-                                        @onclick="HandleRequestAiSummary"
-                                        disabled="@_isGeneratingAiSummary"
-                                        class="h-9 px-4 rounded-full bg-[var(--inverse)] text-[var(--on-inverse)] font-black text-xs hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5">
-                                    <Icon Name="bot" Size="14" />
-                                    <span>@(_isGeneratingAiSummary ? "Generando..." : "Generar síntesis IA")</span>
-                                </button>
-                                <button type="button"
-                                        @onclick="() => _isFoundingModalOpen = true"
-                                        class="h-9 px-4 rounded-full border border-[var(--rule)] bg-transparent text-[var(--ink)] font-black text-xs hover:bg-[var(--paper-2)] transition-colors cursor-pointer inline-flex items-center gap-1.5">
-                                    <Icon Name="pen-line" Size="14" />
-                                    <span>Editar veredicto</span>
-                                </button>
-                                <button type="button"
-                                        @onclick="() => _isEditorModalOpen = true"
-                                        class="h-9 px-4 rounded-full border border-[var(--rule)] bg-transparent text-[var(--ink)] font-black text-xs hover:bg-[var(--paper-2)] transition-colors cursor-pointer inline-flex items-center gap-1.5">
-                                    <Icon Name="pen-line" Size="14" />
-                                    <span>Editar Ficha</span>
-                                </button>
-                                @if (Game.BggId > 0)
-                                {
-                                    <button type="button"
-                                            @onclick="HandleForceSyncBgg"
-                                            disabled="@_isSyncingBgg"
-                                            class="h-9 px-4 rounded-full border border-[var(--rule)] bg-[var(--paper-2)] text-[var(--ink)] font-black text-xs hover:bg-[var(--paper)] transition-colors disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5">
-                                        @if (_isSyncingBgg)
-                                        {
-                                            <span class="animate-spin"><Icon Name="refresh-cw" Size="14" /></span>
-                                            <span>Sincronizando BGG...</span>
-                                        }
-                                        else
-                                        {
-                                            <Icon Name="refresh-cw" Size="14" />
-                                            <span>Sincronizar BGG (@Game.BggId)</span>
-                                        }
-                                    </button>
-                                }
-                            </div>
-                        }
-
                         <span class="text-xs text-[var(--muted)] leading-relaxed">
                             @GetVerdictSourceLabel()
                         </span>
@@ -769,6 +716,7 @@ else
                 {
                     @* BLOQUE 05: HUB MULTIMEDIA Y OPINIONES *@
                     <section id="bloque-05-multimedia-comunidad" class="flex flex-col gap-6" aria-label="Multimedia &amp; Comunidad">
+                        <h2 class="sr-only">Hub Multimedia</h2>
                         @if (AllGameVideos.Count > 0)
                         {
                             var featured = _selectedVideo ?? AllGameVideos.First();
@@ -825,23 +773,7 @@ else
                                             class="font-black text-[var(--ink)] underline hover:text-[var(--accent)] cursor-pointer bg-transparent border-0 p-0">
                                         Propón uno
                                     </button>
-                                    @if (IsStaff)
-                                    {
-                                        <span class="text-[var(--line)]">|</span>
-                                        <button type="button"
-                                                @onclick="() => _showStaffMediaTools = !_showStaffMediaTools"
-                                                class="text-xs font-bold text-[var(--mustard)] bg-[#22180F] px-2.5 py-1 rounded-full cursor-pointer border-0">
-                                            @(_showStaffMediaTools ? "Ocultar panel staff" : "Hub Multimedia (Moderar)")
-                                        </button>
-                                    }
                                 </div>
-
-                                @if (IsStaff && _showStaffMediaTools)
-                                {
-                                    <div class="p-4 rounded-2xl border-2 border-dashed border-[var(--mustard)] bg-[var(--paper-2)]">
-                                        <MultimediaHub MediaHub="@_mediaHub" GameId="@Game.Id" GameTitle="@Game.SpanishTitle" OnMediaChanged="ReloadMediaAsync" />
-                                    </div>
-                                }
                             </div>
                         }
                         else
@@ -858,14 +790,6 @@ else
                                             class="px-4 py-2 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-black text-xs hover:opacity-90 transition-opacity cursor-pointer">
                                         Proponer un vídeo
                                     </button>
-                                    @if (IsStaff)
-                                    {
-                                        <button type="button"
-                                                @onclick="() => _showStaffMediaTools = true"
-                                                class="px-4 py-2 rounded-full bg-[#22180F] text-[#FFC145] font-black text-xs hover:opacity-90 transition-opacity cursor-pointer">
-                                            Buscar en YouTube
-                                        </button>
-                                    }
                                 </div>
                             </div>
                         }
@@ -910,24 +834,6 @@ else
 
 
 
-    @* PANEL FLOTANTE DE HERRAMIENTAS STAFF (ADMIN) *@
-    @if (IsStaff)
-    {
-        <GameStaffToolsPanel
-            Game="@Game"
-            AiSummary="@_aiSummary"
-            FoundingVerdict="@_foundingVerdict"
-            IsGeneratingAiSummary="@_isGeneratingAiSummary"
-            IsSyncingBgg="@_isSyncingBgg"
-            OnEditMetadata="() => _isEditorModalOpen = true"
-            OnRequestAiSummary="HandleRequestAiSummary"
-            OnAssociateBgg="() => _isAssociateBggModalOpen = true"
-            OnForceSyncBgg="HandleForceSyncBgg"
-            OnEditVerdict="() => _isFoundingModalOpen = true"
-            OnSocialCard="OpenSocialCardModal"
-            OnOpenReports="() => _isReportModalOpen = true" />
-    }
-
     @* Modales del Ecosistema *@
     <AssociateBggModal
         @bind-IsOpen="_isAssociateBggModalOpen"
@@ -935,6 +841,19 @@ else
         GameTitle="@Game.SpanishTitle"
         CurrentBggId="@Game.BggId"
         OnBggAssociated="HandleBggAssociated" />
+
+    <YouTubeSearchModal
+        IsOpen="@_isYouTubeSearchModalOpen"
+        InitialGameId="@Game.Id"
+        InitialGameTitle="@Game.SpanishTitle"
+        OnClose="() => _isYouTubeSearchModalOpen = false"
+        OnVideoIngested="HandleYouTubeVideoIngestedAsync" />
+
+    <FlashVideoIngestModal
+        IsOpen="@_isFlashIngestOpen"
+        GameId="@Game.Id"
+        OnClose="() => _isFlashIngestOpen = false"
+        OnVideoIngested="HandleFlashVideoIngestedAsync" />
 
     <SocialCardModal
         IsOpen="@_isSocialCardModalOpen"
@@ -1126,6 +1045,8 @@ else
     private bool _isReportModalOpen;
     private bool _isEditorModalOpen;
     private bool _isAssociateBggModalOpen;
+    private bool _isYouTubeSearchModalOpen;
+    private bool _isFlashIngestOpen;
     private SocialCardDataDto? _socialCardData;
     private bool _isGeneratingAiSummary;
     private string? _aiSummaryMessage;
@@ -1143,7 +1064,6 @@ else
     private MediaItemDto? _selectedEmbedMediaItem;
     private bool _isEmbedModalOpen;
     private bool _isImageZoomModalOpen;
-    private bool _showStaffMediaTools;
 
     private IReadOnlyList<MediaItemDto> AllGameVideos => (_mediaHub?.Tutorials ?? [])
         .Concat(_mediaHub?.Playthroughs ?? [])
@@ -1536,6 +1456,7 @@ else
     private void HandleGameUpdated(GameDetailDto updated)
     {
         Game = updated;
+        RegisterStaffActions();
         StateHasChanged();
     }
 
@@ -1544,6 +1465,7 @@ else
         if (Game != null)
         {
             Game = await CatalogService.GetGameBySlugAsync(Slug);
+            RegisterStaffActions();
             StateHasChanged();
         }
     }
@@ -1568,6 +1490,7 @@ else
                 if (reloaded != null)
                 {
                     Game = reloaded;
+                    RegisterStaffActions();
                 }
                 _actionFeedbackType = "success";
                 _actionFeedbackMessage = result.Message;
@@ -1663,6 +1586,11 @@ else
             if (Game != null)
             {
                 await LoadUserDataAsync();
+                RegisterStaffActions();
+            }
+            else
+            {
+                StaffActionService.ClearCustomActions();
             }
         }
         catch (Exception ex)
@@ -1942,6 +1870,8 @@ else
             await FoundingService.SaveVerdictAsync(req);
             Game = await CatalogService.GetGameBySlugAsync(Slug);
             await LoadUserDataAsync();
+            RegisterStaffActions();
+            StateHasChanged();
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -1961,6 +1891,8 @@ else
             _aiSummary = await FoundingService.RequestAiSummaryGenerationAsync(Game.Id);
             _aiSummaryMessage = "Síntesis estructurada generada y guardada correctamente con IA.";
             Game = await CatalogService.GetGameBySlugAsync(Slug);
+            RegisterStaffActions();
+            StateHasChanged();
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -1983,6 +1915,58 @@ else
             _mediaHub = await MediaService.GetGameMediaAsync(Game.Id);
             StateHasChanged();
         }
+    }
+
+    private async Task HandleYouTubeVideoIngestedAsync()
+    {
+        _isYouTubeSearchModalOpen = false;
+        await ReloadMediaAsync();
+    }
+
+    private async Task HandleFlashVideoIngestedAsync(MediaItemDto item)
+    {
+        _isFlashIngestOpen = false;
+        await ReloadMediaAsync();
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!IsStaff || Game == null)
+        {
+            return;
+        }
+
+        var actions = new List<StaffActionItem>
+        {
+            new StaffActionItem("Editar Ficha", "pen-line", () => _isEditorModalOpen = true),
+            new StaffActionItem(
+                _aiSummary != null ? "Forzar Resíntesis IA" : "Generar con IA",
+                "bot",
+                async () => await HandleRequestAiSummary()),
+            new StaffActionItem("Buscar en YouTube", "tv", () => _isYouTubeSearchModalOpen = true),
+            new StaffActionItem("Ingesta Flash Vídeo", "zap", () => _isFlashIngestOpen = true),
+            new StaffActionItem("Asociar BGG", "globe", () => _isAssociateBggModalOpen = true)
+        };
+
+        if (Game.BggId > 0)
+        {
+            actions.Add(new StaffActionItem("Sincronizar BGG", "refresh-cw", async () => await HandleForceSyncBgg()));
+        }
+
+        if (CurrentUserService.IsFoundingTeam)
+        {
+            actions.Add(new StaffActionItem("Veredicto Fundador", "award", () => _isFoundingModalOpen = true));
+        }
+
+        actions.Add(new StaffActionItem("Cartel para Redes", "palette", OpenSocialCardModal));
+        actions.Add(new StaffActionItem("Incidencias / Erratas", "flag", () => _isReportModalOpen = true));
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 
     private string TitleForCountry => Game?.GetTitleForCountry(_userCountryCode) ?? string.Empty;

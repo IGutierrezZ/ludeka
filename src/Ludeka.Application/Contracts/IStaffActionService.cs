@@ -12,7 +12,23 @@ public sealed record StaffActionItem(
     Func<Task> OnClick,
     string? Icon = null,
     bool IsDestructive = false
-);
+)
+{
+    public StaffActionItem(string label, Action onClick, string? icon = null, bool isDestructive = false)
+        : this(label, () => { onClick(); return Task.CompletedTask; }, icon, isDestructive)
+    {
+    }
+
+    public StaffActionItem(string label, string? icon, Action onClick, bool isDestructive = false)
+        : this(label, () => { onClick(); return Task.CompletedTask; }, icon, isDestructive)
+    {
+    }
+
+    public StaffActionItem(string label, string? icon, Func<Task> onClick, bool isDestructive = false)
+        : this(label, onClick, icon, isDestructive)
+    {
+    }
+}
 
 /// <summary>
 /// Mediador de estado de sesión para acciones contextuales de administración y moderación.

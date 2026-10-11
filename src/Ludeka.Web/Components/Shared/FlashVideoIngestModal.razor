@@ -1,0 +1,190 @@
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@inject IMediaService MediaService
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="flash-ingest-title"
+         @onclick="CloseModal">
+        <div class="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl"
+             @onclick:stopPropagation="true">
+            @* Cabecera *@
+            <div class="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                        <Icon Name="zap" Size="18" />
+                    </div>
+                    <div>
+                        <h3 id="flash-ingest-title" class="text-base font-bold text-[var(--text-primary)]">
+                            Ingesta Flash de Vídeo
+                        </h3>
+                        <p class="text-[0.68rem] text-[var(--text-secondary)]">Publica al instante pegando la URL de YouTube</p>
+                    </div>
+                </div>
+                <button type="button" @onclick="CloseModal" class="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer" aria-label="Cerrar modal">
+                    <Icon Name="x" Size="16" />
+                </button>
+            </div>
+
+            @* Feedback de error si lo hay *@
+            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="p-3 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-2">
+                    <Icon Name="x" Size="14" />
+                    <span>@_errorMessage</span>
+                </div>
+            }
+
+            <div class="space-y-4">
+                @* URL del vídeo *@
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-video-url">
+                        URL de YouTube
+                    </label>
+                    <input id="flash-video-url"
+                           type="url"
+                           placeholder="https://www.youtube.com/watch?v=..."
+                           @bind="_url"
+                           disabled="@_isIngesting"
+                           class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
+                    <p class="text-[0.65rem] text-[var(--text-muted)] mt-1">
+                        Compatible con enlaces estándar de YouTube, youtu.be y shorts.
+                    </p>
+                </div>
+
+                @* Categoría destino *@
+                <div>
+                    <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-video-category">
+                        Categoría en la ficha
+                    </label>
+                    <select id="flash-video-category"
+                            @bind="_category"
+                            disabled="@_isIngesting"
+                            class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50">
+                        <option value="@MediaCategory.QuickOverview">Cómo Funciona (En 2 min)</option>
+                        <option value="@MediaCategory.Tutorial">Tutorial (Reglas y Cómo se juega)</option>
+                        <option value="@MediaCategory.Gameplay">Partida Completa</option>
+                        <option value="@MediaCategory.ReviewOpinion">Reseña / Análisis Crítico</option>
+                    </select>
+                </div>
+
+                @* Badge opcional de jugadores (solo si es Gameplay) *@
+                @if (_category == MediaCategory.Gameplay)
+                {
+                    <div class="animate-fade-in">
+                        <label class="block text-xs font-bold text-[var(--text-primary)] mb-1.5" for="flash-player-badge">
+                            Número de jugadores (opcional)
+                        </label>
+                        <input id="flash-player-badge"
+                               type="text"
+                               placeholder="Ej. A 2 Jugadores, Solitario, A 4..."
+                               @bind="_playerBadge"
+                               disabled="@_isIngesting"
+                               class="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] disabled:opacity-50" />
+                        <p class="text-[0.65rem] text-[var(--text-muted)] mt-1">
+                            Si lo dejas vacío, se intentará detectar automáticamente del título.
+                        </p>
+                    </div>
+                }
+            </div>
+
+            @* Botones de acción *@
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border-subtle)]">
+                <button type="button"
+                        @onclick="CloseModal"
+                        disabled="@_isIngesting"
+                        class="px-4 py-2 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] font-bold text-xs border border-[var(--border-subtle)] transition-colors disabled:opacity-50 cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="button"
+                        @onclick="ExecuteIngestAsync"
+                        disabled="@(_isIngesting || string.IsNullOrWhiteSpace(_url))"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                    @if (_isIngesting)
+                    {
+                        <span class="inline-block animate-spin mr-1">◌</span>
+                        <span>Ingiriendo...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="zap" Size="14" />
+                        <span>Publicar al instante</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public Guid GameId { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<MediaItemDto> OnVideoIngested { get; set; }
+
+    private string _url = string.Empty;
+    private MediaCategory _category = MediaCategory.Tutorial;
+    private string? _playerBadge;
+    private bool _isIngesting;
+    private string? _errorMessage;
+
+    private async Task CloseModal()
+    {
+        if (_isIngesting) return;
+        _errorMessage = null;
+        _url = string.Empty;
+        _playerBadge = null;
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task ExecuteIngestAsync()
+    {
+        if (GameId == Guid.Empty)
+        {
+            _errorMessage = "No se ha especificado el juego para la ingesta.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_url))
+        {
+            _errorMessage = "Introduce una URL válida de YouTube.";
+            return;
+        }
+
+        _isIngesting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var created = await MediaService.FlashIngestAsync(
+                GameId,
+                _url.Trim(),
+                _category,
+                string.IsNullOrWhiteSpace(_playerBadge) ? null : _playerBadge.Trim());
+
+            _url = string.Empty;
+            _playerBadge = null;
+            await OnVideoIngested.InvokeAsync(created);
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isIngesting = false;
+        }
+    }
+}

@@ -1,9 +1,9 @@
 # INC-146: Menú Flotante Global de Moderación y Staff (Retirada de StaffBar y Limpieza Contextual)
 
-**Estado:** ⏳ En propuesta (SDD Fase 2: Propose)  
+**Estado:** ⏳ Verificado (SDD Fase 6: Verify) / Listo para PR  
 **Rama:** `inc/menu-flotante-staff`  
 **Worktree:** `F:\repos\ludeka-wt\menu-flotante-staff`  
-**Pruebas base:** En verificación inicial  
+**Pruebas base:** 2.833 unitarias en verde al 100%  
 
 ---
 
@@ -23,6 +23,7 @@ Objetivos clave:
 ## 2. Artefactos SDD Asociados
 
 - **Propuesta:** `openspec/changes/2026-10-11-inc-146-menu-flotante-staff/proposal.md`
-- **Especificación:** Pendiente (`spec.md`)
-- **Diseño Técnico:** Pendiente (`design.md`)
-- **Plan de Tareas:** Pendiente (`tasks.md`)
+- **Especificación:** `openspec/changes/2026-10-11-inc-146-menu-flotante-staff/spec.md`
+- **Diseño Técnico:** `openspec/changes/2026-10-11-inc-146-menu-flotante-staff/design.md`
+- **Plan de Tareas:** `openspec/changes/2026-10-11-inc-146-menu-flotante-staff/tasks.md`
+- **Informe de Verificación:** `openspec/changes/2026-10-11-inc-146-menu-flotante-staff/verification-report.md`
