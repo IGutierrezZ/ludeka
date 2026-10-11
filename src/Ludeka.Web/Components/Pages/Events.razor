@@ -5,6 +5,9 @@
 @inject IBoardGameEventService EventService
 @inject ICurrentUserService CurrentUserService
 @inject IUserLocationService LocationService
+@inject IStaffActionService StaffActionService
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Grandes Citas y Ferias Lúdicas — Ludeka</PageTitle>
 
@@ -33,21 +36,6 @@
                     Ferias, jornadas y torneos del sector, con su fecha y lugar. La guía de referencia para los grandes encuentros de juegos de mesa.
                 </p>
             </div>
-
-            @if (IsModerator)
-            {
-                <div class="flex items-center gap-2 shrink-0">
-                    <button type="button"
-                            @onclick="() => _isExpressModalOpen = true"
-                            class="h-10 px-4 rounded-full bg-[#FFC145] text-[#22180F] font-extrabold text-xs transition-transform hover:scale-[1.02] flex items-center gap-1.5 shadow-md">
-                        <Icon Name="zap" Size="13" /> Alta Exprés
-                    </button>
-                    <a href="/admin/eventos"
-                       class="h-10 px-4 rounded-full bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5">
-                        <Icon Name="settings" Size="13" /> Gestionar Eventos
-                    </a>
-                </div>
-            }
         </div>
 
         @* Barra de Pestañas y Filtros Territoriales en Píldoras con Borde Blanco *@
@@ -136,16 +124,9 @@
                     <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">
                         @(_activeTab == Tab.Upcoming ? "No hay eventos futuros registrados" : "No hay eventos en el archivo histórico")
                     </h3>
-                    <p class="text-xs text-[var(--text-secondary)] mb-6">
+                    <p class="text-xs text-[var(--text-secondary)]">
                         @(_activeTab == Tab.Upcoming ? "Pronto añadiremos nuevas fechas del calendario lúdico oficial." : "Las citas finalizadas se archivarán automáticamente aquí.")
                     </p>
-                    @if (IsModerator)
-                    {
-                        <a href="/admin/eventos"
-                           class="px-4 py-2 rounded-full bg-[var(--brand-primary)] text-[var(--on-brand)] font-bold text-xs inline-flex items-center gap-1.5 shadow-sm">
-                            <Icon Name="settings" Size="13" /> Añadir Evento Ahora
-                        </a>
-                    }
                 </div>
             }
             else
@@ -271,6 +252,37 @@
         _userActiveCountry = await LocationService.GetEffectiveCountryAsync();
         _countryFilter = _userActiveCountry;
         await LoadDataAsync();
+        RegisterStaffActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!IsModerator) return;
+        StaffActionService.SetCustomActions(
+        [
+            new StaffActionItem(
+                Label: "+ Alta exprés de evento",
+                Icon: "zap",
+                OnClick: () =>
+                {
+                    _isExpressModalOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Gestión de eventos",
+                Icon: "settings",
+                OnClick: () =>
+                {
+                    Navigation.NavigateTo("/admin/eventos");
+                    return Task.CompletedTask;
+                })
+        ]);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 
     private async Task LoadDataAsync()

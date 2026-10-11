@@ -12,7 +12,6 @@ public class GameDetailEditorialBlocksContractTests
 {
     private const string GameDetailPath = "src/Ludeka.Web/Components/Pages/GameDetail.razor";
     private const string ScalabilityTrafficLightPath = "src/Ludeka.Web/Components/Shared/ScalabilityTrafficLight.razor";
-    private const string GameStaffToolsPanelPath = "src/Ludeka.Web/Components/Shared/GameStaffToolsPanel.razor";
     private const string AssociateBggModalPath = "src/Ludeka.Web/Components/Shared/AssociateBggModal.razor";
 
     private static string ReadSource(string relativePath)
@@ -93,11 +92,11 @@ public class GameDetailEditorialBlocksContractTests
     {
         var source = ReadSource(GameDetailPath);
 
-        // Integración de GameStaffToolsPanel
-        Assert.Contains("<GameStaffToolsPanel", source, StringComparison.Ordinal);
-        Assert.Contains("OnEditMetadata=\"() => _isEditorModalOpen = true\"", source, StringComparison.Ordinal);
-        Assert.Contains("OnRequestAiSummary=\"HandleRequestAiSummary\"", source, StringComparison.Ordinal);
-        Assert.Contains("OnAssociateBgg=\"() => _isAssociateBggModalOpen = true\"", source, StringComparison.Ordinal);
+        // Integración de acciones dinámicas de staff en IStaffActionService (INC-146)
+        Assert.Contains("StaffActionService.SetCustomActions", source, StringComparison.Ordinal);
+        Assert.Contains("Editar Ficha", source, StringComparison.Ordinal);
+        Assert.Contains("HandleRequestAiSummary", source, StringComparison.Ordinal);
+        Assert.Contains("_isAssociateBggModalOpen = true", source, StringComparison.Ordinal);
 
         // Integración del modal de asociación de BGG
         Assert.Contains("<AssociateBggModal", source, StringComparison.Ordinal);
@@ -127,28 +126,6 @@ public class GameDetailEditorialBlocksContractTests
         Assert.Contains("var(--mustard)", source, StringComparison.Ordinal);
         Assert.Contains("var(--line)", source, StringComparison.Ordinal);
         Assert.Contains("<Icon Name=\"sparkles\"", source, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void GameStaffToolsPanel_ShouldProvideAllModeratorActionsWithLucideIcons()
-    {
-        var source = ReadSource(GameStaffToolsPanelPath);
-
-        // Acciones disponibles para moderación
-        Assert.Contains("HandleEditMetadata", source, StringComparison.Ordinal);
-        Assert.Contains("HandleRequestAiSummary", source, StringComparison.Ordinal);
-        Assert.Contains("HandleAssociateBgg", source, StringComparison.Ordinal);
-        Assert.Contains("HandleSocialCard", source, StringComparison.Ordinal);
-        Assert.Contains("HandleOpenReports", source, StringComparison.Ordinal);
-
-        // Iconos Lucide (cero emojis)
-        Assert.Contains("<Icon Name=\"zap\"", source, StringComparison.Ordinal);
-        Assert.Contains("<Icon Name=\"pen-line\"", source, StringComparison.Ordinal);
-        Assert.Contains("<Icon Name=\"bot\"", source, StringComparison.Ordinal);
-        Assert.Contains("<Icon Name=\"globe\"", source, StringComparison.Ordinal);
-        Assert.Contains("<Icon Name=\"palette\"", source, StringComparison.Ordinal);
-        Assert.Contains("<Icon Name=\"flag\"", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("⚡", source, StringComparison.Ordinal);
     }
 
     [Fact]

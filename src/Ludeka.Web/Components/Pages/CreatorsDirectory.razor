@@ -5,9 +5,11 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject ICreatorService CreatorService
 @inject IDirectorySeederService DirectorySeederService
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 
 <PageTitle>Directorio de Creadores de Contenido — Ludeka</PageTitle>
 
@@ -23,7 +25,7 @@
         Canales, podcasts y proyectos editoriales que impulsan la difusión y divulgación de juegos de mesa en el hobby hispanohablante.
     </p>
 
-    @* Barra de Búsqueda y Acciones de Staff *@
+    @* Barra de Búsqueda *@
     <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
         <div class="flex-1 min-w-[280px] max-w-md h-[52px] rounded-full bg-[var(--card)] border-2 border-[var(--rule)] flex items-center gap-3 px-5 shadow-sm">
             <span class="text-[var(--muted)] flex-shrink-0">
@@ -35,36 +37,6 @@
                    @bind:after="FilterCreators"
                    placeholder="Buscar por nombre o nacionalidad..."
                    class="flex-1 min-w-0 border-0 outline-none bg-transparent text-sm sm:text-base text-[var(--ink)] placeholder-[var(--muted)]" />
-        </div>
-
-        <div class="flex items-center gap-2.5 flex-wrap">
-            @if (CurrentUserService.IsFoundingTeam)
-            {
-                <button type="button"
-                        @onclick="SyncDirectoryAsync"
-                        disabled="@_isSyncing"
-                        class="h-11 px-4 rounded-full bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer">
-                    @if (_isSyncing)
-                    {
-                        <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                        <span>Sincronizando...</span>
-                    }
-                    else
-                    {
-                        <Icon Name="refresh-cw" Size="14" />
-                        <span>Sincronizar Padrón</span>
-                    }
-                </button>
-            }
-            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
-            {
-                <button type="button"
-                        @onclick="OpenCreateModal"
-                        class="h-11 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs transition-opacity hover:opacity-90 flex items-center gap-1.5 shadow-sm cursor-pointer">
-                    <Icon Name="plus" Size="14" />
-                    <span>Nuevo Creador</span>
-                </button>
-            }
         </div>
     </div>
 </section>
@@ -158,16 +130,6 @@
 
                         <div class="flex items-center gap-2">
                             <LikeButton TargetType="LikeTargetType.Creator" TargetId="@creator.Id" InitialLikesCount="@creator.LikesCount" Compact="true" />
-
-                            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
-                            {
-                                <button type="button"
-                                        @onclick="() => OpenEditModal(creator)"
-                                        class="text-[var(--muted)] hover:text-amber-500 font-bold text-xs p-1.5 rounded-lg hover:bg-[var(--paper-2)] transition-colors cursor-pointer"
-                                        title="Editar creador">
-                                    <Icon Name="pencil" Size="14" />
-                                </button>
-                            }
                         </div>
                     </div>
                 </div>
@@ -205,6 +167,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        RegisterStaffActions();
         await LoadCreatorsAsync();
     }
 
@@ -279,4 +242,35 @@
         3 => "-rotate-1",
         _ => "rotate-0"
     };
+
+    private void RegisterStaffActions()
+    {
+        bool canManage = CurrentUserService.IsFoundingTeam ||
+            (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators));
+
+        if (!canManage && !CurrentUserService.IsFoundingTeam)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>();
+
+        if (canManage)
+        {
+            actions.Add(new StaffActionItem("+ Nuevo creador", "plus", OpenCreateModal));
+        }
+
+        if (CurrentUserService.IsFoundingTeam)
+        {
+            actions.Add(new StaffActionItem("Sincronizar padrón", "refresh-cw", async () => await SyncDirectoryAsync()));
+        }
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
+    }
 }

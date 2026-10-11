@@ -5,8 +5,10 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject ICreatorService CreatorService
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 @inject NavigationManager Navigation
 
 <PageTitle>@(_creator != null ? $"{_creator.Name} — Ficha del Creador de Contenido" : "Creador") — Ludeka</PageTitle>
@@ -122,16 +124,6 @@ else
                         TargetId="@_creator.Id"
                         InitialLikesCount="@_creator.LikesCount"
                         OnLikesCountChanged="(cnt) => _creator = _creator with { LikesCount = cnt }" />
-
-            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators)))
-            {
-                <button type="button"
-                        @onclick="() => _isEditModalOpen = true"
-                        class="h-12 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-xs inline-flex items-center gap-1.5 hover:bg-[var(--paper-2)] transition-colors shadow-sm cursor-pointer">
-                    <Icon Name="pencil" Size="14" />
-                    <span>Editar</span>
-                </button>
-            }
         </div>
     </section>
 
@@ -168,5 +160,30 @@ else
         _loading = true;
         _creator = await CreatorService.GetBySlugAsync(Slug);
         _loading = false;
+        RegisterStaffActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        bool canManage = CurrentUserService.IsFoundingTeam ||
+            (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageCreators));
+
+        if (!canManage || _creator == null)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>
+        {
+            new("Editar creador", "pencil", () => _isEditModalOpen = true)
+        };
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 }

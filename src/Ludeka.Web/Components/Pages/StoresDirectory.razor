@@ -5,10 +5,12 @@
 @using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject IStoreService StoreService
 @inject IDirectorySeederService DirectorySeederService
 @inject ICurrentUserService CurrentUserService
 @inject IUserLocationService UserLocationService
+@inject IStaffActionService StaffActionService
 
 <PageTitle>Directorio de Tiendas de Juegos de Mesa — Ludeka</PageTitle>
 
@@ -72,37 +74,6 @@
                         class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer @(_selectedType == StoreType.OnlineOnly ? "bg-[var(--brand)] text-[var(--on-brand)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--ink)]")">
                     <span class="inline-flex items-center gap-1"><Icon Name="globe" Size="12" /> Online</span>
                 </button>
-            </div>
-
-            @* Acciones de Staff *@
-            <div class="flex items-center gap-2">
-                @if (CurrentUserService.IsFoundingTeam)
-                {
-                    <button type="button"
-                            @onclick="SyncDirectoryAsync"
-                            disabled="@_isSyncing"
-                            class="h-11 px-4 rounded-full bg-[var(--paper-2)] hover:bg-[var(--card)] text-[var(--ink)] border border-[var(--line)] font-extrabold text-xs transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer">
-                        @if (_isSyncing)
-                        {
-                            <span class="animate-spin inline-block"><Icon Name="loader" Size="14" /></span>
-                            <span>Sincronizando...</span>
-                        }
-                        else
-                        {
-                            <Icon Name="refresh-cw" Size="14" />
-                            <span>Sincronizar Padrón</span>
-                        }
-                    </button>
-                }
-                @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks)))
-                {
-                    <button type="button"
-                            @onclick="OpenCreateModal"
-                            class="h-11 px-5 rounded-full bg-[var(--brand)] text-[var(--on-brand)] font-extrabold text-xs transition-opacity hover:opacity-90 flex items-center gap-1.5 shadow-sm cursor-pointer">
-                        <Icon Name="plus" Size="14" />
-                        <span>Nueva Tienda</span>
-                    </button>
-                }
             </div>
         </div>
     </div>
@@ -225,16 +196,6 @@
 
                         <div class="flex items-center gap-2">
                             <LikeButton TargetType="LikeTargetType.Store" TargetId="@store.Id" InitialLikesCount="@store.LikesCount" Compact="true" />
-
-                            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks)))
-                            {
-                                <button type="button"
-                                        @onclick="() => OpenEditModal(store)"
-                                        class="text-[var(--muted)] hover:text-amber-500 font-bold text-xs p-1.5 rounded-lg hover:bg-[var(--paper-2)] transition-colors cursor-pointer"
-                                        title="Editar tienda">
-                                    <Icon Name="pencil" Size="14" />
-                                </button>
-                            }
                         </div>
                     </div>
                 </div>
@@ -305,6 +266,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        RegisterStaffActions();
         var userLoc = await UserLocationService.GetUserLocationAsync();
         if (!string.IsNullOrWhiteSpace(userLoc.EffectiveCountry))
         {
@@ -395,5 +357,36 @@
         _modalSocialLinks = store.SocialLinks.ToList();
         _modalShippingCountries = store.ShippingCountries?.ToList();
         _isModalOpen = true;
+    }
+
+    private void RegisterStaffActions()
+    {
+        bool canManage = CurrentUserService.IsFoundingTeam ||
+            (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks));
+
+        if (!canManage && !CurrentUserService.IsFoundingTeam)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>();
+
+        if (canManage)
+        {
+            actions.Add(new StaffActionItem("+ Nueva tienda", "plus", OpenCreateModal));
+        }
+
+        if (CurrentUserService.IsFoundingTeam)
+        {
+            actions.Add(new StaffActionItem("Sincronizar padrón", "refresh-cw", async () => await SyncDirectoryAsync()));
+        }
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 }

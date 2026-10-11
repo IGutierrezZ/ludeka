@@ -158,6 +158,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-143** | Soporte de Peticiones HTTP HEAD y Verificación de Dominio Awin | ⏳ En progreso | [inc-143-soporte-head-verificacion-awin.md](inc-143-soporte-head-verificacion-awin.md) |
 | **INC-144** | Extractor de Próximos Lanzamientos de Arrakis Games, Barrido de Catálogo y Aviso de Reimpresión | ⏳ En progreso | [inc-144-arrakis-releases-and-backfill.md](inc-144-arrakis-releases-and-backfill.md) |
 | **INC-145** | Priorización de canonicalname en Versiones BGG y Saneamiento Sistemático de Títulos de Catálogo | ✅ Archivado | [inc-145-titulos-bgg-canonical.md](archive/inc-145-titulos-bgg-canonical.md) |
+| **INC-146** | Menú Flotante Global de Moderación y Staff (Retirada de StaffBar y Limpieza Contextual) | ⏳ En progreso | [inc-146-menu-flotante-staff.md](inc-146-menu-flotante-staff.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 
@@ -187,6 +188,7 @@ Un incremento activo = un worktree en `C:\repos\ludeka-wt\<slug>` + rama `inc/<s
 
 - **INC-127** (`inc/cuenta-movil-gestion` en `F:\repos\ludeka-wt\cuenta-movil-gestion`): Rediseño Editorial de Cuenta, Shell Móvil y Panel de Gestión (Alineación Claude Design). En curso.
 - **INC-139** (`inc/espacio-buscador-catalogo` en `F:\repos\ludeka-wt\espacio-buscador-catalogo`): Preservación de Espacios en Buscador de Catálogo y Guarda Anti-Reentrada en Sincronización de URL. En curso.
+- **INC-146** (`inc/menu-flotante-staff` en `F:\repos\ludeka-wt\menu-flotante-staff`): Menú Flotante Global de Moderación y Staff (Retirada de StaffBar y Limpieza Contextual). Implementado y verificado con 2.833 pruebas unitarias en verde al 100%. Abriendo PR a main.
 - **Ajuste Operativo** (`inc/cloud-run-websocket-timeout` en `F:\repos\ludeka-wt\cloud-run-websocket-timeout`): Configuración de `--timeout=3600` en Google Cloud Run para prevenir desconexiones cíclicas de WebSocket (código 1006) en Blazor Server. En curso.
 
 *(INC-140 entregó su PR #253, verificada con 2.760 pruebas unitarias + 10 de integración en verde al 100% [2.770 totales], y quedó archivada y desplegada en Google Cloud Run el 2026-10-09. Implementa la galería fotográfica dinámica en el modelo de dominio con GameGalleryImage y Game, persistencia JSONB en PostgreSQL y SQLite con reconciliación defensiva en SqliteSchemaMigrator y canario de 25 migraciones en PostgresSchemaVerificationTests, permisos CanUploadImages y log de auditoría en GameEditorService, editor editorial con subida directa y URL en GameEditorModal.razor, y renderizado dinámico en GameImageCarousel.razor y visor a pantalla completa de GameDetail.razor).*

@@ -218,14 +218,14 @@ public class WebMarkupContractTests
         // estado «no encontrado» legible en los 5 temas, sin errata «Ludeca» y sin hardcodes
         // de estado (familias rose/amber/indigo/purple/slate/orange)
         { "GameDetail (ficha sin emojis)", "src/Ludeka.Web/Components/Pages/GameDetail.razor",
-          new[] { "<Icon Name=\"globe\"", "<Icon Name=\"flag\"", "<Icon Name=\"palette\"", "<Icon Name=\"shopping-cart\"", "<Icon Name=\"bot\"", "<Icon Name=\"package\"", "<Icon Name=\"trophy\"",
+          new[] { "<Icon Name=\"globe\"", "<Icon Name=\"flag\"", "<Icon Name=\"palette\"", "<Icon Name=\"shopping-cart\"", "<Icon Name=\"package\"", "<Icon Name=\"trophy\"",
                   "flex-wrap", "text-[var(--on-brand)]" },
           new[] { "🎲", "🕵", "🌐", "🚩", "🎨", "🛒", "✏", "⚙", "🤖", "🛡", "📚", "🧩", "🏆", "📦", "⚡",
                   "Ludeca", "text-white", "text-slate-400", "bg-amber-500", "bg-indigo-500", "bg-purple-950", "bg-rose-500", "text-orange-400" } },
 
         // CreatorsDirectory: buscador, spinner, vacío y acciones por iconos Lucide
         { "CreatorsDirectory (sin emojis)", "src/Ludeka.Web/Components/Pages/CreatorsDirectory.razor",
-          new[] { "<Icon Name=\"pen-line\"", "<Icon Name=\"plus\"", "<Icon Name=\"search\"", "<Icon Name=\"user\"", "<Icon Name=\"globe\"" },
+          new[] { "<Icon Name=\"pen-line\"", "<Icon Name=\"search\"", "<Icon Name=\"user\"", "<Icon Name=\"globe\"" },
           new[] { "✍", "➕", "🔍", "🎲", "👤", "🌍", "✏" } },
 
         // CreatorDetail: spinner, vacío, badge de canal y enlaces externos por iconos Lucide
@@ -288,7 +288,7 @@ public class WebMarkupContractTests
         // el chip del hero en PR-1 (text-white/80 y los badges de estado tampoco los
         // contienen). `dark:` es guarda profiláctica (hoy el archivo no lo usa).
         { "Events (sin emojis)", "src/Ludeka.Web/Components/Pages/Events.razor",
-          new[] { "<Icon Name=\"tent\"", "<Icon Name=\"calendar-days\"", "<Icon Name=\"map-pin\"", "<Icon Name=\"globe\"", "<Icon Name=\"scroll\"", "<Icon Name=\"settings\"", "rounded-full bg-emerald-500",
+          new[] { "<Icon Name=\"tent\"", "<Icon Name=\"calendar-days\"", "<Icon Name=\"map-pin\"", "<Icon Name=\"globe\"", "<Icon Name=\"scroll\"", "rounded-full bg-emerald-500",
                   "<PageHeaderEditorial", "text-[var(--on-brand)]", "rail-card", "role=\"tabpanel\"", "aria-controls=\"panel-" },
           new[] { "🎪", "⚙", "🟢", "📜", "🌍", "⭐", "➕", "🗓", "📍", "🌐",
                   "hover:scale-105", "bg-rose-500/90", "bg-amber-500/90", "text-zinc-300", "dark:",
@@ -509,20 +509,20 @@ public class WebMarkupContractTests
 
         // PublisherDetail: cabeceras, badges y enlaces de la ficha editorial por iconos Lucide
         { "PublisherDetail (sin emojis)", "src/Ludeka.Web/Components/Pages/PublisherDetail.razor",
-          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"search\"", "<Icon Name=\"pencil\"", "<Icon Name=\"building-2\"",
+          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"search\"", "<Icon Name=\"building-2\"",
                   "<Icon Name=\"map-pin\"", "<Icon Name=\"globe\"" },
           new[] { "🎲", "🔍", "✏", "🏢", "📍", "🌐" } },
 
         // PublishersDirectory: cabecera, buscador, spinner, vacío y tarjetas por iconos Lucide
         { "PublishersDirectory (sin emojis)", "src/Ludeka.Web/Components/Pages/PublishersDirectory.razor",
-          new[] { "<Icon Name=\"building-2\"", "<Icon Name=\"plus\"", "<Icon Name=\"search\"", "<Icon Name=\"dices\"",
-                  "<Icon Name=\"package\"", "<Icon Name=\"map-pin\"", "<Icon Name=\"pencil\"" },
+          new[] { "<Icon Name=\"building-2\"", "<Icon Name=\"search\"", "<Icon Name=\"dices\"",
+                  "<Icon Name=\"package\"", "<Icon Name=\"map-pin\"" },
           new[] { "🏢", "➕", "🔍", "🎲", "📦", "📍", "✏" } },
 
         // StoreDetail: ficha de tienda, badges, envíos y ofertas por iconos Lucide
         // (el switch del tipo de tienda devuelve texto plano, sin emoji incrustado)
         { "StoreDetail (sin emojis)", "src/Ludeka.Web/Components/Pages/StoreDetail.razor",
-          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"search\"", "<Icon Name=\"pencil\"", "<Icon Name=\"map-pin\"",
+          new[] { "<Icon Name=\"dices\"", "<Icon Name=\"search\"", "<Icon Name=\"map-pin\"",
                   "<Icon Name=\"star\"", "<Icon Name=\"truck\"", "<Icon Name=\"building-2\"", "<Icon Name=\"globe\"",
                   "<Icon Name=\"shopping-cart\"" },
           new[] { "🎲", "🔍", "✏", "📍", "⭐", "🚚", "🏢", "🌐", "🛒", "🏪" } },
@@ -530,9 +530,9 @@ public class WebMarkupContractTests
         // StoresDirectory: cabecera, filtros, tarjetas y acciones por iconos Lucide
         // (los selects con FlagEmoji/GetFlag quedan como excepción data-driven documentada)
         { "StoresDirectory (sin emojis)", "src/Ludeka.Web/Components/Pages/StoresDirectory.razor",
-          new[] { "<Icon Name=\"shopping-cart\"", "<Icon Name=\"plus\"", "<Icon Name=\"search\"", "<Icon Name=\"dices\"",
+          new[] { "<Icon Name=\"shopping-cart\"", "<Icon Name=\"search\"", "<Icon Name=\"dices\"",
                   "<Icon Name=\"store\"", "<Icon Name=\"building-2\"", "<Icon Name=\"star\"", "<Icon Name=\"truck\"",
-                  "<Icon Name=\"map-pin\"", "<Icon Name=\"pencil\"" },
+                  "<Icon Name=\"map-pin\"" },
           new[] { "🛒", "➕", "🔍", "🌍", "🏪", "🏢", "🌐", "🎲", "⭐", "🚚", "📍", "✏" } },
 
         // Transparency: manifiesto editorial por iconos Lucide

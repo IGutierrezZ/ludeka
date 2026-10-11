@@ -14,7 +14,7 @@
     Shell Global «Revista Lúdica» (INC-114).
     - Cabecera reactiva de 72 px que tiñe su fondo según la sección activa.
     - Barra de navegación móvil fija en píldora con 5 destinos y hoja modal «Más de Ludeka».
-    - Barra contextual StaffBar bajo la cabecera para moderadores y administradores.
+    - Menú flotante global StaffFloatingMenu para moderadores y administradores.
     - Banner global de desconexión reactivo ante eventos navigator.onLine.
     - Cumplimiento estricto WCAG 2.2 AA (landmarks, aria attributes, skip link, área táctil >=48px).
 *@
@@ -137,9 +137,6 @@
     @* Banner global de conectividad/offline reactivo ante eventos navigator.onLine *@
     <OfflineIndicator AsBanner="true" />
 
-    @* Barra contextual de Staff para moderadores y administradores *@
-    <StaffBar />
-
     @* Aviso descartable de correo no verificado *@
     <AccountEmailNotice />
 
@@ -239,6 +236,9 @@
 
     @* Barra de navegación móvil fija al alcance del pulgar *@
     <MobileBottomNav />
+
+    @* Menú flotante global de moderación y administración staff *@
+    <StaffFloatingMenu />
 </div>
 
 <LocationSelectorModal

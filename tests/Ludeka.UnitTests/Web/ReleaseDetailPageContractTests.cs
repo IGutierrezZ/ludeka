@@ -91,7 +91,7 @@ public class ReleaseDetailPageContractTests
     {
         var source = ReadSource(PagePath);
 
-        Assert.Contains("Añadir enlace oficial a la noticia", source, StringComparison.Ordinal);
+        Assert.Contains("StaffActionService", source, StringComparison.Ordinal);
         Assert.Contains("Información catalogada directamente por el equipo editorial", source, StringComparison.Ordinal);
     }
 

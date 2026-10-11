@@ -5,8 +5,10 @@
 @using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject IStoreService StoreService
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 @inject NavigationManager Navigation
 
 <PageTitle>@(_store != null ? $"{_store.Name} — Ficha de Tienda y Ofertas" : "Tienda Lúdica") — Ludeka</PageTitle>
@@ -142,16 +144,6 @@ else
                         TargetId="@_store.Id"
                         InitialLikesCount="@_store.LikesCount"
                         OnLikesCountChanged="(cnt) => _store = _store with { LikesCount = cnt }" />
-
-            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks)))
-            {
-                <button type="button"
-                        @onclick="() => _isEditModalOpen = true"
-                        class="h-12 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-xs inline-flex items-center gap-1.5 hover:bg-[var(--paper-2)] transition-colors shadow-sm cursor-pointer">
-                    <Icon Name="pencil" Size="14" />
-                    <span>Editar</span>
-                </button>
-            }
         </div>
     </section>
 
@@ -268,6 +260,7 @@ else
         _loading = true;
         _store = await StoreService.GetBySlugAsync(Slug);
         _loading = false;
+        RegisterStaffActions();
     }
 
     private string FormatStoreType(StoreType type) => type switch
@@ -277,4 +270,28 @@ else
         StoreType.OnlineOnly => "Solo Tienda Online",
         _ => "Tienda"
     };
+
+    private void RegisterStaffActions()
+    {
+        bool canManage = CurrentUserService.IsFoundingTeam ||
+            (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManageStoreLinks));
+
+        if (!canManage || _store == null)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>
+        {
+            new("Editar tienda", "pencil", () => _isEditModalOpen = true)
+        };
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
+    }
 }

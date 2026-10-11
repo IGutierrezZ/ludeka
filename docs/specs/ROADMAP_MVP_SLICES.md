@@ -1340,4 +1340,17 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/archive/inc-145-titulos-bgg-canonical.md`](../increments/archive/inc-145-titulos-bgg-canonical.md).
 - **Módulo del Sistema:** [`sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md`](sistema/47-snapshots-crudos-bgg-expansiones-sincronizacion.md).
 
+---
+
+## Incremento 146: Menú Flotante Global de Moderación y Staff (Retirada de StaffBar y Limpieza Contextual)
+- **Identificador SDD:** `menu-flotante-staff`
+- **Objetivo Principal:**
+  1. **Componente Global `StaffFloatingMenu.razor`:** Botón flotante FAB en la esquina inferior derecha (`fixed bottom-20 right-4 sm:right-6 z-40`), interactivo y con soporte de accesibilidad WCAG 2.2 AA (`role="dialog"`, `Escape`, `aria-expanded`).
+  2. **Servicio Mediador `IStaffActionService`:** Registro dinámico de acciones contextuales por pantalla y fallback inteligente por ruta con acceso canónico permanente a `/admin`.
+  3. **Limpieza Editorial:** Retirada de la barra superior `StaffBar.razor` y de `GameStaffToolsPanel.razor`, erradicando botones administrativos incrustados y redundantes en vistas públicas (juegos, sorteos, eventos, novedades, directorios).
+- **Estado:** ⏳ **Verificado / Listo para PR** (INC-146 · 2.833 pruebas unitarias en verde al 100%).
+- **Documento:** [`../increments/inc-146-menu-flotante-staff.md`](../increments/inc-146-menu-flotante-staff.md).
+- **Módulo del Sistema:** [`sistema/24-moderacion-fichas-y-reportes.md`](sistema/24-moderacion-fichas-y-reportes.md).
+
+
 

@@ -8,10 +8,12 @@
 @using Ludeka.Core.Enums
 @using Ludeka.Core.ValueObjects
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject IWeeklyReleaseService ReleaseService
 @inject IImageStorageService ImageStorageService
 @inject ICurrentUserService CurrentUserService
 @inject IGameRepository GameRepository
+@inject IStaffActionService StaffActionService
 @inject NavigationManager Navigation
 @inject ILogger<ReleaseDetail> Logger
 
@@ -62,31 +64,6 @@ else
                            class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5">
                             <Icon Name="camera" Size="13" /> Instagram <span>↗</span>
                         </a>
-                    }
-                    else if (CanModerate)
-                    {
-                        <a href="/admin/instagram?sourceType=WeeklyRelease&sourceId=@_release.Id"
-                           class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5">
-                            <Icon Name="camera" Size="13" /> Crear Post Instagram
-                        </a>
-                    }
-
-                    @if (CanModerate)
-                    {
-                        <div class="flex items-center gap-2 pl-2 border-l border-white/20">
-                            <button type="button"
-                                    @onclick="OpenEditModal"
-                                    title="Editar datos y carátula del lanzamiento"
-                                    class="px-3 py-1.5 rounded-full bg-[#FFC145] hover:bg-[#e6ad3e] text-[#22180F] font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                                <Icon Name="pen-line" Size="13" /> Editar Novedad
-                            </button>
-                            <button type="button"
-                                    @onclick="() => _isDeleteConfirmOpen = true"
-                                    title="Eliminar este lanzamiento"
-                                    class="px-3 py-1.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
-                                <Icon Name="trash-2" Size="13" /> Eliminar
-                            </button>
-                        </div>
                     }
                 </div>
             </div>
@@ -162,15 +139,6 @@ else
                                 <Icon Name="newspaper" Size="14" Class="text-[#FFC145]" />
                                 <span>Información catalogada directamente por el equipo editorial</span>
                             </div>
-                            @if (CanModerate)
-                            {
-                                <button type="button"
-                                        @onclick="OpenEditModal"
-                                        class="h-[46px] px-5 rounded-full bg-[#FFC145] text-[#22180F] font-extrabold text-xs transition-transform hover:scale-105 inline-flex items-center gap-1.5 shadow-md">
-                                    <Icon Name="link" Size="13" />
-                                    <span>Añadir enlace oficial a la noticia</span>
-                                </button>
-                            }
                         }
 
                         @if (_associatedGame != null)
@@ -664,6 +632,7 @@ else
         finally
         {
             _isLoading = false;
+            RegisterStaffActions();
         }
     }
 
@@ -779,6 +748,7 @@ else
                 _associatedGame = null;
             }
 
+            RegisterStaffActions();
             _isEditModalOpen = false;
         }
         catch (UnauthorizedAccessException ex)
@@ -803,6 +773,7 @@ else
         {
             await ReleaseService.DeleteReleaseAsync(Id);
             _isDeleteConfirmOpen = false;
+            StaffActionService.ClearCustomActions();
             Navigation.NavigateTo("/novedades");
         }
         catch (UnauthorizedAccessException ex)
@@ -817,5 +788,28 @@ else
         {
             _isDeleting = false;
         }
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (_release == null || !CanModerate)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>
+        {
+            new("Editar novedad", "pen-line", OpenEditModal),
+            new("Crear post Instagram", "camera", () => Navigation.NavigateTo($"/admin/instagram?sourceType=WeeklyRelease&sourceId={_release.Id}")),
+            new("Eliminar novedad", "trash-2", () => _isDeleteConfirmOpen = true, isDestructive: true)
+        };
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 }

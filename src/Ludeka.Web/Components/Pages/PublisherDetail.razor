@@ -4,8 +4,10 @@
 @using Ludeka.Application.DTOs
 @using Ludeka.Core.Enums
 @using Ludeka.Web.Components.Shared
+@implements IDisposable
 @inject IPublisherService PublisherService
 @inject ICurrentUserService CurrentUserService
+@inject IStaffActionService StaffActionService
 @inject NavigationManager Navigation
 
 <PageTitle>@(_publisher != null ? $"{_publisher.Name} — Catálogo Editorial" : "Editorial") — Ludeka</PageTitle>
@@ -108,16 +110,6 @@ else
                         TargetId="@_publisher.Id"
                         InitialLikesCount="@_publisher.LikesCount"
                         OnLikesCountChanged="(cnt) => _publisher = _publisher with { LikesCount = cnt }" />
-
-            @if (CurrentUserService.IsFoundingTeam || (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers)))
-            {
-                <button type="button"
-                        @onclick="() => _isEditModalOpen = true"
-                        class="h-12 px-5 rounded-full bg-[var(--card)] text-[var(--ink)] border-2 border-[var(--rule)] font-extrabold text-xs inline-flex items-center gap-1.5 hover:bg-[var(--paper-2)] transition-colors shadow-sm cursor-pointer">
-                    <Icon Name="pencil" Size="14" />
-                    <span>Editar</span>
-                </button>
-            }
         </div>
     </section>
 
@@ -182,5 +174,30 @@ else
         _loading = true;
         _publisher = await PublisherService.GetBySlugAsync(Slug);
         _loading = false;
+        RegisterStaffActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        bool canManage = CurrentUserService.IsFoundingTeam ||
+            (CurrentUserService.IsInRole("Moderator") && CurrentUserService.HasPermission(ModeratorPermission.CanManagePublishers));
+
+        if (!canManage || _publisher == null)
+        {
+            StaffActionService.ClearCustomActions();
+            return;
+        }
+
+        var actions = new List<StaffActionItem>
+        {
+            new("Editar editorial", "pencil", () => _isEditModalOpen = true)
+        };
+
+        StaffActionService.SetCustomActions(actions);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 }

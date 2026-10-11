@@ -9,6 +9,8 @@
 @inject ICurrentUserService CurrentUserService
 @inject IEditorialReleasesSyncService EditorialSyncService
 @inject NavigationManager Navigation
+@inject IStaffActionService StaffActionService
+@implements IDisposable
 
 <PageTitle>Novedades y Estrenos Editoriales — Ludeka</PageTitle>
 
@@ -37,31 +39,6 @@
                 <p class="text-sm sm:text-base leading-relaxed opacity-85 m-0 max-w-xl">
                     Lanzamientos y reimpresiones confirmados por las editoriales, con su precio estimado. Consulta cada ficha para conocer fechas, contenido y tiendas colaboradoras.
                 </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-                @if (IsModerator)
-                {
-                    <button type="button"
-                            @onclick="HandleSyncEditorialReleases"
-                            disabled="@_isSyncingEditorial"
-                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 hover:bg-white/20">
-                        <Icon Name="refresh-cw" Size="14" Class="@(_isSyncingEditorial ? "animate-spin text-[var(--mustard)]" : "")" />
-                        <span>@(_isSyncingEditorial ? "Sincronizando..." : "Sincronizar Editoriales")</span>
-                    </button>
-                    <button type="button"
-                            @onclick="() => _isExpressModalOpen = true"
-                            class="h-11 sm:h-12 px-4 rounded-full border border-dashed border-[#FFF8EE]/40 bg-[#FFF8EE]/10 text-[#FFF8EE] font-extrabold text-xs inline-flex items-center gap-1.5 transition-colors hover:bg-white/20">
-                        <Icon Name="zap" Size="14" />
-                        <span>Alta Exprés</span>
-                    </button>
-                    <button type="button"
-                            @onclick="() => _isCreateModalOpen = true"
-                            class="h-11 sm:h-12 px-5 sm:px-6 rounded-full bg-[var(--mustard)] text-[#22180F] font-black text-xs sm:text-sm hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 shadow-sm">
-                        <Icon Name="plus" Size="15" />
-                        <span>Añadir novedad</span>
-                    </button>
-                }
             </div>
         </div>
 
@@ -807,6 +784,59 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
+        RegisterStaffActions();
+    }
+
+    private void RegisterStaffActions()
+    {
+        if (!IsModerator) return;
+        StaffActionService.SetCustomActions(
+        [
+            new StaffActionItem(
+                Label: "+ Alta exprés",
+                Icon: "zap",
+                OnClick: () =>
+                {
+                    _isExpressModalOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "+ Publicar novedad",
+                Icon: "plus",
+                OnClick: () =>
+                {
+                    _isCreateModalOpen = true;
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Sincronizar editoriales",
+                Icon: "refresh-cw",
+                OnClick: async () => await HandleSyncEditorialReleases()),
+            new StaffActionItem(
+                Label: "Bandeja pendientes",
+                Icon: "shield-alert",
+                OnClick: () =>
+                {
+                    SetFilter("pending");
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Ingesta social",
+                Icon: "inbox",
+                OnClick: () =>
+                {
+                    Navigation.NavigateTo("/admin/ingesta-social");
+                    return Task.CompletedTask;
+                })
+        ]);
+    }
+
+    public void Dispose()
+    {
+        StaffActionService.ClearCustomActions();
     }
 
     private async Task LoadDataAsync()

@@ -256,16 +256,6 @@
                                     <span>@s.RemainingTimeText</span>
                                 </b>
                             </a>
-                            @if (IsModerator)
-                            {
-                                <button type="button"
-                                        @onclick="() => OpenEditGiveawayModal(s)"
-                                        title="Editar sorteo"
-                                        aria-label="Editar sorteo"
-                                        class="w-10 h-10 shrink-0 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] font-bold text-xs flex items-center justify-center hover:bg-[var(--paper-2)]">
-                                    ✎
-                                </button>
-                            }
                             <a href="@s.Url"
                                target="_blank"
                                rel="noopener noreferrer"
@@ -330,16 +320,6 @@
 
                             @* Acciones *@
                             <div class="flex items-center gap-2 shrink-0">
-                                @if (IsModerator)
-                                {
-                                    <button type="button"
-                                            @onclick="() => OpenEditGiveawayModal(s)"
-                                            title="Editar sorteo"
-                                            aria-label="Editar sorteo"
-                                            class="w-10 h-10 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] font-bold text-xs flex items-center justify-center hover:bg-[var(--paper-2)]">
-                                        ✎
-                                    </button>
-                                }
                                 <a href="@s.Url"
                                    target="_blank"
                                    rel="noopener noreferrer"
@@ -757,12 +737,29 @@
         StaffActionService.SetCustomActions(
         [
             new StaffActionItem(
-                Label: "+ Alta exprés",
+                Label: "+ Alta exprés de sorteo",
                 Icon: "zap",
                 OnClick: () =>
                 {
                     _isExpressModalOpen = true;
                     StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "+ Nuevo sorteo manual",
+                Icon: "plus",
+                OnClick: () =>
+                {
+                    OpenCreateGiveawayModal();
+                    StateHasChanged();
+                    return Task.CompletedTask;
+                }),
+            new StaffActionItem(
+                Label: "Bandeja de ingesta social",
+                Icon: "inbox",
+                OnClick: () =>
+                {
+                    Navigation.NavigateTo("/admin/ingesta-social");
                     return Task.CompletedTask;
                 })
         ]);
