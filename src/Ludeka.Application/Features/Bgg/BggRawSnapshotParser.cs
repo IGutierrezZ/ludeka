@@ -340,8 +340,17 @@ public static class BggRawSnapshotParser
             // Priorizar candidata que tenga EAN normalizado válido
             var best = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Ean)) ?? spanishCandidates[0];
 
-            // Si la candidata seleccionada carece de título pero otra candidata española dispone de uno no genérico, enriquecer
-            if (string.IsNullOrWhiteSpace(best.Title))
+            // Si la candidata seleccionada carece de título o tiene el título idéntico al original en inglés, pero otra candidata española dispone de un título traducido específico, enriquecer
+            string? rootPrimary = ExtractRootPrimaryTitle(root);
+            var distinctTranslated = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Title) &&
+                !string.Equals(c.Title, rootPrimary, StringComparison.OrdinalIgnoreCase) &&
+                !IsGenericEditionTitle(c.Title));
+
+            if (distinctTranslated != null && (string.IsNullOrWhiteSpace(best.Title) || string.Equals(best.Title, rootPrimary, StringComparison.OrdinalIgnoreCase)))
+            {
+                best = best with { Title = distinctTranslated.Title };
+            }
+            else if (string.IsNullOrWhiteSpace(best.Title))
             {
                 var withTitle = spanishCandidates.Find(c => !string.IsNullOrWhiteSpace(c.Title));
                 if (withTitle != null)
@@ -386,6 +395,32 @@ public static class BggRawSnapshotParser
         }
     }
 
+    private static string? ExtractRootPrimaryTitle(JsonElement root)
+    {
+        if (!root.TryGetProperty("name", out var namesProp)) return null;
+        if (namesProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var n in namesProp.EnumerateArray())
+            {
+                if (n.TryGetProperty("@type", out var typeProp) &&
+                    string.Equals(typeProp.GetString(), "primary", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ExtractStringValue(n);
+                }
+            }
+            foreach (var n in namesProp.EnumerateArray())
+            {
+                var val = ExtractStringValue(n);
+                if (!string.IsNullOrWhiteSpace(val)) return val;
+            }
+        }
+        else if (namesProp.ValueKind == JsonValueKind.Object)
+        {
+            return ExtractStringValue(namesProp);
+        }
+        return null;
+    }
+
     private static string? ResolveSpanishTitleFromRootNames(JsonElement root)
     {
         if (!root.TryGetProperty("name", out var namesProp)) return null;
@@ -400,6 +435,8 @@ public static class BggRawSnapshotParser
             nameElements.Add(namesProp);
         }
 
+        string? fallbackSpanish = null;
+
         foreach (var n in nameElements)
         {
             if (n.TryGetProperty("@type", out var typeProp) &&
@@ -408,6 +445,7 @@ public static class BggRawSnapshotParser
                 string? val = ExtractStringValue(n);
                 if (!string.IsNullOrWhiteSpace(val))
                 {
+                    // 1. Coincidencia explícita con descriptores de idioma español
                     if (val.IndexOf("español", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         val.IndexOf("spanish", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         val.IndexOf("castellano", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -419,11 +457,33 @@ public static class BggRawSnapshotParser
                             return cleaned;
                         }
                     }
+
+                    // 2. Coincidencia con signos de exclamación/interrogación invertidos o casos específicos conocidos
+                    if (val.StartsWith("¡") || val.StartsWith("¿"))
+                    {
+                        string cleaned = CleanVersionTitle(val) ?? val;
+                        if (!string.IsNullOrWhiteSpace(cleaned) && !IsGenericEditionTitle(cleaned))
+                        {
+                            fallbackSpanish ??= cleaned;
+                        }
+                    }
+                    else if (val.Equals("Ciudadelas", StringComparison.OrdinalIgnoreCase) ||
+                             val.Equals("El Señor de los Anillos", StringComparison.OrdinalIgnoreCase) ||
+                             val.Equals("El Oro del Orinoco", StringComparison.OrdinalIgnoreCase) ||
+                             val.Equals("1212 Las Navas de Tolosa", StringComparison.OrdinalIgnoreCase) ||
+                             val.StartsWith("Horizontes de Spirit Island", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return val.Trim();
+                    }
+                    else if (val.Contains("ñ", StringComparison.OrdinalIgnoreCase) && !IsGenericEditionTitle(val))
+                    {
+                        fallbackSpanish ??= val.Trim();
+                    }
                 }
             }
         }
 
-        return null;
+        return fallbackSpanish;
     }
 
     private static bool IsSpanishVersion(JsonElement versionElem)
@@ -466,11 +526,29 @@ public static class BggRawSnapshotParser
     }
 
     /// <summary>
-    /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "Korean edition", "Edición en español")
-    /// y no a un título comercial auténtico de juego o expansión.
+    /// Determina si un título corresponde a un juego histórico o título legítimo cuyo nombre oficial contiene "Spanish".
     /// </summary>
+    public static bool IsLegitimateHistoricalSpanishTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return false;
+        string t = title.Trim();
+        return t.Equals("Spanish Main", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Pirates of the Spanish Main", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Pirates of the Spanish Main: Shuffling the Deck", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("The Scurvy Musketeers of the Spanish Main", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Scurvy Musketeers of the Spanish Main", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("The Spanish Civil War 1936-1939", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Great War at Sea: 1898, The Spanish American War", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Remember the Maine! The Spanish-American War, 1898", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("No Peace Without Spain!: The War of the Spanish Succession 1702-1713", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("15 Dias: The Spanish Golden Age", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("The Conquistadors: The Spanish Conquest of the Americas 1518-1548", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Tierra y Libertad: La Revolución y Guerra Civil Españolas", StringComparison.OrdinalIgnoreCase) ||
+               t.Equals("Land and Freedom: The Spanish Revolution and Civil War", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
-    /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "ENG/GER/FRE/SPA edition", "Retail edition")
+    /// Determina si un título corresponde a un descriptor genérico de edición (ej. "Spanish edition", "Spanish-only edition", "ENG/GER/FRE/SPA edition", "Retail edition")
     /// y no a un título comercial auténtico de juego o expansión.
     /// </summary>
     public static bool IsGenericEditionTitle(string? title)
@@ -479,46 +557,34 @@ public static class BggRawSnapshotParser
 
         string t = title.Trim();
 
-        // 1. Descriptores puros de idioma o combinaciones de acrónimos (ej. "Spanish", "ENG/GER/FRE/SPA", "ES/EN")
-        if (Regex.IsMatch(t, @"^(?:spanish|español|española|castellano|castellana|english|korean|coreana|german|alemana|french|francesa|italian|italiana|portuguese|portuguesa|multilingual|multilingüe|international|internacional|iberian|ibérica|iberica)$", RegexOptions.IgnoreCase))
+        // 0. Salvaguarda explícita para títulos históricos legítimos con "Spanish"
+        if (IsLegitimateHistoricalSpanishTitle(t)) return false;
+
+        // 1. Descriptores puros de idioma o combinaciones de acrónimos e idiomas (ej. "Spanish", "Spanish-French", "Dutch/English/French/German/Spanish", "ENG/GER/FRE/SPA", "ES/EN")
+        if (Regex.IsMatch(t, @"^(?:(?:spanish|español|española|castellano|castellana|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|polish|polaco|czech|checo|russian|ruso|japanese|japonés|chinese|chino|multilingual|multilingüe|international|internacional|iberian|ibérica)[/\-&+ ]*)+$", RegexOptions.IgnoreCase))
             return true;
 
         if (Regex.IsMatch(t, @"^(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})+)$", RegexOptions.IgnoreCase))
             return true;
 
-        // 2. Títulos que contienen indicadores de edición / versión / tirada / caja
-        if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version|release|box|caja)\b", RegexOptions.IgnoreCase))
+        // 2. Títulos que contienen indicadores de edición / versión / tirada / caja / empaquetado / PnP o idiomas
+        if (Regex.IsMatch(t, @"\b(edition|edici[oó]n|versi[oó]n|version|release|box|caja|edti[oó]n|editon|ediition|editidon|ecition|packaging|starter\s*deck|pnp|print\s*(?:&|and|\-)?\s*play|printing|tirada|reimpresi[oó]n|demand|tin)\b", RegexOptions.IgnoreCase) ||
+            Regex.IsMatch(t, @"\b(?:spanish|español|castellano|english|multilingual)\b", RegexOptions.IgnoreCase))
         {
-            // Reemplazar tokens de idioma, descriptores de tirada, editoriales y números/años
-            string stripped = Regex.Replace(t, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|catalan|català|galician|galego|basque|euskera|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|holandesa|polish|polaco|polaca|czech|checo|checa|russian|ruso|rusa|japanese|japonés|japonesa|chinese|chino|china|multilingual|multilingüe|international|internacional|nordic|scandinavian|european|iberian|ibérica|iberica|ibérico|iberico|chilean|chileno|chilena|colombian|colombiano|colombiana|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th|primera|segunda|tercera|cuarta|quinta|sexta|deluxe|collector['’]?s?|coleccionista|limited|limitada|retail|tiendas|kickstarter|ks|gamefound|crowdfunding|backer|mecenas|special|especial|standard|est[aá]ndar|essential|esencial|anniversary|aniversario|big\s+box|pocket|travel|viaje|mini|compact|promo|master\s+print|cube\s+box|print\s*&\s*play|pnp|edition|edici[oó]n|versi[oó]n|version|release|box|caja|en|de|del|la|el|los|las|in|for|with|con|and|und|et|y|e|(?:19|20)\d{2}|[ivxIVX\d]+)\b", "", RegexOptions.IgnoreCase);
+            // 1. Reemplazar PRIMERO editoriales conocidas compuestas para que tokens atómicos (como 'el', 'blue', 'x') no las mutilen
+            string stripped = Regex.Replace(t, @"\b(?:combo\s+games(?:\s+\(ii\))?|combo\s+games|angry\s+lion(?:\s+games)?|lotus\s+frog(?:\s+games)?|board\s+m|popcorn\s+games|mandoo\s+games|devir(?:\s+iberia)?|maldito\s+games|edge\s+entertainment|edge(?:\/dv\s+giochi)?|dv\s+giochi|asmodee(?:\s+ibérica)?|asmodée|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis(?:\s+games)?|gen[\s-]x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|dire\s+wolf|ravensburger|kosmos|queen(?:\s+games)?|cmon|z[\s-]man(?:\s+games)?|zman(?:\s+games)?|lúdilo|ludilo|salt\s+&\s+pepper(?:\s+games)?|salt\s+and\s+pepper|tranjis(?:\s+games)?|gdm(?:\s+games)?|bumby\s+games|bumby|doit\s+games|doit|2tomatoes(?:\s+games)?|masqueoca|másqueoca|ediciones\s+masqueoca|falomir(?:\s+juegos)?|mercurio(?:\s+distribuciones)?|loki|playte|two\s+acorns(?:\s+games)?|underdog(?:\s+games)?|jocus(?:\s+\(ii\))?|mattel(?:\s*,\s*inc\.?)?|cefa|mar\s+lúdico|mar\s+ludico|aquí\s+hay\s+dragones|aqui\s+hay\s+dragones|advance\s+games|mb(?:\s+juegos)?|milton\s+bradley|hasbro|homoludicus|homo\s+ludicus|borras\s+plana|borras|borrás|playmonster|legendary\s+games|parker\s+brothers|parker|libellud|quined\s+games|quined|the\s+toy\s+company\s+argentina|the\s+toy\s+company|draco\s+ideas|draco|juegos\s+si[\s-]lo|si[\s-]lo|qubic\s+games|qubic|konami(?:\s+digital\s+entertainment)?|blue\s+orange(?:\s*\(eu\))?|culturarte|happy\s+baobab|repos(?:\s+production)?|gigamic|ultra\s+pro|gamewright|neptuno(?:\s+games)?|goliath(?:\s+games)?|wonder\s+forge|invicta\s+games|editorial\s+dos\s+pasos|casa\s+estanciero|aurimagic|blackrock(?:\s+games)?|dracomaca|el\s+drag[oó]n\s+azul|buró|buro)\b", "", RegexOptions.IgnoreCase);
 
-            // Reemplazar códigos lingüísticos de 2 a 4 letras (ej. ENG, GER, FRE, SPA, ES, EN, CAT, SP, GE, JA, KO)
+            // 2. Reemplazar tokens de idioma, descriptores de tirada, componentes y números/años
+            stripped = Regex.Replace(stripped, @"\b(spanish|español|española|españoles|españolas|castellano|castellana|castellanos|castellanas|catalan|català|galician|galego|basque|euskera|english|inglés|inglesa|korean|coreana|coreano|german|alemán|alemana|french|francés|francesa|italian|italiano|italiana|portuguese|portugués|portuguesa|dutch|holandés|holandesa|polish|polaco|polaca|czech|checo|checa|russian|ruso|rusa|japanese|japonés|japonesa|chinese|chino|china|multilingual|multilingüe|international|internacional|nordic|scandinavian|european|iberian|ibérica|iberica|ibérico|iberico|chilean|chileno|chilena|colombian|colombiano|colombiana|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th|primera|segunda|tercera|cuarta|quinta|sexta|deluxe|collector['’]?s?|coleccionista|limited|limitada|retail|tiendas|kickstarter|ks|gamefound|crowdfunding|backer|mecenas|special|especial|standard|est[aá]ndar|essential|esencial|anniversary|aniversario|big\s+box|pocket|travel|viaje|mini|compact|promo|master\s+print|cube\s+box|print[\s-]*(?:and|&|-)?[\s-]*play|pnp|print[\s-]*(?:on[\s-]*)?demand|pod|edition|edici[oó]n|versi[oó]n|version|release|box|caja|edti[oó]n|editon|ediition|editidon|ecition|only|solamente|solo|original|packaging|package|paquete|tin|hanger|tuck(?:\s*box)?|hardbox|plastic(?:\s*box)?|square(?:\s*box)?|sounds?|awards?|award|premio|premios|revised|revisada|revisadas|rules|reglas|rulebook|printing|tirada|reimpresi[oó]n|reimpresion|dark\s+city\s+expansion|expansion|expansi[oó]n|more|than|million|sold|die|ink|black|green|purple|yellow|lime|exclusive|target|circa|starter(?:\s*deck)?|deck|descifrador|códigos|enlace|ciberso|silver(?:\s*logo)?|logo|governor|web[\s-]published|published|mensa(?:\s*select)?|cover|blue|red|latin(?:\s*american)?|latam|canadian|club(?:\s*de\s*la\s*aventura)?|aventura|cola[\s-]cao|sesame(?:\s*street)?|construye(?:\s*tu\s*mazmorra)?|alaska(?::\s*the\s*last\s*frontier)?|the\s*last\s*frontier|elena(?:\s*of\s*avalor)?|sleeping(?:\s*beauty)?|en|de|del|la|el|los|las|in|for|with|con|and|und|et|y|e|(?:19|20)\d{2}|[ivxIVX\d]+)\b", "", RegexOptions.IgnoreCase);
+
+            // 3. Reemplazar códigos lingüísticos de 2 a 4 letras (ej. ENG, GER, FRE, SPA, ES, EN, CAT, SP, GE, JA, KO)
             stripped = Regex.Replace(stripped, @"\b(?:eng|spa|esp|ger|deu|fre|fra|ita|por|dut|nld|pol|cze|ces|rus|kor|jpn|chi|zho|hun|ell|gre|dan|nor|swe|fin|cat|sp|ge|ja|ko|en|es|de|fr|it|pt|nl|pl|cs|cz|ru|ko|ja|zh)\b", "", RegexOptions.IgnoreCase);
 
-            // Reemplazar editoriales conocidas que suelen acompañar a ediciones
-            stripped = Regex.Replace(stripped, @"\b(?:combo\s+games(?:\s+\(ii\))?|combo\s+games|angry\s+lion(?:\s+games)?|lotus\s+frog(?:\s+games)?|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|edge|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|dire\s+wolf|ravensburger|kosmos|queen\s+games|cmon|z[\s-]man(?:\s+games)?|zman(?:\s+games)?|lúdilo|ludilo|salt\s+&\s+pepper(?:\s+games)?|salt\s+and\s+pepper|tranjis(?:\s+games)?|gdm(?:\s+games)?|bumby\s+games|bumby|doit\s+games|doit|2tomatoes(?:\s+games)?|masqueoca|másqueoca|falomir(?:\s+juegos)?|mercurio(?:\s+distribuciones)?|loki|playte|two\s+acorns(?:\s+games)?|underdog(?:\s+games)?|jocus(?:\s+\(ii\))?|mattel(?:\s*,\s*inc\.?)?)\b", "", RegexOptions.IgnoreCase);
+            // 4. Limpiar separadores, puntuación y comillas (incluyendo guiones Unicode)
+            stripped = Regex.Replace(stripped, @"[-_–—\u2010\u2013\u2014/:(),.+'&\\#""“”¿¡«»]", " ").Trim();
 
-            // Limpiar separadores y puntuación
-            stripped = Regex.Replace(stripped, @"[-_–—/:(),.+'&\\#]", " ").Trim();
-
-            // Si no queda nada, era un descriptor genérico puro (ej. "ENG/GER/FRE/SPA edition", "Spanish edition", "Retail edition", "Combo Games edition", "Z-Man Spanish edition", "Iberian edition")
+            // Si no queda nada, era un descriptor genérico puro
             if (string.IsNullOrWhiteSpace(stripped)) return true;
-
-            // Si lo que queda coincide con nombres de editoriales conocidas o palabras breves de edición
-            if (Regex.IsMatch(stripped, @"^(?:angry\s+lion|lotus\s+frog|board\s+m|popcorn\s+games|mandoo\s+games|devir|maldito\s+games|edge\s+entertainment|asmodee|zacatrus|sd\s+games|tcg\s+factory|ludist|arrakis|gen\s+x|2f[\s-]spiele|pegasus|feuerland|hans\s+im\s+glück|stonemaier|czech\s+games|rebel|phalanx|combo\s+games|z[\s-]man(?:\s+games)?|zman|lúdilo|ludilo|salt\s+&\s+pepper|tranjis|loki|playte|two\s+acorns|underdog|jocus|mattel)$", RegexOptions.IgnoreCase))
-            {
-                return true;
-            }
-
-            // Si no contiene separadores de subtítulo y es una frase corta de edición (<= 5 palabras)
-            if (!t.Contains(':') && !t.Contains('-') && !t.Contains('(') && !t.Contains('[') && !t.Contains('—') && !t.Contains('–'))
-            {
-                var words = t.Split(new[] { ' ', '/', '-', '+', '&' }, StringSplitOptions.RemoveEmptyEntries);
-                if (words.Length <= 5 && Regex.IsMatch(t, @"\b(korean|angry\s+lion|spanish|español|castellano|english|german|french|italian|multilingual|international|iberian|eng|spa|ger|fre|fra|ita|por|es|en|de|fr|cat|sp|ge|ja|ko|z[\s-]man|zman|print|pnp|cube)\b", RegexOptions.IgnoreCase))
-                {
-                    return true;
-                }
-            }
         }
 
         return false;
@@ -527,7 +593,8 @@ public static class BggRawSnapshotParser
     /// <summary>
     /// Limpia sufijos o coletillas de edición de un título de versión (ej. "Alta Tensión (Edición en español)" -> "Alta Tensión",
     /// "Ark Nova: Mundo Marino - Spanish edition (2024)" -> "Ark Nova: Mundo Marino",
-    /// "Queen Alice - ENG/GER/FRE/SPA edition" -> "Queen Alice").
+    /// "Star Wars: Imperial Assault – Hondo Ohnaka Villain Pack ‐ Spanish edition (2018)" -> "Star Wars: Imperial Assault – Hondo Ohnaka Villain Pack",
+    /// "El Oro del Orinoco ‐ Multilingual first edition (Spanish packaging)" -> "El Oro del Orinoco").
     /// Si el título resultante es un descriptor genérico (ej. "Spanish edition", "ENG/GER/FRE/SPA edition"), devuelve null para evitar sobreescribir el título canónico del juego.
     /// </summary>
     public static string? CleanVersionTitle(string? rawTitle)
@@ -537,10 +604,19 @@ public static class BggRawSnapshotParser
         string trimmed = rawTitle.Trim();
         if (IsGenericEditionTitle(trimmed)) return null;
 
-        // Limpiar sufijos que contengan "edición", "edition", "versión" o "version" tras separadores (, -, :, —, etc.),
-        // contemplando posibles acrónimos lingüísticos, idiomas, tiradas o años asociados.
+        // 1. Limpiar sufijos estándar tras separadores (, -, :, —, ‐, etc.)
         string cleaned = Regex.Replace(trimmed,
-            @"\s*[\(\[\-:–—]\s*(?:(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})*|primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail|[A-Za-z]{2,4}))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
+            @"\s*[\(\[\-:–—\u2010\u2013\u2014]\s*(?:(?:[A-Za-z]{2,4}(?:[/\-&+][A-Za-z]{2,4})*|primera|segunda|tercera|cuarta|quinta|first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|deluxe|collector['’]?s?|limited|retail|special|spanish|español|castellano|english|korean|german|french|italian|multilingual|internacional|(?:19|20)\d{2})\s+)*(?:edici[oó]n|edition|versi[oó]n|version|ecition|edtion|ediition|editidon|editon)(?:\s+(?:en\s+)?(?:español|castellano|spanish|multilingual|internacional|deluxe|special|collector['’]?s?|limited|retail|[A-Za-z]{2,4}))?[\)\]]?(?:\s*[\(\[]?(?:19|20)\d{2}[\)\]]?)?\s*$",
+            "", RegexOptions.IgnoreCase).Trim();
+
+        // 2. Limpiar sufijos de empaquetado lingüístico (ej. "‐ Multilingual first edition (Spanish packaging)", "‐ Spanish edition (2018)")
+        cleaned = Regex.Replace(cleaned,
+            @"\s*[\(\[\-:–—\u2010\u2013\u2014]\s*(?:multilingual|spanish|español|english)\b.*?(?:packaging|edition|edici[oó]n)?[\)\]]?\s*$",
+            "", RegexOptions.IgnoreCase).Trim();
+
+        // 3. Limpiar paréntesis residuales de packaging o edición al final
+        cleaned = Regex.Replace(cleaned,
+            @"\s*\([^\)]*(?:packaging|edici[oó]n|edition)\)\s*$",
             "", RegexOptions.IgnoreCase).Trim();
 
         if (string.IsNullOrWhiteSpace(cleaned) || IsGenericEditionTitle(cleaned))

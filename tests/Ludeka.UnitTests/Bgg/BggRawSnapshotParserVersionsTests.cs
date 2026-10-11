@@ -515,5 +515,70 @@ public class BggRawSnapshotParserVersionsTests
         Assert.Equal("https://cf.geekdo-images.com/dune_es.jpg", result.CoverImageUrl);
         Assert.Equal("https://cf.geekdo-images.com/dune_es_thumb.jpg", result.ThumbnailUrl);
     }
+
+    [Theory]
+    [InlineData("Spanish-only edition")]
+    [InlineData("Spanish second ecition")]
+    [InlineData("Spanish-French edition")]
+    [InlineData("Spanish/Catalan second edition")]
+    [InlineData("Spanish second edtion")]
+    [InlineData("Spanish edition 2010 with awards packaging")]
+    [InlineData("Devir Spanish silver logo edition")]
+    [InlineData("Spanish / Portuguese edition")]
+    [InlineData("Spanish first edition")]
+    [InlineData("First Spanish edition")]
+    [InlineData("Devir Spanish edition")]
+    [InlineData("Spanish edition with revised rules")]
+    [InlineData("Spanish packaging")]
+    [InlineData("Blue Orange English/Spanish tin edition")]
+    [InlineData("Mattel English/Spanish 2019")]
+    [InlineData("English/Spanish print-and-play edition")]
+    [InlineData("Spanish/English Print and Play edition")]
+    [InlineData("Print-on-Demand English/Spanish edition")]
+    [InlineData("Spanish Print-and-Play edition")]
+    [InlineData("Devir Spanish first edition, second printing")]
+    [InlineData("Edge Entertainment Spanish third edition with Dark City expansion")]
+    [InlineData("Gen-X Spanish edition")]
+    [InlineData("El Dragón Azul Spanish first edition")]
+    public void IsGenericEditionTitle_ShouldReturnTrue_ForGenericSpanishEditionDescriptors(string title)
+    {
+        Assert.True(BggRawSnapshotParser.IsGenericEditionTitle(title));
+    }
+
+    [Theory]
+    [InlineData("Spanish Main")]
+    [InlineData("Remember the Maine! The Spanish-American War, 1898")]
+    [InlineData("The Spanish Civil War 1936-1939")]
+    [InlineData("Pirates of the Spanish Main")]
+    [InlineData("No Peace Without Spain! The War of the Spanish Succession 1702-1713")]
+    [InlineData("15 Dias: The Spanish Golden Age")]
+    [InlineData("The Conquistadors: The Spanish Conquest of the Americas 1518-1548")]
+    public void IsGenericEditionTitle_ShouldReturnFalse_ForLegitimateHistoricalGames(string title)
+    {
+        Assert.False(BggRawSnapshotParser.IsGenericEditionTitle(title));
+    }
+
+    [Theory]
+    [InlineData("Spanish Main", true)]
+    [InlineData("The Spanish Civil War 1936-1939", true)]
+    [InlineData("Spanish edition", false)]
+    [InlineData("Spanish-only edition", false)]
+    [InlineData("Catan", false)]
+    public void IsLegitimateHistoricalSpanishTitle_ShouldCorrectlyIdentifyHistoricalGames(string title, bool expected)
+    {
+        Assert.Equal(expected, BggRawSnapshotParser.IsLegitimateHistoricalSpanishTitle(title));
+    }
+
+    [Theory]
+    [InlineData("Karak ‐ Multilingual first edition (Spanish packaging)", "Karak")]
+    [InlineData("Ticket to Ride - Spanish second edtion", "Ticket to Ride")]
+    [InlineData("Catan - Edición en español", "Catan")]
+    [InlineData("Virus! (Spanish edition)", "Virus!")]
+    public void CleanVersionTitle_ShouldStripEditionSuffixes_IncludingUnicodeDashesAndMisspellings(string rawTitle, string expectedClean)
+    {
+        string? cleaned = BggRawSnapshotParser.CleanVersionTitle(rawTitle);
+        Assert.Equal(expectedClean, cleaned);
+    }
 }
+
 

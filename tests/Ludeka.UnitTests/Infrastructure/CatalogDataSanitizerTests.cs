@@ -8,6 +8,7 @@ using Ludeka.Application.Features.Bgg;
 using Ludeka.Core.Entities;
 using Ludeka.Core.Enums;
 using Ludeka.Core.ValueObjects;
+using Ludeka.Infrastructure.Bgg;
 using Ludeka.Infrastructure.Data;
 using Ludeka.Infrastructure.Seeding;
 using Microsoft.Data.Sqlite;
@@ -513,4 +514,84 @@ public sealed class CatalogDataSanitizerTests : IDisposable
         Assert.Equal("Pandemic Legacy: Segunda temporada", refreshed.SpanishTitle);
         Assert.Equal("Devir", refreshed.SpanishPublisher);
     }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldNotTouch_LegitimateHistoricalSpanishGames()
+    {
+        // Arrange: juego histórico legítimo con "Spanish" en título
+        var game = CreateTestGame(
+            bggId: 1815,
+            originalTitle: "Spanish Main",
+            spanishTitle: "Spanish Main"
+        );
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert: No debe ser modificado ni sobreescrito
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 1815);
+        Assert.Equal("Spanish Main", refreshed.SpanishTitle);
+    }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRepairSpanishEditionTitles_UsingSnapshotSpanishVersion()
+    {
+        // Arrange: Ticket to Ride con título genérico "Spanish second edtion"
+        var game = CreateTestGame(
+            bggId: 9209,
+            originalTitle: "Ticket to Ride",
+            spanishTitle: "Spanish second edtion"
+        );
+        _context.Games.Add(game);
+
+        const string xml = @"<items>
+          <item type=""boardgame"" id=""9209"">
+            <name type=""primary"" value=""Ticket to Ride"" />
+            <name type=""alternate"" value=""¡Aventureros al Tren!"" />
+            <versions>
+              <item type=""boardgameversion"" id=""1001"">
+                <name type=""primary"" value=""¡Aventureros al Tren!"" />
+                <link type=""language"" value=""Spanish"" />
+                <link type=""boardgamepublisher"" value=""Days of Wonder"" />
+              </item>
+            </versions>
+          </item>
+        </items>";
+
+        string json = BggXmlToJsonConverter.ConvertXmlStringToJson(xml);
+        var snapshot = new BggRawSnapshot(9209, json);
+        _context.BggRawSnapshots.Add(snapshot);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert: El título en español debe ser saneado al nombre real en español
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 9209);
+        Assert.Equal("¡Aventureros al Tren!", refreshed.SpanishTitle);
+    }
+
+    [Fact]
+    public async Task SanitizeCorruptedSpanishTitlesAsync_ShouldRepairHorizonsOfSpiritIsland_ToHorizontesDeSpiritIsland()
+    {
+        // Arrange: Horizons of Spirit Island con título corrupto "Spanish ediition"
+        var horizons = CreateTestGame(
+            bggId: 367498,
+            originalTitle: "Horizons of Spirit Island",
+            spanishTitle: "Spanish ediition"
+        );
+        _context.Games.Add(horizons);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await CatalogDataSanitizer.SanitizeCorruptedSpanishTitlesAsync(_context, NullLogger.Instance);
+
+        // Assert
+        var refreshed = await _context.Games.FirstAsync(g => g.BggId == 367498);
+        Assert.Equal("Horizontes de Spirit Island", refreshed.SpanishTitle);
+        Assert.Equal("Arrakis Games", refreshed.SpanishPublisher);
+    }
 }
+
