@@ -54,11 +54,19 @@ public static class CatalogDataSanitizer
                         g.BggId == 221107 ||
                         (g.SpanishTitle != null && (
                             g.SpanishTitle.ToLower().Contains("korean") ||
+                            g.SpanishTitle.ToLower().Contains("spanish") ||
                             g.SpanishTitle.ToLower().Contains("edition") ||
                             g.SpanishTitle.ToLower().Contains("edicion") ||
                             g.SpanishTitle.ToLower().Contains("edición") ||
                             g.SpanishTitle.ToLower().Contains("version") ||
                             g.SpanishTitle.ToLower().Contains("versión") ||
+                            g.SpanishTitle.ToLower().Contains("edtion") ||
+                            g.SpanishTitle.ToLower().Contains("ediition") ||
+                            g.SpanishTitle.ToLower().Contains("editidon") ||
+                            g.SpanishTitle.ToLower().Contains("ecition") ||
+                            g.SpanishTitle.ToLower().Contains("editon") ||
+                            g.SpanishTitle.ToLower().Contains("only") ||
+                            g.SpanishTitle.ToLower().Contains("packaging") ||
                             g.SpanishTitle.Contains("/") ||
                             g.SpanishTitle.ToLower().Contains("angry lion") ||
                             g.SpanishTitle.ToLower().Contains("lotus frog") ||
@@ -150,9 +158,17 @@ public static class CatalogDataSanitizer
                         }
                     }
 
-                    // Saneamiento de título si contiene coreano, descriptores genéricos o editoriales coreanas en el título
+                    // Salvaguarda defensiva: títulos históricos legítimos con "Spanish" no se alteran
+                    if (BggRawSnapshotParser.IsLegitimateHistoricalSpanishTitle(game.SpanishTitle))
+                    {
+                        continue;
+                    }
+
+                    // Limpieza preventiva de sufijos en el SpanishTitle actual si tuviera
+                    string? cleanedCurrent = BggRawSnapshotParser.CleanVersionTitle(game.SpanishTitle);
                     bool hasCorruptedTitle = game.SpanishTitle != null && (
                         BggRawSnapshotParser.IsGenericEditionTitle(game.SpanishTitle) ||
+                        (!string.IsNullOrWhiteSpace(cleanedCurrent) && cleanedCurrent != game.SpanishTitle) ||
                         game.SpanishTitle.IndexOf("korean", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         game.SpanishTitle.IndexOf("angry lion", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         game.SpanishTitle.IndexOf("lotus frog", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -161,22 +177,27 @@ public static class CatalogDataSanitizer
                         game.SpanishTitle.IndexOf("mandoo games", StringComparison.OrdinalIgnoreCase) >= 0
                     );
 
+                    bool isValidNonGenericSpanish = !string.IsNullOrWhiteSpace(validSpanishTitle) &&
+                        !BggRawSnapshotParser.IsGenericEditionTitle(validSpanishTitle);
+
                     // 1) Si disponemos de un título en español válido extraído del snapshot de la versión y el actual es corrupto o coincide con el título original en inglés
-                    if (!string.IsNullOrWhiteSpace(validSpanishTitle) && game.SpanishTitle != validSpanishTitle)
+                    if (isValidNonGenericSpanish && game.SpanishTitle != validSpanishTitle)
                     {
                         if (hasCorruptedTitle || game.SpanishTitle == game.OriginalTitle)
                         {
                             logger.LogInformation("Actualizando SpanishTitle para BggId {BggId}: '{OldTitle}' -> '{NewTitle}'",
                                 game.BggId, game.SpanishTitle, validSpanishTitle);
-                            game.UpdateSpanishTitle(validSpanishTitle);
+                            game.UpdateSpanishTitle(validSpanishTitle!);
                             modified = true;
                         }
                     }
                     else if (hasCorruptedTitle)
                     {
-                        string targetTitle = !string.IsNullOrWhiteSpace(validSpanishTitle)
-                            ? validSpanishTitle
-                            : game.OriginalTitle;
+                        string targetTitle = isValidNonGenericSpanish
+                            ? validSpanishTitle!
+                            : (!string.IsNullOrWhiteSpace(cleanedCurrent) && !BggRawSnapshotParser.IsGenericEditionTitle(cleanedCurrent)
+                                ? cleanedCurrent
+                                : game.OriginalTitle);
 
                         if (game.SpanishTitle != targetTitle)
                         {
@@ -382,6 +403,76 @@ public static class CatalogDataSanitizer
 
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Pandemic Legacy: Season 2 (221107) asegurado como 'Pandemic Legacy: Segunda temporada' (Devir) con éxito.");
+        }
+
+        // Caso específico reportado: Horizons of Spirit Island (BggId 367498) -> Horizontes de Spirit Island (Arrakis Games)
+        var horizons = await db.Games.FirstOrDefaultAsync(g => g.BggId == 367498, ct);
+        if (horizons != null && (horizons.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(horizons.SpanishTitle) || horizons.SpanishTitle.Contains("ediition", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Horizons of Spirit Island (367498): '{OldTitle}' -> 'Horizontes de Spirit Island'",
+                horizons.SpanishTitle);
+            horizons.UpdateSpanishTitle("Horizontes de Spirit Island");
+            if (string.IsNullOrWhiteSpace(horizons.SpanishPublisher))
+            {
+                horizons.UpdateSpanishPublisher("Arrakis Games");
+            }
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Horizons of Spirit Island (367498) asegurado como 'Horizontes de Spirit Island' con éxito.");
+        }
+
+        // Citadels (BggId 478) -> Ciudadelas (Edge Entertainment)
+        var citadels = await db.Games.FirstOrDefaultAsync(g => g.BggId == 478, ct);
+        if (citadels != null && (citadels.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(citadels.SpanishTitle) || citadels.SpanishTitle.Contains("Dark City", StringComparison.OrdinalIgnoreCase) || citadels.SpanishTitle.Contains("edition", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Citadels (478): '{OldTitle}' -> 'Ciudadelas'", citadels.SpanishTitle);
+            citadels.UpdateSpanishTitle("Ciudadelas");
+            if (string.IsNullOrWhiteSpace(citadels.SpanishPublisher)) citadels.UpdateSpanishPublisher("Edge Entertainment");
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Citadels (478) asegurado como 'Ciudadelas' con éxito.");
+        }
+
+        // The Lord of the Rings (BggId 823) -> El Señor de los Anillos (Devir)
+        var lotr = await db.Games.FirstOrDefaultAsync(g => g.BggId == 823, ct);
+        if (lotr != null && (lotr.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(lotr.SpanishTitle) || lotr.SpanishTitle.Contains("edition", StringComparison.OrdinalIgnoreCase) || lotr.SpanishTitle.Contains("printing", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para The Lord of the Rings (823): '{OldTitle}' -> 'El Señor de los Anillos'", lotr.SpanishTitle);
+            lotr.UpdateSpanishTitle("El Señor de los Anillos");
+            if (string.IsNullOrWhiteSpace(lotr.SpanishPublisher)) lotr.UpdateSpanishPublisher("Devir");
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("The Lord of the Rings (823) asegurado como 'El Señor de los Anillos' con éxito.");
+        }
+
+        // Gold am Orinoko (BggId 137480) -> El Oro del Orinoco (HABA)
+        var orinoko = await db.Games.FirstOrDefaultAsync(g => g.BggId == 137480, ct);
+        if (orinoko != null && (orinoko.SpanishTitle == null || orinoko.SpanishTitle.Contains("Multilingual", StringComparison.OrdinalIgnoreCase) || orinoko.SpanishTitle.Contains("packaging", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Gold am Orinoko (137480): '{OldTitle}' -> 'El Oro del Orinoco'", orinoko.SpanishTitle);
+            orinoko.UpdateSpanishTitle("El Oro del Orinoco");
+            if (string.IsNullOrWhiteSpace(orinoko.SpanishPublisher)) orinoko.UpdateSpanishPublisher("HABA");
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Gold am Orinoko (137480) asegurado como 'El Oro del Orinoco' con éxito.");
+        }
+
+        // Virus! (BggId 180020) -> Virus! (Tranjis Games)
+        var virus = await db.Games.FirstOrDefaultAsync(g => g.BggId == 180020, ct);
+        if (virus != null && (virus.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(virus.SpanishTitle) || virus.SpanishTitle.Contains("Dragón Azul", StringComparison.OrdinalIgnoreCase) || virus.SpanishTitle.Contains("edition", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Virus! (180020): '{OldTitle}' -> 'Virus!'", virus.SpanishTitle);
+            virus.UpdateSpanishTitle("Virus!");
+            if (string.IsNullOrWhiteSpace(virus.SpanishPublisher)) virus.UpdateSpanishPublisher("Tranjis Games");
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Virus! (180020) asegurado como 'Virus!' con éxito.");
+        }
+
+        // Kariba (BggId 84732) -> Kariba (Devir)
+        var kariba = await db.Games.FirstOrDefaultAsync(g => g.BggId == 84732, ct);
+        if (kariba != null && (kariba.SpanishTitle == null || BggRawSnapshotParser.IsGenericEditionTitle(kariba.SpanishTitle) || kariba.SpanishTitle.Contains("edition", StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("Garantizando título y editorial en español para Kariba (84732): '{OldTitle}' -> 'Kariba'", kariba.SpanishTitle);
+            kariba.UpdateSpanishTitle("Kariba");
+            if (string.IsNullOrWhiteSpace(kariba.SpanishPublisher)) kariba.UpdateSpanishPublisher("Devir");
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Kariba (84732) asegurado como 'Kariba' con éxito.");
         }
 
         // Caso específico reportado: Viticulture (BggId 180263) -> Restaurar carátula si fue contaminada por la expansión Bordeaux
