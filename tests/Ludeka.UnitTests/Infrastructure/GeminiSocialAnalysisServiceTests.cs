@@ -221,6 +221,153 @@ public class GeminiSocialAnalysisServiceTests
         Assert.NotNull(result);
         Assert.Equal(SocialSubmissionType.Giveaway, result.DetectedType);
         Assert.Equal("Canal Juegos", result.OrganizerOrAuthor);
+        Assert.Null(result.CropBoundingBox);
+        Assert.Contains("No se pudo recortar", result.Notes);
+    }
+
+    [Fact]
+    public async Task AnalyzeMultimodalAsync_WhenPrimaryModelReturns503_CascadesToSecondaryModelAndSucceeds()
+    {
+        // Arrange: Primer modelo devuelve 503 Overloaded, segundo modelo responde con éxito
+        var innerJson = """
+        {
+          "detectedType": "Giveaway",
+          "title": "Sorteo Asesinato en el Hotel",
+          "organizerOrAuthor": "Casos Criminales",
+          "suggestedGameTitle": "Asesinato en el Gran Hotel",
+          "cropBoundingBox": [37, 314, 977, 685],
+          "notes": "Sorteo verificado por visión"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "test-api-key",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+        });
+
+        int callCount = 0;
+        var client = new HttpClient(new FakeHttpHandler(req =>
+        {
+            callCount++;
+            var url = req.RequestUri?.AbsoluteUri ?? string.Empty;
+            if (url.Contains("gemini-3.5-flash-lite"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("{\"error\":{\"code\":503,\"message\":\"The model is overloaded. Please try again later.\"}}")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+            };
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance);
+
+        // Act
+        var result = await service.AnalyzeMultimodalAsync(
+            text: "Sorteo del juego Asesinato",
+            basesImageBytes: [1, 2],
+            basesImageMimeType: "image/jpeg",
+            coverImageBytes: [3, 4],
+            coverImageMimeType: "image/jpeg",
+            authorOrChannel: "Casos Criminales");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(callCount >= 2);
+        Assert.Equal("Sorteo Asesinato en el Hotel", result.Title);
+        Assert.NotNull(result.CropBoundingBox);
+        Assert.Equal(37, result.CropBoundingBox.YMin);
+        Assert.Equal(314, result.CropBoundingBox.XMin);
+        Assert.Equal(977, result.CropBoundingBox.YMax);
+        Assert.Equal(685, result.CropBoundingBox.XMax);
+    }
+
+    [Fact]
+    public async Task AnalyzeTextAsync_WhenPrimaryModelFails_CascadesToSecondaryModelAndSucceeds()
+    {
+        // Arrange
+        var innerJson = """
+        {
+          "detectedType": "Giveaway",
+          "title": "Sorteo Trampitas",
+          "organizerOrAuthor": "Trampitas y Rewines",
+          "notes": "Sorteo 1000 seguidores"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "test-api-key",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+        });
+
+        int callCount = 0;
+        var client = new HttpClient(new FakeHttpHandler(req =>
+        {
+            callCount++;
+            var url = req.RequestUri?.AbsoluteUri ?? string.Empty;
+            if (url.Contains("gemini-3.5-flash-lite"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("{\"error\":{\"code\":503,\"message\":\"Overloaded\"}}")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+            };
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance);
+
+        // Act
+        var result = await service.AnalyzeTextAsync("Sorteamos pack de juegos", "Trampitas y Rewines");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(callCount >= 2);
+        Assert.Equal("Sorteo Trampitas", result.Title);
     }
 
     [Fact]

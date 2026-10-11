@@ -785,10 +785,15 @@ public class SocialIngestionServiceTests
     }
 
     [Fact]
-    public async Task IngestMultimodalAsync_WithCoverImage_ComposesHorizontalCoverAndStoresInInbox()
+    public async Task IngestMultimodalAsync_WithCoverImageAndValidCrop_ComposesHorizontalCoverAndStoresInInbox()
     {
         // Arrange
         var service = CreateService();
+        _aiService.ResultToReturn = _aiService.ResultToReturn with
+        {
+            CropBoundingBox = new NormalizedBoundingBoxDto(50, 50, 950, 950)
+        };
+
         var input = new SocialExpressMultimodalInputDto(
             SourceUrl: "https://www.instagram.com/p/multimodal-test/",
             ManualCaption: "Sorteo Ark Nova bases completas",
@@ -805,6 +810,33 @@ public class SocialIngestionServiceTests
         Assert.Contains("social-inbox", result.ThumbnailUrl);
         Assert.Single(_inboxRepo.Items);
         Assert.Equal(SocialInboxStatus.PendingReview, _inboxRepo.Items[0].Status);
+    }
+
+    [Fact]
+    public async Task IngestMultimodalAsync_WithCoverImageWithoutValidCrop_StoresOriginalImageDirectlyAndSetsWarningNote()
+    {
+        // Arrange
+        var service = CreateService();
+        _aiService.ResultToReturn = _aiService.ResultToReturn with
+        {
+            CropBoundingBox = null
+        };
+
+        var input = new SocialExpressMultimodalInputDto(
+            SourceUrl: "https://www.instagram.com/p/multimodal-test-no-crop/",
+            ManualCaption: "Sorteo sin recorte automático",
+            CoverImageBytes: new byte[] { 10, 20, 30, 40 },
+            CoverImageMimeType: "image/jpeg");
+
+        // Act
+        var result = await service.IngestMultimodalAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.False(_coverComposer.WasCalled);
+        Assert.Contains("social-inbox", result.ThumbnailUrl);
+        Assert.NotNull(result.AiAnalysisNotes);
+        Assert.Contains("No se ha podido recortar la imagen", result.AiAnalysisNotes);
     }
 
     [Fact]

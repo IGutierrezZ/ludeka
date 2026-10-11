@@ -143,6 +143,28 @@ public class OpenGraphSocialMetadataExtractorTests
         Assert.Equal("Descubre todos los componentes y mecánicas.", result.Description);
     }
 
+    [Fact]
+    public async Task ExtractFromUrlAsync_InstagramPost_SendsFacebookExternalHitUserAgent()
+    {
+        string? capturedUserAgent = null;
+        var handler = new FakeHttpMessageHandler((req, _) =>
+        {
+            capturedUserAgent = req.Headers.UserAgent.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html></html>", Encoding.UTF8, "text/html")
+            });
+        });
+
+        var client = new HttpClient(handler);
+        var extractor = new OpenGraphSocialMetadataExtractor(client, NullLogger<OpenGraphSocialMetadataExtractor>.Instance);
+
+        await extractor.ExtractFromUrlAsync("https://www.instagram.com/p/Cxyz123/");
+
+        Assert.NotNull(capturedUserAgent);
+        Assert.Contains("facebookexternalhit/1.1", capturedUserAgent);
+    }
+
     [Theory]
     [InlineData("https://www.instagram.com/reel/Cxyz123/")]
     [InlineData("https://www.instagram.com/tv/Cxyz123/")]

@@ -205,8 +205,8 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
                 });
             }
 
-            // El reintento con gemini-3.6-flash funciona
-            Assert.Contains("models/gemini-3.6-flash", req.RequestUri?.ToString());
+            // El reintento con el modelo predeterminado funciona
+            Assert.Contains($"models/{GeminiOptions.DefaultModel}", req.RequestUri?.ToString());
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(geminiResponseJson, System.Text.Encoding.UTF8, "application/json")
@@ -225,7 +225,7 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
 
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
-        Assert.Equal("Google Gemini (gemini-3.6-flash)", result.Model);
+        Assert.Equal($"Google Gemini ({GeminiOptions.DefaultModel})", result.Model);
         Assert.Equal("Respuesta recuperada con 3.6 flash.", result.GeneralVerdict);
     }
 

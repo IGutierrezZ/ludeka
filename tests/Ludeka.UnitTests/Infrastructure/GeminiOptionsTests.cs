@@ -12,10 +12,37 @@ public class GeminiOptionsTests
 
         Assert.True(options.Simulate);
         Assert.True(options.ShouldSimulate);
-        Assert.Equal("gemini-3.6-flash", options.Model);
-        Assert.Equal("gemini-3.6-flash", options.GetEffectiveModel());
+        Assert.Equal("gemini-3.5-flash-lite", options.Model);
+        Assert.Equal("gemini-3.5-flash-lite", options.GetEffectiveModel());
         Assert.Equal("https://generativelanguage.googleapis.com/v1beta/", options.BaseUrl);
         Assert.Null(options.ApiKey);
+    }
+
+    [Fact]
+    public void GetModelCandidateChain_DefaultOptions_ReturnsOrderedCandidatesWithoutDuplicates()
+    {
+        var options = new GeminiOptions();
+        var chain = options.GetModelCandidateChain();
+
+        Assert.NotEmpty(chain);
+        Assert.Equal("gemini-3.5-flash-lite", chain[0]);
+        Assert.Contains("gemini-3.5-flash", chain);
+        Assert.Contains("gemini-3.1-flash-lite", chain);
+        Assert.Contains("gemini-3.6-flash", chain);
+        Assert.Equal(chain.Distinct(StringComparer.OrdinalIgnoreCase).Count(), chain.Count);
+    }
+
+    [Fact]
+    public void GetModelCandidateChain_CustomModel_PutsCustomModelFirstWithoutDuplicates()
+    {
+        var options = new GeminiOptions
+        {
+            Model = "gemini-3.6-flash"
+        };
+        var chain = options.GetModelCandidateChain();
+
+        Assert.Equal("gemini-3.6-flash", chain[0]);
+        Assert.Equal(chain.Distinct(StringComparer.OrdinalIgnoreCase).Count(), chain.Count);
     }
 
     [Fact]

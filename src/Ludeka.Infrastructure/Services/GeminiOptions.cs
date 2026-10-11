@@ -8,7 +8,18 @@ namespace Ludeka.Infrastructure.Services;
 public class GeminiOptions
 {
     public const string SectionName = "Gemini";
-    public const string DefaultModel = "gemini-3.6-flash";
+    public const string DefaultModel = "gemini-3.5-flash-lite";
+
+    /// <summary>
+    /// Modelos de reserva a intentar en cascada ordenada cuando el modelo primario o configurado falla o se encuentra sobrecargado (503/429).
+    /// </summary>
+    public static readonly string[] DefaultFallbackModels =
+    [
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.6-flash"
+    ];
 
     /// <summary>
     /// Clave de API de Google Gemini (Google AI Studio).
@@ -16,7 +27,7 @@ public class GeminiOptions
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Modelo de Gemini a emplear. Por defecto "gemini-3.6-flash".
+    /// Modelo de Gemini a emplear. Por defecto "gemini-3.5-flash-lite".
     /// Si se deja vacío o se especifica "auto", el sistema autoselecciona automáticamente el modelo recomendado.
     /// Puede ser sobreescrito en cualquier momento por la variable de entorno Gemini__Model.
     /// </summary>
@@ -56,5 +67,30 @@ public class GeminiOptions
         }
 
         return Model.Trim();
+    }
+
+    /// <summary>
+    /// Obtiene la cadena ordenada de modelos candidatos a intentar secuencialmente.
+    /// Inicia con el modelo efectivo configurado y agrega los modelos de reserva sin duplicados.
+    /// </summary>
+    public IReadOnlyList<string> GetModelCandidateChain()
+    {
+        var primary = GetEffectiveModel();
+        var chain = new System.Collections.Generic.List<string>();
+
+        if (!string.IsNullOrWhiteSpace(primary))
+        {
+            chain.Add(primary.Trim());
+        }
+
+        foreach (var fallback in DefaultFallbackModels)
+        {
+            if (!chain.Exists(m => string.Equals(m, fallback, StringComparison.OrdinalIgnoreCase)))
+            {
+                chain.Add(fallback);
+            }
+        }
+
+        return chain;
     }
 }
