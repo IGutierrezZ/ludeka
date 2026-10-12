@@ -150,14 +150,16 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                         bool has3dCover = !string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl) &&
                                           (matchedGame.CoverImageUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
                                            matchedGame.CoverImageUrl.Contains("3d", StringComparison.OrdinalIgnoreCase));
-                        bool hasTable = !string.IsNullOrWhiteSpace(matchedGame.TableImageUrl);
+                        bool hasEditorialTable = !string.IsNullOrWhiteSpace(matchedGame.TableImageUrl) &&
+                                                 !matchedGame.TableImageUrl.Contains(".r2.dev/games/", StringComparison.OrdinalIgnoreCase);
                         bool hasBack = !string.IsNullOrWhiteSpace(matchedGame.BackCoverImageUrl);
                         bool hasEan = !string.IsNullOrWhiteSpace(matchedGame.Ean);
                         bool hasDevirOffer = matchedGame.PurchaseLinks.Any(p =>
                             string.Equals(p.StoreName, "Devir", StringComparison.OrdinalIgnoreCase) &&
                             p.Price.HasValue && p.Price.Value > 0);
+                        bool hasGallery = matchedGame.AdditionalImages.Count > 0;
 
-                        if (has3dCover && hasTable && hasBack && hasEan && hasDevirOffer)
+                        if (has3dCover && hasEditorialTable && hasBack && hasEan && hasDevirOffer && hasGallery)
                         {
                             totalSkipped++;
                             continue;
@@ -194,6 +196,25 @@ public sealed class DevirImagesBackfillJobRunner : IJobRunner
                                     backCoverImageUrl: newBack,
                                     tableImageUrl: newTable);
                                 modified = true;
+                            }
+
+                            // Agregar todas las imágenes adicionales de la galería editorial
+                            if (gallery.AllImages != null && gallery.AllImages.Count > 0)
+                            {
+                                var knownUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                if (!string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)) knownUrls.Add(matchedGame.CoverImageUrl);
+                                if (!string.IsNullOrWhiteSpace(matchedGame.BackCoverImageUrl)) knownUrls.Add(matchedGame.BackCoverImageUrl);
+                                if (!string.IsNullOrWhiteSpace(matchedGame.TableImageUrl)) knownUrls.Add(matchedGame.TableImageUrl);
+                                foreach (var extra in matchedGame.AdditionalImages) knownUrls.Add(extra.Url);
+
+                                foreach (var imgUrl in gallery.AllImages)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(imgUrl) && knownUrls.Add(imgUrl))
+                                    {
+                                        matchedGame.AddGalleryImage(imgUrl);
+                                        modified = true;
+                                    }
+                                }
                             }
 
                             // Asignar EAN si el juego no lo tenía

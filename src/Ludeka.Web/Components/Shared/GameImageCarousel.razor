@@ -1,8 +1,10 @@
 @using Ludeka.Core.Enums
 
 <div class="space-y-3">
-    @* Visor Principal del Carrusel *@
-    <div class="relative w-full aspect-square sm:aspect-[4/3] max-h-[460px] rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-neutral-900/90 group select-none">
+    @* Visor Principal del Carrusel con soporte de deslizamiento táctil (swipe) *@
+    <div class="relative w-full aspect-square sm:aspect-[4/3] max-h-[460px] rounded-2xl overflow-hidden border-2 border-[var(--border-highlight)] shadow-2xl bg-neutral-900/90 group select-none touch-pan-y"
+         @ontouchstart="HandleTouchStart"
+         @ontouchend="HandleTouchEnd">
         @{
             var currentSlide = CurrentSlide;
             var placeholderUrl = IsExpansion ? "/images/expansion-placeholder.svg" : "/images/game-placeholder.svg";
@@ -11,14 +13,14 @@
         @* Badge de Expansión *@
         @if (IsExpansion)
         {
-            <div class="absolute top-3 left-3 z-20 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5 backdrop-blur-sm">
+            <div class="absolute top-3 left-3 z-20 px-3 py-1 rounded-lg bg-[var(--state-highlight)] text-[var(--on-brand)] text-xs font-black shadow-lg flex items-center gap-1.5 backdrop-blur-sm pointer-events-none">
                 <Icon Name="puzzle" Size="13" />
                 <span>Expansión Oficial</span>
             </div>
         }
 
         @* Contador de diapositivas y etiqueta *@
-        <div class="absolute top-3 right-3 z-20 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold shadow-lg flex items-center gap-1.5 backdrop-blur-md">
+        <div class="absolute top-3 right-3 z-20 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold shadow-lg flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
             <span>@(CurrentIndex + 1) / @Slides.Count</span>
             <span class="text-white/60">•</span>
             <span class="text-white/90">@currentSlide.Label</span>
@@ -26,7 +28,7 @@
 
         @* Imagen Activa con soporte Lightbox *@
         <div class="w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-black/10 via-transparent to-black/50"
-             @onclick="OpenLightbox"
+             @onclick="HandleImageClick"
              title="Haz clic para ver en grande">
             @if (!string.IsNullOrWhiteSpace(currentSlide.ImageUrl))
             {
@@ -135,8 +137,10 @@
                     <Icon Name="x" Size="24" />
                 </button>
 
-                @* Imagen ampliada *@
-                <div class="relative w-full flex items-center justify-center rounded-2xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl p-2">
+                @* Imagen ampliada con soporte de swipe táctil *@
+                <div class="relative w-full flex items-center justify-center rounded-2xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl p-2 touch-pan-y"
+                     @ontouchstart="HandleTouchStart"
+                     @ontouchend="HandleTouchEnd">
                     <img src="@CurrentSlide.ImageUrl"
                          alt="@CurrentSlide.Alt"
                          class="max-w-full max-h-[80vh] object-contain rounded-xl" />
@@ -283,6 +287,53 @@
         if (Slides.Count <= 1) return;
         var prev = (CurrentIndex - 1 + Slides.Count) % Slides.Count;
         await SelectSlide(prev);
+    }
+
+    private double _touchStartX;
+    private double _touchStartY;
+    private bool _didSwipe;
+
+    private void HandleTouchStart(TouchEventArgs e)
+    {
+        _didSwipe = false;
+        if (e.Touches.Length > 0)
+        {
+            _touchStartX = e.Touches[0].ClientX;
+            _touchStartY = e.Touches[0].ClientY;
+        }
+    }
+
+    private async Task HandleTouchEnd(TouchEventArgs e)
+    {
+        if (e.ChangedTouches.Length > 0)
+        {
+            var deltaX = e.ChangedTouches[0].ClientX - _touchStartX;
+            var deltaY = e.ChangedTouches[0].ClientY - _touchStartY;
+
+            // Umbral mínimo de 40 px y predominancia horizontal
+            if (Math.Abs(deltaX) > 40 && Math.Abs(deltaX) > Math.Abs(deltaY))
+            {
+                _didSwipe = true;
+                if (deltaX < 0)
+                {
+                    await NextSlide();
+                }
+                else
+                {
+                    await PreviousSlide();
+                }
+            }
+        }
+    }
+
+    private void HandleImageClick()
+    {
+        if (_didSwipe)
+        {
+            _didSwipe = false;
+            return;
+        }
+        OpenLightbox();
     }
 
     private void OpenLightbox() => _isLightboxOpen = true;

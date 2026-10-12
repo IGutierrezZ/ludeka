@@ -168,7 +168,15 @@ public class MalditoImagesBackfillJobRunnerTests
             BackCoverImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-backflat.jpg",
             FrontFlatImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-frontflat.jpg",
             Ean: "8436578810017",
-            Pvp: 65.00m);
+            Pvp: 65.00m,
+            AllImages: new[]
+            {
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-face3d.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-frontflat.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-backflat.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-lifestyle1.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810017-1200-lifestyle2.jpg"
+            });
 
         var runner = new MalditoImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<MalditoImagesBackfillJobRunner>.Instance);
 
@@ -186,6 +194,9 @@ public class MalditoImagesBackfillJobRunnerTests
         Assert.Equal("8436578810017", updated.Ean);
         Assert.Contains("face3d", updated.CoverImageUrl!);
         Assert.Contains("backflat", updated.BackCoverImageUrl!);
+        Assert.NotNull(updated.AdditionalImages);
+        Assert.True(updated.AdditionalImages.Count >= 2);
+        Assert.Contains(updated.AdditionalImages, img => img.Url.Contains("lifestyle1"));
 
         var offer = Assert.Single(updated.PurchaseLinks, p => p.StoreName == "Maldito Games");
         Assert.Equal(65.00m, offer.Price);
@@ -209,6 +220,7 @@ public class MalditoImagesBackfillJobRunnerTests
             table: "https://example.com/8436578819720-table.jpg",
             back: "https://example.com/8436578819720-backflat.jpg",
             purchaseLinks: new[] { new GamePurchaseLink("Maldito Games", "https://tienda.malditogames.com/1259-crucero.html", 115.00m) });
+        game.AddGalleryImage("https://example.com/gallery1.jpg", "Foto 1");
         gameRepo.Games.Add(game);
 
         extractor.Pages[1] = new MalditoCatalogPageResultDto(
@@ -228,6 +240,63 @@ public class MalditoImagesBackfillJobRunnerTests
         Assert.Empty(extractor.RequestedGalleryUrls);
         Assert.Empty(gameRepo.UpdatedGames);
         Assert.Equal(0, coordinator.CapturedResult!.Processed);
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenGameLacksAdditionalImages_EnrichesGalleryEvenIfCoverAndTableExist()
+    {
+        // Arrange: juego con portada, mesa y trasera pero SIN AdditionalImages
+        var coordinator = new FakeCoordinator();
+        var extractor = new FakeMalditoExtractor();
+        var gameRepo = new FakeGameRepository();
+
+        var game = CreateGame(
+            101,
+            "brass-birmingham",
+            "Brass: Birmingham",
+            ean: "8436578810024",
+            cover: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-face3d.jpg",
+            table: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-frontflat.jpg",
+            back: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-backflat.jpg",
+            purchaseLinks: new[] { new GamePurchaseLink("Maldito Games", "https://tienda.malditogames.com/brass.html", 75.00m) });
+        gameRepo.Games.Add(game);
+
+        extractor.Pages[1] = new MalditoCatalogPageResultDto(
+            Items: new List<MalditoCatalogItemDto>
+            {
+                new("https://tienda.malditogames.com/brass.html", "Brass: Birmingham", "8436578810024", null)
+            },
+            HasNextPage: false);
+
+        extractor.Galleries["https://tienda.malditogames.com/brass.html"] = new MalditoProductGalleryDto(
+            CoverImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-face3d.jpg",
+            TableImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-lifestyle1.jpg",
+            BackCoverImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-backflat.jpg",
+            FrontFlatImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-frontflat.jpg",
+            Ean: "8436578810024",
+            Pvp: 75.00m,
+            AllImages: new[]
+            {
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-face3d.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-frontflat.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-backflat.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-lifestyle1.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578810024-1200-lifestyle2.jpg"
+            });
+
+        var runner = new MalditoImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<MalditoImagesBackfillJobRunner>.Instance);
+
+        // Act
+        var outcome = await runner.RunAsync(CancellationToken.None);
+
+        // Assert
+        Assert.Equal(JobLeaseOutcome.Completed, outcome);
+        Assert.Single(extractor.RequestedGalleryUrls);
+        Assert.Single(gameRepo.UpdatedGames);
+        var updated = gameRepo.UpdatedGames[0];
+        Assert.Contains("lifestyle1", updated.TableImageUrl!);
+        Assert.NotNull(updated.AdditionalImages);
+        Assert.NotEmpty(updated.AdditionalImages);
     }
 
     [Fact]

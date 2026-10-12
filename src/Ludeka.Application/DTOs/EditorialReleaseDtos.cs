@@ -31,7 +31,8 @@ public record DevirProductGalleryDto(
     string? BackCoverImageUrl,
     string? FrontFlatImageUrl,
     string? Ean = null,
-    decimal? Pvp = null);
+    decimal? Pvp = null,
+    IReadOnlyList<string>? AllImages = null);
 
 /// <summary>
 /// Resultado del proceso de sincronización para una editorial concreta.
@@ -84,7 +85,8 @@ public record MalditoProductGalleryDto(
     string? BackCoverImageUrl,
     string? FrontFlatImageUrl,
     string? Ean = null,
-    decimal? Pvp = null);
+    decimal? Pvp = null,
+    IReadOnlyList<string>? AllImages = null);
 
 /// <summary>
 /// Representa una entrada de producto en el catálogo general de Maldito Games.
@@ -116,7 +118,8 @@ public record ArrakisProductGalleryDto(
     int? BggId = null,
     string? BggUrl = null,
     string? Title = null,
-    string? StatusText = null);
+    string? StatusText = null,
+    IReadOnlyList<string>? AllImages = null);
 
 /// <summary>
 /// Representa una entrada de producto en el catálogo general de Arrakis Games.

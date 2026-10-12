@@ -243,6 +243,33 @@ public class ArrakisReleasesExtractorTests
         Assert.Equal("https://boardgamegeek.com/boardgame/162886/spirit-island", details.BggUrl);
         Assert.Equal("https://arrakisgames.com/wp-content/uploads/2024/12/Spirit_Producto.png", details.CoverImageUrl);
         Assert.Contains("Noviembre 2026", details.StatusText);
+        Assert.NotNull(details.AllImages);
+        Assert.Contains("https://arrakisgames.com/wp-content/uploads/2024/12/Spirit_Producto.png", details.AllImages!);
+    }
+
+    [Fact]
+    public void ParseProductFicha_ExtractsAllImagesFromHtml()
+    {
+        const string fichaMultiFotos = @"
+        <article class=""post"">
+            <img src=""https://arrakisgames.com/wp-content/uploads/2024/12/Juego_portada.png"" class=""attachment-woocommerce_thumbnail"" />
+            <a href=""https://arrakisgames.com/wp-content/uploads/2024/12/Juego_table.jpg"">Mesa</a>
+            <img src=""https://arrakisgames.com/wp-content/uploads/2024/12/Juego_componentes.png"" />
+            <img src=""https://arrakisgames.com/wp-content/uploads/2024/12/Juego_lifestyle.jpg"" />
+            <!-- Logo que debe ser ignorado -->
+            <img src=""https://arrakisgames.com/wp-content/uploads/2024/12/logo-editorial.png"" />
+        </article>";
+
+        var details = _extractor.ParseProductFichaHtml(fichaMultiFotos, "https://arrakisgames.com/juego/");
+
+        Assert.NotNull(details);
+        Assert.NotNull(details!.AllImages);
+        Assert.Equal(4, details.AllImages!.Count);
+        Assert.Contains("https://arrakisgames.com/wp-content/uploads/2024/12/Juego_portada.png", details.AllImages);
+        Assert.Contains("https://arrakisgames.com/wp-content/uploads/2024/12/Juego_table.jpg", details.AllImages);
+        Assert.Contains("https://arrakisgames.com/wp-content/uploads/2024/12/Juego_componentes.png", details.AllImages);
+        Assert.Contains("https://arrakisgames.com/wp-content/uploads/2024/12/Juego_lifestyle.jpg", details.AllImages);
+        Assert.DoesNotContain(details.AllImages, u => u.Contains("logo"));
     }
 
     [Fact]

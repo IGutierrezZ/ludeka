@@ -516,6 +516,7 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
         string? frontFlatUrl = null;
         string? ean = null;
         decimal? pvp = null;
+        var allImages = new List<string>();
 
         // 1. Extraer JSON de galería Magento
         var galleryMatch = GalleryScriptRegex().Match(html);
@@ -537,6 +538,11 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                         var targetUrl = !string.IsNullOrWhiteSpace(full) ? full : img;
                         if (string.IsNullOrWhiteSpace(targetUrl)) continue;
 
+                        if (!allImages.Contains(targetUrl))
+                        {
+                            allImages.Add(targetUrl);
+                        }
+
                         if (targetUrl.Contains("face3d", StringComparison.OrdinalIgnoreCase) ||
                             targetUrl.Contains("3d", StringComparison.OrdinalIgnoreCase) ||
                             targetUrl.Contains("caja", StringComparison.OrdinalIgnoreCase))
@@ -545,9 +551,11 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
                         }
                         else if (targetUrl.Contains("components", StringComparison.OrdinalIgnoreCase) ||
                                  targetUrl.Contains("mesa", StringComparison.OrdinalIgnoreCase) ||
-                                 targetUrl.Contains("contenido", StringComparison.OrdinalIgnoreCase))
+                                 targetUrl.Contains("contenido", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("lifestyle", StringComparison.OrdinalIgnoreCase) ||
+                                 targetUrl.Contains("gameplay", StringComparison.OrdinalIgnoreCase))
                         {
-                            tableUrl = targetUrl;
+                            tableUrl ??= targetUrl;
                         }
                         else if (targetUrl.Contains("backflat", StringComparison.OrdinalIgnoreCase) ||
                                  targetUrl.Contains("trasera", StringComparison.OrdinalIgnoreCase) ||
@@ -591,12 +599,12 @@ public partial class DevirReleasesExtractor : IDevirReleasesExtractor
             }
         }
 
-        if (coverUrl == null && tableUrl == null && backCoverUrl == null && frontFlatUrl == null && ean == null && !pvp.HasValue)
+        if (coverUrl == null && tableUrl == null && backCoverUrl == null && frontFlatUrl == null && ean == null && !pvp.HasValue && allImages.Count == 0)
         {
             return null;
         }
 
-        return new DevirProductGalleryDto(coverUrl, tableUrl, backCoverUrl, frontFlatUrl, ean, pvp);
+        return new DevirProductGalleryDto(coverUrl, tableUrl, backCoverUrl, frontFlatUrl, ean, pvp, allImages.AsReadOnly());
     }
 
     public async Task<DevirCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default)

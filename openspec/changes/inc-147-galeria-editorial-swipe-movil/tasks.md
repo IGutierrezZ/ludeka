@@ -1,0 +1,21 @@
+# Tareas de Implementación: INC-147 - Deslizamiento Táctil en Carrusel Móvil e Ingesta Exhaustiva de Galería Editorial
+
+- [x] **Tarea 1 (DTOs y Modelos):** Añadir `IReadOnlyList<string> AllImages` a `MalditoProductGalleryDto`, `DevirProductGalleryDto` y `ArrakisProductGalleryDto` en `EditorialReleaseDtos.cs`.
+- [x] **Tarea 2 (Extractores Editoriales):**
+  - [x] Actualizar `MalditoReleasesExtractor.cs` para recolectar todas las imágenes en `AllImages` y reconocer `lifestyle`/`gameplay` para la mesa.
+  - [x] Actualizar `DevirReleasesExtractor.cs` para recolectar todas las imágenes en `AllImages` y reconocer `lifestyle`/`gameplay`.
+  - [x] Actualizar `ArrakisReleasesExtractor.cs` para recolectar todas las imágenes en `AllImages`.
+  - [x] Crear/actualizar pruebas unitarias para cada extractor validando la presencia de `AllImages` y fotos `lifestyle`.
+- [x] **Tarea 3 (Jobs de Catálogo y Sincronización):**
+  - [x] Actualizar `MalditoImagesBackfillJobRunner.cs` para inyectar imágenes en `AdditionalImages` y refrescar `TableImageUrl` oficial.
+  - [x] Actualizar `DevirImagesBackfillJobRunner.cs` y `ArrakisImagesBackfillJobRunner.cs` análogamente.
+  - [x] Actualizar `EditorialReleasesSyncService.cs` si aplica para enriquecer novedades con la galería.
+  - [x] Crear/actualizar pruebas unitarias de los *runners*.
+- [x] **Tarea 4 (UI / Visores Móviles y Carrusel):**
+  - [x] Implementar soporte de gestos táctiles (`ontouchstart` / `ontouchend`) en `GameDetail.razor` (visor móvil `<lg`).
+  - [x] Implementar soporte de gestos táctiles en `GameImageCarousel.razor`.
+  - [x] Mejorar la contención visual de imágenes en el visor móvil para evitar pixelación y recorte destructivo (`object-contain` limpio con fondo de contraste).
+  - [x] Probar y verificar interactividad y fluidez.
+- [x] **Tarea 5 (Verificación Global):**
+  - [x] Ejecutar toda la suite de pruebas unitarias (`dotnet test tests/Ludeka.UnitTests`).
+  - [x] Documentar informe de verificación en `verification-report.md`.
