@@ -349,6 +349,38 @@ public class DevirReleasesExtractorTests
         Assert.Equal("https://devir.es/media/catalog/product/8436625610973-1200-frontflat.jpg", gallery.FrontFlatImageUrl);
         Assert.Equal("8436625610973", gallery.Ean);
         Assert.Equal(25.00m, gallery.Pvp);
+        Assert.NotNull(gallery.AllImages);
+        Assert.Equal(4, gallery.AllImages!.Count);
+        Assert.Contains(gallery.AllImages, u => u.Contains("components1"));
+    }
+
+    [Fact]
+    public void ParseProductGalleryHtml_WhenLifestylePresent_PrioritizesLifestyleOverFrontflatForTable()
+    {
+        const string sampleHtml = @"
+        <script type=""text/x-magento-init"">
+        {
+            ""[data-gallery-role=gallery-placeholder]"": {
+                ""mage/gallery/gallery"": {
+                    ""data"": [
+                        { ""img"": ""https://devir.es/product-1200-face3d.jpg"", ""isMain"": true },
+                        { ""img"": ""https://devir.es/product-1200-frontflat.jpg"", ""isMain"": false },
+                        { ""img"": ""https://devir.es/product-1200-lifestyle1.jpg"", ""isMain"": false },
+                        { ""img"": ""https://devir.es/product-1200-backflat.jpg"", ""isMain"": false }
+                    ]
+                }
+            }
+        }
+        </script>";
+
+        var extractor = new DevirReleasesExtractor(new System.Net.Http.HttpClient(), NullLogger<DevirReleasesExtractor>.Instance);
+        var gallery = extractor.ParseProductGalleryHtml(sampleHtml);
+
+        Assert.NotNull(gallery);
+        Assert.Equal("https://devir.es/product-1200-lifestyle1.jpg", gallery!.TableImageUrl);
+        Assert.NotNull(gallery.AllImages);
+        Assert.Equal(4, gallery.AllImages!.Count);
+        Assert.Contains(gallery.AllImages, u => u.Contains("lifestyle1"));
     }
 
     [Fact]

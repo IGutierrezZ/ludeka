@@ -362,10 +362,35 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
 
         // 6. Galería (mesa, componentes)
         string? tableUrl = null;
-        var galleryMatch = Regex.Match(html, @"href=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+?(?:figures|resources|table|stats|components|detalle)[^""]*?\.(?:jpg|png|webp))""", RegexOptions.IgnoreCase);
+        var galleryMatch = Regex.Match(html, @"href=""(?<src>https://arrakisgames\.com/wp-content/uploads/[^""]+?(?:figures|resources|table|stats|components|detalle|lifestyle|gameplay)[^""]*?\.(?:jpg|png|webp))""", RegexOptions.IgnoreCase);
         if (galleryMatch.Success)
         {
             tableUrl = galleryMatch.Groups["src"].Value;
+        }
+
+        // 7. Recolectar todas las imágenes de la ficha
+        var allImages = new List<string>();
+        if (!string.IsNullOrWhiteSpace(coverUrl))
+        {
+            allImages.Add(coverUrl);
+        }
+        if (!string.IsNullOrWhiteSpace(tableUrl) && !allImages.Contains(tableUrl))
+        {
+            allImages.Add(tableUrl);
+        }
+
+        var allImgsMatches = Regex.Matches(html, @"(?:href|src)=""(?<src>https://arrakisgames\.com/wp-content/uploads/\d{4}/\d{2}/[^""]+?\.(?:jpg|jpeg|png|webp))""", RegexOptions.IgnoreCase);
+        foreach (Match m in allImgsMatches)
+        {
+            var u = m.Groups["src"].Value;
+            if (!string.IsNullOrWhiteSpace(u) &&
+                !u.Contains("logo", StringComparison.OrdinalIgnoreCase) &&
+                !u.Contains("-150x150", StringComparison.OrdinalIgnoreCase) &&
+                !u.Contains("-100x100", StringComparison.OrdinalIgnoreCase) &&
+                !allImages.Contains(u))
+            {
+                allImages.Add(u);
+            }
         }
 
         return new ArrakisProductGalleryDto(
@@ -378,7 +403,8 @@ public partial class ArrakisReleasesExtractor : IArrakisReleasesExtractor
             BggId: bggId,
             BggUrl: bggUrl,
             Title: null,
-            StatusText: statusText);
+            StatusText: statusText,
+            AllImages: allImages.AsReadOnly());
     }
 
     public async Task<IReadOnlyList<ArrakisCatalogItemDto>> ExtractFullCatalogAsync(CancellationToken ct = default)

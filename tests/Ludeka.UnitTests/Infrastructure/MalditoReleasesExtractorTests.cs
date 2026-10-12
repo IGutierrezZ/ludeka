@@ -230,6 +230,40 @@ public class MalditoReleasesExtractorTests
         Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436578819720-1200-frontflat.jpg", gallery.TableImageUrl);
         Assert.Equal("8436578819720", gallery.Ean);
         Assert.Equal(115.00m, gallery.Pvp);
+        Assert.NotNull(gallery.AllImages);
+        Assert.Equal(3, gallery.AllImages!.Count);
+        Assert.Contains(gallery.AllImages, u => u.Contains("face3d"));
+    }
+
+    [Fact]
+    public void ParseProductGalleryHtml_WhenLifestyleAndMultipleImages_ExtractsAllImagesAndSetsLifestyleAsTable()
+    {
+        const string htmlWithLifestyle = @"
+        <script type=""text/x-magento-init"">
+        {
+            ""[data-gallery-role=gallery-placeholder]"": {
+                ""mage/gallery/gallery"": {
+                    ""data"": [
+                        { ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-face3d.jpg"", ""isMain"": true },
+                        { ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-backflat.jpg"", ""isMain"": false },
+                        { ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-lifestyle1.jpg"", ""isMain"": false },
+                        { ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-lifestyle2.jpg"", ""isMain"": false },
+                        { ""img"": ""https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-gameplay.jpg"", ""isMain"": false }
+                    ]
+                }
+            }
+        }
+        </script>";
+
+        var extractor = new MalditoReleasesExtractor(new HttpClient(), NullLogger<MalditoReleasesExtractor>.Instance);
+        var gallery = extractor.ParseProductGalleryHtml(htmlWithLifestyle);
+
+        Assert.NotNull(gallery);
+        Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/brass-1200-lifestyle1.jpg", gallery!.TableImageUrl);
+        Assert.NotNull(gallery.AllImages);
+        Assert.Equal(5, gallery.AllImages!.Count);
+        Assert.Contains(gallery.AllImages, u => u.Contains("lifestyle2"));
+        Assert.Contains(gallery.AllImages, u => u.Contains("gameplay"));
     }
 
     [Fact]
