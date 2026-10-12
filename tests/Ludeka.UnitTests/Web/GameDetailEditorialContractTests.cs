@@ -86,6 +86,25 @@ public class GameDetailEditorialContractTests
         Assert.Contains("CloseLightbox", source, StringComparison.Ordinal);
         Assert.Contains("role=\"dialog\"", source, StringComparison.Ordinal);
         Assert.Contains("aria-modal=\"true\"", source, StringComparison.Ordinal);
+
+        // Soporte de deslizamiento táctil horizontal (swipe móvil) y scroll vertical fluido
+        Assert.Contains("@ontouchstart=\"HandleTouchStart\"", source, StringComparison.Ordinal);
+        Assert.Contains("@ontouchend=\"HandleTouchEnd\"", source, StringComparison.Ordinal);
+        Assert.Contains("touch-pan-y", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameDetail_MobileHero_ShouldSupportTouchSwipeAndCrispContainment()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        // Visor móvil (<lg) con soporte de swipe táctil y clase touch-pan-y
+        Assert.Contains("@ontouchstart=\"HandleTouchStart\"", source, StringComparison.Ordinal);
+        Assert.Contains("@ontouchend=\"HandleTouchEnd\"", source, StringComparison.Ordinal);
+        Assert.Contains("touch-pan-y", source, StringComparison.Ordinal);
+
+        // Prevención de pixelación por recorte forzado en fotos de mesa y galerías (object-contain)
+        Assert.Contains("object-contain", source, StringComparison.Ordinal);
     }
 
     [Fact]
