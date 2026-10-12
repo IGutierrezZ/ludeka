@@ -89,5 +89,11 @@ public interface IGameRepository
     /// </summary>
     Task<int> BackfillBggWeightsFromSnapshotsAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    /// <summary>
+    /// Obtiene las entradas ligeras (slug y fecha de actualización) para la generación del sitemap XML.
+    /// </summary>
+    Task<IReadOnlyList<GameSitemapDto>> GetGameSitemapEntriesAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<GameSitemapDto>>([]);
 }
 

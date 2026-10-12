@@ -1067,5 +1067,16 @@ public class SqliteGameRepository : DbContextRepositoryBase, IGameRepository
 
         return totalUpdated;
     }
+
+    public async Task<IReadOnlyList<GameSitemapDto>> GetGameSitemapEntriesAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        var slugs = await scope.Context.Games
+            .AsNoTracking()
+            .Select(g => g.Slug)
+            .ToListAsync(ct);
+
+        return slugs.Select(slug => new GameSitemapDto(slug, null)).ToList();
+    }
 }
 

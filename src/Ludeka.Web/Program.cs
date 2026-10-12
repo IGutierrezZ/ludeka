@@ -23,6 +23,7 @@ using Ludeka.Infrastructure.Seeding;
 using Ludeka.Infrastructure.Services;
 using Ludeka.Infrastructure.YouTube;
 using Ludeka.Application.Features.Discovery;
+using Ludeka.Application.Features.Seo;
 using Ludeka.Infrastructure.Stores;
 using Ludeka.Infrastructure.DependencyInjection;
 using Ludeka.Application.DTOs;
@@ -502,6 +503,33 @@ app.MapGet("/api/instagram/card/{draftId:guid}.svg", async (Guid draftId, IInsta
 
     return Results.Content(draft.SvgContent, "image/svg+xml; charset=utf-8");
 });
+
+// Incremento 148: Endpoint del mapa del sitio XML oficial para rastreadores de motores de búsqueda
+app.MapGet("/sitemap.xml", async (
+    HttpContext httpContext,
+    [FromServices] ISitemapService sitemapService,
+    [FromServices] IMemoryCache cache) =>
+{
+    const string cacheKey = "sitemap_xml_payload";
+    if (!cache.TryGetValue(cacheKey, out string? xml) || string.IsNullOrWhiteSpace(xml))
+    {
+        var request = httpContext.Request;
+        var scheme = request.Scheme;
+        var host = request.Host.Value;
+        var baseUrl = !string.IsNullOrWhiteSpace(host) && !host.Contains("localhost")
+            ? "https://ludeka.es"
+            : $"{scheme}://{host}";
+
+        xml = await sitemapService.GenerateSitemapXmlAsync(baseUrl, httpContext.RequestAborted);
+
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromHours(1));
+        cache.Set(cacheKey, xml, cacheEntryOptions);
+    }
+
+    httpContext.Response.Headers.CacheControl = "public, max-age=3600, s-maxage=86400";
+    return Results.Content(xml, "application/xml; charset=utf-8");
+}).AllowAnonymous();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
