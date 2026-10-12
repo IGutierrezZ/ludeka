@@ -23,6 +23,7 @@ using Ludeka.Application.Features.Milestones;
 using Ludeka.Application.Features.Plays;
 using Ludeka.Application.Features.Releases;
 using Ludeka.Application.Features.Reports;
+using Ludeka.Application.Features.Seo;
 using Ludeka.Application.Features.Sleeves;
 using Ludeka.Application.Features.Staff;
 using Ludeka.Application.Features.Trending;
@@ -241,6 +242,9 @@ public static class LudekaServiceCollectionExtensions
 
         // INC-121: Mediación reactiva de acciones contextuales para la barra de moderación StaffBar
         services.AddScoped<IStaffActionService, StaffActionService>();
+
+        // INC-148: Generador y Servicio del Mapa del Sitio (Sitemap XML)
+        services.AddScoped<ISitemapService, SitemapService>();
 
         // INC-47 (R4a, diseño §6.1/§5.4): repositorio y opciones del outbox de notificaciones.
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));

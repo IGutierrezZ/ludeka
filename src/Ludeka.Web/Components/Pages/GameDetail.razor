@@ -17,6 +17,31 @@
 
 <PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Editorial | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
 
+@if (Game != null)
+{
+    var seoDesc = GameSeoHelper.BuildMetaDescription(Game);
+    var canonicalUrl = $"https://ludeka.es/juegos/{Game.Slug}";
+    var coverImg = !string.IsNullOrWhiteSpace(Game.CoverImageUrl) ? Game.CoverImageUrl : "https://ludeka.es/images/logo-light.png";
+    var schemaJson = GameSeoHelper.BuildStructuredDataJson(Game, canonicalUrl);
+
+    <HeadContent>
+        <meta name="description" content="@seoDesc" />
+        <link rel="canonical" href="@canonicalUrl" />
+        <meta property="og:title" content="@($"{Game.SpanishTitle} ({Game.YearPublished}) — Ficha Editorial | Ludeka")" />
+        <meta property="og:description" content="@seoDesc" />
+        <meta property="og:url" content="@canonicalUrl" />
+        <meta property="og:type" content="article" />
+        <meta property="og:image" content="@coverImg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="@($"{Game.SpanishTitle} ({Game.YearPublished}) — Ludeka")" />
+        <meta name="twitter:description" content="@seoDesc" />
+        <meta name="twitter:image" content="@coverImg" />
+        <script type="application/ld+json">
+            @((MarkupString)schemaJson)
+        </script>
+    </HeadContent>
+}
+
 @if (_isLoading)
 {
     <div class="container-ludeka py-20 text-center text-[var(--muted)]">

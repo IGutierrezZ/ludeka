@@ -1,0 +1,13 @@
+# Ludeka - Robots Exclusion Standard
+User-agent: *
+Allow: /
+
+# Rutas privadas, administrativas y de autenticación
+Disallow: /admin
+Disallow: /admin/
+Disallow: /cuenta/
+Disallow: /login
+Disallow: /api/
+
+# Mapa del sitio oficial
+Sitemap: https://ludeka.es/sitemap.xml
