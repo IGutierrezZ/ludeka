@@ -173,7 +173,14 @@ public class DevirImagesBackfillJobRunnerTests
             BackCoverImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-backflat.jpg",
             FrontFlatImageUrl: "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-frontflat.jpg",
             Ean: "8436017221138",
-            Pvp: 12.95m);
+            Pvp: 12.95m,
+            AllImages: new[]
+            {
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-face3d.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-components1.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-backflat.jpg",
+                "https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-lifestyle1.jpg"
+            });
 
         var runner = new DevirImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<DevirImagesBackfillJobRunner>.Instance);
 
@@ -193,6 +200,8 @@ public class DevirImagesBackfillJobRunnerTests
         Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-face3d.jpg", updated.CoverImageUrl);
         Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-components1.jpg", updated.TableImageUrl);
         Assert.Equal("https://devirinvestments.s3.eu-west-1.amazonaws.com/img/catalog/product/8436017221138-1200-backflat.jpg", updated.BackCoverImageUrl);
+        Assert.NotNull(updated.AdditionalImages);
+        Assert.Contains(updated.AdditionalImages, img => img.Url.Contains("lifestyle1"));
     }
 
     [Fact]
@@ -212,6 +221,7 @@ public class DevirImagesBackfillJobRunnerTests
             table: "https://devir.es/catan-components1.jpg",
             back: "https://devir.es/catan-backflat.jpg",
             purchaseLinks: new[] { new GamePurchaseLink("Devir", "https://devir.es/catan", 45.00m) });
+        catan.AddGalleryImage("https://devir.es/catan-lifestyle1.jpg", "Mesa Catan");
         gameRepo.Games.Add(catan);
 
         extractor.Pages[1] = new DevirCatalogPageResultDto(
@@ -231,6 +241,62 @@ public class DevirImagesBackfillJobRunnerTests
         Assert.Empty(extractor.RequestedGalleryUrls); // No se consumió la ficha ni la red
         Assert.Empty(gameRepo.UpdatedGames);
         Assert.Equal(0, coordinator.CapturedResult!.Processed);
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenGameLacksAdditionalImages_FetchesGalleryAndPopulatesAdditionalImages()
+    {
+        // Arrange: juego con portada, mesa y trasera pero SIN AdditionalImages
+        var coordinator = new FakeCoordinator();
+        var extractor = new FakeDevirExtractor();
+        var gameRepo = new FakeGameRepository();
+
+        var game = CreateGame(
+            15,
+            "paris",
+            "Paris",
+            ean: "8436589622340",
+            cover: "https://devir.es/paris-face3d.jpg",
+            table: "https://devir.es/paris-frontflat.jpg",
+            back: "https://devir.es/paris-backflat.jpg",
+            purchaseLinks: new[] { new GamePurchaseLink("Devir", "https://devir.es/paris", 40.00m) });
+        gameRepo.Games.Add(game);
+
+        extractor.Pages[1] = new DevirCatalogPageResultDto(
+            Items: new List<DevirCatalogItemDto>
+            {
+                new("https://devir.es/paris", "Paris", "8436589622340", "https://devir.es/paris-face3d.jpg")
+            },
+            HasNextPage: false);
+
+        extractor.Galleries["https://devir.es/paris"] = new DevirProductGalleryDto(
+            CoverImageUrl: "https://devir.es/paris-face3d.jpg",
+            TableImageUrl: "https://devir.es/paris-lifestyle1.jpg",
+            BackCoverImageUrl: "https://devir.es/paris-backflat.jpg",
+            FrontFlatImageUrl: "https://devir.es/paris-frontflat.jpg",
+            Ean: "8436589622340",
+            Pvp: 40.00m,
+            AllImages: new[]
+            {
+                "https://devir.es/paris-face3d.jpg",
+                "https://devir.es/paris-frontflat.jpg",
+                "https://devir.es/paris-backflat.jpg",
+                "https://devir.es/paris-lifestyle1.jpg"
+            });
+
+        var runner = new DevirImagesBackfillJobRunner(coordinator, extractor, gameRepo, NullLogger<DevirImagesBackfillJobRunner>.Instance);
+
+        // Act
+        var outcome = await runner.RunAsync(CancellationToken.None);
+
+        // Assert
+        Assert.Equal(JobLeaseOutcome.Completed, outcome);
+        Assert.Single(extractor.RequestedGalleryUrls);
+        Assert.Single(gameRepo.UpdatedGames);
+        var updated = gameRepo.UpdatedGames.First();
+        Assert.Equal("https://devir.es/paris-lifestyle1.jpg", updated.TableImageUrl);
+        Assert.NotNull(updated.AdditionalImages);
+        Assert.NotEmpty(updated.AdditionalImages);
     }
 
     [Fact]

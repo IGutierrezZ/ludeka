@@ -201,7 +201,13 @@ public class ArrakisImagesBackfillJobRunnerTests
             BggId: 162886,
             BggUrl: "https://boardgamegeek.com/boardgame/162886/spirit-island",
             Title: "Spirit Island",
-            StatusText: "Reimpresión: Noviembre 2026");
+            StatusText: "Reimpresión: Noviembre 2026",
+            AllImages: new[]
+            {
+                "https://arrakisgames.com/wp-content/uploads/Spirit_HD.png",
+                "https://arrakisgames.com/wp-content/uploads/Spirit_mesa.jpg",
+                "https://arrakisgames.com/wp-content/uploads/Spirit_components.jpg"
+            });
 
         var runner = new ArrakisImagesBackfillJobRunner(
             coordinator,
@@ -222,6 +228,8 @@ public class ArrakisImagesBackfillJobRunnerTests
         Assert.Equal("https://arrakisgames.com/wp-content/uploads/Spirit_HD.png", updated.CoverImageUrl);
         Assert.Equal("https://arrakisgames.com/wp-content/uploads/Spirit_mesa.jpg", updated.TableImageUrl);
         Assert.Equal("Arrakis Games", updated.SpanishPublisher);
+        Assert.NotNull(updated.AdditionalImages);
+        Assert.Contains(updated.AdditionalImages, img => img.Url.Contains("components"));
 
         var arrakisOffer = Assert.Single(updated.PurchaseLinks, p => p.StoreName == "Arrakis Games");
         Assert.Equal(84.95m, arrakisOffer.Price);

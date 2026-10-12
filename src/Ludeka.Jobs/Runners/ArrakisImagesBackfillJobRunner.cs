@@ -185,6 +185,23 @@ public sealed class ArrakisImagesBackfillJobRunner : IJobRunner
                                             tableImageUrl: gallery.TableImageUrl);
                                     }
 
+                                    if (gallery.AllImages != null && gallery.AllImages.Count > 0)
+                                    {
+                                        var knownUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                        if (!string.IsNullOrWhiteSpace(bggGame.CoverImageUrl)) knownUrls.Add(bggGame.CoverImageUrl);
+                                        if (!string.IsNullOrWhiteSpace(bggGame.BackCoverImageUrl)) knownUrls.Add(bggGame.BackCoverImageUrl);
+                                        if (!string.IsNullOrWhiteSpace(bggGame.TableImageUrl)) knownUrls.Add(bggGame.TableImageUrl);
+                                        foreach (var extra in bggGame.AdditionalImages) knownUrls.Add(extra.Url);
+
+                                        foreach (var imgUrl in gallery.AllImages)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(imgUrl) && knownUrls.Add(imgUrl))
+                                            {
+                                                bggGame.AddGalleryImage(imgUrl);
+                                            }
+                                        }
+                                    }
+
                                     if (gallery.Pvp.HasValue && gallery.Pvp.Value > 0)
                                     {
                                         var newLink = new GamePurchaseLink(
@@ -238,7 +255,7 @@ public sealed class ArrakisImagesBackfillJobRunner : IJobRunner
 
                         // Imagen de mesa / componentes
                         if (!string.IsNullOrWhiteSpace(gallery.TableImageUrl) &&
-                            string.IsNullOrWhiteSpace(matchedGame.TableImageUrl))
+                            (string.IsNullOrWhiteSpace(matchedGame.TableImageUrl) || matchedGame.TableImageUrl.Contains(".r2.dev/games/", StringComparison.OrdinalIgnoreCase)))
                         {
                             matchedGame.UpdateMediaUrls(
                                 coverImageUrl: matchedGame.CoverImageUrl,
@@ -246,6 +263,25 @@ public sealed class ArrakisImagesBackfillJobRunner : IJobRunner
                                 backCoverImageUrl: matchedGame.BackCoverImageUrl,
                                 tableImageUrl: gallery.TableImageUrl);
                             modified = true;
+                        }
+
+                        // Agregar todas las imágenes adicionales de la galería editorial
+                        if (gallery.AllImages != null && gallery.AllImages.Count > 0)
+                        {
+                            var knownUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            if (!string.IsNullOrWhiteSpace(matchedGame.CoverImageUrl)) knownUrls.Add(matchedGame.CoverImageUrl);
+                            if (!string.IsNullOrWhiteSpace(matchedGame.BackCoverImageUrl)) knownUrls.Add(matchedGame.BackCoverImageUrl);
+                            if (!string.IsNullOrWhiteSpace(matchedGame.TableImageUrl)) knownUrls.Add(matchedGame.TableImageUrl);
+                            foreach (var extra in matchedGame.AdditionalImages) knownUrls.Add(extra.Url);
+
+                            foreach (var imgUrl in gallery.AllImages)
+                            {
+                                if (!string.IsNullOrWhiteSpace(imgUrl) && knownUrls.Add(imgUrl))
+                                {
+                                    matchedGame.AddGalleryImage(imgUrl);
+                                    modified = true;
+                                }
+                            }
                         }
 
                         // EAN si el juego no lo tiene
