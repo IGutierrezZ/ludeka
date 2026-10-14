@@ -161,6 +161,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-146** | Menú Flotante Global de Moderación y Staff (Retirada de StaffBar y Limpieza Contextual) | ⏳ En progreso | [inc-146-menu-flotante-staff.md](inc-146-menu-flotante-staff.md) |
 | **INC-147** | Deslizamiento Táctil en Carrusel Móvil e Ingesta Exhaustiva de Galería Editorial (Devir, Maldito, Arrakis) | ⏳ En progreso | [inc-147-galeria-editorial-swipe-movil.md](inc-147-galeria-editorial-swipe-movil.md) |
 | **INC-148** | Infraestructura SEO, Sitemap XML Dinámico, Robots.txt, Marcado Semántico JSON-LD y Verificación Google Search Console | ⏳ En progreso | [inc-148-seo-sitemap-indexacion.md](inc-148-seo-sitemap-indexacion.md) |
+| **INC-149** | Sistema de Avisos, Campana de Notificaciones, Web Push (PWA/Navegador) y Contador Administrativo Real | ✅ Archivado | [inc-149-sistema-avisos-notificaciones.md](archive/inc-149-sistema-avisos-notificaciones.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

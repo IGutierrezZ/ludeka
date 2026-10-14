@@ -7,6 +7,9 @@
 @inject IAffiliateUrlResolver AffiliateResolver
 @inject IPriceRadarService PriceRadarService
 @inject IWeeklyReleaseService? WeeklyReleaseService
+@inject IUserNotificationService? NotificationService
+@inject ICurrentUserService? CurrentUserService
+@inject NavigationManager? Navigation
 
 @if (IsSidebar)
 {
@@ -145,6 +148,24 @@
         else
         {
             <span class="py-3 text-xs text-[var(--muted)]">Sin ofertas disponibles por el momento.</span>
+        }
+
+        @if (!HasConfirmedInStock && GameId.HasValue && GameId.Value != Guid.Empty)
+        {
+            <div class="mt-3 p-3 rounded-xl bg-[var(--paper-2)] border border-[var(--line)] flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <Icon Name="package" Size="14" class="text-[var(--accent)] shrink-0" />
+                    <span class="text-xs font-bold text-[var(--ink)] leading-snug">
+                        @(_isRestockAlertActive ? "Alerta de reestock activa" : "¿Sin stock en tiendas?")
+                    </span>
+                </div>
+                <button type="button"
+                        @onclick="ToggleRestockAlertAsync"
+                        class="h-8 px-3 rounded-full text-[11px] font-extrabold transition-colors shrink-0 inline-flex items-center gap-1 cursor-pointer @(_isRestockAlertActive ? "bg-emerald-600 text-white" : "bg-[var(--ink)] text-[var(--paper)] hover:opacity-90")">
+                    <Icon Name="@(_isRestockAlertActive ? "check" : "bell")" Size="11" />
+                    <span>@(_isRestockAlertActive ? "Aviso activo" : "Avísame de reestock")</span>
+                </button>
+            </div>
         }
 
         <span class="mt-3.5 mb-2 text-xs text-[var(--muted)]">Enlaces de afiliado sin coste adicional para ti.</span>
@@ -472,6 +493,22 @@ else
         </div>
     }
 
+    @if (!HasConfirmedInStock && GameId.HasValue && GameId.Value != Guid.Empty)
+    {
+        <div class="p-3.5 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2 text-xs text-[var(--text-primary)] font-bold">
+                <Icon Name="package" Size="15" />
+                <span>@(_isRestockAlertActive ? "Te avisaremos en cuanto detectemos stock en alguna tienda." : "Actualmente no hay stock confirmado en tiendas asociadas.")</span>
+            </div>
+            <button type="button"
+                    @onclick="ToggleRestockAlertAsync"
+                    class="h-8 px-3.5 rounded-full text-xs font-extrabold transition-colors inline-flex items-center gap-1.5 cursor-pointer @(_isRestockAlertActive ? "bg-emerald-600 text-white" : "bg-[var(--brand-primary)] text-white hover:opacity-90")">
+                <Icon Name="@(_isRestockAlertActive ? "check" : "bell")" Size="12" />
+                <span>@(_isRestockAlertActive ? "Aviso de reestock activo" : "Avísame de reestock")</span>
+            </button>
+        </div>
+    }
+
     <div class="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[0.68rem] text-[var(--text-muted)] flex-wrap gap-2">
         <span>
             <Icon Name="lightbulb" Size="12" /> <em>Al comprar a través de estos enlaces recibimos una pequeña aportación que ayuda a mantener Ludeka libre de publicidad invasiva.</em>
@@ -506,6 +543,12 @@ else
     private GamePriceMetrics? _priceMetrics;
     private bool _isReferenceFallback;
     private WeeklyReleaseDto? _upcomingReprint;
+    private bool _isRestockAlertActive;
+
+    private bool HasConfirmedInStock =>
+        !_isReferenceFallback &&
+        _displayedOffers != null &&
+        _displayedOffers.Any(o => o.Price.HasValue && o.Price.Value > 0 && o.InStock);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -531,6 +574,19 @@ else
                 catch
                 {
                     // Silencioso por resiliencia
+                }
+            }
+
+            if (NotificationService != null && CurrentUserService != null && !string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+            {
+                try
+                {
+                    var activeAlerts = await NotificationService.GetUserGameAlertsAsync(CurrentUserService.UserId, GameId.Value);
+                    _isRestockAlertActive = activeAlerts.Any(a => a.AlertType == GameAlertType.Restock);
+                }
+                catch
+                {
+                    _isRestockAlertActive = false;
                 }
             }
         }
@@ -791,5 +847,36 @@ else
                 affiliateTag: "Direct",
                 country: "España")
         ];
+    }
+
+    private async Task ToggleRestockAlertAsync()
+    {
+        if (!GameId.HasValue || GameId.Value == Guid.Empty) return;
+
+        if (CurrentUserService == null || string.IsNullOrWhiteSpace(CurrentUserService.UserId))
+        {
+            Navigation?.NavigateTo("/login", forceLoad: false);
+            return;
+        }
+
+        if (NotificationService == null) return;
+
+        try
+        {
+            if (_isRestockAlertActive)
+            {
+                await NotificationService.UnsubscribeGameAlertAsync(CurrentUserService.UserId, GameId.Value, GameAlertType.Restock);
+                _isRestockAlertActive = false;
+            }
+            else
+            {
+                await NotificationService.SubscribeGameAlertAsync(CurrentUserService.UserId, GameId.Value, GameAlertType.Restock);
+                _isRestockAlertActive = true;
+            }
+        }
+        catch
+        {
+            // Silencioso por resiliencia
+        }
     }
 }

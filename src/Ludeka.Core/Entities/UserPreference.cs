@@ -17,6 +17,7 @@ public class UserPreference
     public bool LeaderboardOptIn { get; set; } = false;
     public bool LeaderboardAnonymous { get; set; } = false;
     public string? LeaderboardPseudonym { get; set; }
+    public bool NotifyNewGiveaways { get; set; } = false;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public UserPreference()
@@ -30,7 +31,8 @@ public class UserPreference
         bool hidePublicProfile = false,
         bool leaderboardOptIn = false,
         bool leaderboardAnonymous = false,
-        string? leaderboardPseudonym = null)
+        string? leaderboardPseudonym = null,
+        bool notifyNewGiveaways = false)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -44,6 +46,7 @@ public class UserPreference
         LeaderboardOptIn = leaderboardOptIn;
         LeaderboardAnonymous = leaderboardAnonymous;
         LeaderboardPseudonym = Helpers.PseudonymGenerator.NormalizeCustomPseudonym(leaderboardPseudonym);
+        NotifyNewGiveaways = notifyNewGiveaways;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -70,6 +73,12 @@ public class UserPreference
         LeaderboardOptIn = optIn;
         LeaderboardAnonymous = anonymous;
         LeaderboardPseudonym = Helpers.PseudonymGenerator.NormalizeCustomPseudonym(pseudonym);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetNotifyNewGiveaways(bool notifyNewGiveaways)
+    {
+        NotifyNewGiveaways = notifyNewGiveaways;
         UpdatedAt = DateTime.UtcNow;
     }
 

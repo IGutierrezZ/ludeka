@@ -78,10 +78,11 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
                 pref.HidePublicProfile,
                 pref.LeaderboardOptIn,
                 pref.LeaderboardAnonymous,
-                pref.LeaderboardPseudonym);
+                pref.LeaderboardPseudonym,
+                pref.NotifyNewGiveaways);
         }
 
-        return new UserPreferenceDto(cleanUserId, UserPreference.DefaultTheme, DateTime.UtcNow, null, false, false, false, null);
+        return new UserPreferenceDto(cleanUserId, UserPreference.DefaultTheme, DateTime.UtcNow, null, false, false, false, null, false);
     }
 
     public async Task<string?> GetUserCountryAsync(string userId, CancellationToken ct = default)
@@ -166,5 +167,34 @@ public class SqliteUserPreferenceService : DbContextRepositoryBase, IUserPrefere
         }
 
         await scope.Context.SaveChangesAsync(ct);
+    }
+
+    public async Task SetNotifyNewGiveawaysAsync(string userId, bool notify, CancellationToken ct = default)
+    {
+        string cleanUserId = SessionIdentity.Require(userId);
+        await using var scope = await CreateScopeAsync(ct);
+        var existing = await scope.Context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == cleanUserId, ct);
+
+        if (existing == null)
+        {
+            var newPref = new UserPreference(cleanUserId, UserPreference.DefaultTheme, notifyNewGiveaways: notify);
+            scope.Context.UserPreferences.Add(newPref);
+        }
+        else
+        {
+            existing.SetNotifyNewGiveaways(notify);
+        }
+
+        await scope.Context.SaveChangesAsync(ct);
+    }
+
+    public async Task<System.Collections.Generic.IReadOnlyList<string>> GetUserIdsSubscribedToGiveawaysAsync(CancellationToken ct = default)
+    {
+        await using var scope = await CreateScopeAsync(ct);
+        return await scope.Context.UserPreferences
+            .AsNoTracking()
+            .Where(p => p.NotifyNewGiveaways)
+            .Select(p => p.UserId)
+            .ToListAsync(ct);
     }
 }

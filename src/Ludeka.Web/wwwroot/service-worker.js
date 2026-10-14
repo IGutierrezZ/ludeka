@@ -131,3 +131,63 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
+// 4. Recepción de notificaciones Web Push (PWA Móvil y Navegador — INC-149)
+self.addEventListener('push', event => {
+    let data = {
+        title: 'Ludeka — Nuevo aviso',
+        body: 'Tienes una nueva notificación en tu mesa.',
+        url: '/cuenta/notificaciones',
+        icon: '/icons/icon-192.png',
+        badge: '/favicon-32x32.png'
+    };
+
+    if (event.data) {
+        try {
+            const parsed = event.data.json();
+            data = {
+                title: parsed.title || data.title,
+                body: parsed.body || data.body,
+                url: parsed.url || data.url,
+                icon: parsed.icon || data.icon,
+                badge: parsed.badge || data.badge
+            };
+        } catch {
+            data.body = event.data.text() || data.body;
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: data.icon,
+        badge: data.badge,
+        data: { url: data.url },
+        vibrate: [100, 50, 100],
+        requireInteraction: false
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// 5. Apertura o enfoque de la pestaña al pulsar una notificación del sistema
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    const targetUrl = (event.notification.data && event.notification.data.url) || '/cuenta/notificaciones';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (const client of windowClients) {
+                if ('focus' in client) {
+                    client.navigate(targetUrl);
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
+});
+

@@ -28,6 +28,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
     private readonly IBggClient? _bggClient;
     private readonly IReleaseAiMatcherService? _aiMatcherService;
     private readonly ILogger<EditorialReleasesSyncService> _logger;
+    private readonly IUserNotificationService? _userNotificationService;
 
     public EditorialReleasesSyncService(
         IDevirReleasesExtractor devirExtractor,
@@ -37,7 +38,8 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         IGameRepository gameRepository,
         IBggClient? bggClient,
         IReleaseAiMatcherService? aiMatcherService,
-        ILogger<EditorialReleasesSyncService> logger)
+        ILogger<EditorialReleasesSyncService> logger,
+        IUserNotificationService? userNotificationService = null)
     {
         _devirExtractor = devirExtractor ?? throw new ArgumentNullException(nameof(devirExtractor));
         _malditoExtractor = malditoExtractor ?? throw new ArgumentNullException(nameof(malditoExtractor));
@@ -47,6 +49,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         _bggClient = bggClient;
         _aiMatcherService = aiMatcherService;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userNotificationService = userNotificationService;
     }
 
     public EditorialReleasesSyncService(
@@ -57,7 +60,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         IBggClient? bggClient,
         IReleaseAiMatcherService? aiMatcherService,
         ILogger<EditorialReleasesSyncService> logger)
-        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, aiMatcherService, logger)
+        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, aiMatcherService, logger, null)
     {
     }
 
@@ -68,7 +71,7 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
         IGameRepository gameRepository,
         IBggClient? bggClient,
         ILogger<EditorialReleasesSyncService> logger)
-        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, null, logger)
+        : this(devirExtractor, malditoExtractor, null, weeklyReleaseRepository, gameRepository, bggClient, null, logger, null)
     {
     }
 
@@ -465,6 +468,19 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
 
                 await _weeklyReleaseRepository.UpdateAsync(existingRelease, ct).ConfigureAwait(false);
                 updatedCount++;
+
+                if (_userNotificationService != null &&
+                    existingRelease.IsReprint &&
+                    existingRelease.GameId.HasValue &&
+                    existingRelease.Status == WeeklyReleaseStatus.Published)
+                {
+                    await _userNotificationService.NotifyReprintDetectedAsync(
+                        existingRelease.GameId.Value,
+                        existingRelease.Title,
+                        existingRelease.Publisher,
+                        existingRelease.ReleaseDate,
+                        ct).ConfigureAwait(false);
+                }
             }
             else
             {
@@ -491,6 +507,19 @@ public class EditorialReleasesSyncService : IEditorialReleasesSyncService
                 await _weeklyReleaseRepository.AddAsync(newRelease, ct).ConfigureAwait(false);
                 releaseIndex[releaseKey] = newRelease;
                 createdCount++;
+
+                if (_userNotificationService != null &&
+                    newRelease.IsReprint &&
+                    newRelease.GameId.HasValue &&
+                    newRelease.Status == WeeklyReleaseStatus.Published)
+                {
+                    await _userNotificationService.NotifyReprintDetectedAsync(
+                        newRelease.GameId.Value,
+                        newRelease.Title,
+                        newRelease.Publisher,
+                        newRelease.ReleaseDate,
+                        ct).ConfigureAwait(false);
+                }
             }
         }
 

@@ -200,6 +200,7 @@ public static class SqliteSchemaMigrator
                         "LeaderboardOptIn" INTEGER NOT NULL DEFAULT 0,
                         "LeaderboardAnonymous" INTEGER NOT NULL DEFAULT 0,
                         "LeaderboardPseudonym" TEXT NULL,
+                        "NotifyNewGiveaways" INTEGER NOT NULL DEFAULT 0,
                         "UpdatedAt" TEXT NOT NULL
                     );
                     """;
@@ -558,6 +559,12 @@ public static class SqliteSchemaMigrator
                 {
                     using var cmd = connection.CreateCommand();
                     cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"LeaderboardPseudonym\" TEXT NULL;";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
+                if (!cols.Contains("NotifyNewGiveaways"))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE \"UserPreferences\" ADD COLUMN \"NotifyNewGiveaways\" INTEGER NOT NULL DEFAULT 0;";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
             }
@@ -1267,6 +1274,73 @@ public static class SqliteSchemaMigrator
                     """;
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("AffiliateEanDiscrepancies");
+            }
+
+            // 35. Crear tablas de notificaciones, alertas de juegos y Web Push si no existen (INC-149)
+            if (!existingTables.Contains("UserNotifications"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "UserNotifications" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_UserNotifications" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "Type" INTEGER NOT NULL,
+                        "Title" TEXT NOT NULL,
+                        "Message" TEXT NOT NULL,
+                        "TargetUrl" TEXT NOT NULL,
+                        "GameId" TEXT NULL,
+                        "ImageUrl" TEXT NULL,
+                        "IsRead" INTEGER NOT NULL DEFAULT 0,
+                        "CreatedAtUtc" TEXT NOT NULL,
+                        "ReadAtUtc" TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_UserNotifications_UserId_IsRead_CreatedAtUtc" ON "UserNotifications" ("UserId", "IsRead", "CreatedAtUtc");
+                    CREATE INDEX IF NOT EXISTS "IX_UserNotifications_GameId" ON "UserNotifications" ("GameId");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("UserNotifications");
+            }
+
+            if (!existingTables.Contains("UserGameAlertSubscriptions"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "UserGameAlertSubscriptions" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_UserGameAlertSubscriptions" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "GameId" TEXT NOT NULL,
+                        "AlertType" INTEGER NOT NULL,
+                        "ReferenceBasePvp" TEXT NULL,
+                        "LastNotifiedPrice" TEXT NULL,
+                        "LastNotifiedAtUtc" TEXT NULL,
+                        "CreatedAtUtc" TEXT NOT NULL,
+                        CONSTRAINT "FK_UserGameAlertSubscriptions_Games_GameId" FOREIGN KEY ("GameId") REFERENCES "Games" ("Id") ON DELETE CASCADE
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserGameAlertSubscriptions_UserId_GameId_AlertType" ON "UserGameAlertSubscriptions" ("UserId", "GameId", "AlertType");
+                    CREATE INDEX IF NOT EXISTS "IX_UserGameAlertSubscriptions_GameId_AlertType" ON "UserGameAlertSubscriptions" ("GameId", "AlertType");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("UserGameAlertSubscriptions");
+            }
+
+            if (!existingTables.Contains("UserPushSubscriptions"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "UserPushSubscriptions" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_UserPushSubscriptions" PRIMARY KEY,
+                        "UserId" TEXT NOT NULL,
+                        "Endpoint" TEXT NOT NULL,
+                        "P256dh" TEXT NOT NULL,
+                        "Auth" TEXT NOT NULL,
+                        "UserAgent" TEXT NULL,
+                        "CreatedAtUtc" TEXT NOT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserPushSubscriptions_UserId_Endpoint" ON "UserPushSubscriptions" ("UserId", "Endpoint");
+                    CREATE INDEX IF NOT EXISTS "IX_UserPushSubscriptions_UserId" ON "UserPushSubscriptions" ("UserId");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("UserPushSubscriptions");
             }
         }
         finally

@@ -19,17 +19,20 @@ public class WeeklyReleaseService : IWeeklyReleaseService
     private readonly ISessionPermissionGuard? _permissionGuard;
     private readonly IGameRepository? _gameRepository;
     private readonly IBggClient? _bggClient;
+    private readonly IUserNotificationService? _userNotificationService;
 
     public WeeklyReleaseService(
         IWeeklyReleaseRepository repository,
         ISessionPermissionGuard? permissionGuard = null,
         IGameRepository? gameRepository = null,
-        IBggClient? bggClient = null)
+        IBggClient? bggClient = null,
+        IUserNotificationService? userNotificationService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _permissionGuard = permissionGuard;
         _gameRepository = gameRepository;
         _bggClient = bggClient;
+        _userNotificationService = userNotificationService;
     }
 
     /// <summary>
@@ -85,6 +88,20 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             isMonthOnly: request.IsMonthOnly);
 
         await _repository.AddAsync(release, ct);
+
+        if (_userNotificationService != null &&
+            release.IsReprint &&
+            release.GameId.HasValue &&
+            release.Status == WeeklyReleaseStatus.Published)
+        {
+            await _userNotificationService.NotifyReprintDetectedAsync(
+                release.GameId.Value,
+                release.Title,
+                release.Publisher,
+                release.ReleaseDate,
+                ct);
+        }
+
         return MapToDto(release);
     }
 
@@ -109,6 +126,20 @@ public class WeeklyReleaseService : IWeeklyReleaseService
             isMonthOnly: request.IsMonthOnly);
 
         await _repository.UpdateAsync(existing, ct);
+
+        if (_userNotificationService != null &&
+            existing.IsReprint &&
+            existing.GameId.HasValue &&
+            existing.Status == WeeklyReleaseStatus.Published)
+        {
+            await _userNotificationService.NotifyReprintDetectedAsync(
+                existing.GameId.Value,
+                existing.Title,
+                existing.Publisher,
+                existing.ReleaseDate,
+                ct);
+        }
+
         return MapToDto(existing);
     }
 
@@ -156,6 +187,19 @@ public class WeeklyReleaseService : IWeeklyReleaseService
 
         existing.Approve(finalGameId);
         await _repository.UpdateAsync(existing, ct);
+
+        if (_userNotificationService != null &&
+            existing.IsReprint &&
+            existing.GameId.HasValue)
+        {
+            await _userNotificationService.NotifyReprintDetectedAsync(
+                existing.GameId.Value,
+                existing.Title,
+                existing.Publisher,
+                existing.ReleaseDate,
+                ct);
+        }
+
         return MapToDto(existing);
     }
 

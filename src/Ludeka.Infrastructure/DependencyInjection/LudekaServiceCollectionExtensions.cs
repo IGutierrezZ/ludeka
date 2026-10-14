@@ -284,6 +284,9 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IUserLibraryStatsService, UserLibraryStatsService>();
         services.AddScoped<IUserPreferenceService, SqliteUserPreferenceService>();
         services.AddScoped<IUserLocationService, UserLocationService>();
+        services.AddScoped<IUserNotificationRepository, SqliteUserNotificationRepository>();
+        services.AddScoped<IUserNotificationService, UserNotificationService>();
+        services.AddScoped<IAdminPendingSummaryService, AdminPendingSummaryService>();
 
         // Incremento 19 e INC-87: Directorio de Editoriales, Creadores y Tiendas con Foco Audiovisual y Caché L1
         services.AddScoped<IPublisherRepository, SqlitePublisherRepository>();
@@ -479,6 +482,13 @@ public static class LudekaServiceCollectionExtensions
             client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("es-ES,es;q=0.9,en;q=0.8");
         });
         services.AddHttpClient<IReleaseAiMatcherService, GeminiReleaseMatcherService>();
+
+        // INC-149: Notificaciones Web Push (W3C Push API + VAPID) para PWA móvil y navegador
+        services.Configure<WebPushOptions>(configuration.GetSection(WebPushOptions.SectionName));
+        services.AddHttpClient<IWebPushNotificationSender, VapidWebPushNotificationSender>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
         return services;
     }

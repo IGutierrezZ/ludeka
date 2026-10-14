@@ -13,6 +13,7 @@
 @inject IJSRuntime JS
 @inject ILogger<GameDetail> Logger
 @inject IStaffActionService StaffActionService
+@inject IUserNotificationService NotificationService
 @implements IDisposable
 
 <PageTitle>@(Game != null ? $"{Game.SpanishTitle} — Ficha Editorial | Ludeka" : "Juego no encontrado — Ludeka")</PageTitle>
@@ -847,6 +848,50 @@ else
             <aside id="donde-comprar" class="flex flex-col gap-8 lg:col-span-4 lg:sticky lg:top-20">
                 <StoreOffersCard Offers="@Game.PurchaseLinks" GameTitle="@Game.SpanishTitle" GameSlug="@Game.Slug" GameId="@Game.Id" IsSidebar="true" />
 
+                @* Bloque de Avisos Separados: Oferta (-15%), Reimpresión y Reestock *@
+                <div class="flex flex-col gap-2.5">
+                    <div class="flex items-center justify-between pb-2 border-b-[3px] border-[var(--rule)]">
+                        <b class="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[var(--ink)]">Avisos y alertas</b>
+                        <a href="/cuenta/notificaciones" class="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
+                            Mis avisos &rarr;
+                        </a>
+                    </div>
+                    <p class="text-xs text-[var(--muted)] leading-relaxed m-0">
+                        Activa los avisos que te interesen para recibir una notificación cuando detectemos novedades en este juego:
+                    </p>
+                    <div class="flex flex-col gap-2 pt-1">
+                        <button type="button"
+                                @onclick="() => ToggleGameAlertAsync(GameAlertType.PriceDrop)"
+                                class="w-full py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-between gap-2 cursor-pointer @(IsAlertActive(GameAlertType.PriceDrop) ? "bg-emerald-600/15 border-emerald-600 text-emerald-700 dark:text-emerald-300" : "bg-[var(--paper-2)] border-[var(--line)] hover:border-[var(--rule)] text-[var(--ink)]")">
+                            <span class="inline-flex items-center gap-2">
+                                <Icon Name="tag" Size="14" class="text-[var(--accent)]" />
+                                <span>@(IsAlertActive(GameAlertType.PriceDrop) ? "Aviso de oferta activo (-15% PVP)" : "Avísame de oferta (-15% PVP)")</span>
+                            </span>
+                            <Icon Name="@(IsAlertActive(GameAlertType.PriceDrop) ? "check" : "bell")" Size="14" />
+                        </button>
+
+                        <button type="button"
+                                @onclick="() => ToggleGameAlertAsync(GameAlertType.Reprint)"
+                                class="w-full py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-between gap-2 cursor-pointer @(IsAlertActive(GameAlertType.Reprint) ? "bg-emerald-600/15 border-emerald-600 text-emerald-700 dark:text-emerald-300" : "bg-[var(--paper-2)] border-[var(--line)] hover:border-[var(--rule)] text-[var(--ink)]")">
+                            <span class="inline-flex items-center gap-2">
+                                <Icon Name="repeat" Size="14" class="text-[var(--accent)]" />
+                                <span>@(IsAlertActive(GameAlertType.Reprint) ? "Aviso de reimpresión activo" : "Avísame de reimpresión")</span>
+                            </span>
+                            <Icon Name="@(IsAlertActive(GameAlertType.Reprint) ? "check" : "bell")" Size="14" />
+                        </button>
+
+                        <button type="button"
+                                @onclick="() => ToggleGameAlertAsync(GameAlertType.Restock)"
+                                class="w-full py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-between gap-2 cursor-pointer @(IsAlertActive(GameAlertType.Restock) ? "bg-emerald-600/15 border-emerald-600 text-emerald-700 dark:text-emerald-300" : "bg-[var(--paper-2)] border-[var(--line)] hover:border-[var(--rule)] text-[var(--ink)]")">
+                            <span class="inline-flex items-center gap-2">
+                                <Icon Name="package" Size="14" class="text-[var(--accent)]" />
+                                <span>@(IsAlertActive(GameAlertType.Restock) ? "Aviso de reestock activo" : "Avísame de reestock")</span>
+                            </span>
+                            <Icon Name="@(IsAlertActive(GameAlertType.Restock) ? "check" : "bell")" Size="14" />
+                        </button>
+                    </div>
+                </div>
+
                 <div class="pt-2">
                     <UserReviewCard
                         Review="@_userReview"
@@ -1032,17 +1077,54 @@ else
         </div>
     }
 
+    @if (_isPriceDropPromptModalOpen && Game != null)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="pricedrop-prompt-title">
+            <div class="w-full max-w-sm rounded-3xl bg-[var(--card)] border-2 border-[var(--rule)] p-6 shadow-2xl space-y-4 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center">
+                    <Icon Name="tag" Size="24" />
+                </div>
+                <div class="space-y-1.5">
+                    <h3 id="pricedrop-prompt-title" class="text-base font-black text-[var(--ink)]">
+                        ¿Quieres que te avisemos si baja de precio?
+                    </h3>
+                    <p class="text-xs text-[var(--muted)] leading-relaxed">
+                        Has guardado <b>@Game.SpanishTitle</b> en «Lo quiero». Podemos enviarte una notificación cuando detectemos una oferta de al menos un <b>15% sobre su PVP base</b>.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                    <button type="button"
+                            @onclick="HandlePriceDropPromptNo"
+                            class="w-full sm:flex-1 py-2.5 px-4 rounded-full border border-[var(--line)] hover:bg-[var(--paper-2)] text-[var(--muted)] hover:text-[var(--ink)] font-black text-xs transition-colors cursor-pointer">
+                        Solo guardar
+                    </button>
+                    <button type="button"
+                            @onclick="HandlePriceDropPromptYes"
+                            class="w-full sm:flex-1 py-2.5 px-4 rounded-full bg-[var(--brand)] hover:opacity-90 text-[var(--on-brand)] font-black text-xs shadow-md transition-colors cursor-pointer">
+                        Sí, avísame (-15%)
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
     @* Componente oculto para compatibilidad de contrato si aplica *@
-    <div class="hidden" aria-hidden="true">
-        <GameImageCarousel
-            CoverImageUrl="@Game.CoverImageUrl"
-            BackCoverImageUrl="@Game.BackCoverImageUrl"
-            TableImageUrl="@Game.TableImageUrl"
-            AdditionalImages="@Game.AdditionalImages"
-            GameTitle="@Game.SpanishTitle"
-            IsExpansion="@Game.IsExpansion"
-            @bind-SelectedKey="_selectedHeroImageKey" />
-    </div>
+    @if (Game != null)
+    {
+        <div class="hidden" aria-hidden="true">
+            <GameImageCarousel
+                CoverImageUrl="@Game.CoverImageUrl"
+                BackCoverImageUrl="@Game.BackCoverImageUrl"
+                TableImageUrl="@Game.TableImageUrl"
+                AdditionalImages="@Game.AdditionalImages"
+                GameTitle="@Game.SpanishTitle"
+                IsExpansion="@Game.IsExpansion"
+                @bind-SelectedKey="_selectedHeroImageKey" />
+        </div>
+    }
 
     @* Preservación de contratos para tests de infraestructura *@
     <span class="hidden" aria-hidden="true">
@@ -1689,6 +1771,15 @@ else
             _collectionItem = await LibraryService.GetCollectionStateAsync(Game.Id);
             _userReview = await LibraryService.GetUserReviewAsync(Game.Id);
             await RefreshPlaysCountAsync();
+            if (HasSession)
+            {
+                var alerts = await NotificationService.GetUserGameAlertsAsync(CurrentUserService.UserId, Game.Id);
+                _activeGameAlerts = alerts.Select(a => a.AlertType).ToHashSet();
+            }
+            else
+            {
+                _activeGameAlerts.Clear();
+            }
         }
         catch (Exception ex)
         {
@@ -1830,6 +1921,54 @@ else
         _userPlaysCount = plays.Count;
     }
 
+    private HashSet<GameAlertType> _activeGameAlerts = new();
+    private bool _isPriceDropPromptModalOpen;
+
+    private bool IsAlertActive(GameAlertType alertType) => _activeGameAlerts.Contains(alertType);
+
+    private async Task ToggleGameAlertAsync(GameAlertType alertType)
+    {
+        if (Game == null) return;
+
+        if (!HasSession)
+        {
+            Navigation.NavigateTo("/login", forceLoad: false);
+            return;
+        }
+
+        try
+        {
+            if (_activeGameAlerts.Contains(alertType))
+            {
+                await NotificationService.UnsubscribeGameAlertAsync(CurrentUserService.UserId, Game.Id, alertType);
+                _activeGameAlerts.Remove(alertType);
+                _actionFeedbackType = "success";
+                _actionFeedbackMessage = $"Has desactivado el aviso de {GetAlertName(alertType)} para {Game.SpanishTitle}.";
+            }
+            else
+            {
+                await NotificationService.SubscribeGameAlertAsync(CurrentUserService.UserId, Game.Id, alertType);
+                _activeGameAlerts.Add(alertType);
+                _actionFeedbackType = "success";
+                _actionFeedbackMessage = $"Aviso de {GetAlertName(alertType)} activado para {Game.SpanishTitle}.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al alternar alerta {AlertType} para {GameId}", alertType, Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "No se pudo actualizar tu preferencia de aviso.";
+        }
+    }
+
+    private static string GetAlertName(GameAlertType alertType) => alertType switch
+    {
+        GameAlertType.PriceDrop => "bajada de precio (-15% PVP)",
+        GameAlertType.Reprint => "reimpresión",
+        GameAlertType.Restock => "reestock",
+        _ => "aviso"
+    };
+
     private async Task HandleStatusSelected(CollectionStatus status)
     {
         if (Game == null) return;
@@ -1855,6 +1994,15 @@ else
             return;
         }
 
+        if (status == CollectionStatus.WantToBuy && _collectionItem?.Status == CollectionStatus.WantToBuy)
+        {
+            if (!_activeGameAlerts.Contains(GameAlertType.PriceDrop))
+            {
+                _isPriceDropPromptModalOpen = true;
+                return;
+            }
+        }
+
         if (status == CollectionStatus.InCollection && _collectionItem != null && prevStatus != status)
         {
             if (!_collectionItem.IsPlayed)
@@ -1868,6 +2016,33 @@ else
                 _isReviewModalOpen = true;
             }
         }
+    }
+
+    private async Task HandlePriceDropPromptYes()
+    {
+        _isPriceDropPromptModalOpen = false;
+        if (Game == null || !HasSession) return;
+
+        try
+        {
+            await NotificationService.SubscribeGameAlertAsync(CurrentUserService.UserId, Game.Id, GameAlertType.PriceDrop);
+            _activeGameAlerts.Add(GameAlertType.PriceDrop);
+            _actionFeedbackType = "success";
+            _actionFeedbackMessage = "Guardado en «Lo quiero» y activado el aviso de bajada de precio (-15% sobre PVP base).";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al activar alerta de bajada de precio para {GameId}", Game.Id);
+            _actionFeedbackType = "error";
+            _actionFeedbackMessage = "Guardado en «Lo quiero», pero no se pudo activar la alerta de oferta.";
+        }
+    }
+
+    private void HandlePriceDropPromptNo()
+    {
+        _isPriceDropPromptModalOpen = false;
+        _actionFeedbackType = "success";
+        _actionFeedbackMessage = "Guardado en tu lista de «Lo quiero».";
     }
 
     private async Task HandlePlayedPromptYes()

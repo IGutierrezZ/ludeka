@@ -5,18 +5,21 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject IUserLibraryService LibraryService
 @inject ISocialIngestionService IngestionService
+@inject IAdminPendingSummaryService AdminPendingService
+@inject IUserNotificationService NotificationService
 @inject ICurrentUserService CurrentUserService
 @inject IAccountConnectionsService ConnectionsService
 @inject NavigationManager Navigation
 
 @*
-    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-127, Revista Lúdica & Alineación Claude).
-    - Con sesión activa: botón de píldora con avatar mostaza (inicial), nombre y desplegable
-      accesible de 290 px con borde --rule y 22 px de radio con los 4 destinos canónicos:
-      1. Mi perfil público
-      2. Mi ludoteca (con contador numérico de colección)
-      3. Ajustes de cuenta (/cuenta unificado)
-      4. Panel de gestión (para staff con contador de moderación pendiente)
+    Menú de Cuenta y Estado de Sesión en la Cabecera (INC-127, INC-149).
+    - Con sesión activa: botón de píldora con avatar mostaza (inicial), nombre, globo rojo de avisos
+      sin leer cuando está plegado y desplegable accesible de 290 px con borde --rule y 22 px de radio:
+      1. Notificaciones (campana con contador de avisos sin leer)
+      2. Mi perfil público
+      3. Mi ludoteca (con contador numérico de colección)
+      4. Ajustes de cuenta (/cuenta unificado)
+      5. Panel de gestión (para staff con contador real de moderación pendiente)
       Y botón de Cerrar sesión al pie.
     - Sin sesión (invitado): botón accesible a /login ("Entrar").
     - Cumple con WCAG 2.2 AA (teclado Escape, aria-expanded, aria-haspopup, telón de descarte).
@@ -53,9 +56,17 @@ else
                 @FirstName
             </span>
 
-            @* Indicador discreto de aviso si el correo no está verificado *@
-            @if (_needsEmailNotice)
+            @* Globo circular rojo con el número de notificaciones sin leer (o pendientes de gestión) cuando el menú no está desplegado *@
+            @if (!_isOpen && HeaderBadgeCount > 0)
             {
+                <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black leading-none flex items-center justify-center border-2 border-[var(--paper)] shadow-sm shrink-0"
+                      title="@(_unreadNotificationsCount > 0 ? $"{_unreadNotificationsCount} notificaciones sin leer" : $"{_pendingModerationCount} asuntos pendientes de gestión")">
+                    @(HeaderBadgeCount > 99 ? "99+" : HeaderBadgeCount.ToString())
+                </span>
+            }
+            else if (_needsEmailNotice)
+            {
+                @* Indicador discreto de aviso si el correo no está verificado *@
                 <span class="absolute top-0 right-0 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500 border-2 border-[var(--paper)] shrink-0" title="Correo pendiente de verificación"></span>
             }
         </button>
@@ -85,7 +96,21 @@ else
                     </div>
                 </div>
 
-                @* 1. Mi perfil público *@
+                @* 1. Campana de Notificaciones y Avisos *@
+                <a href="/cuenta/notificaciones" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
+                    <div class="flex items-center gap-2.5">
+                        <Icon Name="bell" Size="14" />
+                        <span>Notificaciones</span>
+                    </div>
+                    @if (_unreadNotificationsCount > 0)
+                    {
+                        <span class="min-w-[20px] h-5 px-1.5 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center">
+                            @(_unreadNotificationsCount > 99 ? "99+" : _unreadNotificationsCount.ToString())
+                        </span>
+                    }
+                </a>
+
+                @* 2. Mi perfil público *@
                 <a href="@PublicProfileUrl" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <div class="flex items-center gap-2.5">
                         <Icon Name="user" Size="14" />
@@ -93,7 +118,7 @@ else
                     </div>
                 </a>
 
-                @* 2. Mi ludoteca *@
+                @* 3. Mi ludoteca *@
                 <a href="/cuenta/ludoteca" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <div class="flex items-center gap-2.5">
                         <Icon Name="library" Size="14" />
@@ -105,7 +130,7 @@ else
                     }
                 </a>
 
-                @* 3. Ajustes de cuenta *@
+                @* 4. Ajustes de cuenta *@
                 <a href="/cuenta" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
                     <div class="flex items-center gap-2.5">
                         <Icon Name="settings" Size="14" />
@@ -117,7 +142,7 @@ else
                     }
                 </a>
 
-                @* 4. Panel de gestión (para staff) *@
+                @* 5. Panel de gestión (para staff con contador real de asuntos pendientes) *@
                 @if (IsStaffUser)
                 {
                     <a href="/admin" @onclick="CloseMenu" role="menuitem" class="flex items-center justify-between px-3 py-2 rounded-xl text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors font-bold">
@@ -125,9 +150,17 @@ else
                             <Icon Name="shield" Size="14" />
                             <span>Panel de gestión</span>
                         </div>
-                        <span class="text-xs font-extrabold text-[var(--accent)]">
-                            @(_pendingModerationCount > 0 ? _pendingModerationCount.ToString() : "21")
-                        </span>
+                        @if (_pendingModerationCount > 0)
+                        {
+                            <span class="min-w-[20px] h-5 px-1.5 rounded-full bg-rose-600/15 text-rose-600 dark:text-rose-400 text-[11px] font-extrabold flex items-center justify-center"
+                                  title="@($"{_pendingModerationCount} elementos pendientes de resolver en administración")">
+                                @_pendingModerationCount
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-xs font-extrabold text-[var(--muted)]">0</span>
+                        }
                     </a>
                 }
 
@@ -151,6 +184,7 @@ else
     private bool _needsEmailNotice;
     private bool _isSubscribed;
     private int? _collectionCount;
+    private int _unreadNotificationsCount;
     private int _pendingModerationCount;
 
     private bool HasSession => !string.IsNullOrWhiteSpace(CurrentUserService.UserId);
@@ -159,6 +193,10 @@ else
         CurrentUserService.IsFoundingTeam ||
         CurrentUserService.IsInRole("Admin") ||
         CurrentUserService.IsInRole("Moderator");
+
+    private int HeaderBadgeCount => _unreadNotificationsCount > 0
+        ? _unreadNotificationsCount
+        : (IsStaffUser ? _pendingModerationCount : 0);
 
     private string UserInitial => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
         ? CurrentUserService.UserName.Trim()[..1].ToUpperInvariant()
@@ -220,15 +258,32 @@ else
             _collectionCount = null;
         }
 
+        try
+        {
+            _unreadNotificationsCount = await NotificationService.GetUnreadCountAsync(CurrentUserService.UserId);
+        }
+        catch
+        {
+            _unreadNotificationsCount = 0;
+        }
+
         if (IsStaffUser)
         {
             try
             {
-                _pendingModerationCount = await IngestionService.GetPendingCountAsync();
+                var adminSummary = await AdminPendingService.GetPendingSummaryAsync();
+                _pendingModerationCount = adminSummary.TotalPendingCount;
             }
             catch
             {
-                _pendingModerationCount = 0;
+                try
+                {
+                    _pendingModerationCount = await IngestionService.GetPendingCountAsync();
+                }
+                catch
+                {
+                    _pendingModerationCount = 0;
+                }
             }
         }
     }
@@ -241,6 +296,7 @@ else
         }
 
         ConnectionsService.Invalidated += HandleConnectionsInvalidated;
+        NotificationService.OnNotificationsChanged += HandleNotificationsChanged;
         _isSubscribed = true;
     }
 
@@ -250,6 +306,25 @@ else
         {
             await CheckEmailVerificationStatusAsync();
             StateHasChanged();
+        });
+    }
+
+    private void HandleNotificationsChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (HasSession)
+            {
+                try
+                {
+                    _unreadNotificationsCount = await NotificationService.GetUnreadCountAsync(CurrentUserService.UserId);
+                }
+                catch
+                {
+                    // Silencioso por resiliencia
+                }
+                StateHasChanged();
+            }
         });
     }
 
@@ -299,7 +374,9 @@ else
         if (_isSubscribed)
         {
             ConnectionsService.Invalidated -= HandleConnectionsInvalidated;
+            NotificationService.OnNotificationsChanged -= HandleNotificationsChanged;
             _isSubscribed = false;
         }
     }
 }
+
