@@ -19,16 +19,19 @@ public class GiveawayService : IGiveawayService
     private readonly IGiveawayRepository _repository;
     private readonly ISessionPermissionGuard? _permissionGuard;
     private readonly IMemoryCache? _cache;
+    private readonly IUserNotificationService? _userNotificationService;
     private static int _cacheVersion = 0;
 
     public GiveawayService(
         IGiveawayRepository repository,
         ISessionPermissionGuard? permissionGuard = null,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        IUserNotificationService? userNotificationService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _permissionGuard = permissionGuard;
         _cache = cache;
+        _userNotificationService = userNotificationService;
     }
 
     private static void InvalidateCache() => Interlocked.Increment(ref _cacheVersion);
@@ -164,6 +167,17 @@ public class GiveawayService : IGiveawayService
 
         await _repository.AddAsync(newGiveaway, ct);
         InvalidateCache();
+
+        if (_userNotificationService != null)
+        {
+            await _userNotificationService.NotifyNewGiveawayPublishedAsync(
+                newGiveaway.Id,
+                newGiveaway.Title,
+                newGiveaway.Organizer,
+                newGiveaway.ThumbnailUrl,
+                ct);
+        }
+
         return MapToDto(newGiveaway);
     }
 

@@ -51,6 +51,7 @@
         </p>
 
         <nav aria-label="Accesos directos de cuenta" class="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[var(--muted)]">
+            <a href="/cuenta/notificaciones" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Notificaciones</a>
             <a href="/cuenta/ludoteca" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Ludoteca</a>
             <a href="/cuenta/apariencia" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">Tema</a>
             <a href="/cuenta/pais" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">País</a>
@@ -373,6 +374,39 @@
         </div>
     </section>
 
+    @* 05 Avisos y notificaciones *@
+    <section id="notificaciones" class="space-y-4">
+        <div class="flex items-baseline justify-between gap-4 border-b-2 border-[var(--rule)] pb-3 flex-wrap">
+            <div class="flex items-baseline gap-4">
+                <span class="text-4xl sm:text-5xl font-black text-rose-600 dark:text-rose-400 tracking-[-0.06em] leading-none">05</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Avisos y notificaciones</h2>
+            </div>
+            <a href="/cuenta/notificaciones" class="text-xs font-extrabold text-[var(--accent)] hover:underline inline-flex items-center gap-1.5">
+                <Icon Name="bell" Size="14" />
+                <span>Abrir centro de notificaciones y alertas &rarr;</span>
+            </a>
+        </div>
+
+        <div class="divide-y divide-[var(--line)]">
+            <div class="py-4 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <b class="text-base text-[var(--ink)] block">Avisarme cuando se publique un nuevo sorteo</b>
+                    <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                        Recibe un aviso en tu campana y en tu móvil o navegador cada vez que demos de alta un sorteo en la web.
+                    </span>
+                </div>
+                <button type="button"
+                        role="switch"
+                        aria-checked="@_notifyNewGiveaways"
+                        aria-label="Avisarme cuando se publique un nuevo sorteo"
+                        @onclick="ToggleNotifyGiveawaysAsync"
+                        class="shrink-0 w-14 h-8 rounded-full relative transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_notifyNewGiveaways ? "bg-emerald-600" : "bg-[var(--line)]")">
+                    <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_notifyNewGiveaways ? "left-7" : "left-1")"></span>
+                </button>
+            </div>
+        </div>
+    </section>
+
     @* Zona de Baja de Cuenta (RGPD) *@
     <footer class="pt-8 border-t border-[var(--line)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-[var(--muted)]">
         <span>Gestión de datos de conformidad con RGPD y transparencia lúdica.</span>
@@ -394,6 +428,7 @@
     private bool _showPlaysInProfile = true;
     private bool _leaderboardOptIn;
     private bool _leaderboardAnonymous;
+    private bool _notifyNewGiveaways;
 
     private AccountConnectionsView? _connectionsView;
 
@@ -437,12 +472,14 @@
             _isProfilePublic = !pref.HidePublicProfile;
             _leaderboardOptIn = pref.LeaderboardOptIn;
             _leaderboardAnonymous = pref.LeaderboardAnonymous;
+            _notifyNewGiveaways = pref.NotifyNewGiveaways;
         }
         catch
         {
             _isProfilePublic = true;
             _leaderboardOptIn = false;
             _leaderboardAnonymous = false;
+            _notifyNewGiveaways = false;
         }
 
         try
@@ -583,6 +620,25 @@
         StateHasChanged();
     }
 
+    private async Task ToggleNotifyGiveawaysAsync()
+    {
+        _notifyNewGiveaways = !_notifyNewGiveaways;
+
+        try
+        {
+            await PreferenceService.SetNotifyNewGiveawaysAsync(CurrentUserService.UserId, _notifyNewGiveaways);
+            _statusMessage = _notifyNewGiveaways
+                ? "Te avisaremos cuando se publique un nuevo sorteo en Ludeka."
+                : "Avisos de nuevos sorteos desactivados.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al actualizar preferencia de sorteos: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
     private async Task UnlinkProviderAsync(string providerName)
     {
         try
@@ -600,3 +656,4 @@
         StateHasChanged();
     }
 }
+

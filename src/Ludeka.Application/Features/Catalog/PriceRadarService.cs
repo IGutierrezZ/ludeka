@@ -27,6 +27,7 @@ public class PriceRadarService : IPriceRadarService
     private readonly PriceRadarOptions _options;
     private readonly ILogger<PriceRadarService> _logger;
     private readonly IMemoryCache? _cache;
+    private readonly IUserNotificationService? _userNotificationService;
 
     public PriceRadarService(
         IGamePriceRepository priceRepository,
@@ -35,7 +36,8 @@ public class PriceRadarService : IPriceRadarService
         IStoreStockService stockService,
         IOptions<PriceRadarOptions> options,
         ILogger<PriceRadarService> logger,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        IUserNotificationService? userNotificationService = null)
     {
         _priceRepository = priceRepository ?? throw new ArgumentNullException(nameof(priceRepository));
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
@@ -44,6 +46,7 @@ public class PriceRadarService : IPriceRadarService
         _options = options?.Value ?? new PriceRadarOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache;
+        _userNotificationService = userNotificationService;
     }
 
     public async Task<IReadOnlyList<PriceDropAlertDto>> GetTopDiscountsAsync(int limit = 20, string? country = null, CancellationToken ct = default)
@@ -264,6 +267,17 @@ public class PriceRadarService : IPriceRadarService
     {
         var snapshot = new GamePriceSnapshot(gameId, storeName, affiliateUrl, price, inStock, currency);
         await _priceRepository.RecordSnapshotAsync(snapshot, ct);
+
+        if (_userNotificationService != null && inStock && price > 0)
+        {
+            await _userNotificationService.EvaluatePriceAndStockAlertsAsync(
+                gameId,
+                storeName,
+                price,
+                inStock,
+                currency,
+                ct: ct);
+        }
     }
 
     public async Task<int> ScanWantToBuyPricesAsync(int maxGames = 20, CancellationToken ct = default)
@@ -297,6 +311,17 @@ public class PriceRadarService : IPriceRadarService
                             inStock: stockInfo.IsInStock,
                             currency: offer.Currency
                         ));
+
+                        if (_userNotificationService != null && stockInfo.IsInStock)
+                        {
+                            await _userNotificationService.EvaluatePriceAndStockAlertsAsync(
+                                game.Id,
+                                offer.StoreName,
+                                stockInfo.CurrentPrice.Value,
+                                stockInfo.IsInStock,
+                                offer.Currency,
+                                ct: ct);
+                        }
                     }
                 }
                 scanned++;

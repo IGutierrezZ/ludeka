@@ -34,6 +34,7 @@ public class SocialIngestionService : ISocialIngestionService
     private readonly IPublisherRepository? _publisherRepository;
     private readonly IStoreRepository? _storeRepository;
     private readonly ICreatorRepository? _creatorRepository;
+    private readonly IUserNotificationService? _userNotificationService;
 
     public SocialIngestionService(
         ISocialInboxRepository inboxRepository,
@@ -51,7 +52,8 @@ public class SocialIngestionService : ISocialIngestionService
         IGiveawayCoverComposer? giveawayCoverComposer = null,
         IPublisherRepository? publisherRepository = null,
         IStoreRepository? storeRepository = null,
-        ICreatorRepository? creatorRepository = null)
+        ICreatorRepository? creatorRepository = null,
+        IUserNotificationService? userNotificationService = null)
     {
         _inboxRepository = inboxRepository ?? throw new ArgumentNullException(nameof(inboxRepository));
         _metadataExtractor = metadataExtractor ?? throw new ArgumentNullException(nameof(metadataExtractor));
@@ -69,6 +71,7 @@ public class SocialIngestionService : ISocialIngestionService
         _publisherRepository = publisherRepository;
         _storeRepository = storeRepository;
         _creatorRepository = creatorRepository;
+        _userNotificationService = userNotificationService;
     }
 
     /// <summary>
@@ -619,6 +622,16 @@ public class SocialIngestionService : ISocialIngestionService
                     await _giveawayRepository.AddAsync(giveaway, ct);
                     createdEntityId = giveaway.Id;
                     _logger.LogInformation("Sorteo creado desde bandeja con ID {Id}", createdEntityId);
+
+                    if (_userNotificationService != null)
+                    {
+                        await _userNotificationService.NotifyNewGiveawayPublishedAsync(
+                            giveaway.Id,
+                            giveaway.Title,
+                            giveaway.Organizer,
+                            giveaway.ThumbnailUrl,
+                            ct);
+                    }
                 }
                 break;
 

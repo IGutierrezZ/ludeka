@@ -50,4 +50,16 @@ public interface IUserPreferenceService
     /// Guarda o actualiza las preferencias de participación y anonimato en clasificaciones públicas.
     /// </summary>
     Task SetLeaderboardPreferencesAsync(string userId, bool optIn, bool anonymous, string? pseudonym = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Establece si el usuario desea recibir notificaciones cuando se publique un nuevo sorteo.
+    /// </summary>
+    Task SetNotifyNewGiveawaysAsync(string userId, bool notify, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    /// <summary>
+    /// Obtiene los identificadores de todos los usuarios suscritos a recibir avisos de nuevos sorteos.
+    /// </summary>
+    Task<System.Collections.Generic.IReadOnlyList<string>> GetUserIdsSubscribedToGiveawaysAsync(CancellationToken ct = default)
+        => Task.FromResult<System.Collections.Generic.IReadOnlyList<string>>([]);
 }

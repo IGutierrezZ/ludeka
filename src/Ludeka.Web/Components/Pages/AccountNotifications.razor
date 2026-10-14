@@ -1,0 +1,696 @@
+@page "/cuenta/notificaciones"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Ludeka.Application.Contracts
+@using Ludeka.Application.DTOs
+@using Ludeka.Core.Enums
+@inject IUserNotificationService NotificationService
+@inject IUserPreferenceService PreferenceService
+@inject IAdminPendingSummaryService AdminPendingService
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Tus notificaciones y avisos — Ludeka</PageTitle>
+
+<div class="max-w-[960px] mx-auto px-4 sm:px-8 py-8 sm:py-14 space-y-12">
+
+    @* Cabecera Editorial *@
+    <header class="space-y-3 border-b border-[var(--line)] pb-8">
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--accent)]">
+                Centro de avisos · @UserIdentifier
+            </span>
+            @if (_unreadCount > 0)
+            {
+                <span class="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black">
+                    @_unreadCount sin leer
+                </span>
+            }
+        </div>
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-[-0.05em] text-[var(--ink)] leading-[0.92]">
+            Tus <i class="italic text-[var(--accent)]">avisos</i>
+        </h1>
+        <p class="text-sm sm:text-base text-[var(--muted)] max-w-2xl leading-relaxed">
+            Consulta tus alertas de bajada de precio (-15% sobre PVP base), reimpresiones, reposiciones de stock y nuevos sorteos. Cada aviso permanece pendiente hasta que pulses sobre él para marcarlo como leído.
+        </p>
+
+        <nav aria-label="Accesos rápidos de cuenta" class="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[var(--muted)]">
+            <a href="/cuenta" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">
+                &larr; Volver a Tu cuenta
+            </a>
+            <a href="/cuenta/ludoteca" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">
+                Mi ludoteca
+            </a>
+            <a href="#dispositivo-push" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">
+                Notificaciones en móvil / navegador
+            </a>
+            <a href="#mis-alertas" class="px-3.5 py-1.5 rounded-full bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--rule)] transition-all">
+                Mis alertas (@_gameAlerts.Count)
+            </a>
+        </nav>
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="mt-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between gap-2.5 animate-fade-in" role="status">
+                <div class="flex items-center gap-2.5">
+                    <Icon Name="circle-check" Size="16" />
+                    <span>@_statusMessage</span>
+                </div>
+                <button type="button" @onclick="() => _statusMessage = null" class="text-xs font-black hover:opacity-75" aria-label="Cerrar mensaje">&times;</button>
+            </div>
+        }
+    </header>
+
+    @* Panel de Avisos de Administración (solo visible para Administradores y Moderadores) *@
+    @if (IsStaffUser && _adminSummary != null)
+    {
+        <section aria-label="Avisos de administración pendientes" class="p-5 sm:p-6 rounded-[22px] bg-[var(--paper-2)] border-2 border-[var(--rule)] space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center shrink-0">
+                        <Icon Name="shield" Size="18" />
+                    </span>
+                    <div>
+                        <b class="text-base font-extrabold text-[var(--ink)] block">Estado del área de gestión</b>
+                        <span class="text-xs text-[var(--muted)]">
+                            Resumen en tiempo real de elementos pendientes de resolver por administración.
+                        </span>
+                    </div>
+                </div>
+                <a href="/admin" class="h-10 px-4 rounded-full bg-[var(--ink)] text-[var(--paper)] font-extrabold text-xs inline-flex items-center gap-2 self-start sm:self-auto hover:opacity-90 transition-opacity">
+                    <span>Ir al Panel de gestión</span>
+                    @if (_adminSummary.TotalPendingCount > 0)
+                    {
+                        <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black">
+                            @_adminSummary.TotalPendingCount
+                        </span>
+                    }
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <a href="/admin/moderacion" class="p-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] hover:border-[var(--rule)] transition-all flex items-center justify-between">
+                    <span class="text-xs font-bold text-[var(--ink)]">Moderación social</span>
+                    <span class="text-sm font-black @(_adminSummary.PendingSocialInboxCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-[var(--muted)]")">
+                        @_adminSummary.PendingSocialInboxCount
+                    </span>
+                </a>
+                <a href="/admin/reportes" class="p-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] hover:border-[var(--rule)] transition-all flex items-center justify-between">
+                    <span class="text-xs font-bold text-[var(--ink)]">Incidencias de catálogo</span>
+                    <span class="text-sm font-black @(_adminSummary.PendingIssueReportsCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-[var(--muted)]")">
+                        @_adminSummary.PendingIssueReportsCount
+                    </span>
+                </a>
+                <a href="/admin/lanzamientos" class="p-3.5 rounded-xl bg-[var(--paper)] border border-[var(--line)] hover:border-[var(--rule)] transition-all flex items-center justify-between">
+                    <span class="text-xs font-bold text-[var(--ink)]">Lanzamientos y reimpresiones</span>
+                    <span class="text-sm font-black @(_adminSummary.PendingWeeklyReleasesCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-[var(--muted)]")">
+                        @_adminSummary.PendingWeeklyReleasesCount
+                    </span>
+                </a>
+            </div>
+        </section>
+    }
+
+    @* 01 Bandeja de avisos recibidos *@
+    <section id="bandeja" class="space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <div class="flex items-baseline gap-4">
+                <span class="text-4xl sm:text-5xl font-black text-[var(--accent)] tracking-[-0.06em] leading-none">01</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Bandeja de notificaciones</h2>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button"
+                        @onclick="() => SetFilterAsync(false)"
+                        class="h-9 px-3.5 rounded-full text-xs font-extrabold transition-all cursor-pointer @(!_onlyUnreadFilter ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)]")">
+                    Todas (@_notifications.Count)
+                </button>
+                <button type="button"
+                        @onclick="() => SetFilterAsync(true)"
+                        class="h-9 px-3.5 rounded-full text-xs font-extrabold transition-all cursor-pointer @(_onlyUnreadFilter ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)]")">
+                    Sin leer (@_unreadCount)
+                </button>
+                @if (_unreadCount > 0)
+                {
+                    <button type="button"
+                            @onclick="MarkAllAsReadAsync"
+                            class="h-9 px-3.5 rounded-full text-xs font-extrabold border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                        <Icon Name="check" Size="13" />
+                        <span>Marcar todas como leídas</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (_isLoading)
+        {
+            <div class="p-8 rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] text-center text-sm font-bold text-[var(--muted)]">
+                Cargando tus notificaciones...
+            </div>
+        }
+        else if (FilteredNotifications.Count == 0)
+        {
+            <div class="p-8 rounded-[22px] bg-[var(--paper-2)] border border-[var(--line)] text-center space-y-2">
+                <span class="inline-flex w-11 h-11 rounded-full bg-[var(--paper)] border border-[var(--line)] items-center justify-center text-[var(--muted)]">
+                    <Icon Name="bell" Size="20" />
+                </span>
+                <p class="text-base font-extrabold text-[var(--ink)]">
+                    @(_onlyUnreadFilter ? "No tienes notificaciones pendientes de leer" : "Todavía no has recibido ningún aviso")
+                </p>
+                <p class="text-xs text-[var(--muted)] max-w-md mx-auto leading-relaxed">
+                    Activa alertas de bajada de precio (-15%), reimpresión o reestock en las fichas de tus juegos favoritos, o suscríbete a los avisos de nuevos sorteos más abajo.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-3">
+                @foreach (var item in FilteredNotifications)
+                {
+                    var isUnread = !item.IsRead;
+                    <article @onclick="() => MarkNotificationAsReadAsync(item)"
+                             class="p-4 sm:p-5 rounded-[20px] border-2 transition-all @(isUnread ? "border-[var(--accent)] bg-[var(--paper-2)] shadow-sm cursor-pointer" : "border-[var(--line)] bg-[var(--card)] opacity-80")"
+                             aria-label="@item.Title">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-start gap-3.5 min-w-0">
+                                <span class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 @(isUnread ? "bg-[var(--accent)] text-white" : "bg-[var(--paper-2)] text-[var(--muted)] border border-[var(--line)]")">
+                                    <Icon Name="@GetNotificationIcon(item.Type)" Size="18" />
+                                </span>
+                                <div class="space-y-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-[11px] font-black uppercase tracking-wider @(isUnread ? "text-[var(--accent)]" : "text-[var(--muted)]")">
+                                            @GetNotificationTypeLabel(item.Type)
+                                        </span>
+                                        <span class="text-xs text-[var(--muted)]">&bull;</span>
+                                        <span class="text-xs font-semibold text-[var(--muted)]">
+                                            @FormatDate(item.CreatedAtUtc)
+                                        </span>
+                                        @if (isUnread)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black">
+                                                Sin leer · Pulsa para marcar leído
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                <Icon Name="check" Size="12" /> Leído
+                                            </span>
+                                        }
+                                    </div>
+                                    <h3 class="text-base font-extrabold text-[var(--ink)] leading-snug">
+                                        @item.Title
+                                    </h3>
+                                    <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                                        @item.Message
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0" @onclick:stopPropagation="true">
+                                @if (isUnread)
+                                {
+                                    <button type="button"
+                                            @onclick="() => MarkNotificationAsReadAsync(item)"
+                                            class="h-9 px-3.5 rounded-full border border-[var(--rule)] bg-[var(--paper)] hover:bg-[var(--ink)] hover:text-[var(--paper)] text-[var(--ink)] text-xs font-extrabold transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                                        <Icon Name="check" Size="13" />
+                                        <span>Marcar leído</span>
+                                    </button>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.TargetUrl))
+                                {
+                                    <button type="button"
+                                            @onclick="() => OpenAndMarkReadAsync(item)"
+                                            class="h-9 px-4 rounded-full bg-[var(--ink)] text-[var(--paper)] hover:opacity-90 text-xs font-extrabold transition-opacity inline-flex items-center gap-1.5 cursor-pointer">
+                                        <span>Ver ficha</span>
+                                        <Icon Name="external-link" Size="12" />
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    @* 02 Notificaciones Push en móvil (PWA) y navegador *@
+    <section id="dispositivo-push" class="space-y-5">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-[var(--mustard)] tracking-[-0.06em] leading-none">02</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Notificaciones en tu móvil o navegador</h2>
+        </div>
+
+        <div class="p-5 sm:p-6 rounded-[22px] bg-[var(--card)] border-2 border-[var(--line)] flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div class="space-y-1.5 max-w-xl">
+                <div class="flex items-center gap-2">
+                    <Icon Name="bell" Size="18" class="text-[var(--accent)]" />
+                    <b class="text-base sm:text-lg font-extrabold text-[var(--ink)]">
+                        Avisos nativos del sistema (PWA y Web Push)
+                    </b>
+                    @if (_isPushSubscribedOnDevice)
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold">
+                            Activo en este dispositivo
+                        </span>
+                    }
+                </div>
+                <p class="text-xs sm:text-sm text-[var(--muted)] leading-relaxed">
+                    Si has instalado Ludeka en tu móvil o usas el navegador en escritorio, activa esta opción para recibir un aviso instantáneo en la barra de notificaciones de tu dispositivo en cuanto detectemos una oferta (-15%), reimpresión, reestock o nuevo sorteo.
+                </p>
+                @if (_pushPermissionState == "denied")
+                {
+                    <p class="text-xs font-bold text-rose-600 dark:text-rose-400 pt-1">
+                        Has bloqueado el permiso de notificaciones en este navegador. Puedes habilitarlo desde el icono del candado en la barra de direcciones.
+                    </p>
+                }
+            </div>
+
+            <div class="shrink-0">
+                @if (!_isPushSupported)
+                {
+                    <span class="text-xs font-bold text-[var(--muted)] px-3.5 py-2 rounded-full bg-[var(--paper-2)] border border-[var(--line)] inline-block">
+                        No soportado en este navegador
+                    </span>
+                }
+                else if (_isPushSubscribedOnDevice)
+                {
+                    <button type="button"
+                            disabled="@_isPushBusy"
+                            @onclick="DisableWebPushAsync"
+                            class="h-11 px-5 rounded-full border-2 border-[var(--rule)] bg-transparent hover:bg-rose-500/10 hover:border-rose-500 hover:text-rose-500 text-[var(--ink)] font-extrabold text-xs transition-colors cursor-pointer">
+                        @(_isPushBusy ? "Procesando..." : "Desactivar en este dispositivo")
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            disabled="@_isPushBusy"
+                            @onclick="EnableWebPushAsync"
+                            class="h-11 px-5 rounded-full bg-[var(--ink)] text-[var(--paper)] hover:opacity-90 font-extrabold text-xs transition-opacity inline-flex items-center gap-2 cursor-pointer">
+                        <Icon Name="bell" Size="14" />
+                        <span>@(_isPushBusy ? "Activando..." : "Activar notificaciones aquí")</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </section>
+
+    @* 03 Tus alertas de sorteos y juegos *@
+    <section id="mis-alertas" class="space-y-6">
+        <div class="flex items-baseline gap-4 border-b-2 border-[var(--rule)] pb-3">
+            <span class="text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400 tracking-[-0.06em] leading-none">03</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[var(--ink)] tracking-[-0.03em]">Tus suscripciones y alertas</h2>
+        </div>
+
+        @* Switch de Sorteos *@
+        <div class="p-5 rounded-[20px] bg-[var(--card)] border border-[var(--line)] flex items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <Icon Name="gift" Size="16" class="text-[var(--accent)]" />
+                    <b class="text-base text-[var(--ink)]">Avisarme cuando se publique un nuevo sorteo</b>
+                </div>
+                <span class="text-xs text-[var(--muted)] leading-relaxed block">
+                    Recibirás una notificación cada vez que demos de alta un nuevo sorteo oficial o comunitario en Ludeka.
+                </span>
+            </div>
+            <button type="button"
+                    role="switch"
+                    aria-checked="@_notifyNewGiveaways"
+                    aria-label="Avisarme cuando se publique un nuevo sorteo"
+                    @onclick="ToggleNotifyGiveawaysAsync"
+                    class="shrink-0 w-14 h-8 rounded-full relative transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] @(_notifyNewGiveaways ? "bg-emerald-600" : "bg-[var(--line)]")">
+                <span class="absolute top-1 w-6 h-6 rounded-full bg-[#FFF8EE] shadow-sm transition-all duration-150 @(_notifyNewGiveaways ? "left-7" : "left-1")"></span>
+            </button>
+        </div>
+
+        @* Listado de alertas por juego *@
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-extrabold text-[var(--ink)]">
+                    Alertas activas en juegos (@_gameAlerts.Count)
+                </h3>
+                <a href="/catalogo" class="text-xs font-extrabold text-[var(--accent)] hover:underline">
+                    Explorar catálogo &rarr;
+                </a>
+            </div>
+
+            @if (_gameAlerts.Count == 0)
+            {
+                <div class="p-6 rounded-2xl bg-[var(--paper-2)] border border-[var(--line)] text-xs text-[var(--muted)] leading-relaxed">
+                    No tienes alertas individuales activas en ningún juego. Entra en la ficha de cualquier juego para activar avisos separados de <b>Oferta (-15% sobre PVP base)</b>, <b>Reimpresión</b> o <b>Reestock</b>.
+                </div>
+            }
+            else
+            {
+                <div class="divide-y divide-[var(--line)] rounded-[20px] border border-[var(--line)] bg-[var(--card)] overflow-hidden">
+                    @foreach (var sub in _gameAlerts)
+                    {
+                        <div class="p-4 flex items-center justify-between gap-4 hover:bg-[var(--paper-2)]/50 transition-colors">
+                            <div class="flex items-center gap-3.5 min-w-0">
+                                @if (!string.IsNullOrWhiteSpace(sub.GameCoverUrl))
+                                {
+                                    <img src="@sub.GameCoverUrl" alt="" class="w-11 h-11 rounded-lg object-cover shrink-0 border border-[var(--line)]" />
+                                }
+                                else
+                                {
+                                    <span class="w-11 h-11 rounded-lg bg-[var(--paper-2)] border border-[var(--line)] flex items-center justify-center shrink-0 text-[var(--muted)]">
+                                        <Icon Name="dices" Size="18" />
+                                    </span>
+                                }
+                                <div class="min-w-0 space-y-1">
+                                    <a href="@($"/juegos/{sub.GameSlug}")" class="text-sm font-extrabold text-[var(--ink)] hover:text-[var(--accent)] truncate block">
+                                        @sub.GameTitle
+                                    </a>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[var(--paper-2)] text-[var(--ink)] border border-[var(--line)]">
+                                            <Icon Name="@GetAlertTypeIcon(sub.AlertType)" Size="11" />
+                                            <span>@GetAlertTypeLabel(sub.AlertType)</span>
+                                        </span>
+                                        @if (sub.AlertType == GameAlertType.PriceDrop && sub.ReferenceBasePvp.HasValue && sub.ReferenceBasePvp.Value > 0)
+                                        {
+                                            <span class="text-[11px] text-[var(--muted)] font-semibold">
+                                                PVP base ref.: @($"{sub.ReferenceBasePvp.Value:0.00} €") (aviso desde @($"{Math.Round(sub.ReferenceBasePvp.Value * 0.85m, 2):0.00} €"))
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button"
+                                    @onclick="() => RemoveGameAlertAsync(sub)"
+                                    title="Desactivar esta alerta"
+                                    aria-label="@($"Desactivar alerta de {GetAlertTypeLabel(sub.AlertType)} para {sub.GameTitle}")"
+                                    class="h-9 px-3 rounded-full border border-[var(--line)] hover:border-rose-500 hover:bg-rose-500/10 hover:text-rose-500 text-[var(--muted)] text-xs font-extrabold transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer">
+                                <Icon Name="trash-2" Size="13" />
+                                <span class="hidden sm:inline">Quitar</span>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private IReadOnlyList<UserNotificationDto> _notifications = [];
+    private IReadOnlyList<UserGameAlertSubscriptionDto> _gameAlerts = [];
+    private AdminPendingSummaryDto? _adminSummary;
+    private int _unreadCount;
+    private bool _onlyUnreadFilter;
+    private bool _notifyNewGiveaways;
+    private bool _isLoading = true;
+    private string? _statusMessage;
+
+    private bool _isPushSupported;
+    private bool _isPushSubscribedOnDevice;
+    private bool _isPushBusy;
+    private string _pushPermissionState = "default";
+    private string? _currentDeviceEndpoint;
+
+    private string UserIdentifier => !string.IsNullOrWhiteSpace(CurrentUserService.UserName)
+        ? CurrentUserService.UserName
+        : "Usuario";
+
+    private bool IsStaffUser =>
+        CurrentUserService.IsFoundingTeam ||
+        CurrentUserService.IsInRole("Admin") ||
+        CurrentUserService.IsInRole("Moderator");
+
+    private IReadOnlyList<UserNotificationDto> FilteredNotifications => _onlyUnreadFilter
+        ? _notifications.Where(n => !n.IsRead).ToList()
+        : _notifications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _isPushSupported = await JS.InvokeAsync<bool>("ludekaPush.isSupported");
+            if (_isPushSupported)
+            {
+                _pushPermissionState = await JS.InvokeAsync<string>("ludekaPush.getPermissionState");
+                _currentDeviceEndpoint = await JS.InvokeAsync<string?>("ludekaPush.getExistingEndpoint");
+                var hasServerPush = await NotificationService.HasActivePushSubscriptionAsync(CurrentUserService.UserId);
+                _isPushSubscribedOnDevice = !string.IsNullOrWhiteSpace(_currentDeviceEndpoint) && hasServerPush;
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            _isPushSupported = false;
+        }
+    }
+
+    private async Task LoadAllAsync()
+    {
+        var userId = CurrentUserService.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+
+        try
+        {
+            _notifications = await NotificationService.GetUserNotificationsAsync(userId, limit: 80);
+            _unreadCount = _notifications.Count(n => !n.IsRead);
+        }
+        catch
+        {
+            _notifications = [];
+            _unreadCount = 0;
+        }
+
+        try
+        {
+            _gameAlerts = await NotificationService.GetUserGameAlertsAsync(userId);
+        }
+        catch
+        {
+            _gameAlerts = [];
+        }
+
+        try
+        {
+            var pref = await PreferenceService.GetUserPreferenceAsync(userId);
+            _notifyNewGiveaways = pref.NotifyNewGiveaways;
+        }
+        catch
+        {
+            _notifyNewGiveaways = false;
+        }
+
+        if (IsStaffUser)
+        {
+            try
+            {
+                _adminSummary = await AdminPendingService.GetPendingSummaryAsync();
+            }
+            catch
+            {
+                _adminSummary = null;
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private void SetFilterAsync(bool onlyUnread)
+    {
+        _onlyUnreadFilter = onlyUnread;
+    }
+
+    private async Task MarkNotificationAsReadAsync(UserNotificationDto item)
+    {
+        if (item.IsRead)
+        {
+            return;
+        }
+
+        try
+        {
+            await NotificationService.MarkAsReadAsync(item.Id, CurrentUserService.UserId);
+            _notifications = _notifications
+                .Select(n => n.Id == item.Id ? n with { IsRead = true, ReadAtUtc = DateTime.UtcNow } : n)
+                .ToList();
+            _unreadCount = _notifications.Count(n => !n.IsRead);
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"No se pudo marcar el aviso como leído: {ex.Message}";
+        }
+    }
+
+    private async Task OpenAndMarkReadAsync(UserNotificationDto item)
+    {
+        if (!item.IsRead)
+        {
+            await MarkNotificationAsReadAsync(item);
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.TargetUrl))
+        {
+            Navigation.NavigateTo(item.TargetUrl);
+        }
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        try
+        {
+            await NotificationService.MarkAllAsReadAsync(CurrentUserService.UserId);
+            var now = DateTime.UtcNow;
+            _notifications = _notifications
+                .Select(n => n.IsRead ? n : n with { IsRead = true, ReadAtUtc = now })
+                .ToList();
+            _unreadCount = 0;
+            _statusMessage = "Todas las notificaciones han quedado marcadas como leídas.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al marcar todas como leídas: {ex.Message}";
+        }
+    }
+
+    private async Task ToggleNotifyGiveawaysAsync()
+    {
+        _notifyNewGiveaways = !_notifyNewGiveaways;
+
+        try
+        {
+            await PreferenceService.SetNotifyNewGiveawaysAsync(CurrentUserService.UserId, _notifyNewGiveaways);
+            _statusMessage = _notifyNewGiveaways
+                ? "Te avisaremos cada vez que se publique un nuevo sorteo en Ludeka."
+                : "Has desactivado los avisos automáticos de nuevos sorteos.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al guardar tu preferencia de sorteos: {ex.Message}";
+        }
+    }
+
+    private async Task RemoveGameAlertAsync(UserGameAlertSubscriptionDto sub)
+    {
+        try
+        {
+            await NotificationService.UnsubscribeGameAlertAsync(CurrentUserService.UserId, sub.GameId, sub.AlertType);
+            _gameAlerts = _gameAlerts.Where(a => a.Id != sub.Id).ToList();
+            _statusMessage = $"Alerta de {GetAlertTypeLabel(sub.AlertType).ToLowerInvariant()} desactivada para «{sub.GameTitle}».";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"No se pudo eliminar la alerta: {ex.Message}";
+        }
+    }
+
+    private async Task EnableWebPushAsync()
+    {
+        if (_isPushBusy) return;
+        _isPushBusy = true;
+
+        try
+        {
+            var vapidPublicKey = NotificationService.GetVapidPublicKey();
+            var result = await JS.InvokeAsync<WebPushSubscriptionRequestDto>("ludekaPush.subscribePush", vapidPublicKey);
+            await NotificationService.RegisterPushSubscriptionAsync(CurrentUserService.UserId, result);
+            _currentDeviceEndpoint = result.Endpoint;
+            _isPushSubscribedOnDevice = true;
+            _pushPermissionState = "granted";
+            _statusMessage = "Notificaciones activadas en este dispositivo correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _pushPermissionState = await JS.InvokeAsync<string>("ludekaPush.getPermissionState");
+            _statusMessage = $"No se pudieron activar las notificaciones del dispositivo: {ex.Message}";
+        }
+        finally
+        {
+            _isPushBusy = false;
+        }
+    }
+
+    private async Task DisableWebPushAsync()
+    {
+        if (_isPushBusy) return;
+        _isPushBusy = true;
+
+        try
+        {
+            var endpoint = await JS.InvokeAsync<string?>("ludekaPush.unsubscribePush");
+            var targetEndpoint = endpoint ?? _currentDeviceEndpoint;
+            if (!string.IsNullOrWhiteSpace(targetEndpoint))
+            {
+                await NotificationService.UnregisterPushSubscriptionAsync(CurrentUserService.UserId, targetEndpoint);
+            }
+            _isPushSubscribedOnDevice = false;
+            _currentDeviceEndpoint = null;
+            _statusMessage = "Notificaciones desactivadas en este dispositivo.";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error al desactivar las notificaciones: {ex.Message}";
+        }
+        finally
+        {
+            _isPushBusy = false;
+        }
+    }
+
+    private static string GetNotificationIcon(UserNotificationType type) => type switch
+    {
+        UserNotificationType.PriceDrop => "tag",
+        UserNotificationType.Reprint => "repeat",
+        UserNotificationType.Restock => "package",
+        UserNotificationType.NewGiveaway => "gift",
+        _ => "bell"
+    };
+
+    private static string GetNotificationTypeLabel(UserNotificationType type) => type switch
+    {
+        UserNotificationType.PriceDrop => "Oferta detectada (-15%)",
+        UserNotificationType.Reprint => "Reimpresión",
+        UserNotificationType.Restock => "Reestock disponible",
+        UserNotificationType.NewGiveaway => "Nuevo sorteo",
+        _ => "Aviso de Ludeka"
+    };
+
+    private static string GetAlertTypeIcon(GameAlertType alertType) => alertType switch
+    {
+        GameAlertType.PriceDrop => "tag",
+        GameAlertType.Reprint => "repeat",
+        GameAlertType.Restock => "package",
+        _ => "bell"
+    };
+
+    private static string GetAlertTypeLabel(GameAlertType alertType) => alertType switch
+    {
+        GameAlertType.PriceDrop => "Oferta (-15% PVP)",
+        GameAlertType.Reprint => "Reimpresión",
+        GameAlertType.Restock => "Reestock",
+        _ => "Alerta"
+    };
+
+    private static string FormatDate(DateTime date)
+    {
+        var diff = DateTime.UtcNow - date;
+        if (diff.TotalMinutes < 2) return "Hace un instante";
+        if (diff.TotalMinutes < 60) return $"Hace {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24) return $"Hace {(int)diff.TotalHours} h";
+        return date.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    }
+}

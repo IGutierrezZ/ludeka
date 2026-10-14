@@ -50,6 +50,9 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<AffiliateClickLog> AffiliateClicks => Set<AffiliateClickLog>();
     public DbSet<AffiliateFeedSource> AffiliateFeedSources => Set<AffiliateFeedSource>();
     public DbSet<AffiliateEanDiscrepancyLog> AffiliateEanDiscrepancies => Set<AffiliateEanDiscrepancyLog>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<UserGameAlertSubscription> UserGameAlertSubscriptions => Set<UserGameAlertSubscription>();
+    public DbSet<UserPushSubscription> UserPushSubscriptions => Set<UserPushSubscription>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -349,6 +352,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         userPref.Property(u => u.PreferredTheme).HasMaxLength(32).IsRequired();
         userPref.Property(u => u.Country).HasMaxLength(100);
         userPref.Property(u => u.HidePublicProfile).HasDefaultValue(false);
+        userPref.Property(u => u.NotifyNewGiveaways).HasDefaultValue(false);
         userPref.Property(u => u.UpdatedAt).IsRequired();
 
         // --- Configuración de GameIssueReport (Incremento 17) ---
@@ -689,5 +693,40 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         discrepancy.HasIndex(d => d.FeedEan);
         discrepancy.HasIndex(d => d.IsResolved);
         discrepancy.HasIndex(d => d.DetectedAtUtc);
+
+        // --- Configuración de Notificaciones de Usuario, Alertas por Juego y Web Push (INC-149) ---
+        var userNotification = modelBuilder.Entity<UserNotification>();
+        userNotification.ToTable("UserNotifications");
+        userNotification.HasKey(n => n.Id);
+        userNotification.Property(n => n.UserId).HasMaxLength(100).IsRequired();
+        userNotification.Property(n => n.Title).HasMaxLength(250).IsRequired();
+        userNotification.Property(n => n.Message).HasMaxLength(1000).IsRequired();
+        userNotification.Property(n => n.TargetUrl).HasMaxLength(500).IsRequired();
+        userNotification.Property(n => n.ImageUrl).HasMaxLength(1000);
+        userNotification.Property(n => n.IsRead).HasDefaultValue(false);
+        userNotification.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAtUtc });
+        userNotification.HasIndex(n => n.GameId);
+
+        var gameAlert = modelBuilder.Entity<UserGameAlertSubscription>();
+        gameAlert.ToTable("UserGameAlertSubscriptions");
+        gameAlert.HasKey(s => s.Id);
+        gameAlert.Property(s => s.UserId).HasMaxLength(100).IsRequired();
+        gameAlert.HasIndex(s => new { s.UserId, s.GameId, s.AlertType }).IsUnique();
+        gameAlert.HasIndex(s => new { s.GameId, s.AlertType });
+        gameAlert.HasOne(s => s.Game)
+            .WithMany()
+            .HasForeignKey(s => s.GameId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var pushSub = modelBuilder.Entity<UserPushSubscription>();
+        pushSub.ToTable("UserPushSubscriptions");
+        pushSub.HasKey(p => p.Id);
+        pushSub.Property(p => p.UserId).HasMaxLength(100).IsRequired();
+        pushSub.Property(p => p.Endpoint).HasMaxLength(1000).IsRequired();
+        pushSub.Property(p => p.P256dh).HasMaxLength(250).IsRequired();
+        pushSub.Property(p => p.Auth).HasMaxLength(150).IsRequired();
+        pushSub.Property(p => p.UserAgent).HasMaxLength(500);
+        pushSub.HasIndex(p => new { p.UserId, p.Endpoint }).IsUnique();
+        pushSub.HasIndex(p => p.UserId);
     }
 }

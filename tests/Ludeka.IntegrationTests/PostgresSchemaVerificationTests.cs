@@ -26,10 +26,10 @@ namespace Ludeka.IntegrationTests;
 public class PostgresSchemaVerificationTests
 {
     /// <summary>Canario literal (diseño §D5): número de tablas declaradas por el modelo hoy.</summary>
-    private const int TablasEsperadas = 43;
+    private const int TablasEsperadas = 46;
 
     /// <summary>Canario literal (diseño §D5): un fichero de migración real bajo Migrations/.</summary>
-    private const int MigracionesEsperadas = 25;
+    private const int MigracionesEsperadas = 26;
 
     private readonly PostgresFixture _fixture;
 

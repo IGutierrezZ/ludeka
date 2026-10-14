@@ -1,0 +1,27 @@
+# Plan de Tareas de Implementación: Sistema de Avisos, Campana de Notificaciones, Web Push y Contador Administrativo Real (INC-149)
+
+- [x] **T1. Propuesta y Documentación Inicial SDD**
+  - Crear worktree `sistema-avisos-notificaciones`, redactar `proposal.md`, `spec.md`, `design.md`, `tasks.md` y registrar `INC-149` en `docs/increments/ROADMAP.md`.
+- [x] **T2. Dominio (`src/Ludeka.Core`)**
+  - Crear `UserNotificationType`, `GameAlertType`, `UserNotification`, `UserGameAlertSubscription` y `UserPushSubscription`.
+  - Añadir `NotifyNewGiveaways` a `UserPreference`.
+  - Añadir interfaz `IUserNotificationRepository`.
+- [x] **T3. Aplicación (`src/Ludeka.Application`)**
+  - Crear DTOs y contratos en `IUserNotificationService` y su implementación `UserNotificationService` (gestión de notificaciones, lectura individual, suscripciones a alertas de juego, preferencia de sorteos, disparo de alertas de precio $\ge 15\%$, reimpresión, reestock y sorteos).
+  - Crear `IAdminPendingSummaryService` y `AdminPendingSummaryService` para agregar el número real de elementos pendientes de moderación/gestión.
+  - Crear interfaz `IWebPushNotificationSender`.
+  - Integrar disparo de alertas en `PriceRadarService`, `WeeklyReleaseService`, `GiveawayService` y `SocialIngestionService`.
+- [x] **T4. Infraestructura y Esquema de Base de Datos (`src/Ludeka.Infrastructure` y `docs/database/`)**
+  - Implementar `SqliteUserNotificationRepository` y `VapidWebPushNotificationSender`.
+  - Registrar `DbSet<UserNotification>`, `DbSet<UserGameAlertSubscription>` y `DbSet<UserPushSubscription>` en `LudekaDbContext`.
+  - Actualizar `SqliteSchemaMigrator.cs`, añadir migración EF Core, actualizar `docs/database/supabase_schema.sql` y ajustar canarios en `PostgresSchemaVerificationTests.cs`.
+  - Registrar servicios en `DependencyInjection.cs` (`Application` e `Infrastructure`).
+- [x] **T5. Interfaz Web, Campana, Modales y PWA Push (`src/Ludeka.Web`)**
+  - Ampliar `wwwroot/service-worker.js` (`push` y `notificationclick`) y añadir `wwwroot/js/ludeka-push.js` e incluirlo en `App.razor`.
+  - Actualizar `AccountMenu.razor` con el círculo rojo de avisos sin leer en el botón colapsado, enlace «Notificaciones» con campana y contador real en «Panel de gestión».
+  - Crear `/cuenta/notificaciones` (`AccountNotifications.razor`) con lectura individual al pulsar cada notificación, activación Web Push, interruptor de sorteos y listado de alertas por juego.
+  - Actualizar `Account.razor` con interruptor de avisos de nuevos sorteos y acceso directo a `/cuenta/notificaciones`.
+  - Actualizar `GameDetail.razor` y `StoreOffersCard.razor` con botones separados («Avísame de oferta (-15%)», «Avísame de reimpresión», «Avísame de reestock») y el modal de sugerencia al marcar «Lo quiero».
+- [x] **T6. Pruebas Automatizadas y Verificación SDD (`tests/Ludeka.UnitTests`)**
+  - Añadir pruebas unitarias para `UserNotificationService` (descuento $\ge 15\%$, reimpresión, reestock, sorteos, lectura individual), `AdminPendingSummaryService` y contratos de marcado Razor.
+  - Ejecutar `dotnet test` completo, redactar `verification-report.md` y archivar en `docs/specs/sistema/`.

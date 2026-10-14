@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,
     "ProductVersion" character varying(32) NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
@@ -2181,6 +2181,84 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261005094040_AddGameAsin') THEN
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
     VALUES ('20261005094040_AddGameAsin', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261014060000_AddUserNotificationsAndAlerts') THEN
+    ALTER TABLE "UserPreferences" ADD "NotifyNewGiveaways" boolean NOT NULL DEFAULT FALSE;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261014060000_AddUserNotificationsAndAlerts') THEN
+    CREATE TABLE "UserNotifications" (
+        "Id" uuid NOT NULL,
+        "UserId" character varying(100) NOT NULL,
+        "Type" integer NOT NULL,
+        "Title" character varying(250) NOT NULL,
+        "Message" character varying(1000) NOT NULL,
+        "TargetUrl" character varying(500) NOT NULL,
+        "GameId" uuid,
+        "ImageUrl" character varying(1000),
+        "IsRead" boolean NOT NULL DEFAULT FALSE,
+        "CreatedAtUtc" timestamp with time zone NOT NULL,
+        "ReadAtUtc" timestamp with time zone,
+        CONSTRAINT "PK_UserNotifications" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261014060000_AddUserNotificationsAndAlerts') THEN
+    CREATE TABLE "UserGameAlertSubscriptions" (
+        "Id" uuid NOT NULL,
+        "UserId" character varying(100) NOT NULL,
+        "GameId" uuid NOT NULL,
+        "AlertType" integer NOT NULL,
+        "ReferenceBasePvp" numeric,
+        "LastNotifiedPrice" numeric,
+        "LastNotifiedAtUtc" timestamp with time zone,
+        "CreatedAtUtc" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_UserGameAlertSubscriptions" PRIMARY KEY ("Id"),
+        CONSTRAINT "FK_UserGameAlertSubscriptions_Games_GameId" FOREIGN KEY ("GameId") REFERENCES "Games" ("Id") ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261014060000_AddUserNotificationsAndAlerts') THEN
+    CREATE TABLE "UserPushSubscriptions" (
+        "Id" uuid NOT NULL,
+        "UserId" character varying(100) NOT NULL,
+        "Endpoint" character varying(1000) NOT NULL,
+        "P256dh" character varying(250) NOT NULL,
+        "Auth" character varying(150) NOT NULL,
+        "UserAgent" character varying(500),
+        "CreatedAtUtc" timestamp with time zone NOT NULL,
+        CONSTRAINT "PK_UserPushSubscriptions" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261014060000_AddUserNotificationsAndAlerts') THEN
+    CREATE INDEX "IX_UserNotifications_GameId" ON "UserNotifications" ("GameId");
+    CREATE INDEX "IX_UserNotifications_UserId_IsRead_CreatedAtUtc" ON "UserNotifications" ("UserId", "IsRead", "CreatedAtUtc");
+    CREATE INDEX "IX_UserGameAlertSubscriptions_GameId_AlertType" ON "UserGameAlertSubscriptions" ("GameId", "AlertType");
+    CREATE UNIQUE INDEX "IX_UserGameAlertSubscriptions_UserId_GameId_AlertType" ON "UserGameAlertSubscriptions" ("UserId", "GameId", "AlertType");
+    CREATE INDEX "IX_UserPushSubscriptions_UserId" ON "UserPushSubscriptions" ("UserId");
+    CREATE UNIQUE INDEX "IX_UserPushSubscriptions_UserId_Endpoint" ON "UserPushSubscriptions" ("UserId", "Endpoint");
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261014060000_AddUserNotificationsAndAlerts', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;

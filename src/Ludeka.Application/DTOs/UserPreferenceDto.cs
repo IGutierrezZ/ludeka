@@ -10,5 +10,6 @@ public record UserPreferenceDto(
     bool HidePublicProfile = false,
     bool LeaderboardOptIn = false,
     bool LeaderboardAnonymous = false,
-    string? LeaderboardPseudonym = null
+    string? LeaderboardPseudonym = null,
+    bool NotifyNewGiveaways = false
 );
