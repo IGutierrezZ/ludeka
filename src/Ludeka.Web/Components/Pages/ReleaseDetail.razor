@@ -652,6 +652,7 @@ else
         _editGameId = _release.GameId;
         _editError = null;
         _isEditModalOpen = true;
+        StateHasChanged();
     }
 
     private async Task HandleImageSelected(InputFileChangeEventArgs e)
@@ -802,7 +803,7 @@ else
         {
             new("Editar novedad", "pen-line", OpenEditModal),
             new("Crear post Instagram", "camera", () => Navigation.NavigateTo($"/admin/instagram?sourceType=WeeklyRelease&sourceId={_release.Id}")),
-            new("Eliminar novedad", "trash-2", () => _isDeleteConfirmOpen = true, isDestructive: true)
+            new("Eliminar novedad", "trash-2", () => { _isDeleteConfirmOpen = true; StateHasChanged(); }, isDestructive: true)
         };
 
         StaffActionService.SetCustomActions(actions);

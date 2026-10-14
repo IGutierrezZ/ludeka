@@ -176,7 +176,7 @@ else
 
         var actions = new List<StaffActionItem>
         {
-            new("Editar creador", "pencil", () => _isEditModalOpen = true)
+            new("Editar creador", "pencil", () => { _isEditModalOpen = true; StateHasChanged(); })
         };
 
         StaffActionService.SetCustomActions(actions);

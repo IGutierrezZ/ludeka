@@ -76,10 +76,25 @@ public class StaffFloatingMenuContractTests
         // Retirada de botones incrustados en la pestaña multimedia
         Assert.DoesNotContain("Hub Multimedia (Moderar)", source, StringComparison.Ordinal);
 
-        // Registro de acciones en IStaffActionService
+        // Registro de acciones en IStaffActionService con notificación reactiva StateHasChanged()
         Assert.Contains("StaffActionService.SetCustomActions", source, StringComparison.Ordinal);
-        Assert.Contains("Editar Ficha", source, StringComparison.Ordinal);
-        Assert.Contains("Buscar en YouTube", source, StringComparison.Ordinal);
+        Assert.Contains("Editar Ficha\", \"pen-line\", () => { _isEditorModalOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+        Assert.Contains("Buscar en YouTube\", \"tv\", () => { _isYouTubeSearchModalOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+        Assert.Contains("Ingesta Flash Vídeo\", \"zap\", () => { _isFlashIngestOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+        Assert.Contains("Asociar BGG\", \"globe\", () => { _isAssociateBggModalOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+        Assert.Contains("Veredicto Fundador\", \"award\", () => { _isFoundingModalOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+        Assert.Contains("Incidencias / Erratas\", \"flag\", () => { _isReportModalOpen = true; StateHasChanged(); }", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("src/Ludeka.Web/Components/Pages/CreatorDetail.razor", "_isEditModalOpen = true; StateHasChanged();")]
+    [InlineData("src/Ludeka.Web/Components/Pages/PublisherDetail.razor", "_isEditModalOpen = true; StateHasChanged();")]
+    [InlineData("src/Ludeka.Web/Components/Pages/StoreDetail.razor", "_isEditModalOpen = true; StateHasChanged();")]
+    [InlineData("src/Ludeka.Web/Components/Pages/ReleaseDetail.razor", "_isDeleteConfirmOpen = true; StateHasChanged();")]
+    public void DetailPages_ShouldTriggerStateHasChanged_WhenOpeningStaffModals(string relativePath, string expectedPattern)
+    {
+        var source = ReadSource(relativePath);
+        Assert.Contains(expectedPattern, source, StringComparison.Ordinal);
     }
 
     private static string ReadSource(string relativePath)

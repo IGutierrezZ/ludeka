@@ -1633,6 +1633,7 @@ else
             FoundingVerdictBadge: verdictBadge);
 
         _isSocialCardModalOpen = true;
+        StateHasChanged();
     }
 
     private async Task LoadUserCountryAsync()
@@ -1961,6 +1962,7 @@ else
 
         _isGeneratingAiSummary = true;
         _aiSummaryMessage = null;
+        StateHasChanged();
 
         try
         {
@@ -1981,6 +1983,7 @@ else
         finally
         {
             _isGeneratingAiSummary = false;
+            StateHasChanged();
         }
     }
 
@@ -2014,14 +2017,14 @@ else
 
         var actions = new List<StaffActionItem>
         {
-            new StaffActionItem("Editar Ficha", "pen-line", () => _isEditorModalOpen = true),
+            new StaffActionItem("Editar Ficha", "pen-line", () => { _isEditorModalOpen = true; StateHasChanged(); }),
             new StaffActionItem(
                 _aiSummary != null ? "Forzar Resíntesis IA" : "Generar con IA",
                 "bot",
                 async () => await HandleRequestAiSummary()),
-            new StaffActionItem("Buscar en YouTube", "tv", () => _isYouTubeSearchModalOpen = true),
-            new StaffActionItem("Ingesta Flash Vídeo", "zap", () => _isFlashIngestOpen = true),
-            new StaffActionItem("Asociar BGG", "globe", () => _isAssociateBggModalOpen = true)
+            new StaffActionItem("Buscar en YouTube", "tv", () => { _isYouTubeSearchModalOpen = true; StateHasChanged(); }),
+            new StaffActionItem("Ingesta Flash Vídeo", "zap", () => { _isFlashIngestOpen = true; StateHasChanged(); }),
+            new StaffActionItem("Asociar BGG", "globe", () => { _isAssociateBggModalOpen = true; StateHasChanged(); })
         };
 
         if (Game.BggId > 0)
@@ -2031,11 +2034,11 @@ else
 
         if (CurrentUserService.IsFoundingTeam)
         {
-            actions.Add(new StaffActionItem("Veredicto Fundador", "award", () => _isFoundingModalOpen = true));
+            actions.Add(new StaffActionItem("Veredicto Fundador", "award", () => { _isFoundingModalOpen = true; StateHasChanged(); }));
         }
 
         actions.Add(new StaffActionItem("Cartel para Redes", "palette", OpenSocialCardModal));
-        actions.Add(new StaffActionItem("Incidencias / Erratas", "flag", () => _isReportModalOpen = true));
+        actions.Add(new StaffActionItem("Incidencias / Erratas", "flag", () => { _isReportModalOpen = true; StateHasChanged(); }));
 
         StaffActionService.SetCustomActions(actions);
     }
