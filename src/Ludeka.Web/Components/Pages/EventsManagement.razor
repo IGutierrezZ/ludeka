@@ -369,7 +369,7 @@
 
         try
         {
-            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
             var result = await ImageStorageService.SaveEventPosterAsync(
                 eventSlugOrId: string.IsNullOrWhiteSpace(_formTitle) ? "evento" : _formTitle,
                 contentStream: stream,

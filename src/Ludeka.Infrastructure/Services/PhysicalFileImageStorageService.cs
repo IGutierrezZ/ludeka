@@ -66,11 +66,8 @@ public class PhysicalFileImageStorageService : IImageStorageService
         if (string.IsNullOrWhiteSpace(slug))
             return new GameImageUploadResult(false, null, "El slug del juego no puede estar vacío.");
 
-        if (contentStream == null || contentStream.Length == 0)
+        if (contentStream == null)
             return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
-
-        if (contentStream.Length > MaxFileSizeBytes)
-            return new GameImageUploadResult(false, null, $"El tamaño del archivo ({contentStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
 
         var ext = Path.GetExtension(originalFileName)?.ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
@@ -78,6 +75,28 @@ public class PhysicalFileImageStorageService : IImageStorageService
 
         try
         {
+            if (contentStream.CanSeek)
+            {
+                if (contentStream.Length == 0)
+                    return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
+
+                if (contentStream.Length > MaxFileSizeBytes)
+                    return new GameImageUploadResult(false, null, $"El tamaño del archivo ({contentStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
+
+                contentStream.Position = 0;
+            }
+
+            using var bufferStream = new MemoryStream();
+            await contentStream.CopyToAsync(bufferStream, ct);
+
+            if (bufferStream.Length == 0)
+                return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
+
+            if (bufferStream.Length > MaxFileSizeBytes)
+                return new GameImageUploadResult(false, null, $"El tamaño del archivo ({bufferStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
+
+            bufferStream.Position = 0;
+
             if (!Directory.Exists(_gamesDirectory))
             {
                 Directory.CreateDirectory(_gamesDirectory);
@@ -89,14 +108,9 @@ public class PhysicalFileImageStorageService : IImageStorageService
             var fileName = $"{cleanSlug}-{normalizedSlot}-{timestamp}{ext}";
             var fullPath = Path.Combine(_gamesDirectory, fileName);
 
-            if (contentStream.CanSeek)
-            {
-                contentStream.Position = 0;
-            }
-
             using (var fileStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await contentStream.CopyToAsync(fileStream, ct);
+                await bufferStream.CopyToAsync(fileStream, ct);
             }
 
             var relativeUrl = $"/images/games/{fileName}";
@@ -141,11 +155,8 @@ public class PhysicalFileImageStorageService : IImageStorageService
         if (string.IsNullOrWhiteSpace(identifier))
             return new GameImageUploadResult(false, null, "El identificador no puede estar vacío.");
 
-        if (contentStream == null || contentStream.Length == 0)
+        if (contentStream == null)
             return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
-
-        if (contentStream.Length > MaxFileSizeBytes)
-            return new GameImageUploadResult(false, null, $"El tamaño del archivo ({contentStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
 
         var ext = Path.GetExtension(originalFileName)?.ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
@@ -153,6 +164,28 @@ public class PhysicalFileImageStorageService : IImageStorageService
 
         try
         {
+            if (contentStream.CanSeek)
+            {
+                if (contentStream.Length == 0)
+                    return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
+
+                if (contentStream.Length > MaxFileSizeBytes)
+                    return new GameImageUploadResult(false, null, $"El tamaño del archivo ({contentStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
+
+                contentStream.Position = 0;
+            }
+
+            using var bufferStream = new MemoryStream();
+            await contentStream.CopyToAsync(bufferStream, ct);
+
+            if (bufferStream.Length == 0)
+                return new GameImageUploadResult(false, null, "El archivo proporcionado está vacío.");
+
+            if (bufferStream.Length > MaxFileSizeBytes)
+                return new GameImageUploadResult(false, null, $"El tamaño del archivo ({bufferStream.Length / 1024 / 1024} MB) excede el máximo permitido de 5 MB.");
+
+            bufferStream.Position = 0;
+
             var targetDir = Path.Combine(_baseImagesDirectory, subfolder);
             if (!Directory.Exists(targetDir))
             {
@@ -164,14 +197,9 @@ public class PhysicalFileImageStorageService : IImageStorageService
             var fileName = $"{cleanSlug}-{prefix}-{timestamp}{ext}";
             var fullPath = Path.Combine(targetDir, fileName);
 
-            if (contentStream.CanSeek)
-            {
-                contentStream.Position = 0;
-            }
-
             using (var fileStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await contentStream.CopyToAsync(fileStream, ct);
+                await bufferStream.CopyToAsync(fileStream, ct);
             }
 
             var relativeUrl = $"/images/{subfolder}/{fileName}";

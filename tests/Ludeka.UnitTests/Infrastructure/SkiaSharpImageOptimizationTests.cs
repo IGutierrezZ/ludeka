@@ -119,4 +119,73 @@ public class SkiaSharpImageOptimizationTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _optimizer.ConvertToWebpAsync(stream, maxWidth: 1000));
     }
+
+    [Fact]
+    public async Task ConvertToWebpAsync_WithAsyncOnlyNonSeekableStream_SucceedsWithoutSynchronousRead()
+    {
+        // Arrange: Simula BrowserFileStream de Blazor InputFile (CanSeek=false, Read síncrono lanza NotSupportedException)
+        using var underlying = CreateSyntheticImageStream(600, 400);
+        await using var asyncOnlyStream = new AsyncOnlyNonSeekableStream(underlying.ToArray());
+
+        // Act
+        var webpBytes = await _optimizer.ConvertToWebpAsync(asyncOnlyStream, maxWidth: 500, quality: 82);
+
+        // Assert
+        Assert.NotNull(webpBytes);
+        Assert.True(webpBytes.Length > 12);
+    }
+
+    [Fact]
+    public async Task GetDimensionsAsync_WithAsyncOnlyNonSeekableStream_SucceedsWithoutSynchronousRead()
+    {
+        // Arrange
+        using var underlying = CreateSyntheticImageStream(640, 480);
+        await using var asyncOnlyStream = new AsyncOnlyNonSeekableStream(underlying.ToArray());
+
+        // Act
+        var dimensions = await _optimizer.GetDimensionsAsync(asyncOnlyStream);
+
+        // Assert
+        Assert.Equal(640, dimensions.Width);
+        Assert.Equal(480, dimensions.Height);
+    }
+
+    private sealed class AsyncOnlyNonSeekableStream(byte[] data) : Stream
+    {
+        private readonly MemoryStream _inner = new(data);
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException("Seeking/Length not supported.");
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException("Seeking is not supported.");
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+        public override int Read(byte[] buffer, int offset, int count)
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override int Read(Span<byte> buffer)
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override int ReadByte()
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+            => _inner.ReadAsync(buffer, offset, count, cancellationToken);
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default)
+            => _inner.ReadAsync(buffer, cancellationToken);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 }
+
