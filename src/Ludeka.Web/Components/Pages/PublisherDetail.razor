@@ -190,7 +190,7 @@ else
 
         var actions = new List<StaffActionItem>
         {
-            new("Editar editorial", "pencil", () => _isEditModalOpen = true)
+            new("Editar editorial", "pencil", () => { _isEditModalOpen = true; StateHasChanged(); })
         };
 
         StaffActionService.SetCustomActions(actions);

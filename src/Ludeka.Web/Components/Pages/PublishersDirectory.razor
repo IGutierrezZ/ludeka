@@ -185,6 +185,7 @@
     {
         if (_isSyncing) return;
         _isSyncing = true;
+        StateHasChanged();
         try
         {
             await DirectorySeederService.SeedDirectoryAsync();
@@ -197,6 +198,7 @@
         finally
         {
             _isSyncing = false;
+            StateHasChanged();
         }
     }
 
@@ -211,6 +213,7 @@
         _modalWebsiteUrl = null;
         _modalSocialLinks = new List<SocialNetworkLinkDto>();
         _isModalOpen = true;
+        StateHasChanged();
     }
 
     private void OpenEditModal(PublisherDto pub)

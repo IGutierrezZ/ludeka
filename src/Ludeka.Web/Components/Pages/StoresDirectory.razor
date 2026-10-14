@@ -300,6 +300,7 @@
     {
         if (_isSyncing) return;
         _isSyncing = true;
+        StateHasChanged();
         try
         {
             await DirectorySeederService.SeedDirectoryAsync();
@@ -312,6 +313,7 @@
         finally
         {
             _isSyncing = false;
+            StateHasChanged();
         }
     }
 
@@ -339,6 +341,7 @@
         _modalSocialLinks = new List<SocialNetworkLinkDto>();
         _modalShippingCountries = null;
         _isModalOpen = true;
+        StateHasChanged();
     }
 
     private void OpenEditModal(StoreDto store)
