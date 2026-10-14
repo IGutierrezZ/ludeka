@@ -13,7 +13,7 @@ namespace Ludeka.Infrastructure.Services;
 /// </summary>
 public class SkiaSharpImageOptimizationService : IImageOptimizationService
 {
-    public Task<byte[]> ConvertToWebpAsync(
+    public async Task<byte[]> ConvertToWebpAsync(
         Stream inputStream,
         int maxWidth,
         int quality = 82,
@@ -27,7 +27,7 @@ public class SkiaSharpImageOptimizationService : IImageOptimizationService
         }
 
         using var memoryStream = new MemoryStream();
-        inputStream.CopyTo(memoryStream);
+        await inputStream.CopyToAsync(memoryStream, ct);
         memoryStream.Position = 0;
 
         using var originalBitmap = SKBitmap.Decode(memoryStream);
@@ -73,7 +73,7 @@ public class SkiaSharpImageOptimizationService : IImageOptimizationService
                 throw new InvalidOperationException("Error al codificar la imagen en formato WebP.");
             }
 
-            return Task.FromResult(data.ToArray());
+            return data.ToArray();
         }
         finally
         {
@@ -81,7 +81,7 @@ public class SkiaSharpImageOptimizationService : IImageOptimizationService
         }
     }
 
-    public Task<ImageDimensions> GetDimensionsAsync(
+    public async Task<ImageDimensions> GetDimensionsAsync(
         Stream inputStream,
         CancellationToken ct = default)
     {
@@ -92,23 +92,25 @@ public class SkiaSharpImageOptimizationService : IImageOptimizationService
             inputStream.Position = 0;
         }
 
-        using var codec = SKCodec.Create(inputStream);
+        using var memoryStream = new MemoryStream();
+        await inputStream.CopyToAsync(memoryStream, ct);
+        memoryStream.Position = 0;
+
+        using var codec = SKCodec.Create(memoryStream);
         if (codec != null)
         {
-            return Task.FromResult(new ImageDimensions(codec.Info.Width, codec.Info.Height));
+            return new ImageDimensions(codec.Info.Width, codec.Info.Height);
         }
 
-        if (inputStream.CanSeek)
-        {
-            inputStream.Position = 0;
-        }
+        memoryStream.Position = 0;
 
-        using var bitmap = SKBitmap.Decode(inputStream);
+        using var bitmap = SKBitmap.Decode(memoryStream);
         if (bitmap == null)
         {
             throw new InvalidOperationException("No se pudieron leer las dimensiones de la imagen.");
         }
 
-        return Task.FromResult(new ImageDimensions(bitmap.Width, bitmap.Height));
+        return new ImageDimensions(bitmap.Width, bitmap.Height);
     }
 }
+

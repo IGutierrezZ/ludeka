@@ -870,7 +870,7 @@
 
         try
         {
-            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
             var actualSlot = slot == "gallery" ? $"gallery-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}" : slot;
             var result = slot == "cover"
                 ? await ImageStorageService.SaveGameCoverAsync(Game.Slug, stream, file.Name, file.ContentType)

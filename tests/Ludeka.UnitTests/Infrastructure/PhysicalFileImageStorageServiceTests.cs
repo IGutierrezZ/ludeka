@@ -125,10 +125,70 @@ public class PhysicalFileImageStorageServiceTests : IDisposable
         Assert.False(res3.Success);
     }
 
+    [Fact]
+    public async Task SaveGameCoverAsync_WithNonSeekableAsyncOnlyStream_SavesFileSuccessfully()
+    {
+        // Arrange: simula BrowserFileStream de Blazor InputFile (CanSeek=false, Read síncrono lanza excepción)
+        var content = Encoding.UTF8.GetBytes("async-only-browser-file-stream-content");
+        await using var stream = new AsyncOnlyNonSeekableStream(content);
+
+        // Act
+        var result = await _service.SaveGameCoverAsync(
+            slug: "the-castles-of-burgundy",
+            contentStream: stream,
+            originalFileName: "cover.png",
+            contentType: "image/png");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(result.RelativePath);
+        var savedFile = Path.Combine(_tempDirectory, "games", Path.GetFileName(result.RelativePath));
+        Assert.True(File.Exists(savedFile));
+    }
+
     private class FakeLargeStream : MemoryStream
     {
         private readonly long _length;
         public FakeLargeStream(long length) => _length = length;
         public override long Length => _length;
     }
+
+    private sealed class AsyncOnlyNonSeekableStream(byte[] data) : Stream
+    {
+        private readonly MemoryStream _inner = new(data);
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException("Seeking/Length not supported.");
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException("Seeking is not supported.");
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+        public override int Read(byte[] buffer, int offset, int count)
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override int Read(Span<byte> buffer)
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override int ReadByte()
+            => throw new NotSupportedException("Synchronous reads are not supported.");
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+            => _inner.ReadAsync(buffer, offset, count, cancellationToken);
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default)
+            => _inner.ReadAsync(buffer, cancellationToken);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 }
+
