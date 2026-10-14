@@ -149,10 +149,24 @@ else
                         <b class="text-[34px] tracking-[-0.04em] leading-none text-[#FFC145] font-black">@Game.LudistRating.ToString("0.0")</b>
                         <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Ludeka</span>
                     </span>
-                    <span class="flex flex-col gap-2 px-7 border-l border-white/30" title="Rating BGG">
-                        <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
-                        <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
-                    </span>
+                    @if (Game.BggId > 0)
+                    {
+                        <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="flex flex-col gap-2 px-7 border-l border-white/30 group"
+                           title="Rating BGG — Ver ficha en BoardGameGeek">
+                            <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] group-hover:text-[var(--mustard)] transition-colors font-black">@Game.BggRating.ToString("0.0")</b>
+                            <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85 group-hover:text-[var(--mustard)] transition-colors inline-flex items-center gap-0.5">BGG <span>↗</span></span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="flex flex-col gap-2 px-7 border-l border-white/30" title="Rating BGG">
+                            <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
+                            <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
+                        </span>
+                    }
                     <span class="flex flex-col gap-2 px-7 border-l border-white/30" title="Jugadores ideales">
                         <b class="text-[34px] tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetIdealShortPlayerText()</b>
                         <span class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Jugadores</span>
@@ -370,6 +384,18 @@ else
                     {
                         <span class="font-bold">@(string.IsNullOrWhiteSpace(PublisherForCountry) ? Game.Publisher : PublisherForCountry)</span>
                     }
+                    @if (Game.BggId > 0)
+                    {
+                        <span class="text-[var(--on-brand)]/50">&bull;</span>
+                        <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Ver ficha en BoardGameGeek"
+                           class="font-bold border-b border-[var(--mustard)] text-[var(--on-brand)] hover:text-[var(--mustard)] transition-colors inline-flex items-center gap-1 whitespace-nowrap">
+                            <Icon Name="globe" Size="12" />
+                            <span>Ver en BGG ↗</span>
+                        </a>
+                    }
                 </p>
 
                 @* 4 Cifras Clave Móvil con mayor separación *@
@@ -378,10 +404,24 @@ else
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[#FFC145] font-black">@Game.LudistRating.ToString("0.0")</b>
                         <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Ludeka</span>
                     </span>
-                    <span class="flex flex-col gap-1.5 px-2.5 border-l border-white/30" title="Rating BGG">
-                        <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
-                        <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
-                    </span>
+                    @if (Game.BggId > 0)
+                    {
+                        <a href="https://boardgamegeek.com/boardgame/@Game.BggId"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="flex flex-col gap-1.5 px-2.5 border-l border-white/30 group"
+                           title="Rating BGG — Ver ficha en BoardGameGeek">
+                            <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] group-hover:text-[var(--mustard)] transition-colors font-black">@Game.BggRating.ToString("0.0")</b>
+                            <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85 group-hover:text-[var(--mustard)] transition-colors inline-flex items-center gap-0.5">BGG <span>↗</span></span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="flex flex-col gap-1.5 px-2.5 border-l border-white/30" title="Rating BGG">
+                            <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@Game.BggRating.ToString("0.0")</b>
+                            <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">BGG</span>
+                        </span>
+                    }
                     <span class="flex flex-col gap-1.5 px-2.5 border-l border-white/30" title="Jugadores ideales">
                         <b class="text-2xl tracking-[-0.04em] leading-none text-[var(--on-brand)] font-black">@GetIdealShortPlayerText()</b>
                         <span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--on-brand)]/85">Jugadores</span>

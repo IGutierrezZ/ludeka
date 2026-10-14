@@ -254,5 +254,22 @@ public class GameDetailEditorialBlocksContractTests
         // Eyebrow debe formatear BggWeight si está presente
         Assert.Contains("Game.BggWeight.HasValue", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GameDetail_MobileHeader_ShouldRenderBggLinkAndClickableRating()
+    {
+        var source = ReadSource(GameDetailPath);
+
+        int mobileStart = source.IndexOf("@* Versión Móvil (<lg) *@", StringComparison.Ordinal);
+        int tabsNavStart = source.IndexOf("id=\"ficha-tabs-nav\"", StringComparison.Ordinal);
+
+        Assert.True(mobileStart > 0 && tabsNavStart > mobileStart, "Debe existir la sección móvil antes de la navegación de pestañas.");
+
+        var mobileSection = source.Substring(mobileStart, tabsNavStart - mobileStart);
+
+        Assert.Contains("https://boardgamegeek.com/boardgame/@Game.BggId", mobileSection, StringComparison.Ordinal);
+        Assert.Contains("<span>Ver en BGG ↗</span>", mobileSection, StringComparison.Ordinal);
+        Assert.Contains("title=\"Rating BGG — Ver ficha en BoardGameGeek\"", mobileSection, StringComparison.Ordinal);
+    }
 }
 
