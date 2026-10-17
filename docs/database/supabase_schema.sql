@@ -2267,30 +2267,28 @@ START TRANSACTION;
 
 DO $EF$
 BEGIN
-    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261017120000_AddInstagramReelSyncItems') THEN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261017140937_AddInstagramReelSyncItems') THEN
     CREATE TABLE "InstagramReelSyncItems" (
         "Id" uuid NOT NULL,
-        "InstagramMediaId" character varying(120) NOT NULL,
+        "InstagramMediaId" character varying(100) NOT NULL,
         "InstagramPermalink" character varying(500) NOT NULL,
-        "Caption" character varying(4000),
+        "Caption" text,
         "MediaPublishedAtUtc" timestamp with time zone NOT NULL,
         "Status" integer NOT NULL,
-        "GeneratedYouTubeTitle" character varying(150),
-        "GeneratedYouTubeDescription" character varying(5000),
-        "YouTubeVideoId" character varying(100),
-        "YouTubeUrl" character varying(300),
-        "AttemptCount" integer NOT NULL DEFAULT 0,
+        "GeneratedYouTubeTitle" character varying(120),
+        "GeneratedYouTubeDescription" text,
+        "YouTubeVideoId" character varying(64),
+        "YouTubeUrl" character varying(500),
+        "AttemptCount" integer NOT NULL,
         "LastError" character varying(1000),
         "CreatedAtUtc" timestamp with time zone NOT NULL,
         "SyncedAtUtc" timestamp with time zone,
         CONSTRAINT "PK_InstagramReelSyncItems" PRIMARY KEY ("Id")
     );
     CREATE UNIQUE INDEX "IX_InstagramReelSyncItems_InstagramMediaId" ON "InstagramReelSyncItems" ("InstagramMediaId");
-    CREATE INDEX "IX_InstagramReelSyncItems_Status_MediaPublishedAtUtc" ON "InstagramReelSyncItems" ("Status", "MediaPublishedAtUtc");
+    CREATE INDEX "IX_InstagramReelSyncItems_Status" ON "InstagramReelSyncItems" ("Status");
     INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-    VALUES ('20261017120000_AddInstagramReelSyncItems', '10.0.12');
+    VALUES ('20261017140937_AddInstagramReelSyncItems', '10.0.12');
     END IF;
 END $EF$;
 COMMIT;
-
-
