@@ -163,6 +163,7 @@ Este documento es el índice central de los paquetes de trabajo e incrementos (*
 | **INC-148** | Infraestructura SEO, Sitemap XML Dinámico, Robots.txt, Marcado Semántico JSON-LD y Verificación Google Search Console | ⏳ En progreso | [inc-148-seo-sitemap-indexacion.md](inc-148-seo-sitemap-indexacion.md) |
 | **INC-149** | Sistema de Avisos, Campana de Notificaciones, Web Push (PWA/Navegador) y Contador Administrativo Real | ✅ Archivado | [inc-149-sistema-avisos-notificaciones.md](archive/inc-149-sistema-avisos-notificaciones.md) |
 | **INC-150** | Descubrimiento Dinámico de Modelos Gemini por Escalón de Precio y Unificación de Cascada de Reserva | ✅ Archivado | [inc-150-gemini-modelos-dinamicos.md](archive/inc-150-gemini-modelos-dinamicos.md) |
+| **INC-151** | Sincronización Automática de Reels de Instagram a YouTube Shorts con Adaptación Híbrida IA y Directorio | ✅ Archivado | [inc-150-instagram-youtube-shorts-sync.md](archive/inc-150-instagram-youtube-shorts-sync.md) |
 
 ### 🧭 Orden lógico sugerido para INC-55…INC-68
 

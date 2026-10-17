@@ -33,6 +33,7 @@ public static class JobRunnerServiceCollectionExtensions
         services.AddScoped<IJobRunner, DevirImagesBackfillJobRunner>();
         services.AddScoped<IJobRunner, MalditoImagesBackfillJobRunner>();
         services.AddScoped<IJobRunner, ArrakisImagesBackfillJobRunner>();
+        services.AddScoped<IJobRunner, InstagramYouTubeSyncJobRunner>();
         return services;
     }
 }

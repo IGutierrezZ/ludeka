@@ -93,6 +93,8 @@ public class LudekaPersistenceAndDomainServicesTests
             throw new NotImplementedException();
         public Task<string?> GetPermalinkAsync(string mediaId, CancellationToken ct = default) =>
             throw new NotImplementedException();
+        public Task<IReadOnlyList<InstagramAccountMediaDto>> GetAccountReelsAsync(int limit = 25, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<InstagramAccountMediaDto>>([]);
     }
 
     private sealed class FakeSocialMetadataExtractor : ISocialMetadataExtractor
@@ -167,6 +169,17 @@ public class LudekaPersistenceAndDomainServicesTests
         public Task<MalditoCatalogPageResultDto> ExtractCatalogPageAsync(int page = 1, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
+    private sealed class FakeInstagramToYouTubeCaptionAdapter : IInstagramToYouTubeCaptionAdapter
+    {
+        public Task<YouTubeAdaptedMetadataDto> AdaptCaptionForYouTubeShortAsync(string? instagramCaption, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeYouTubeShortsUploadClient : IYouTubeShortsUploadClient
+    {
+        public bool IsConfigured => false;
+        public Task<YouTubeShortUploadResultDto> UploadShortFromUrlAsync(string mediaUrl, string title, string description, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Registra dobles mínimos de los límites de <c>AddLudekaExternalIntegrations</c> (R2b) que los
     /// servicios de dominio de R2a exigen como dependencia dura de constructor. Ninguno se invoca:
@@ -187,6 +200,8 @@ public class LudekaPersistenceAndDomainServicesTests
             .AddSingleton<ITelegramBotClient, FakeTelegramBotClient>()
             .AddSingleton<ICurrentUserService, FakeCurrentUserService>()
             .AddSingleton<IInstagramApiClient, FakeInstagramApiClient>()
+            .AddSingleton<IInstagramToYouTubeCaptionAdapter, FakeInstagramToYouTubeCaptionAdapter>()
+            .AddSingleton<IYouTubeShortsUploadClient, FakeYouTubeShortsUploadClient>()
             .AddSingleton<ISocialMetadataExtractor, FakeSocialMetadataExtractor>()
             .AddSingleton<ISocialAiAnalysisService, FakeSocialAiAnalysisService>()
             .AddSingleton<IImageStorageService, FakeImageStorageService>()
