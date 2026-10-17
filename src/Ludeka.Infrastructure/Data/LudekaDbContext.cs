@@ -53,6 +53,7 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<UserGameAlertSubscription> UserGameAlertSubscriptions => Set<UserGameAlertSubscription>();
     public DbSet<UserPushSubscription> UserPushSubscriptions => Set<UserPushSubscription>();
+    public DbSet<InstagramReelSyncItem> InstagramReelSyncItems => Set<InstagramReelSyncItem>();
 
     public LudekaDbContext(DbContextOptions<LudekaDbContext> options) : base(options)
     {
@@ -728,5 +729,18 @@ public class LudekaDbContext : DbContext, IDataProtectionKeyContext
         pushSub.Property(p => p.UserAgent).HasMaxLength(500);
         pushSub.HasIndex(p => new { p.UserId, p.Endpoint }).IsUnique();
         pushSub.HasIndex(p => p.UserId);
+
+        // --- Configuración de Sincronización de Reels a YouTube Shorts (INC-150) ---
+        var reelSync = modelBuilder.Entity<InstagramReelSyncItem>();
+        reelSync.ToTable("InstagramReelSyncItems");
+        reelSync.HasKey(r => r.Id);
+        reelSync.Property(r => r.InstagramMediaId).HasMaxLength(100).IsRequired();
+        reelSync.Property(r => r.InstagramPermalink).HasMaxLength(500).IsRequired();
+        reelSync.Property(r => r.GeneratedYouTubeTitle).HasMaxLength(120);
+        reelSync.Property(r => r.YouTubeVideoId).HasMaxLength(64);
+        reelSync.Property(r => r.YouTubeUrl).HasMaxLength(500);
+        reelSync.Property(r => r.LastError).HasMaxLength(1000);
+        reelSync.HasIndex(r => r.InstagramMediaId).IsUnique();
+        reelSync.HasIndex(r => r.Status);
     }
 }

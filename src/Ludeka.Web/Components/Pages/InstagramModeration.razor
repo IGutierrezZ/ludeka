@@ -9,6 +9,8 @@
 @using Ludeka.Core.Enums
 @using Microsoft.Extensions.Options
 @inject IInstagramPublisherService PublisherService
+@inject IInstagramYouTubeSyncService ReelSyncService
+@inject IYouTubeShortsUploadClient YouTubeUploadClient
 @inject IGiveawayService GiveawayService
 @inject IWeeklyReleaseService ReleaseService
 @inject ICurrentUserService CurrentUserService
@@ -475,6 +477,134 @@
                     }
                 </div>
             </div>
+
+            @* SECCIÓN INC-150: Sincronización Automática de Reels de Instagram a YouTube Shorts *@
+            <div class="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm space-y-5 mt-8">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h2 class="text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
+                                <Icon Name="video" Size="18" />
+                                <span>Sincronización de Reels a YouTube Shorts</span>
+                            </h2>
+                            @if (YouTubeUploadClient.IsConfigured)
+                            {
+                                <span class="text-[0.68rem] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    YouTube OAuth Conectado
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-[0.68rem] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Configura YouTube:OAuthRefreshToken para publicar en vivo">
+                                    YouTube Shorts en Modo Simulado
+                                </span>
+                            }
+                        </div>
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            Detecta tus Reels de Instagram (1 a 3 min), adapta menciones de editoriales/tiendas con el Directorio de Ludeka + Gemini Flash, añade el pie hacia <code>ludeka.es</code> y los sube como Shorts (máx. 5/día en capa gratuita).
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            @onclick="RunReelsToShortsSyncNow"
+                            disabled="@_isSyncingReels"
+                            class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition-all flex items-center justify-center gap-2 shadow-sm shrink-0 disabled:opacity-50">
+                        @if (_isSyncingReels)
+                        {
+                            <span class="animate-spin inline-block"><Icon Name="hourglass" Size="14" /></span>
+                            <span>Sincronizando Reels a Shorts...</span>
+                        }
+                        else
+                        {
+                            <Icon Name="refresh-cw" Size="14" />
+                            <span>Sincronizar Reels a Shorts ahora</span>
+                        }
+                    </button>
+                </div>
+
+                @if (_lastSyncResult != null)
+                {
+                    <div class="p-3.5 rounded-2xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-xs flex flex-wrap items-center gap-4">
+                        <span class="font-bold text-[var(--text-primary)]">Última ejecución:</span>
+                        <span>Reels en cuenta: <strong>@_lastSyncResult.DiscoveredReelsCount</strong></span>
+                        <span>Nuevos encolados: <strong>@_lastSyncResult.NewlyEnqueuedCount</strong></span>
+                        <span class="text-emerald-400 font-bold">Shorts subidos: @_lastSyncResult.UploadedCount</span>
+                        @if (_lastSyncResult.FailedCount > 0)
+                        {
+                            <span class="text-rose-400 font-bold">Fallidos: @_lastSyncResult.FailedCount</span>
+                        }
+                        @if (_lastSyncResult.StoppedByQuotaLimit)
+                        {
+                            <span class="text-amber-400 font-bold flex items-center gap-1"><Icon Name="triangle-alert" Size="14" /> Límite diario de cuota gratuita alcanzado (continuará mañana)</span>
+                        }
+                    </div>
+                }
+
+                @if (_reelSyncItems.Count == 0)
+                {
+                    <div class="py-8 text-center text-xs text-[var(--text-muted)] italic">
+                        Aún no se han sincronizado Reels. Pulsa «Sincronizar Reels a Shorts ahora» para realizar la carga inicial o espera al job diario <code>instagram-youtube-sync</code>.
+                    </div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-[var(--border-subtle)] text-[var(--text-muted)] uppercase text-[0.68rem]">
+                                    <th class="py-2 pr-3">Fecha IG</th>
+                                    <th class="py-2 px-3">Reel Instagram</th>
+                                    <th class="py-2 px-3">Título Adaptado (YouTube Short)</th>
+                                    <th class="py-2 px-3">Estado</th>
+                                    <th class="py-2 pl-3 text-right">Enlace Short</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[var(--border-subtle)]">
+                                @foreach (var item in _reelSyncItems)
+                                {
+                                    <tr class="hover:bg-[var(--bg-surface-elevated)]/50">
+                                        <td class="py-2.5 pr-3 whitespace-nowrap text-[var(--text-muted)] font-mono text-[0.7rem]">
+                                            @item.MediaPublishedAtUtc.ToString("dd/MM/yyyy")
+                                        </td>
+                                        <td class="py-2.5 px-3 max-w-xs">
+                                            <a href="@item.InstagramPermalink" target="_blank" rel="noopener noreferrer" class="font-bold text-[var(--brand-primary)] hover:underline block truncate">
+                                                @item.InstagramMediaId ↗
+                                            </a>
+                                            <span class="text-[0.68rem] text-[var(--text-muted)] block truncate">@item.Caption</span>
+                                        </td>
+                                        <td class="py-2.5 px-3 max-w-sm">
+                                            <span class="font-bold text-[var(--text-primary)] block truncate">
+                                                @(item.GeneratedYouTubeTitle ?? "Pendiente de adaptación...")
+                                            </span>
+                                            @if (!string.IsNullOrWhiteSpace(item.LastError))
+                                            {
+                                                <span class="text-[0.65rem] text-rose-400 block truncate">@item.LastError</span>
+                                            }
+                                        </td>
+                                        <td class="py-2.5 px-3 whitespace-nowrap">
+                                            <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold @GetReelSyncBadgeClass(item.Status)">
+                                                @item.Status
+                                            </span>
+                                        </td>
+                                        <td class="py-2.5 pl-3 text-right whitespace-nowrap">
+                                            @if (!string.IsNullOrWhiteSpace(item.YouTubeUrl))
+                                            {
+                                                <a href="@item.YouTubeUrl" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold text-[0.7rem] hover:bg-rose-500/25">
+                                                    Ver Short ↗
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-[var(--text-muted)]">&mdash;</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
         }
     }
 </div>
@@ -582,6 +712,10 @@
     private List<GiveawayDto> _availableGiveaways = [];
     private List<WeeklyReleaseDto> _availableReleases = [];
 
+    private List<InstagramReelSyncItemDto> _reelSyncItems = [];
+    private bool _isSyncingReels;
+    private InstagramYouTubeSyncResultDto? _lastSyncResult;
+
     private readonly string[] _suggestedTags = [
         "#juegosdemesa",
         "#boardgames",
@@ -648,6 +782,9 @@
 
             var releases = await ReleaseService.GetReleasesAsync(fromDate: null);
             _availableReleases = releases.ToList();
+
+            var syncItems = await ReelSyncService.GetSyncItemsAsync();
+            _reelSyncItems = syncItems.ToList();
         }
         catch (Exception ex)
         {
@@ -656,6 +793,28 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task RunReelsToShortsSyncNow()
+    {
+        if (_isSyncingReels) return;
+
+        try
+        {
+            _isSyncingReels = true;
+            _errorMessage = null;
+            _lastSyncResult = await ReelSyncService.SyncReelsToYouTubeAsync();
+            var syncItems = await ReelSyncService.GetSyncItemsAsync();
+            _reelSyncItems = syncItems.ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al sincronizar Reels a YouTube Shorts: {ex.Message}";
+        }
+        finally
+        {
+            _isSyncingReels = false;
         }
     }
 
@@ -826,6 +985,14 @@
         InstagramPostDraftStatus.Published => "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
         InstagramPostDraftStatus.Publishing => "bg-sky-500/15 text-sky-400 border border-sky-500/30 animate-pulse",
         InstagramPostDraftStatus.Failed => "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+        _ => "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+    };
+
+    private static string GetReelSyncBadgeClass(InstagramReelSyncStatus status) => status switch
+    {
+        InstagramReelSyncStatus.Uploaded => "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+        InstagramReelSyncStatus.Failed => "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+        InstagramReelSyncStatus.Skipped => "bg-slate-500/15 text-slate-400 border border-slate-500/30",
         _ => "bg-amber-500/15 text-amber-400 border border-amber-500/30"
     };
 }

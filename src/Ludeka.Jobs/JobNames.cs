@@ -28,6 +28,7 @@ public static class JobNames
     public const string DevirImagesBackfill = "devir-images-backfill";
     public const string MalditoImagesBackfill = "maldito-images-backfill";
     public const string ArrakisImagesBackfill = "arrakis-images-backfill";
+    public const string InstagramYouTubeSync = "instagram-youtube-sync";
 
     /// <summary>Los nombres válidos, en el orden en que aparecen en la tabla de configuración.
     /// Comparación sensible a mayúsculas y exacta.</summary>
@@ -51,6 +52,7 @@ public static class JobNames
         EditorialReleasesSync,
         DevirImagesBackfill,
         MalditoImagesBackfill,
-        ArrakisImagesBackfill
+        ArrakisImagesBackfill,
+        InstagramYouTubeSync
     ];
 }

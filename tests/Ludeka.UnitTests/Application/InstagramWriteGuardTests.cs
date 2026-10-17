@@ -32,6 +32,9 @@ internal sealed class RecordingInstagramApiClient : IInstagramApiClient
 
     public Task<string?> GetPermalinkAsync(string mediaId, CancellationToken ct = default)
         => Task.FromResult<string?>($"https://www.instagram.com/p/{mediaId}/");
+
+    public Task<IReadOnlyList<InstagramAccountMediaDto>> GetAccountReelsAsync(int limit = 25, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<InstagramAccountMediaDto>>([]);
 }
 
 /// <summary>Publicación en Instagram: borradores y publicación desde el panel de moderación.</summary>

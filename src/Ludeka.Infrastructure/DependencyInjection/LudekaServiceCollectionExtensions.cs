@@ -232,6 +232,11 @@ public static class LudekaServiceCollectionExtensions
         services.AddScoped<IInstagramComposerService, InstagramComposerService>();
         services.AddScoped<IInstagramPublisherService, InstagramPublisherService>();
 
+        // Incremento 150: Sincronización Automática de Reels de Instagram a YouTube Shorts
+        services.Configure<InstagramYouTubeSyncOptions>(configuration.GetSection(InstagramYouTubeSyncOptions.SectionName));
+        services.AddScoped<IInstagramReelSyncRepository, SqliteInstagramReelSyncRepository>();
+        services.AddScoped<IInstagramYouTubeSyncService, InstagramYouTubeSyncService>();
+
         // Incremento 8: Expansiones, Sinergias y Mezclador de Mesa
         services.AddScoped<IExpansionRepository, SqliteExpansionRepository>();
         services.AddScoped<IExpansionService, ExpansionService>();
@@ -436,6 +441,14 @@ public static class LudekaServiceCollectionExtensions
         services.AddHttpClient<IYouTubeSearchService, YouTubeSearchService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddHttpClient<IYouTubeShortsUploadClient, YouTubeShortsUploadClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
+        services.AddHttpClient<IInstagramToYouTubeCaptionAdapter, InstagramToYouTubeCaptionAdapter>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(25);
         });
 
         // Incremento 42: Hub de Ingesta Social y Multimedia — solo los clientes de extracción/análisis;

@@ -1342,6 +1342,34 @@ public static class SqliteSchemaMigrator
                 await cmd.ExecuteNonQueryAsync(ct);
                 existingTables.Add("UserPushSubscriptions");
             }
+
+            // 36. Crear tabla InstagramReelSyncItems si no existe (INC-150)
+            if (!existingTables.Contains("InstagramReelSyncItems"))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "InstagramReelSyncItems" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_InstagramReelSyncItems" PRIMARY KEY,
+                        "InstagramMediaId" TEXT NOT NULL,
+                        "InstagramPermalink" TEXT NOT NULL,
+                        "Caption" TEXT NULL,
+                        "MediaPublishedAtUtc" TEXT NOT NULL,
+                        "Status" INTEGER NOT NULL DEFAULT 0,
+                        "GeneratedYouTubeTitle" TEXT NULL,
+                        "GeneratedYouTubeDescription" TEXT NULL,
+                        "YouTubeVideoId" TEXT NULL,
+                        "YouTubeUrl" TEXT NULL,
+                        "AttemptCount" INTEGER NOT NULL DEFAULT 0,
+                        "LastError" TEXT NULL,
+                        "CreatedAtUtc" TEXT NOT NULL,
+                        "SyncedAtUtc" TEXT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_InstagramReelSyncItems_InstagramMediaId" ON "InstagramReelSyncItems" ("InstagramMediaId");
+                    CREATE INDEX IF NOT EXISTS "IX_InstagramReelSyncItems_Status" ON "InstagramReelSyncItems" ("Status");
+                    """;
+                await cmd.ExecuteNonQueryAsync(ct);
+                existingTables.Add("InstagramReelSyncItems");
+            }
         }
         finally
         {

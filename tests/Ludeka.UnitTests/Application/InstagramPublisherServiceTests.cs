@@ -191,6 +191,11 @@ public class InstagramPublisherServiceTests
         {
             return Task.FromResult<string?>($"https://www.instagram.com/p/{mediaId}/");
         }
+
+        public Task<IReadOnlyList<InstagramAccountMediaDto>> GetAccountReelsAsync(int limit = 25, CancellationToken ct = default)
+        {
+            return Task.FromResult<IReadOnlyList<InstagramAccountMediaDto>>([]);
+        }
     }
 
     private readonly FakeDraftRepository _draftRepo = new();
