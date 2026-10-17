@@ -23,6 +23,7 @@ public class GeminiReleaseMatcherService : IReleaseAiMatcherService
     private readonly HttpClient _httpClient;
     private readonly GeminiOptions _options;
     private readonly ILogger<GeminiReleaseMatcherService> _logger;
+    private readonly IGeminiModelResolver? _modelResolver;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -32,12 +33,19 @@ public class GeminiReleaseMatcherService : IReleaseAiMatcherService
     public GeminiReleaseMatcherService(
         HttpClient httpClient,
         IOptions<GeminiOptions> options,
-        ILogger<GeminiReleaseMatcherService> logger)
+        ILogger<GeminiReleaseMatcherService> logger,
+        IGeminiModelResolver? modelResolver = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new GeminiOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _modelResolver = modelResolver;
     }
+
+    private Task<IReadOnlyList<string>> GetCandidateModelsChainAsync(CancellationToken ct)
+        => _modelResolver is not null
+            ? _modelResolver.GetCandidateModelsAsync(ct)
+            : Task.FromResult(_options.GetModelCandidateChain());
 
     public async Task<AiReleaseMatchResultDto> SuggestMatchAsync(
         string rawTitle,
@@ -84,8 +92,6 @@ public class GeminiReleaseMatcherService : IReleaseAiMatcherService
         string? notes,
         CancellationToken ct)
     {
-        var effectiveModel = _options.GetEffectiveModel();
-
         var prompt = $@"Eres un experto en juegos de mesa modernos y en la base de datos de BoardGameGeek (BGG).
 Una editorial española ({publisher}) ha anunciado el siguiente lanzamiento o preventa:
 - Título publicado en tienda: ""{title}""
@@ -125,42 +131,59 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura:
         };
 
         var jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
-        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+        var candidateModels = await GetCandidateModelsChainAsync(ct).ConfigureAwait(false);
 
-        var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
-
-        using var response = await _httpClient.PostAsync(requestUri, content, ct).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        for (var i = 0; i < candidateModels.Count; i++)
         {
-            var err = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            _logger.LogWarning("Gemini API devolvió código {Code} al inferir BGG: {Error}", response.StatusCode, err);
-            return null;
+            var model = candidateModels[i];
+            if (i > 0)
+            {
+                _logger.LogInformation(
+                    "Reintentando inferencia BGG en Gemini con modelo de respaldo {FallbackModel} (intento {Attempt}/{Total})",
+                    model, i + 1, candidateModels.Count);
+            }
+
+            using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            var requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_options.ApiKey}";
+
+            using var response = await _httpClient.PostAsync(requestUri, content, ct).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _modelResolver?.ReportModelFailure(model, response.StatusCode);
+                var err = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                _logger.LogWarning("Gemini API ({Model}) devolvió código {Code} al inferir BGG: {Error}", model, response.StatusCode, err);
+                continue;
+            }
+
+            var responseJson = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(responseJson);
+
+            if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+                continue;
+
+            var candidate = candidates[0];
+            if (!candidate.TryGetProperty("content", out var contentProp) ||
+                !contentProp.TryGetProperty("parts", out var parts) ||
+                parts.GetArrayLength() == 0)
+                continue;
+
+            var rawJson = parts[0].GetProperty("text").GetString();
+            if (string.IsNullOrWhiteSpace(rawJson))
+                continue;
+
+            var parsed = JsonSerializer.Deserialize<GeminiMatcherResponseDto>(rawJson, JsonOptions);
+            if (parsed == null)
+                continue;
+
+            _modelResolver?.ReportModelSuccess(model);
+
+            return new AiReleaseMatchResultDto(
+                SuggestedBggId: parsed.SuggestedBggId,
+                SuggestedTitle: !string.IsNullOrWhiteSpace(parsed.SuggestedTitle) ? parsed.SuggestedTitle.Trim() : title,
+                Reasoning: parsed.Reasoning ?? $"Sugerido por Gemini ({model})");
         }
 
-        var responseJson = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        using var doc = JsonDocument.Parse(responseJson);
-
-        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
-            return null;
-
-        var candidate = candidates[0];
-        if (!candidate.TryGetProperty("content", out var contentProp) ||
-            !contentProp.TryGetProperty("parts", out var parts) ||
-            parts.GetArrayLength() == 0)
-            return null;
-
-        var rawJson = parts[0].GetProperty("text").GetString();
-        if (string.IsNullOrWhiteSpace(rawJson))
-            return null;
-
-        var parsed = JsonSerializer.Deserialize<GeminiMatcherResponseDto>(rawJson, JsonOptions);
-        if (parsed == null)
-            return null;
-
-        return new AiReleaseMatchResultDto(
-            SuggestedBggId: parsed.SuggestedBggId,
-            SuggestedTitle: !string.IsNullOrWhiteSpace(parsed.SuggestedTitle) ? parsed.SuggestedTitle.Trim() : title,
-            Reasoning: parsed.Reasoning ?? $"Sugerido por Gemini ({effectiveModel})");
+        return null;
     }
 
     private static AiReleaseMatchResultDto GenerateHeuristicMatch(
