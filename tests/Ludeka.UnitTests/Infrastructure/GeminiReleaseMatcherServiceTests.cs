@@ -66,4 +66,84 @@ public class GeminiReleaseMatcherServiceTests
         Assert.Null(result.SuggestedTitle);
         Assert.Null(result.SuggestedBggId);
     }
+
+    [Fact]
+    public async Task SuggestMatchAsync_WhenPrimaryModelFails_CascadesToNextCandidateFromResolver()
+    {
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "real-key",
+            Model = "auto"
+        });
+
+        var resolver = new StubResolver(["gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+        var responseJson = """
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\"suggestedBggId\": 367209, \"suggestedTitle\": \"Galactic Cruise\", \"reasoning\": \"Edición en español de Maldito Games.\"}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var handler = new FakeHandler(req =>
+        {
+            var url = req.RequestUri?.ToString() ?? string.Empty;
+            if (url.Contains("gemini-3.5-flash-lite"))
+            {
+                return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("Overloaded")
+                };
+            }
+
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseJson, System.Text.Encoding.UTF8, "application/json")
+            };
+        });
+
+        var service = new GeminiReleaseMatcherService(
+            new HttpClient(handler),
+            options,
+            NullLogger<GeminiReleaseMatcherService>.Instance,
+            resolver);
+
+        var result = await service.SuggestMatchAsync("Crucero Estelar Inédito", "Maldito Games", 55m, null);
+
+        Assert.NotNull(result);
+        Assert.Equal(367209, result.SuggestedBggId);
+        Assert.Equal("Galactic Cruise", result.SuggestedTitle);
+        Assert.Contains("gemini-3.5-flash-lite", resolver.FailedModels);
+        Assert.Contains("gemini-3.8-flash", resolver.SucceededModels);
+    }
+
+    private sealed class StubResolver(System.Collections.Generic.IReadOnlyList<string> models) : IGeminiModelResolver
+    {
+        public System.Collections.Generic.List<string> FailedModels { get; } = [];
+        public System.Collections.Generic.List<string> SucceededModels { get; } = [];
+
+        public Task<System.Collections.Generic.IReadOnlyList<string>> GetCandidateModelsAsync(System.Threading.CancellationToken ct = default)
+            => Task.FromResult(models);
+
+        public void ReportModelFailure(string model, System.Net.HttpStatusCode? statusCode)
+            => FailedModels.Add(model);
+
+        public void ReportModelSuccess(string model)
+            => SucceededModels.Add(model);
+    }
+
+    private sealed class FakeHandler(System.Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+            => Task.FromResult(responder(request));
+    }
 }

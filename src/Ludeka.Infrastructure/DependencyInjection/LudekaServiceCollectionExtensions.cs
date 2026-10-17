@@ -426,8 +426,17 @@ public static class LudekaServiceCollectionExtensions
         services.AddHttpClient<IDiscordWebhookClient, DiscordWebhookClient>();
         services.AddHttpClient<ITelegramBotClient, TelegramBotClient>();
 
-        // Incremento 13: Módulo de Síntesis con IA (Google Gemini / Heurística)
+        // Incremento 13 / INC-150: Módulo de Síntesis con IA (Google Gemini / Heurística) y Resolutor Dinámico de Modelos
         services.Configure<GeminiOptions>(configuration.GetSection(GeminiOptions.SectionName));
+        services.AddHttpClient(nameof(GeminiModelResolver), client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddSingleton<IGeminiModelResolver>(sp =>
+            new GeminiModelResolver(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(GeminiModelResolver)),
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GeminiOptions>>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GeminiModelResolver>>()));
         services.AddHttpClient<IAiGameSummaryService, GeminiGameSummaryService>();
 
         // Incremento 14: Búsqueda Quirúrgica y Enlace de YouTube en Tiempo Real

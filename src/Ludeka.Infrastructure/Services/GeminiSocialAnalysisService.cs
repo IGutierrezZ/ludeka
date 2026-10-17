@@ -19,6 +19,7 @@ public class GeminiSocialAnalysisService : ISocialAiAnalysisService
     private readonly HttpClient _httpClient;
     private readonly GeminiOptions _options;
     private readonly ILogger<GeminiSocialAnalysisService> _logger;
+    private readonly IGeminiModelResolver? _modelResolver;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -28,12 +29,19 @@ public class GeminiSocialAnalysisService : ISocialAiAnalysisService
     public GeminiSocialAnalysisService(
         HttpClient httpClient,
         IOptions<GeminiOptions> options,
-        ILogger<GeminiSocialAnalysisService> logger)
+        ILogger<GeminiSocialAnalysisService> logger,
+        IGeminiModelResolver? modelResolver = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new GeminiOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _modelResolver = modelResolver;
     }
+
+    private Task<System.Collections.Generic.IReadOnlyList<string>> GetCandidateModelsChainAsync(CancellationToken ct)
+        => _modelResolver is not null
+            ? _modelResolver.GetCandidateModelsAsync(ct)
+            : Task.FromResult(_options.GetModelCandidateChain());
 
     public async Task<SocialAiAnalysisResultDto> AnalyzeTextAsync(string text, string? authorOrChannel = null, CancellationToken ct = default)
     {
@@ -148,7 +156,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
   ""notes"": ""Resumen o bases breves del contenido""
 }}";
 
-        var models = _options.GetModelCandidateChain();
+        var models = await GetCandidateModelsChainAsync(ct);
         foreach (var model in models)
         {
             try
@@ -199,6 +207,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         using var response = await _httpClient.PostAsync(requestUri, content, ct);
         if (!response.IsSuccessStatusCode)
         {
+            _modelResolver?.ReportModelFailure(model, response.StatusCode);
             var err = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Gemini API ({Model}) devolvió código {Code}: {Error}", model, response.StatusCode, err);
             return null;
@@ -223,6 +232,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         var parsed = JsonSerializer.Deserialize<GeminiAnalysisResponseDto>(rawJson, JsonOptions);
         if (parsed == null)
             return null;
+
+        _modelResolver?.ReportModelSuccess(model);
 
         var type = Enum.TryParse<SocialSubmissionType>(parsed.DetectedType, true, out var t)
             ? t
@@ -342,7 +353,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
             });
         }
 
-        var models = _options.GetModelCandidateChain();
+        var models = await GetCandidateModelsChainAsync(ct);
         foreach (var model in models)
         {
             try
@@ -394,6 +405,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         using var response = await _httpClient.PostAsync(requestUri, content, ct);
         if (!response.IsSuccessStatusCode)
         {
+            _modelResolver?.ReportModelFailure(model, response.StatusCode);
             var err = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Gemini Vision API ({Model}) devolvió código {Code}: {Error}", model, response.StatusCode, err);
             return null;
@@ -418,6 +430,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con los siguientes campos:
         var parsed = JsonSerializer.Deserialize<GeminiAnalysisResponseDto>(rawJson, JsonOptions);
         if (parsed == null)
             return null;
+
+        _modelResolver?.ReportModelSuccess(model);
 
         var type = Enum.TryParse<SocialSubmissionType>(parsed.DetectedType, true, out var t)
             ? t

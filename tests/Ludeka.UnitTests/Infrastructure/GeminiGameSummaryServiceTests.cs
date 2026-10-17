@@ -376,6 +376,150 @@ public class GeminiGameSummaryServiceTests : IAsyncLifetime
         Assert.NotNull(saved2?.AiSummary);
     }
 
+    [Fact]
+    public async Task GenerateSummaryAsync_WithModelResolver_UsesDynamicChainAndReportsFailureAndSuccess()
+    {
+        var game = CreateTestGame();
+        var geminiOptions = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "AIzaSyKey",
+            Model = "auto"
+        });
+
+        var resolver = new StubGeminiModelResolver(["gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+        string geminiResponseJson = """
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"generalVerdict\": \"Veredicto con 3.8 flash tras fallo en lite.\",\n  \"scalabilitySummary\": \"Ideal 4.\",\n  \"ageSummary\": \"8+ años.\",\n  \"footprintSummary\": \"Mesa estándar.\"\n}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var fakeHandler = new FakeHttpMessageHandler((req, _) =>
+        {
+            var uri = req.RequestUri?.ToString() ?? string.Empty;
+            if (uri.Contains("models/gemini-3.5-flash-lite"))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("{\"error\": {\"code\": 503, \"message\": \"Overloaded\"}}")
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiResponseJson, System.Text.Encoding.UTF8, "application/json")
+            });
+        });
+
+        var service = new GeminiGameSummaryService(
+            new HttpClient(fakeHandler),
+            geminiOptions,
+            _gameRepository,
+            NullLogger<GeminiGameSummaryService>.Instance,
+            permissionGuard: null,
+            modelResolver: resolver);
+
+        var result = await service.GenerateSummaryAsync(game);
+
+        Assert.Equal("Google Gemini (gemini-3.8-flash)", result.Model);
+        Assert.Contains(("gemini-3.5-flash-lite", (HttpStatusCode?)HttpStatusCode.ServiceUnavailable), resolver.Failures);
+        Assert.Contains("gemini-3.8-flash", resolver.Successes);
+    }
+
+    [Fact]
+    public async Task GenerateBatchSummariesAsync_WhenFirstModelReturns429_CascadesToNextModelAndSucceeds()
+    {
+        var geminiOptions = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "AIzaSyKey",
+            Model = "auto"
+        });
+
+        var resolver = new StubGeminiModelResolver(["gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+        string batchResponseJson = """
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "[{\"bggId\":13,\"generalVerdict\":\"Clásico comercial.\",\"scalabilitySummary\":\"3-4 jugadores.\",\"ageSummary\":\"8+ años.\",\"footprintSummary\":\"Mesa media.\"}]"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var fakeHandler = new FakeHttpMessageHandler((req, _) =>
+        {
+            var uri = req.RequestUri?.ToString() ?? string.Empty;
+            if (uri.Contains("models/gemini-3.5-flash-lite"))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+                {
+                    Content = new StringContent("{\"error\": {\"code\": 429, \"message\": \"RESOURCE_EXHAUSTED\"}}")
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(batchResponseJson, System.Text.Encoding.UTF8, "application/json")
+            });
+        });
+
+        var service = new GeminiGameSummaryService(
+            new HttpClient(fakeHandler),
+            geminiOptions,
+            _gameRepository,
+            NullLogger<GeminiGameSummaryService>.Instance,
+            permissionGuard: null,
+            modelResolver: resolver);
+
+        var inputs = new List<Ludeka.Application.DTOs.AiGameBatchInputDto>
+        {
+            new(13, "Catan", "Catán", "Klaus Teuber", "Devir", 1995, "Comercio", 7.1, 3, 4, 10)
+        };
+
+        var batchResult = await service.GenerateBatchSummariesAsync(inputs);
+
+        Assert.True(batchResult.Success);
+        Assert.False(batchResult.QuotaExhausted);
+        Assert.Equal("Google Gemini (gemini-3.8-flash) [Batch]", batchResult.Summaries[13].Model);
+        Assert.Contains(("gemini-3.5-flash-lite", (HttpStatusCode?)HttpStatusCode.TooManyRequests), resolver.Failures);
+        Assert.Contains("gemini-3.8-flash", resolver.Successes);
+    }
+
+    private sealed class StubGeminiModelResolver : IGeminiModelResolver
+    {
+        private readonly IReadOnlyList<string> _models;
+        public List<(string Model, HttpStatusCode? StatusCode)> Failures { get; } = [];
+        public List<string> Successes { get; } = [];
+
+        public StubGeminiModelResolver(IReadOnlyList<string> models) => _models = models;
+
+        public Task<IReadOnlyList<string>> GetCandidateModelsAsync(CancellationToken ct = default)
+            => Task.FromResult(_models);
+
+        public void ReportModelFailure(string model, HttpStatusCode? statusCode)
+            => Failures.Add((model, statusCode));
+
+        public void ReportModelSuccess(string model)
+            => Successes.Add(model);
+    }
+
     private class FakeHttpMessageHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;

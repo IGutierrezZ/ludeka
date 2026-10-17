@@ -29,6 +29,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private readonly IGameRepository _gameRepository;
     private readonly ILogger<GeminiGameSummaryService> _logger;
     private readonly ISessionPermissionGuard? _permissionGuard;
+    private readonly IGeminiModelResolver? _modelResolver;
     private string? _lastApiError;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -41,14 +42,21 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         IOptions<GeminiOptions> options,
         IGameRepository gameRepository,
         ILogger<GeminiGameSummaryService> logger,
-        ISessionPermissionGuard? permissionGuard = null)
+        ISessionPermissionGuard? permissionGuard = null,
+        IGeminiModelResolver? modelResolver = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? new GeminiOptions();
         _gameRepository = gameRepository ?? throw new ArgumentNullException(nameof(gameRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _permissionGuard = permissionGuard;
+        _modelResolver = modelResolver;
     }
+
+    private Task<IReadOnlyList<string>> GetCandidateModelsChainAsync(CancellationToken ct)
+        => _modelResolver is not null
+            ? _modelResolver.GetCandidateModelsAsync(ct)
+            : Task.FromResult(_options.GetModelCandidateChain());
 
     /// <summary>
     /// Revalida sesión y permiso releyendo el <c>AppUser</c> actual (INC-46, W1) para la carga por
@@ -297,33 +305,23 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private async Task<AiGameSummaryDto?> CallGeminiApiAsync(Game game, CancellationToken ct)
     {
         string prompt = BuildPrompt(game);
-        string effectiveModel = _options.GetEffectiveModel();
+        var candidateModels = await GetCandidateModelsChainAsync(ct);
 
-        var result = await TryGenerateWithModelAsync(game, prompt, effectiveModel, ct);
-        if (result != null)
+        for (var i = 0; i < candidateModels.Count; i++)
         {
-            return result;
-        }
-
-        // Autorrecuperación: si el modelo configurado no era el predeterminado y falló (ej. 404 o 503),
-        // reintentar automáticamente con el modelo canónico recomendado
-        if (!effectiveModel.Equals(GeminiOptions.DefaultModel, StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogInformation("Reintentando llamada a Gemini con el modelo predeterminado {DefaultModel}", GeminiOptions.DefaultModel);
-            var defaultResult = await TryGenerateWithModelAsync(game, prompt, GeminiOptions.DefaultModel, ct);
-            if (defaultResult != null)
+            var model = candidateModels[i];
+            if (i > 0)
             {
-                return defaultResult;
+                _logger.LogInformation(
+                    "Reintentando llamada a Gemini con el modelo de respaldo {FallbackModel} (intento {Attempt}/{Total})",
+                    model, i + 1, candidateModels.Count);
             }
-        }
 
-        // Fallback de segundo nivel ante posible sobrecarga (HTTP 503) del modelo principal
-        const string fallbackStableModel = "gemini-2.5-flash";
-        if (!effectiveModel.Equals(fallbackStableModel, StringComparison.OrdinalIgnoreCase) &&
-            !GeminiOptions.DefaultModel.Equals(fallbackStableModel, StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogInformation("Reintentando llamada a Gemini con el modelo de respaldo {FallbackModel}", fallbackStableModel);
-            return await TryGenerateWithModelAsync(game, prompt, fallbackStableModel, ct);
+            var result = await TryGenerateWithModelAsync(game, prompt, model, ct);
+            if (result != null)
+            {
+                return result;
+            }
         }
 
         return null;
@@ -358,6 +356,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         using var response = await _httpClient.PostAsync(requestUri, content, ct);
         if (!response.IsSuccessStatusCode)
         {
+            _modelResolver?.ReportModelFailure(model, response.StatusCode);
             string errorBody = await response.Content.ReadAsStringAsync(ct);
             _lastApiError = ExtractErrorMessage(errorBody, response.StatusCode, model);
             _logger.LogWarning("Google Gemini API ({Model}) respondió con código {StatusCode}: {Error}", model, response.StatusCode, errorBody);
@@ -393,6 +392,8 @@ public class GeminiGameSummaryService : IAiGameSummaryService
             _logger.LogWarning("No se pudo parsear la respuesta JSON estructurada de Gemini ({Model}).", model);
             return null;
         }
+
+        _modelResolver?.ReportModelSuccess(model);
 
         return new AiGameSummaryDto(
             GameId: game.Id,
@@ -478,7 +479,6 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private async Task<AiBatchResultDto> CallGeminiBatchApiAsync(IReadOnlyList<AiGameBatchInputDto> games, CancellationToken ct)
     {
         string prompt = BuildBatchPrompt(games);
-        string effectiveModel = _options.GetEffectiveModel();
 
         var requestBody = new
         {
@@ -500,85 +500,124 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         };
 
         string jsonPayload = JsonSerializer.Serialize(requestBody, JsonOptions);
-        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+        var candidateModels = await GetCandidateModelsChainAsync(ct);
 
-        string requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{effectiveModel}:generateContent?key={_options.ApiKey}";
+        string lastErrorMessage = "No hay modelos candidatos disponibles.";
+        bool lastWasQuotaExhausted = false;
 
-        using var response = await _httpClient.PostAsync(requestUri, content, ct);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        for (var i = 0; i < candidateModels.Count; i++)
         {
-            string errorBody = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Google Gemini API ({Model}) respondió con código HTTP 429 Too Many Requests: {ErrorBody}", effectiveModel, errorBody);
-            return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"HTTP 429 Too Many Requests: {errorBody}");
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            string errorBody = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Google Gemini API ({Model}) respondió con código {StatusCode}: {ErrorBody}", effectiveModel, response.StatusCode, errorBody);
-            if (errorBody.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase))
+            var model = candidateModels[i];
+            if (i > 0)
             {
-                return new AiBatchResultDto(Success: false, QuotaExhausted: true, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"RESOURCE_EXHAUSTED: {errorBody}");
+                _logger.LogInformation(
+                    "Reintentando lote de Gemini con modelo de respaldo {FallbackModel} (intento {Attempt}/{Total})",
+                    model, i + 1, candidateModels.Count);
             }
 
-            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: $"HTTP {response.StatusCode}: {errorBody}");
-        }
+            using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            string requestUri = $"{_options.BaseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_options.ApiKey}";
 
-        string responseJson = await response.Content.ReadAsStringAsync(ct);
-        using var doc = JsonDocument.Parse(responseJson);
+            using var response = await _httpClient.PostAsync(requestUri, content, ct);
 
-        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
-        {
-            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "Gemini devolvió respuesta sin candidatos.");
-        }
-
-        var candidate = candidates[0];
-        if (!candidate.TryGetProperty("content", out var contentProp) ||
-            !contentProp.TryGetProperty("parts", out var parts) ||
-            parts.GetArrayLength() == 0)
-        {
-            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "Gemini devolvió respuesta sin partes de contenido.");
-        }
-
-        string rawStructuredJson = parts[0].GetProperty("text").GetString() ?? string.Empty;
-        var parsedList = JsonSerializer.Deserialize<List<GeminiStructuredBatchItemResponse>>(rawStructuredJson, JsonOptions);
-
-        if (parsedList == null || parsedList.Count == 0)
-        {
-            return new AiBatchResultDto(Success: false, QuotaExhausted: false, Summaries: new Dictionary<int, AiGameSummaryDto>(), ErrorMessage: "No se pudo parsear el array JSON estructurado del lote.");
-        }
-
-        var summaries = new Dictionary<int, AiGameSummaryDto>();
-        var gamesDict = games.ToDictionary(g => g.BggId);
-
-        foreach (var item in parsedList)
-        {
-            if (gamesDict.TryGetValue(item.BggId, out var inputGame))
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
-                summaries[item.BggId] = new AiGameSummaryDto(
-                    GameId: Guid.Empty,
-                    GameTitle: inputGame.SpanishTitle,
-                    ScalabilitySummary: item.ScalabilitySummary?.Trim() ?? "Escalabilidad según consenso.",
-                    AgeSummary: item.AgeSummary?.Trim() ?? $"{inputGame.MinAge}+ años.",
-                    FootprintSummary: item.FootprintSummary?.Trim() ?? "Mesa de comedor estándar.",
-                    GeneralVerdict: item.GeneralVerdict?.Trim() ?? "Síntesis editorial.",
-                    Model: $"Google Gemini ({effectiveModel}) [Batch]",
-                    GeneratedAt: DateTime.UtcNow
-                );
+                _modelResolver?.ReportModelFailure(model, response.StatusCode);
+                string errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Google Gemini API ({Model}) respondió con código HTTP 429 Too Many Requests: {ErrorBody}", model, errorBody);
+                lastWasQuotaExhausted = true;
+                lastErrorMessage = $"HTTP 429 Too Many Requests: {errorBody}";
+                continue;
             }
-        }
 
-        // Fallback heurístico transparente para cualquier juego del lote que Gemini haya omitido
-        foreach (var game in games)
-        {
-            if (!summaries.ContainsKey(game.BggId))
+            if (!response.IsSuccessStatusCode)
             {
-                summaries[game.BggId] = HeuristicGameSummaryGenerator.Generate(game, "Heurística Editorial (Fallback Batch)");
+                _modelResolver?.ReportModelFailure(model, response.StatusCode);
+                string errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Google Gemini API ({Model}) respondió con código {StatusCode}: {ErrorBody}", model, response.StatusCode, errorBody);
+                if (errorBody.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase))
+                {
+                    lastWasQuotaExhausted = true;
+                    lastErrorMessage = $"RESOURCE_EXHAUSTED: {errorBody}";
+                }
+                else
+                {
+                    lastWasQuotaExhausted = false;
+                    lastErrorMessage = $"HTTP {response.StatusCode}: {errorBody}";
+                }
+
+                continue;
             }
+
+            string responseJson = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(responseJson);
+
+            if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            {
+                lastWasQuotaExhausted = false;
+                lastErrorMessage = "Gemini devolvió respuesta sin candidatos.";
+                continue;
+            }
+
+            var candidate = candidates[0];
+            if (!candidate.TryGetProperty("content", out var contentProp) ||
+                !contentProp.TryGetProperty("parts", out var parts) ||
+                parts.GetArrayLength() == 0)
+            {
+                lastWasQuotaExhausted = false;
+                lastErrorMessage = "Gemini devolvió respuesta sin partes de contenido.";
+                continue;
+            }
+
+            string rawStructuredJson = parts[0].GetProperty("text").GetString() ?? string.Empty;
+            var parsedList = JsonSerializer.Deserialize<List<GeminiStructuredBatchItemResponse>>(rawStructuredJson, JsonOptions);
+
+            if (parsedList == null || parsedList.Count == 0)
+            {
+                lastWasQuotaExhausted = false;
+                lastErrorMessage = "No se pudo parsear el array JSON estructurado del lote.";
+                continue;
+            }
+
+            _modelResolver?.ReportModelSuccess(model);
+
+            var summaries = new Dictionary<int, AiGameSummaryDto>();
+            var gamesDict = games.ToDictionary(g => g.BggId);
+
+            foreach (var item in parsedList)
+            {
+                if (gamesDict.TryGetValue(item.BggId, out var inputGame))
+                {
+                    summaries[item.BggId] = new AiGameSummaryDto(
+                        GameId: Guid.Empty,
+                        GameTitle: inputGame.SpanishTitle,
+                        ScalabilitySummary: item.ScalabilitySummary?.Trim() ?? "Escalabilidad según consenso.",
+                        AgeSummary: item.AgeSummary?.Trim() ?? $"{inputGame.MinAge}+ años.",
+                        FootprintSummary: item.FootprintSummary?.Trim() ?? "Mesa de comedor estándar.",
+                        GeneralVerdict: item.GeneralVerdict?.Trim() ?? "Síntesis editorial.",
+                        Model: $"Google Gemini ({model}) [Batch]",
+                        GeneratedAt: DateTime.UtcNow
+                    );
+                }
+            }
+
+            // Fallback heurístico transparente para cualquier juego del lote que Gemini haya omitido
+            foreach (var game in games)
+            {
+                if (!summaries.ContainsKey(game.BggId))
+                {
+                    summaries[game.BggId] = HeuristicGameSummaryGenerator.Generate(game, "Heurística Editorial (Fallback Batch)");
+                }
+            }
+
+            return new AiBatchResultDto(Success: true, QuotaExhausted: false, Summaries: summaries, ErrorMessage: null);
         }
 
-        return new AiBatchResultDto(Success: true, QuotaExhausted: false, Summaries: summaries, ErrorMessage: null);
+        return new AiBatchResultDto(
+            Success: false,
+            QuotaExhausted: lastWasQuotaExhausted,
+            Summaries: new Dictionary<int, AiGameSummaryDto>(),
+            ErrorMessage: lastErrorMessage);
     }
 
     private static string BuildBatchPrompt(IReadOnlyList<AiGameBatchInputDto> games)
@@ -631,15 +670,23 @@ public class GeminiGameSummaryService : IAiGameSummaryService
     private async Task<ExpansionAporteAiDto?> CallGeminiExpansionAporteApiAsync(Game expansion, Game? baseGame, CancellationToken ct)
     {
         string prompt = BuildExpansionAportePrompt(expansion, baseGame);
-        string effectiveModel = _options.GetEffectiveModel();
+        var candidateModels = await GetCandidateModelsChainAsync(ct);
 
-        var result = await TryGenerateExpansionAporteWithModelAsync(expansion, baseGame, prompt, effectiveModel, ct);
-        if (result != null) return result;
-
-        if (!effectiveModel.Equals(GeminiOptions.DefaultModel, StringComparison.OrdinalIgnoreCase))
+        for (var i = 0; i < candidateModels.Count; i++)
         {
-            result = await TryGenerateExpansionAporteWithModelAsync(expansion, baseGame, prompt, GeminiOptions.DefaultModel, ct);
-            if (result != null) return result;
+            var model = candidateModels[i];
+            if (i > 0)
+            {
+                _logger.LogInformation(
+                    "Reintentando aporte de expansión en Gemini con modelo de respaldo {FallbackModel} (intento {Attempt}/{Total})",
+                    model, i + 1, candidateModels.Count);
+            }
+
+            var result = await TryGenerateExpansionAporteWithModelAsync(expansion, baseGame, prompt, model, ct);
+            if (result != null)
+            {
+                return result;
+            }
         }
 
         return null;
@@ -671,7 +718,7 @@ public class GeminiGameSummaryService : IAiGameSummaryService
             }
         };
 
-        string url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={_options.ApiKey}";
+        string url = $"{_options.BaseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_options.ApiKey}";
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json")
@@ -680,8 +727,9 @@ public class GeminiGameSummaryService : IAiGameSummaryService
         using var response = await _httpClient.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
         {
+            _modelResolver?.ReportModelFailure(model, response.StatusCode);
             string errContent = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Gemini API error ({StatusCode}) al generar aporte de expansión: {Error}", response.StatusCode, errContent);
+            _logger.LogWarning("Gemini API ({Model}) error ({StatusCode}) al generar aporte de expansión: {Error}", model, response.StatusCode, errContent);
             return null;
         }
 
@@ -695,6 +743,8 @@ public class GeminiGameSummaryService : IAiGameSummaryService
 
         var parsed = JsonSerializer.Deserialize<GeminiExpansionAporteResponse>(textPart, JsonOptions);
         if (parsed == null || string.IsNullOrWhiteSpace(parsed.WhatItBringsSummary)) return null;
+
+        _modelResolver?.ReportModelSuccess(model);
 
         var necessity = Enum.TryParse<ExpansionNecessity>(parsed.Necessity, true, out var nec)
             ? nec
