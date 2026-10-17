@@ -1352,5 +1352,18 @@ Cada incremento se ejecutará siguiendo estrictamente las 7 fases de Spec-Driven
 - **Documento:** [`../increments/inc-146-menu-flotante-staff.md`](../increments/inc-146-menu-flotante-staff.md).
 - **Módulo del Sistema:** [`sistema/24-moderacion-fichas-y-reportes.md`](sistema/24-moderacion-fichas-y-reportes.md).
 
+---
+
+## Incremento 150: Descubrimiento Dinámico de Modelos Gemini por Escalón de Precio y Unificación de Cascada de Reserva
+- **Identificador SDD:** `2026-10-17-inc-150-gemini-modelos-dinamicos`
+- **Objetivo Principal:**
+  1. **Resolutor Dinámico (`IGeminiModelResolver` / `GeminiModelResolver`):** Consulta `GET /v1beta/models`, filtra modelos generativos `flash-lite` y `flash` ($\ge 3.5$), los ordena del más barato al más caro (y de versión más reciente a más antigua dentro de cada gama) y los cachea durante 12 horas.
+  2. **Cooldown en Memoria ante Fallos (`404`/`429`/`503`):** Excluye modelos inexistentes (`404`) y relega temporalmente al final de la cola los modelos sobrecargados o sin cuota (`429`/`503`).
+  3. **Unificación de Cascada:** Conecta `GeminiSocialAnalysisService`, `GeminiGameSummaryService` (individual, lote y expansión) y `GeminiReleaseMatcherService` al resolutor dinámico con `Model = "auto"` por defecto.
+- **Estado:** ⏳ **En progreso** (INC-150).
+- **Documento:** [`../increments/inc-150-gemini-modelos-dinamicos.md`](../increments/inc-150-gemini-modelos-dinamicos.md).
+- **Módulo del Sistema:** [`sistema/10-sintesis-ia.md`](sistema/10-sintesis-ia.md).
+
+
 
 
