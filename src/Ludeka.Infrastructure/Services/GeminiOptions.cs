@@ -11,13 +11,14 @@ public class GeminiOptions
     public const string DefaultModel = "gemini-3.5-flash-lite";
 
     /// <summary>
-    /// Modelos de reserva a intentar en cascada ordenada cuando el modelo primario o configurado falla o se encuentra sobrecargado (503/429).
+    /// Modelos de reserva a intentar en cascada ordenada por precio (de más barato a más caro)
+    /// cuando el catálogo dinámico no está disponible o el modelo primario falla (503/429).
     /// </summary>
     public static readonly string[] DefaultFallbackModels =
     [
         "gemini-3.5-flash-lite",
-        "gemini-3.5-flash",
-        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
         "gemini-3.6-flash"
     ];
 
@@ -49,6 +50,43 @@ public class GeminiOptions
     public bool ShouldSimulate => Simulate || string.IsNullOrWhiteSpace(ApiKey);
 
     /// <summary>
+    /// Determina si existe un modelo explícito configurado por el administrador (distinto de vacío, "auto" o el valor por defecto).
+    /// </summary>
+    public bool HasExplicitModelOverride(out string explicitModel)
+    {
+        var envModel = Environment.GetEnvironmentVariable("Gemini__Model");
+        if (!string.IsNullOrWhiteSpace(envModel))
+        {
+            var trimmedEnv = envModel.Trim();
+            if (trimmedEnv.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                explicitModel = string.Empty;
+                return false;
+            }
+
+            explicitModel = trimmedEnv;
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(Model))
+        {
+            explicitModel = string.Empty;
+            return false;
+        }
+
+        var trimmedModel = Model.Trim();
+        if (trimmedModel.Equals("auto", StringComparison.OrdinalIgnoreCase) ||
+            trimmedModel.Equals(DefaultModel, StringComparison.OrdinalIgnoreCase))
+        {
+            explicitModel = string.Empty;
+            return false;
+        }
+
+        explicitModel = trimmedModel;
+        return true;
+    }
+
+    /// <summary>
     /// Obtiene el modelo efectivo a utilizar.
     /// Prioriza la variable de entorno Gemini__Model para permitir cambios dinámicos en producción sin re-despliegue de código.
     /// Si no existe, emplea la propiedad configurada (o DefaultModel si es "auto" o vacía).
@@ -58,7 +96,10 @@ public class GeminiOptions
         var envModel = Environment.GetEnvironmentVariable("Gemini__Model");
         if (!string.IsNullOrWhiteSpace(envModel))
         {
-            return envModel.Trim();
+            var trimmedEnv = envModel.Trim();
+            return trimmedEnv.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                ? DefaultModel
+                : trimmedEnv;
         }
 
         if (string.IsNullOrWhiteSpace(Model) || Model.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase))

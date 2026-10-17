@@ -19,16 +19,19 @@ public class GeminiOptionsTests
     }
 
     [Fact]
-    public void GetModelCandidateChain_DefaultOptions_ReturnsOrderedCandidatesWithoutDuplicates()
+    public void GetModelCandidateChain_DefaultOptions_ReturnsOrderedCandidatesByPriceWithoutDuplicates()
     {
         var options = new GeminiOptions();
         var chain = options.GetModelCandidateChain();
 
-        Assert.NotEmpty(chain);
-        Assert.Equal("gemini-3.5-flash-lite", chain[0]);
-        Assert.Contains("gemini-3.5-flash", chain);
-        Assert.Contains("gemini-3.1-flash-lite", chain);
-        Assert.Contains("gemini-3.6-flash", chain);
+        Assert.Equal(
+            [
+                "gemini-3.5-flash-lite",
+                "gemini-3.8-flash",
+                "gemini-3.7-flash",
+                "gemini-3.6-flash"
+            ],
+            chain);
         Assert.Equal(chain.Distinct(StringComparer.OrdinalIgnoreCase).Count(), chain.Count);
     }
 
@@ -42,7 +45,42 @@ public class GeminiOptionsTests
         var chain = options.GetModelCandidateChain();
 
         Assert.Equal("gemini-3.6-flash", chain[0]);
+        Assert.Equal("gemini-3.5-flash-lite", chain[1]);
         Assert.Equal(chain.Distinct(StringComparer.OrdinalIgnoreCase).Count(), chain.Count);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("auto")]
+    [InlineData("AUTO")]
+    [InlineData("gemini-3.5-flash-lite")]
+    public void HasExplicitModelOverride_WhenAutoEmptyOrDefault_ReturnsFalse(string? configuredModel)
+    {
+        var options = new GeminiOptions
+        {
+            Model = configuredModel!
+        };
+
+        var hasOverride = options.HasExplicitModelOverride(out var explicitModel);
+
+        Assert.False(hasOverride);
+        Assert.Equal(string.Empty, explicitModel);
+    }
+
+    [Fact]
+    public void HasExplicitModelOverride_WhenCustomModelConfigured_ReturnsTrueWithModel()
+    {
+        var options = new GeminiOptions
+        {
+            Model = "gemini-3.8-flash"
+        };
+
+        var hasOverride = options.HasExplicitModelOverride(out var explicitModel);
+
+        Assert.True(hasOverride);
+        Assert.Equal("gemini-3.8-flash", explicitModel);
     }
 
     [Fact]

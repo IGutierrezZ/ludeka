@@ -497,4 +497,81 @@ public class GeminiSocialAnalysisServiceTests
         Assert.Contains($"(a\\u00F1o en curso: {currentYear})", capturedBody);
         Assert.Contains("NUNCA infieras o asumas a\\u00F1os pasados", capturedBody);
     }
+
+    [Fact]
+    public async Task AnalyzeTextAsync_WithModelResolver_UsesDynamicChainAndReportsFailureAndSuccess()
+    {
+        var options = Options.Create(new GeminiOptions
+        {
+            Simulate = false,
+            ApiKey = "test-key",
+            Model = "auto"
+        });
+
+        var resolver = new StubResolver(["gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+        var innerJson = """
+        {
+          "detectedType": "News",
+          "title": "Anuncio de preventa de Brass",
+          "organizerOrAuthor": "Maldito Games"
+        }
+        """;
+
+        var geminiEnvelopeJson = $$"""
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": {{System.Text.Json.JsonSerializer.Serialize(innerJson)}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+        var client = new HttpClient(new FakeHttpHandler(req =>
+        {
+            var url = req.RequestUri?.ToString() ?? string.Empty;
+            if (url.Contains("gemini-3.5-flash-lite"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent("Model retired")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(geminiEnvelopeJson, Encoding.UTF8, "application/json")
+            };
+        }));
+
+        var service = new GeminiSocialAnalysisService(client, options, NullLogger<GeminiSocialAnalysisService>.Instance, resolver);
+
+        var result = await service.AnalyzeTextAsync("Preventa de Brass disponible esta semana", "Maldito Games");
+
+        Assert.NotNull(result);
+        Assert.Equal("Anuncio de preventa de Brass", result.Title);
+        Assert.Contains(("gemini-3.5-flash-lite", (HttpStatusCode?)HttpStatusCode.NotFound), resolver.Failures);
+        Assert.Contains("gemini-3.8-flash", resolver.Successes);
+    }
+
+    private sealed class StubResolver(IReadOnlyList<string> models) : IGeminiModelResolver
+    {
+        public List<(string Model, HttpStatusCode? StatusCode)> Failures { get; } = [];
+        public List<string> Successes { get; } = [];
+
+        public Task<IReadOnlyList<string>> GetCandidateModelsAsync(CancellationToken ct = default)
+            => Task.FromResult(models);
+
+        public void ReportModelFailure(string model, HttpStatusCode? statusCode)
+            => Failures.Add((model, statusCode));
+
+        public void ReportModelSuccess(string model)
+            => Successes.Add(model);
+    }
 }
